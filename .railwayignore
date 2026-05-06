@@ -1,0 +1,21 @@
+# Development
+.metro-cache
+node_modules/.cache
+*.log
+
+# Replit-specific
+.replit
+replit.nix
+.upm
+
+# Local env
+.env.local
+.env.development
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db

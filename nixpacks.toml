@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "git", "python3"]
+
+[phases.install]
+cmds = ["npm install --legacy-peer-deps"]
+
+[phases.build]
+cmds = ["node scripts/build.js"]
+
+[start]
+cmd = "node_modules/.bin/tsx server/index.ts"
