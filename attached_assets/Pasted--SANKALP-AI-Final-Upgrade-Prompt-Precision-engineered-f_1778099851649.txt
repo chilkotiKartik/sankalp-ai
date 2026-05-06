@@ -1,0 +1,1043 @@
+# SANKALP AI — Final Upgrade Prompt
+## Precision-engineered from full codebase audit · Maximum features · Minimum credits
+
+> Paste this into Replit AI Agent.
+> Every task targets exact files and exact lines. Do not re-read files you already know.
+> Complete every block in order. After each block run: `npx tsc --noEmit` before continuing.
+
+---
+
+## GROUND TRUTH (read before starting — confirms what's already done)
+
+```
+✅ WebSocket JWT auth     — routes.ts line 385-396   (DONE — do NOT touch)
+✅ CPR connected to SOS   — routes.ts line 756-770   (DONE — do NOT touch)
+✅ 9 hidden screens        — ALL linked in index.tsx quick grid lines 624-654 (DONE — nav works)
+✅ Worker GPS simulation   — routes.ts lines 14-35    (DONE)
+✅ addAuditLog() exists    — storage.ts line 1451     (signature: action, userId, userName, details, complaintId?)
+✅ resolveComplaint() sig  — storage.ts line 1085     (id, rating?, feedback?, afterPhoto?, userId?)
+✅ broadcast() defined     — routes.ts line 378       (local function inside registerRoutes)
+✅ node-cron NOT installed — must run: npm install node-cron @types/node-cron
+```
+
+---
+
+## ══════════════════════════════════════════
+## BLOCK A — CRITICAL BUG FIXES
+## Run: npm install node-cron @types/node-cron FIRST
+## ══════════════════════════════════════════
+
+### A1 · Enforce photo on resolution (server/routes.ts line 505)
+
+Find the resolve route. Replace the ENTIRE route body with:
+
+```typescript
+app.put("/api/complaints/:id/resolve", requireAuth, (req, res) => {
+  const user = (req as any).user;
+  const { rating, feedback, afterPhoto, workerNotes } = req.body;
+  if (!afterPhoto || typeof afterPhoto !== "string" || afterPhoto.trim().length < 5) {
+    return res.status(400).json({ message: "Resolution photo is required. Capture an after-photo at the site.", code: "PHOTO_REQUIRED" });
+  }
+  const complaint = storage.resolveComplaint(sp(req.params.id), rating, feedback, afterPhoto.trim(), user.id);
+  if (!complaint) return res.status(404).json({ message: "Not found" });
+  if (workerNotes) (complaint as any).workerNotes = workerNotes;
+  storage.addAuditLog("complaint_resolved_with_proof", user.id, user.name, `Photo proof attached. Rating: ${rating ?? "none"}. Notes: ${workerNotes ?? "none"}`, sp(req.params.id));
+  broadcast({ type: "complaint_resolved", complaintId: complaint.id, ticketId: (complaint as any).ticketId, hasPhoto: true, timestamp: new Date().toISOString() });
+  res.json(complaint);
+});
+```
+
+---
+
+### A2 · Fix web photo fallback in complaints.tsx (line 259-262)
+
+Find: `if (Platform.OS === "web") { setNewPhoto("https://images.unsplash.com/...`
+
+Replace with:
+```typescript
+if (Platform.OS === "web") {
+  const input = document.createElement("input");
+  input.type = "file"; input.accept = "image/*";
+  input.onchange = async (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = (reader.result as string).split(",")[1];
+      setNewPhoto(`data:image/jpeg;base64,${base64.substring(0, 50)}...preview`);
+      try {
+        const baseUrl = getApiUrl();
+        const resp = await fetch(`${baseUrl}api/upload`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ base64, filename: `complaint_${Date.now()}.jpg` }) });
+        const data = await resp.json();
+        setNewPhoto(data.url);
+      } catch { setNewPhoto(URL.createObjectURL(file)); }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+  return;
+}
+```
+
+---
+
+### A3 · Real resolution modal (app/(tabs)/complaints.tsx)
+
+Add these state variables near other useState declarations:
+
+```typescript
+const [resPhotoUri, setResPhotoUri] = useState<string | null>(null);
+const [resPhotoUrl, setResPhotoUrl] = useState<string | null>(null);
+const [resUploading, setResUploading] = useState(false);
+const [resolutionStep, setResolutionStep] = useState<1|2|3>(1);
+const [workerNotes, setWorkerNotes] = useState("");
+```
+
+Add this function before `handleConfirmResolution`:
+
+```typescript
+const handleCaptureResolutionPhoto = useCallback(async () => {
+  if (Platform.OS === "web") {
+    const input = document.createElement("input");
+    input.type = "file"; input.accept = "image/*"; input.capture = "environment";
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(",")[1];
+        setResPhotoUri(URL.createObjectURL(file));
+        setResUploading(true);
+        try {
+          const r = await fetch(`${getApiUrl()}api/upload`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ base64, filename: `res_${Date.now()}.jpg` }) });
+          const d = await r.json(); setResPhotoUrl(d.url);
+        } catch { Alert.alert("Upload Failed", "Please try again."); setResPhotoUri(null); }
+        finally { setResUploading(false); }
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click(); return;
+  }
+  Alert.alert("Resolution Photo", "Capture photo showing issue is fixed", [
+    { text: "📷 Camera", onPress: async () => {
+        const { granted } = await ImagePicker.requestCameraPermissionsAsync();
+        if (!granted) { Alert.alert("Permission needed"); return; }
+        const r = await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.8 });
+        if (!r.canceled && r.assets[0]) {
+          setResPhotoUri(r.assets[0].uri); setResUploading(true);
+          try {
+            const { FileSystem } = await import("expo-file-system");
+            const base64 = await FileSystem.readAsStringAsync(r.assets[0].uri, { encoding: "base64" });
+            const resp = await fetch(`${getApiUrl()}api/upload`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ base64, filename: `res_${Date.now()}.jpg` }) });
+            const d = await resp.json(); setResPhotoUrl(d.url);
+          } catch { Alert.alert("Upload Failed", "Please try again."); setResPhotoUri(null); }
+          finally { setResUploading(false); }
+        }
+    }},
+    { text: "🖼️ Gallery", onPress: async () => {
+        const r = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, quality: 0.8 });
+        if (!r.canceled && r.assets[0]) {
+          setResPhotoUri(r.assets[0].uri); setResUploading(true);
+          try {
+            const { FileSystem } = await import("expo-file-system");
+            const base64 = await FileSystem.readAsStringAsync(r.assets[0].uri, { encoding: "base64" });
+            const resp = await fetch(`${getApiUrl()}api/upload`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ base64, filename: `res_${Date.now()}.jpg` }) });
+            const d = await resp.json(); setResPhotoUrl(d.url);
+          } catch { Alert.alert("Upload Failed"); setResPhotoUri(null); }
+          finally { setResUploading(false); }
+        }
+    }},
+    { text: "Cancel", style: "cancel" }
+  ]);
+}, [token]);
+```
+
+Replace `handleConfirmResolution`:
+
+```typescript
+const handleConfirmResolution = useCallback(async () => {
+  if (!selectedC) return;
+  if (!resPhotoUrl) {
+    Alert.alert("Photo Required", "Capture an after-photo at the site before confirming.", [
+      { text: "📷 Take Photo", onPress: handleCaptureResolutionPhoto },
+      { text: "Cancel", style: "cancel" }
+    ]); return;
+  }
+  setResolving(true);
+  try {
+    await resolveComplaint(selectedC.id, rating || 0, feedback || undefined, resPhotoUrl);
+    setResolutionStep(3);
+    setTimeout(() => {
+      setShowResolution(false); setSelectedC(null); setRating(0); setFeedback(""); setProofAdded(false);
+      setResPhotoUri(null); setResPhotoUrl(null); setResolutionStep(1); setWorkerNotes("");
+    }, 2000);
+  } catch (err: any) {
+    Alert.alert("Error", err?.message?.includes("photo") ? "After-photo is required to resolve." : (err.message || "Could not resolve"));
+  } finally { setResolving(false); }
+}, [selectedC, rating, feedback, resPhotoUrl, resolveComplaint, handleCaptureResolutionPhoto]);
+```
+
+In the resolution modal JSX, update to show a 3-step flow:
+- **Step 1** (`resolutionStep === 1`): Large camera button using `handleCaptureResolutionPhoto`. Show `resPhotoUri` as preview with green "✓ Uploaded" overlay when `resPhotoUrl` is set. Show spinner when `resUploading`. "Next →" button disabled until `resPhotoUrl` truthy.
+- **Step 2** (`resolutionStep === 2`): 5-star emoji rating row. Notes textarea `workerNotes`. "Confirm Resolution" button calls `handleConfirmResolution`.
+- **Step 3** (`resolutionStep === 3`): Large green checkmark animation. "Resolved! 🎉" text. Auto-closes after 2s.
+
+Also in complaint detail — show before/after comparison when `c.afterPhoto` exists:
+```tsx
+{c.beforePhoto && c.afterPhoto && c.status === "resolved" && (
+  <View style={{ flexDirection:"row", gap:6, marginVertical:8 }}>
+    <View style={{ flex:1 }}>
+      <Image source={{ uri: c.beforePhoto }} style={{ width:"100%", height:90, borderRadius:8 }} resizeMode="cover" />
+      <Text style={{ textAlign:"center", fontSize:10, color:"#EF4444", fontWeight:"700", marginTop:4 }}>BEFORE</Text>
+    </View>
+    <Ionicons name="arrow-forward" size={18} color="#9CA3AF" style={{ alignSelf:"center" }} />
+    <View style={{ flex:1 }}>
+      <Image source={{ uri: c.afterPhoto }} style={{ width:"100%", height:90, borderRadius:8 }} resizeMode="cover" />
+      <Text style={{ textAlign:"center", fontSize:10, color:"#00A651", fontWeight:"700", marginTop:4 }}>AFTER ✓</Text>
+    </View>
+  </View>
+)}
+```
+
+---
+
+### A4 · Mobile voice input — fix dead-end (complaints.tsx line 177)
+
+Replace the entire `startVoiceInput` function body:
+
+```typescript
+async function startVoiceInput(onResult: (text: string) => void, onEnd: () => void) {
+  if (Platform.OS === "web") {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { Alert.alert("Not Supported", "Use Chrome or Edge for voice input."); onEnd(); return; }
+    const rec = new SR(); rec.lang = "hi-IN"; rec.continuous = false; rec.interimResults = false;
+    rec.onresult = (e: any) => onResult(e.results[0][0].transcript);
+    rec.onend = onEnd; rec.onerror = onEnd; rec.start(); return;
+  }
+  const { Audio } = await import("expo-av");
+  const { granted } = await Audio.requestPermissionsAsync();
+  if (!granted) { Alert.alert("Permission Needed", "Microphone access is required for voice input."); onEnd(); return; }
+  await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+  const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+  Alert.alert("🎙️ Recording…", "Speak your complaint in Hindi or English, then tap Done.", [{
+    text: "Done",
+    onPress: async () => {
+      try {
+        await recording.stopAndUnloadAsync();
+        const uri = recording.getURI(); if (!uri) { onEnd(); return; }
+        const { FileSystem } = await import("expo-file-system");
+        const base64Audio = await FileSystem.readAsStringAsync(uri, { encoding: "base64" });
+        const resp = await fetch(`${getApiUrl()}api/ai/voice-transcribe`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ audio: base64Audio, language: "hi", format: "m4a" }),
+        });
+        if (resp.ok) { const { text } = await resp.json(); if (text) onResult(text); }
+        else Alert.alert("Transcription Failed", "Could not understand. Please type your complaint.");
+      } catch { Alert.alert("Error", "Voice input failed. Please type instead."); }
+      finally { onEnd(); }
+    }
+  }]);
+}
+```
+
+Add voice transcription route to server/routes.ts (after existing AI routes):
+
+```typescript
+app.post("/api/ai/voice-transcribe", optionalAuth, rateLimit(20, 60_000), async (req, res) => {
+  const { audio, language = "hi", format = "m4a" } = req.body;
+  if (!audio) return res.status(400).json({ message: "audio base64 required" });
+  if (!NVIDIA_API_KEY) return res.json({ text: "", error: "AI unavailable" });
+  try {
+    const body = JSON.stringify({ model: "openai/whisper-large-v3", input: { audio, audio_format: format }, parameters: { language: language === "hi" ? "hindi" : "english" } });
+    const raw = await curlPost("https://integrate.api.nvidia.com/v1/audio/transcriptions", NVIDIA_API_KEY, body, 20);
+    const parsed = JSON.parse(raw);
+    res.json({ text: parsed.text || parsed.transcription || "", language });
+  } catch { res.json({ text: "", error: "transcription_failed" }); }
+});
+```
+
+---
+
+### A5 · SLA + CPR + RTI cron jobs (server/index.ts)
+
+Run: `npm install node-cron @types/node-cron`
+
+Add at the TOP of server/index.ts:
+```typescript
+import cron from "node-cron";
+```
+
+Add AFTER `await registerRoutes(app, httpServer)`:
+
+```typescript
+// ── SLA ESCALATION every 30 min ──────────────────────────────────────────────
+const SLA_H: Record<string,number> = { electricity:6, water:12, pothole:24, garbage:48, streetlight:48, drain:72, tree:96, other:120 };
+cron.schedule("*/30 * * * *", () => {
+  const now = Date.now();
+  let n = 0;
+  for (const c of (storage as any).complaints) {
+    if (c.status === "resolved" || c.status === "closed") continue;
+    const slaMs = (SLA_H[c.category] || 120) * 3_600_000;
+    const elapsed = now - new Date(c.submittedAt).getTime();
+    const hoursOver = Math.max(0, (elapsed - slaMs) / 3_600_000);
+    const cur = c.escalationLevel ?? 0;
+    let next = cur;
+    if (elapsed / slaMs >= 0.5 && cur < 1) next = 1;
+    if (elapsed > slaMs && cur < 2) next = 2;
+    if (hoursOver > 24 && cur < 3) next = 3;
+    if (hoursOver > 48 && cur < 4) next = 4;
+    if (next > cur) {
+      c.escalationLevel = next; n++;
+      (storage as any).broadcastEvent({ type:"sla_escalation", complaintId:c.id, ticketId:c.ticketId, level:next, category:c.category, district:c.district, hoursOverdue:Math.round(hoursOver) });
+    }
+  }
+  if (n > 0) console.log(`[SLA CRON] Escalated ${n} at ${new Date().toISOString()}`);
+});
+
+// ── CPR auto-escalate every 5 min ────────────────────────────────────────────
+cron.schedule("*/5 * * * *", () => {
+  for (const inc of (storage as any).safetyIncidents) {
+    if (inc.status === "safe" || inc.status === "closed") continue;
+    const mins = (Date.now() - new Date(inc.reportedAt).getTime()) / 60_000;
+    const cur = inc.escalationLevel ?? 0;
+    if (mins > 5 && cur < 2) { inc.escalationLevel = 2; inc.updates?.push({ timestamp:new Date().toISOString(), type:"escalated", message:"No patrol response in 5 min. Auto-escalating to DSP.", actor:"SANKALP AI" }); (storage as any).broadcastEvent({ type:"cpr_escalation", incidentId:inc.id, level:2 }); }
+    else if (mins > 10 && cur < 3) { inc.escalationLevel = 3; inc.updates?.push({ timestamp:new Date().toISOString(), type:"escalated", message:"10 min no response. Escalating to Superintendent of Police.", actor:"SANKALP AI" }); (storage as any).broadcastEvent({ type:"cpr_escalation", incidentId:inc.id, level:3, urgency:"critical" }); }
+    else if (mins > 15 && cur < 4) { inc.escalationLevel = 4; inc.updates?.push({ timestamp:new Date().toISOString(), type:"escalated", message:"15 min no response. Alerting DGP and State Control Room.", actor:"SANKALP AI" }); (storage as any).broadcastEvent({ type:"cpr_escalation", incidentId:inc.id, level:4, urgency:"critical" }); }
+  }
+});
+
+// ── RTI deadline check 8am daily ─────────────────────────────────────────────
+cron.schedule("0 8 * * *", () => {
+  for (const r of (storage as any).rtis) {
+    if (r.status !== "submitted" || !r.deadline) continue;
+    const days = (new Date(r.deadline).getTime() - Date.now()) / 86_400_000;
+    if (days <= 3 && days > 0) (storage as any).broadcastEvent({ type:"rti_deadline_warning", rtiId:r.id, userId:r.filedById, daysLeft:Math.ceil(days) });
+    else if (days <= 0 && r.status !== "overdue") { r.status = "overdue"; (storage as any).broadcastEvent({ type:"rti_overdue", rtiId:r.id, userId:r.filedById }); }
+  }
+});
+
+// ── Monthly leaderboard reset 1st midnight ───────────────────────────────────
+cron.schedule("0 0 1 * *", () => {
+  (storage as any).users.forEach((u: any) => { u.monthlyPoints = 0; });
+  console.log("[CRON] Monthly leaderboard reset");
+});
+
+console.log("[CRON] 4 jobs started: SLA(*/30m) CPR(*/5m) RTI(8am) Leaderboard(1st)");
+```
+
+---
+
+### A6 · Push notification delivery (server/routes.ts + context/AuthContext.tsx)
+
+The `sendPush` helper and `pushTokenStore` exist. Add the actual delivery calls.
+
+Add helper after the existing `storePushToken` function in routes.ts:
+```typescript
+async function sendPush(userId: string, title: string, body: string, data: object = {}) {
+  const tokens = pushTokenStore.get(userId) || [];
+  if (!tokens.length) return;
+  try {
+    await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(tokens.map(t => ({ to: t.token, title, body, data, sound: "default" }))),
+    });
+  } catch {}
+}
+```
+
+Now add `sendPush()` calls in 5 places in routes.ts:
+
+1. After `broadcast({ type: "complaint_resolved"` → add:
+```typescript
+// notify complainant
+const comp = storage.getComplaints().find(c => c.id === sp(req.params.id));
+if (comp) sendPush((comp as any).submittedById || "", "✅ Complaint Resolved", `Your complaint ${(comp as any).ticketId} was resolved. Please verify the fix.`, { complaintId: comp.id });
+```
+
+2. In `PUT /api/admin/complaints/:id` when status changes to "in_progress" → add:
+```typescript
+if (body.status === "in_progress") sendPush((updated as any).submittedById || "", "🔧 Work Started", `Officer assigned to your complaint ${(updated as any).ticketId}. Fix in progress.`, { complaintId: updated.id });
+```
+
+3. In `PUT /api/sos/:id/resolve` → add:
+```typescript
+const sosAlert = storage.getSosAlerts().find(a => a.id === sp(req.params.id));
+if (sosAlert) sendPush((sosAlert as any).triggeredById || "", "✅ You're Safe", "Your SOS alert has been resolved by the command centre.", {});
+```
+
+4. In the SLA cron at level 4 escalation → add inside the `if (next > cur && next === 4)` block:
+```typescript
+sendPush(c.submittedById || "", "⚠️ Complaint Escalated", `Ticket ${c.ticketId} has been escalated to the Municipal Commissioner.`, { complaintId: c.id });
+```
+
+5. In the RTI cron `days <= 3` block:
+```typescript
+sendPush(r.filedById || "", "📋 RTI Deadline Soon", `Your RTI has ${Math.ceil(days)} days left for government response.`, { rtiId: r.id });
+```
+
+In **context/AuthContext.tsx**, after token is stored and user is confirmed, add:
+```typescript
+// Register push token (fire-and-forget, never throws)
+(async () => {
+  try {
+    const { Notifications } = await import("expo-notifications");
+    const Constants = (await import("expo-constants")).default;
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== "granted") return;
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    const pushToken = (await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : {})).data;
+    await fetch(`${getApiUrl()}api/push-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${newToken}` },
+      body: JSON.stringify({ token: pushToken, platform: Platform.OS }),
+    });
+  } catch {}
+})();
+```
+
+---
+
+## ══════════════════════════════════════════
+## BLOCK B — 12 NEW OUTSTANDING FEATURES
+## ══════════════════════════════════════════
+
+### B1 · Blockchain hash-chain audit (server/storage.ts)
+
+The existing `addAuditLog` uses a fake random hash. Replace it with real SHA-256 chaining.
+
+Find `addAuditLog` at line 1451. Replace the method body:
+
+```typescript
+addAuditLog(action: string, userId: string, userName: string, details: string, complaintId?: string): AuditLog {
+  const { createHash } = require("crypto");
+  const relevant = complaintId ? this.auditLogs.filter(e => e.complaintId === complaintId) : this.auditLogs;
+  const previousHash = relevant.length > 0 ? (relevant[relevant.length - 1] as any).dataHash : "GENESIS";
+  const timestamp = new Date().toISOString();
+  const payload = `${previousHash}|${timestamp}|${action}|${userId}|${details}`;
+  const dataHash = createHash("sha256").update(payload).digest("hex");
+  const log: AuditLog = {
+    id: genId(), action, userId, userName, details, timestamp, complaintId,
+    actorPhone: userId, actorName: userName,
+    referenceId: complaintId || `REF-${Date.now()}`,
+    hash: dataHash, // keep existing field
+  };
+  (log as any).dataHash = dataHash;
+  (log as any).previousHash = previousHash;
+  this.auditLogs.push(log);
+  if (this.auditLogs.length > 5000) this.auditLogs.shift();
+  return log;
+}
+```
+
+Add route to verify a complaint's audit chain:
+```typescript
+app.get("/api/complaints/:id/audit-chain", requireAuth, (req, res) => {
+  const { createHash } = require("crypto");
+  const logs = storage.getAuditLog(sp(req.params.id)); // existing method
+  let valid = true;
+  for (let i = 1; i < logs.length; i++) {
+    if ((logs[i] as any).previousHash !== (logs[i-1] as any).dataHash) { valid = false; break; }
+  }
+  res.json({ logs, chainValid: valid, entries: logs.length });
+});
+```
+
+In complaint detail view, add "🔐 Audit Trail" collapsible section showing each action with time and `(logs[i] as any).dataHash?.substring(0,8)...` hash preview + green ✅ "Chain Verified" badge.
+
+---
+
+### B2 · RTI AI Draft button (app/(tabs)/rti.tsx)
+
+Add state + handler at the top of the RTI component:
+```typescript
+const [aiLoading, setAiLoading] = useState(false);
+
+const handleAIDraft = useCallback(async () => {
+  if (!subject || !deptName) { Alert.alert("Fill Details First", "Select a department and enter the subject before generating."); return; }
+  setAiLoading(true);
+  try {
+    const resp = await fetch(`${getApiUrl()}api/ai/rti-draft`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ topic: subject, department: deptName, district: user?.district || "Uttarakhand" }),
+    });
+    const data = await resp.json();
+    if (data.text) setDescription(data.text);
+  } catch { Alert.alert("AI Unavailable", "Please write your RTI manually."); }
+  finally { setAiLoading(false); }
+}, [subject, deptName, user, token]);
+```
+
+Add "✨ Draft with AI" button next to the description label in the JSX:
+```tsx
+<View style={{ flexDirection:"row", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+  <Text style={s.label}>RTI Question</Text>
+  <Pressable onPress={handleAIDraft} disabled={aiLoading} style={{ flexDirection:"row", alignItems:"center", gap:6, backgroundColor:"#FF9933", paddingHorizontal:12, paddingVertical:6, borderRadius:20 }}>
+    {aiLoading ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="sparkles" size={14} color="#fff" />}
+    <Text style={{ color:"#fff", fontSize:12, fontWeight:"700" }}>{aiLoading ? "Generating..." : "Draft with AI"}</Text>
+  </Pressable>
+</View>
+```
+
+Add RTI AI draft route in routes.ts:
+```typescript
+app.post("/api/ai/rti-draft", requireAuth, rateLimit(10, 60_000), async (req, res) => {
+  const user = (req as any).user;
+  const { topic, department, district } = req.body;
+  if (!topic || !department) return res.status(400).json({ message: "topic and department required" });
+  if (!NVIDIA_API_KEY) return res.json({ text: `Under the Right to Information Act, 2005, Section 6, I hereby request information regarding ${topic} from ${department}, Uttarakhand. Please provide all relevant records within 30 days as per Section 7(1).` });
+  const prompt = `Write a formal RTI application under RTI Act 2005 Section 6 for a citizen in ${district || user.district}, Uttarakhand. Target: PIO, ${department}. Topic: ${topic}. Requirements: cite RTI Act Section 6 & 7(1), request specific records, ask for reply within 30 days, professional English, under 120 words. Start: "Under the Right to Information Act, 2005..."`;
+  const text = await callNvidiaChat([{ role:"user", content:prompt }], undefined, 250);
+  res.json({ text: text || `Under the Right to Information Act, 2005, Section 6, I hereby request information regarding ${topic} from ${department}. Please provide all relevant records, files, and documents within 30 days as mandated by Section 7(1) of the RTI Act.` });
+});
+```
+
+---
+
+### B3 · Disaster Early Warning System
+
+Add route in routes.ts:
+```typescript
+app.get("/api/disaster/alerts", requireAuth, async (req, res) => {
+  const { district } = req.query;
+  try {
+    const resp = await fetch("https://sachet.ndma.gov.in/cap_public_website/FetchAllAlertDetails", { signal: AbortSignal.timeout(4000) });
+    const data = await resp.json();
+    const ukAlerts = (Array.isArray(data) ? data : []).filter((a: any) =>
+      (a.state || a.State || "").toLowerCase().includes("uttarakhand") ||
+      (district && (a.district || a.District || "").toLowerCase().includes((district as string).toLowerCase()))
+    ).slice(0, 5);
+    let aiNarrative = "";
+    if (NVIDIA_API_KEY && ukAlerts.length > 0) {
+      aiNarrative = await callNvidiaChat([{ role:"user", content:`Summarize in 1 sentence what citizens in ${district || "Uttarakhand"} should do based on these IMD alerts: ${JSON.stringify(ukAlerts.slice(0,2))}. Be direct.` }], undefined, 80) || "";
+    }
+    res.json({ alerts: ukAlerts, aiNarrative, totalFound: ukAlerts.length });
+  } catch {
+    res.json({ alerts: [{ type:"monsoon", severity:"watch", message:"Monsoon season active in Uttarakhand. Avoid hill roads after heavy rain.", source:"USDMA Advisory" }], aiNarrative:"", totalFound:1 });
+  }
+});
+
+app.post("/api/disaster/report", requireAuth, (req, res) => {
+  const user = (req as any).user;
+  const { type, description, geo, location } = req.body;
+  const complaint = storage.createComplaint({
+    category: "other",
+    description: `🆘 DISASTER: ${type} — ${description}`,
+    location: location || `GPS: ${geo?.lat?.toFixed(4)}, ${geo?.lng?.toFixed(4)}`,
+    geo: geo || { lat: 30.3165, lng: 78.0322 },
+    ward: user.district, wardNumber: 1, district: user.district,
+    submittedBy: user.name, submittedByPhone: user.phone, submittedById: user.id,
+  });
+  (complaint as any).priority = "P1";
+  (complaint as any).departmentId = "usdma";
+  broadcast({ type:"disaster_report", complaint, disasterType:type, district:user.district, timestamp:new Date().toISOString() });
+  deptEmitter.emit("event", { type:"disaster_report", departmentId:"usdma", complaint, disasterType:type });
+  res.status(201).json({ complaint });
+});
+```
+
+Create `app/(tabs)/disaster.tsx` — new screen with:
+- **Header**: "⚠️ Disaster Alerts" red pulsing badge if alerts exist
+- **Section 1 — Live Alerts**: Fetch `/api/disaster/alerts`, show alert cards (type icon + district + severity badge + AI narrative). Empty state: "No active alerts for your district"
+- **Section 2 — Quick Dial**: 2×3 grid — `{ "112":"All Emergency","100":"Police","108":"Ambulance","101":"Fire","1070":"Disaster Mgmt","1091":"Women Helpline" }` as colored pressable tiles with `Linking.openURL("tel:"+number)`
+- **Section 3 — Report Disaster**: Type selector (Cloudburst/Flood/Landslide/Earthquake/Forest Fire/Other) + description textarea + GPS auto-location + Submit button → `POST /api/disaster/report`
+- **Section 4 — Nearest Safe Locations**: Call `GET /api/emergency-services` filtered to `type === "hospital" || type === "disaster"`, show 5 nearest with distance + call button
+
+Add `<Tabs.Screen name="disaster" options={{ title:"Disaster", tabBarIcon:..., tabBarBadge: alertCount > 0 ? alertCount : undefined }} />` to `app/(tabs)/_layout.tsx`.
+
+---
+
+### B4 · Night Safety Score per Ward
+
+Add to server/storage.ts (after existing ward methods):
+```typescript
+getNightSafetyScores(district?: string): Array<{wardName:string;district:string;score:number;grade:string;factors:{streetlightFails:number;womenSos:number;patrolActive:boolean};tips:string[]}> {
+  const now = Date.now(); const MONTH = 30 * 86400000;
+  const wards = district ? this.wards.filter(w => w.district === district) : this.wards;
+  return wards.map(ward => {
+    const slFails = this.complaints.filter(c => c.ward === ward.name && c.category === "streetlight" && now - new Date(c.submittedAt).getTime() < MONTH).length;
+    const wSos = this.sosAlerts.filter(a => (a as any).isWomenSafety && a.district === ward.district && now - new Date(a.triggeredAt).getTime() < MONTH).length;
+    const patrolActive = this.patrolVans.some(v => v.district === ward.district && v.status === "active_patrol");
+    const score = Math.max(0, Math.min(100, Math.round(100 - slFails*5 - wSos*8 + (patrolActive?8:0))));
+    const grade = score>=80?"A":score>=60?"B":score>=40?"C":"D";
+    const tips: string[] = [];
+    if (slFails > 2) tips.push(`Fix ${slFails} broken streetlights in ${ward.name}`);
+    if (!patrolActive) tips.push("Deploy night patrol to " + ward.district);
+    if (wSos > 0) tips.push(`${wSos} women safety incidents — increase police visibility`);
+    return { wardName:ward.name, district:ward.district, score, grade, factors:{ streetlightFails:slFails, womenSos:wSos, patrolActive }, tips };
+  }).sort((a,b) => b.score - a.score);
+}
+```
+
+Add route: `app.get("/api/night-safety", requireAuth, (req, res) => res.json(storage.getNightSafetyScores((req as any).user.district)));`
+
+In `app/(tabs)/wards.tsx`, add a toggle tab "Night Safety" next to existing ward list. Shows each ward as a card with the score as a colored ring (A=green, D=red), grade badge, and top tip.
+
+In `server/web/public.html`, add a "Night Safety Leaderboard" section showing top 5 safest + 5 least safe wards. Fetches from `/api/night-safety` (make this route public — remove requireAuth or add an `optionalAuth` middleware).
+
+---
+
+### B5 · Smart Complaint Deduplication (server/storage.ts)
+
+Add `haversineMeters` helper near top of storage.ts (after imports):
+```typescript
+function haversineMeters(a: GeoPoint, b: GeoPoint): number {
+  const R = 6371000, toRad = (d: number) => d * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+  const s = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+}
+```
+
+In `createComplaint()`, AFTER the complaint object is created but BEFORE `this.complaints.push(complaint)`, add:
+```typescript
+// Auto-cluster nearby duplicate reports
+const nearby = this.complaints.filter(c => {
+  if (c.status === "resolved" || c.status === "closed") return false;
+  if (c.category !== data.category) return false;
+  if ((Date.now() - new Date(c.submittedAt).getTime()) > 48 * 3600000) return false;
+  return haversineMeters(c.geo, data.geo) <= 100;
+});
+if (nearby.length > 0) {
+  const parent = nearby[0];
+  (parent as any).clusterSize = ((parent as any).clusterSize || 1) + 1;
+  (complaint as any).isCluster = true;
+  (complaint as any).clusteredInto = parent.id;
+  (complaint as any).clusterSize = 1;
+  this.broadcastEvent({ type:"cluster_update", parentId:parent.id, clusterSize:(parent as any).clusterSize, category:data.category, district:data.district });
+} else {
+  (complaint as any).clusterSize = 1;
+}
+```
+
+In `app/(tabs)/complaints.tsx` submit handler, after success:
+```typescript
+if (result?.complaint?.clusteredInto) {
+  Alert.alert("📍 Merged with Nearby Report", "Your complaint was merged with an existing report of the same issue nearby. This helps officers fix all affected areas together.");
+}
+```
+
+On complaint card render, add cluster badge:
+```tsx
+{(c as any).clusterSize > 1 && !((c as any).clusteredInto) && (
+  <View style={{ backgroundColor:"#FFF7ED", paddingHorizontal:6, paddingVertical:2, borderRadius:10, borderWidth:1, borderColor:"#F59E0B40", marginLeft:4 }}>
+    <Text style={{ fontSize:10, color:"#92400E", fontWeight:"700" }}>🔗 {(c as any).clusterSize} reports</Text>
+  </View>
+)}
+```
+
+---
+
+### B6 · Community upvote auto-escalation (server/routes.ts)
+
+Find `PUT /api/complaints/:id/upvote`. After `res.json(complaint)`, insert before it:
+```typescript
+const upvotes = (complaint as any).upvotes || 0;
+if (upvotes >= 10 && (complaint as any).priority === "P3") {
+  (complaint as any).priority = "P2";
+  storage.addAuditLog("community_escalated_p2", user.id, user.name, `${upvotes} citizens confirmed this issue — auto-escalated to P2`, complaint.id);
+  broadcast({ type:"complaint_escalated", complaintId:complaint.id, upvotes, newPriority:"P2" });
+} else if (upvotes >= 25 && (complaint as any).priority !== "P1") {
+  (complaint as any).priority = "P1";
+  storage.addAuditLog("community_escalated_p1", user.id, user.name, `${upvotes} citizens confirmed — viral issue escalated to P1`, complaint.id);
+  broadcast({ type:"complaint_escalated", complaintId:complaint.id, upvotes, newPriority:"P1" });
+}
+```
+
+On complaint cards, show escalation tier:
+```tsx
+{(c as any).upvotes >= 25 && <Text style={{ fontSize:10, color:"#EF4444", fontWeight:"700" }}>⚡ Viral · P1</Text>}
+{(c as any).upvotes >= 10 && (c as any).upvotes < 25 && <Text style={{ fontSize:10, color:"#F59E0B", fontWeight:"700" }}>🔥 Community Confirmed</Text>}
+```
+
+---
+
+### B7 · SLA countdown on complaint cards (app/(tabs)/complaints.tsx)
+
+Add helper function:
+```typescript
+const SLA_MAP: Record<string,number> = { electricity:6, water:12, pothole:24, garbage:48, streetlight:48, drain:72, tree:96, other:120 };
+function getSLAInfo(submittedAt: string, category: string): { label: string; color: string; urgent: boolean } {
+  const slaHours = SLA_MAP[category] || 120;
+  const elapsedH = (Date.now() - new Date(submittedAt).getTime()) / 3600000;
+  const remaining = slaHours - elapsedH;
+  if (remaining < 0) return { label:`⚠️ ${Math.abs(remaining).toFixed(0)}h overdue`, color:"#EF4444", urgent:true };
+  if (remaining < slaHours * 0.25) return { label:`🔴 ${remaining.toFixed(0)}h left`, color:"#EF4444", urgent:true };
+  if (remaining < slaHours * 0.5)  return { label:`🟡 ${remaining.toFixed(0)}h left`, color:"#F59E0B", urgent:false };
+  return { label:`🟢 ${remaining.toFixed(0)}h left`, color:"#00A651", urgent:false };
+}
+```
+
+On each complaint card (for non-resolved complaints), add:
+```tsx
+{c.status !== "resolved" && c.status !== "closed" && (
+  <Text style={{ fontSize:10, color: getSLAInfo(c.submittedAt, c.category).color, fontWeight:"600", marginTop:2 }}>
+    {getSLAInfo(c.submittedAt, c.category).label}
+  </Text>
+)}
+```
+
+---
+
+### B8 · Real predictive analysis replacing hardcoded seed (server/routes.ts)
+
+Find `app.get("/api/predictive"`. Replace the entire handler body:
+
+```typescript
+app.get("/api/predictive", requireAuth, async (req, res) => {
+  const user = (req as any).user;
+  const district = user.role === "super_admin" ? undefined : user.district;
+  const complaints = storage.getComplaints(district as any);
+  const now = Date.now();
+  const W1 = now - 7*86400000, W2 = now - 14*86400000;
+  const buckets: Record<string, [number,number]> = {};
+  for (const c of complaints) {
+    const key = `${c.ward}|||${c.category}`;
+    if (!buckets[key]) buckets[key] = [0,0];
+    const t = new Date(c.submittedAt).getTime();
+    if (t >= W1) buckets[key][0]++;
+    else if (t >= W2) buckets[key][1]++;
+  }
+  const actionMap: Record<string,string> = { water:"Inspect pipelines. Check pump station pressure.", electricity:"Check transformer load and feeder lines.", pothole:"Deploy repair crew. Patch before monsoon.", drain:"Clear blockages before next rainfall.", streetlight:"Audit faulty fixtures. Check power supply.", garbage:"Increase collection frequency.", tree:"Survey weak trees. Schedule pruning." };
+  const predictions = Object.entries(buckets)
+    .filter(([,v]) => v[0] >= 2)
+    .map(([key, [thisW, lastW]]) => {
+      const [ward, category] = key.split("|||");
+      const trend = lastW > 0 ? Math.round(((thisW-lastW)/lastW)*100) : 100;
+      const d = complaints.find(c => c.ward === ward)?.district || (district || "Uttarakhand");
+      return { ward, category, district:d, thisWeek:thisW, lastWeek:lastW, trend, urgency:thisW>=5?"HIGH":"MEDIUM", prediction:`${ward} shows ${trend}% increase in ${category} complaints — possible infrastructure failure in 7–14 days.`, recommendedAction:actionMap[category]||"Deploy inspection team." };
+    })
+    .filter(p => p.trend > 50 || p.thisWeek >= 4)
+    .sort((a,b) => b.thisWeek - a.thisWeek)
+    .slice(0, 10);
+  let aiInsights = "";
+  if (NVIDIA_API_KEY && predictions.length > 0) {
+    aiInsights = await callNvidiaChat([{ role:"user", content:`Uttarakhand civic complaint spikes: ${JSON.stringify(predictions.slice(0,3))}. Give 2 specific preventive actions district officers should take this week. Be concrete.` }], undefined, 180) || "";
+  }
+  res.json({ predictions, aiInsights, analysisWindow:"14 days", generatedAt:new Date().toISOString() });
+});
+```
+
+---
+
+### B9 · Achievement badge system (app/(tabs)/profile.tsx)
+
+Add this data near the top of the component (after state declarations):
+```typescript
+const badgeDefs = [
+  { id:"first_complaint",  label:"First Report",     icon:"📝", desc:"Filed your first complaint",          unlocked: complaints.length >= 1 },
+  { id:"five_complaints",  label:"Civic Reporter",   icon:"📋", desc:"Filed 5 complaints",                  unlocked: complaints.length >= 5 },
+  { id:"ten_complaints",   label:"Civic Champion",   icon:"🏅", desc:"Filed 10 complaints",                 unlocked: complaints.length >= 10 },
+  { id:"sos_hero",         label:"Safety Hero",      icon:"🚨", desc:"Used the SOS emergency",              unlocked: !!(user as any)?.hasSOS },
+  { id:"petition_champ",   label:"Democracy Voice",  icon:"✍️", desc:"Signed or created a petition",        unlocked: (user?.points || 0) >= 50 },
+  { id:"rti_warrior",      label:"RTI Warrior",      icon:"📄", desc:"Filed an RTI request",                unlocked: (user?.points || 0) >= 100 },
+  { id:"community_hero",   label:"Community Hero",   icon:"👥", desc:"500+ civic points",                   unlocked: (user?.points || 0) >= 500 },
+  { id:"disaster_watcher", label:"USDMA Reporter",   icon:"🆘", desc:"Reported a disaster event",           unlocked: false },
+  { id:"yatra_seva",       label:"Yatra Seva",        icon:"🙏", desc:"Reported issue on pilgrimage route",  unlocked: false },
+];
+```
+
+Replace the basic badge list with a 3-column grid:
+```tsx
+<View style={{ flexDirection:"row", flexWrap:"wrap", gap:10, marginTop:8 }}>
+  {badgeDefs.map(b => (
+    <View key={b.id} style={{ width:"30%", alignItems:"center", padding:12, backgroundColor: b.unlocked ? "#F0FFF4":"#F8FAFC", borderRadius:12, borderWidth:1, borderColor: b.unlocked ? "#00A65140":"#E2E8F0", opacity: b.unlocked ? 1 : 0.5 }}>
+      <Text style={{ fontSize:26, marginBottom:4 }}>{b.unlocked ? b.icon : "🔒"}</Text>
+      <Text style={{ fontSize:10, fontWeight:"700", textAlign:"center", color: b.unlocked ? "#166534":"#9CA3AF" }}>{b.label}</Text>
+      <Text style={{ fontSize:9, textAlign:"center", color:"#9CA3AF", marginTop:2 }}>{b.desc}</Text>
+    </View>
+  ))}
+</View>
+```
+
+---
+
+### B10 · Char Dham Yatra Mode (server/routes.ts + app/(tabs)/index.tsx)
+
+Add route:
+```typescript
+app.get("/api/yatra-status", (req, res) => {
+  const m = new Date().getMonth() + 1;
+  const active = m >= 4 && m <= 11;
+  const centers = [
+    { name:"Badrinath",  district:"Chamoli",     helpline:"01381-222201", geo:{lat:30.7433,lng:79.4934}, openMonth:"Apr", closeMonth:"Nov" },
+    { name:"Kedarnath",  district:"Rudraprayag", helpline:"01364-233500", geo:{lat:30.7352,lng:79.0669}, openMonth:"May", closeMonth:"Nov" },
+    { name:"Gangotri",   district:"Uttarkashi",  helpline:"01374-222020", geo:{lat:30.9947,lng:78.9395}, openMonth:"May", closeMonth:"Nov" },
+    { name:"Yamunotri",  district:"Uttarkashi",  helpline:"01374-222020", geo:{lat:31.0123,lng:78.4567}, openMonth:"May", closeMonth:"Nov" },
+    { name:"Haridwar",   district:"Haridwar",    helpline:"01334-226800", geo:{lat:29.9457,lng:78.1642}, openMonth:"Jan", closeMonth:"Dec" },
+    { name:"Rishikesh",  district:"Dehradun",    helpline:"0135-2431414", geo:{lat:30.0869,lng:78.2676}, openMonth:"Jan", closeMonth:"Dec" },
+  ];
+  res.json({ active, year:new Date().getFullYear(), centers });
+});
+```
+
+In `app/(tabs)/index.tsx`, fetch yatra status on mount and if `active === true`, show a collapsible saffron banner at the top of the screen:
+```tsx
+{yatraActive && (
+  <Pressable onPress={() => setYatraExpanded(!yatraExpanded)} style={{ backgroundColor:"#FF9933", margin:16, borderRadius:12, padding:14, flexDirection:"row", alignItems:"center", justifyContent:"space-between" }}>
+    <View style={{ flex:1 }}>
+      <Text style={{ color:"#fff", fontWeight:"800", fontSize:14 }}>🙏 Char Dham Yatra Season Active</Text>
+      <Text style={{ color:"rgba(255,255,255,0.85)", fontSize:12, marginTop:2 }}>Tap for pilgrimage route info & emergency contacts</Text>
+    </View>
+    <Ionicons name={yatraExpanded ? "chevron-up" : "chevron-down"} size={20} color="#fff" />
+  </Pressable>
+)}
+{yatraActive && yatraExpanded && (
+  <View style={{ marginHorizontal:16, marginTop:-8, backgroundColor:"#FFF7ED", borderRadius:12, padding:14, borderWidth:1, borderColor:"#F59E0B40" }}>
+    {yatraCenters.map(c => (
+      <View key={c.name} style={{ flexDirection:"row", alignItems:"center", justifyContent:"space-between", paddingVertical:8, borderBottomWidth:1, borderBottomColor:"#F59E0B20" }}>
+        <View>
+          <Text style={{ fontWeight:"700", color:"#0B1C3F", fontSize:13 }}>{c.name}</Text>
+          <Text style={{ color:"#64748B", fontSize:11 }}>{c.district} · {c.openMonth}–{c.closeMonth}</Text>
+        </View>
+        <Pressable onPress={() => Linking.openURL(`tel:${c.helpline}`)} style={{ backgroundColor:"#FF9933", paddingHorizontal:10, paddingVertical:5, borderRadius:20 }}>
+          <Text style={{ color:"#fff", fontSize:11, fontWeight:"700" }}>📞 Call</Text>
+        </Pressable>
+      </View>
+    ))}
+  </View>
+)}
+```
+
+---
+
+### B11 · Admin war room: SLA breached KPI card + escalation alerts
+
+In `app/admin/index.tsx`, in the stats response handling, find where KPI cards are rendered. Add a new KPI card:
+```tsx
+{
+  label: "SLA Breached",
+  value: (stats as any).slaBreached || complaints.filter(c => ((c as any).escalationLevel || 0) >= 2).length,
+  color: "#EF4444",
+  icon: "time" as const,
+  bg: "#FEF2F2",
+  onPress: () => setFilterStatus("escalated"),
+}
+```
+
+In WebSocket message handler (`ws.onmessage`), add:
+```typescript
+} else if (data.type === "sla_escalation" && data.level >= 3) {
+  Alert.alert(`⚠️ SLA BREACH Level ${data.level}`, `Ticket ${data.ticketId} (${data.category}) is ${data.hoursOverdue}h overdue in ${data.district}. Escalated to ${data.level === 4 ? "Commissioner" : "Dept Head"}.`);
+  loadStats();
+} else if (data.type === "cpr_escalation" && data.level >= 3) {
+  Alert.alert("🚨 CPR CRITICAL", `Safety incident has no response after ${data.level === 4 ? "15" : "10"} minutes. DGP alerted.`);
+}
+```
+
+In `server/storage.ts`, add `slaBreached` to `getAdminStats()`:
+```typescript
+// In getAdminStats() return object, add:
+slaBreached: this.complaints.filter(c => (c as any).escalationLevel >= 2 && c.status !== "resolved" && c.status !== "closed").length,
+```
+
+---
+
+### B12 · Offline complaint queue (app/_layout.tsx + app/(tabs)/complaints.tsx)
+
+Install: `npm install @react-native-community/netinfo` (may already be present as peer dep)
+
+In `app/_layout.tsx`, add:
+```typescript
+import NetInfo from "@react-native-community/netinfo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const [isOffline, setIsOffline] = useState(false);
+
+useEffect(() => {
+  const unsub = NetInfo.addEventListener(state => {
+    const offline = !state.isConnected;
+    setIsOffline(offline);
+    if (!offline) flushOfflineQueue();
+  });
+  return () => unsub();
+}, []);
+
+const flushOfflineQueue = async () => {
+  try {
+    const raw = await AsyncStorage.getItem("@offline_complaints");
+    if (!raw) return;
+    const queue: any[] = JSON.parse(raw);
+    if (!queue.length) return;
+    const token = await AsyncStorage.getItem("@sankalp_token");
+    for (const item of queue) {
+      try {
+        await fetch(`${getApiUrl()}api/complaints`, { method:"POST", headers:{ "Content-Type":"application/json", Authorization:`Bearer ${token}` }, body:JSON.stringify(item) });
+      } catch {}
+    }
+    await AsyncStorage.removeItem("@offline_complaints");
+    Alert.alert("✅ Synced", `${queue.length} offline complaint(s) have been submitted.`);
+  } catch {}
+};
+
+// Add offline banner in JSX just below safe-area top:
+{isOffline && (
+  <View style={{ backgroundColor:"#F59E0B", paddingVertical:8, paddingHorizontal:16, alignItems:"center", zIndex:999 }}>
+    <Text style={{ color:"#1A1A1A", fontWeight:"700", fontSize:13 }}>📵 Offline — Complaints will sync when reconnected</Text>
+  </View>
+)}
+```
+
+In `app/(tabs)/complaints.tsx` submit handler, wrap the `submitComplaint` call:
+```typescript
+try {
+  const netState = await (await import("@react-native-community/netinfo")).default.fetch();
+  if (!netState.isConnected) {
+    const queue = JSON.parse(await AsyncStorage.getItem("@offline_complaints") || "[]");
+    queue.push(complaintData);
+    await AsyncStorage.setItem("@offline_complaints", JSON.stringify(queue));
+    Alert.alert("Saved Offline", "No internet detected. Your complaint will submit automatically when you reconnect.");
+    return;
+  }
+} catch {}
+// ... existing submit logic
+```
+
+---
+
+## ══════════════════════════════════════════
+## BLOCK C — QUICK WINS (< 30 min each)
+## ══════════════════════════════════════════
+
+### C1 · Fix `app/(tabs)/_layout.tsx` — remove stale href:null
+
+Lines 95–103 still have `href: null`. The quick grid in index.tsx already links to all 9 screens. The `href: null` prevents deep links and back navigation. Remove ALL 9 `href: null` entries so routing works correctly from anywhere.
+
+---
+
+### C2 · Add SLA countdown to admin complaint cards
+
+In `app/admin/index.tsx`, import or inline the `getSLAInfo` function from B7. Apply it to each complaint card in the admin list:
+```tsx
+{c.status === "pending" || c.status === "in_progress" ? (
+  <Text style={{ fontSize:11, color:getSLAInfo((c as any).submittedAt, (c as any).category).color, fontWeight:"700" }}>
+    {getSLAInfo((c as any).submittedAt, (c as any).category).label}
+  </Text>
+) : null}
+```
+
+---
+
+### C3 · Real-time activity count on admin KPIs
+
+In `app/admin/index.tsx` WebSocket handler, on `complaint_new` event:
+```typescript
+setStats(prev => prev ? { ...prev, total: (prev.total || 0) + 1, pending: (prev.pending || 0) + 1 } : prev);
+```
+
+On `complaint_resolved` event:
+```typescript
+setStats(prev => prev ? { ...prev, resolved: (prev.resolved || 0) + 1, pending: Math.max(0, (prev.pending || 0) - 1) } : prev);
+```
+
+This makes KPI counters update live without polling.
+
+---
+
+### C4 · Complaint search in admin
+
+In `app/admin/index.tsx`, add a search input above the complaints table:
+```tsx
+const [searchQuery, setSearchQuery] = useState("");
+const filteredComplaints = useMemo(() =>
+  complaints.filter(c =>
+    !searchQuery ||
+    (c as any).ticketId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.location?.toLowerCase().includes(searchQuery.toLowerCase())
+  ), [complaints, searchQuery]
+);
+// Render TextInput with magnifying glass icon
+```
+
+---
+
+### C5 · Copy ticket ID from complaint card
+
+On each complaint card, add a long-press handler:
+```typescript
+onLongPress={() => {
+  const { Clipboard } = require("expo-clipboard") || {};
+  if (Clipboard?.setStringAsync) { Clipboard.setStringAsync((c as any).ticketId || c.id); Alert.alert("Copied", "Ticket ID copied to clipboard."); }
+}}
+```
+
+---
+
+## ══════════════════════════════════════════
+## FINAL VERIFICATION
+## ══════════════════════════════════════════
+
+```bash
+# 1. TypeScript zero errors
+npx tsc --noEmit
+
+# 2. Cron jobs start
+grep -r "node-cron" package.json && echo "installed"
+
+# 3. Photo enforcement works
+curl -X PUT http://localhost:3001/api/complaints/test/resolve \
+  -H "Authorization: Bearer TEST" \
+  -H "Content-Type: application/json" \
+  -d '{"rating":4}' | grep "PHOTO_REQUIRED"
+
+# 4. Voice route exists
+curl -X POST http://localhost:3001/api/ai/voice-transcribe \
+  -H "Content-Type: application/json" \
+  -d '{"audio":"dA==","language":"hi"}' | grep '"text"'
+
+# 5. RTI AI draft route
+curl -X POST http://localhost:3001/api/ai/rti-draft \
+  -H "Content-Type: application/json" -H "Authorization: Bearer TEST" \
+  -d '{"topic":"road repair","department":"PWD","district":"Dehradun"}' | grep "Right to Information"
+
+# 6. Disaster alerts route
+curl "http://localhost:3001/api/disaster/alerts?district=Dehradun" | grep '"alerts"'
+
+# 7. Night safety scores
+curl -H "Authorization: Bearer TEST" "http://localhost:3001/api/night-safety" | grep '"score"'
+
+# 8. Yatra status
+curl "http://localhost:3001/api/yatra-status" | grep '"active"'
+
+# 9. Predictive — real analysis
+curl -H "Authorization: Bearer TEST" "http://localhost:3001/api/predictive" | grep '"analysisWindow"'
+
+# 10. Cron job log visible
+node -e "import('./server/index.ts')" 2>&1 | grep "CRON"
+```
+
+**Checklist — all must pass before done:**
+```
+[ ] Resolve without photo → 400 with code:"PHOTO_REQUIRED"
+[ ] Resolve with photo URL → success + audit log entry
+[ ] Voice button on mobile → records audio, shows "Recording..." alert, transcribes
+[ ] Disaster tab visible in bottom nav
+[ ] Disaster alerts loads (fallback shows monsoon advisory if IMD down)
+[ ] Disaster report form submits → creates P1 complaint in USDMA dept
+[ ] Yatra banner visible on home screen Apr–Nov
+[ ] Night safety scores return real data not hardcoded
+[ ] Predictive shows trend percentages not seed text
+[ ] Cluster badge "🔗 X reports" appears when 2+ complaints within 100m
+[ ] Upvoting 10 times → complaint priority changes to P2
+[ ] SLA countdown shows on pending complaint cards
+[ ] Admin war room shows "SLA Breached" KPI card
+[ ] Profile shows badge grid (locked = greyscale 🔒)
+[ ] Offline banner appears when network disconnected
+[ ] SLA cron prints "Escalated N complaints" every 30min in server logs
+[ ] CPR cron prints escalation after 5min for active incidents
+[ ] RTI "Draft with AI" button visible and calls NVIDIA
+[ ] Audit trail shows SHA-256 hashes (not fake random hex)
+[ ] Push notification sent when complaint status changes to in_progress
+[ ] node-cron installed: package.json includes it
+```
+
+---
+
+## RULES
+
+1. `wss.on("connection"` **DO NOT TOUCH** — auth already works
+2. `POST /api/sos/women-safety` line 756 **DO NOT TOUCH** — CPR already connected
+3. Quick grid in `app/(tabs)/index.tsx` lines 624–654 **DO NOT TOUCH** — already navigates to all screens
+4. Run `npx tsc --noEmit` after each block — fix TypeScript errors before continuing
+5. NVIDIA API → always `if (!NVIDIA_API_KEY) return fallback` — never throw
+6. All new screens need: loading skeleton + empty state + error catch
+7. `storage.addAuditLog(action, userId, userName, details, complaintId?)` — exact signature — do not change
