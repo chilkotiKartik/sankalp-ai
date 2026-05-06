@@ -14,7 +14,7 @@
       },
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "sankalp-ai.replit.app"
+        "EXPO_PUBLIC_DOMAIN": "fiinalszip-production.up.railway.app"
       }
     },
     "preview": {
@@ -23,13 +23,13 @@
       },
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "sankalp-ai.replit.app"
+        "EXPO_PUBLIC_DOMAIN": "fiinalszip-production.up.railway.app"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "sankalp-ai.replit.app"
+        "EXPO_PUBLIC_DOMAIN": "fiinalszip-production.up.railway.app"
       }
     }
   },
