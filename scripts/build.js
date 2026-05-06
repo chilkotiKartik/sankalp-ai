@@ -49,16 +49,28 @@ function getDeploymentDomain() {
     return stripProtocol(process.env.REPLIT_INTERNAL_APP_DOMAIN);
   }
 
-  // 3. Last resort: dev domain (should not reach production bundles)
+  // 3. Railway injects RAILWAY_PUBLIC_DOMAIN
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    return stripProtocol(process.env.RAILWAY_PUBLIC_DOMAIN);
+  }
+
+  // 4. Railway static domain fallback
+  if (process.env.RAILWAY_STATIC_URL) {
+    return stripProtocol(process.env.RAILWAY_STATIC_URL);
+  }
+
+  // 5. Last resort: dev domain (should not reach production bundles)
   if (process.env.REPLIT_DEV_DOMAIN) {
     console.warn("WARNING: Using REPLIT_DEV_DOMAIN for production bundle. Set EXPO_PUBLIC_DOMAIN instead.");
     return stripProtocol(process.env.REPLIT_DEV_DOMAIN);
   }
 
-  console.error(
-    "ERROR: No deployment domain found. Set EXPO_PUBLIC_DOMAIN to your production domain (e.g. sankalp-ai.replit.app)",
-  );
-  process.exit(1);
+  return null;
+}
+
+function hasExistingWebBundle() {
+  const webIndex = path.join("static-build", "web", "index.html");
+  return fs.existsSync(webIndex);
 }
 
 function prepareDirectories(timestamp) {
@@ -591,6 +603,20 @@ async function main() {
   setupSignalHandlers();
 
   const domain = getDeploymentDomain();
+
+  if (!domain) {
+    if (hasExistingWebBundle()) {
+      console.log("No deployment domain set — using existing pre-built web bundle (static-build/web/).");
+      console.log("To rebuild with a custom domain, set EXPO_PUBLIC_DOMAIN as a Railway/deployment env var.");
+      process.exit(0);
+    }
+    console.error(
+      "ERROR: No deployment domain found and no pre-built web bundle exists.\n" +
+      "Set EXPO_PUBLIC_DOMAIN to your production domain (e.g. sankalp-ai.railway.app) in Railway Variables.",
+    );
+    process.exit(1);
+  }
+
   const baseUrl = `https://${domain}`;
   const timestamp = `${Date.now()}-${process.pid}`;
 
