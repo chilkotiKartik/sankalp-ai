@@ -631,6 +631,7 @@ export default function DashboardScreen() {
               { icon: "analytics" as const,         label: t("Analytics",  HI.analytics), color: "#06B6D4", bg: "#F0FDFF", nav: "/(tabs)/analytics" },
               { icon: "bar-chart" as const,         label: "Budget",                      color: "#F59E0B", bg: "#FFFBEB", nav: "/(tabs)/budget" },
               { icon: "trophy" as const,            label: "Leaderboard",                 color: "#FFD700", bg: "#FFFEF0", nav: "/(tabs)/leaderboard" },
+              { icon: "medkit" as const,            label: "Emergency",                   color: "#EF4444", bg: "#FEF2F2", nav: "/(tabs)/emergency" },
             ].map(item => (
               <Pressable key={item.label} onPress={() => router.push(item.nav as any)} style={[styles.quickCard, { backgroundColor: item.bg, borderColor: item.color + "30" }]}>
                 <View style={[styles.quickCardIcon, { backgroundColor: item.color + "18" }]}>

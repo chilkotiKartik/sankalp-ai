@@ -1519,6 +1519,37 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
     res.status(201).json(zone);
   });
 
+  // ── SOS AUDIO CHUNK ───────────────────────────────────────────────────────────
+  app.put("/api/sos/:id/audio-chunk", requireAuth, (req, res) => {
+    const { id } = req.params;
+    const { chunkUrl, chunkIndex, duration } = req.body;
+    if (!chunkUrl || chunkIndex === undefined) return res.status(400).json({ error: "chunkUrl and chunkIndex required" });
+    const alert = storage.addSOSAudioChunk(id, { url: chunkUrl, chunkIndex, duration: duration || 10 });
+    if (!alert) return res.status(404).json({ error: "SOS alert not found" });
+    cprEmitter.emit("event", {
+      type: "audio_chunk",
+      sosId: id,
+      chunkUrl,
+      chunkIndex,
+      duration: duration || 10,
+      timestamp: new Date().toISOString(),
+      isWomenSafety: alert.isWomenSafety,
+      district: alert.district,
+    });
+    res.json({ ok: true, chunkIndex, totalChunks: alert.audioChunks?.length });
+  });
+
+  // ── CPR EMERGENCY LOCATIONS (public — hospitals + fire stations on map) ───────
+  app.get("/api/cpr/emergency-locations", (_req, res) => {
+    const services = storage.getEmergencyServices();
+    const locations = services.filter(s => s.type === "hospital" || s.type === "fire").map(s => ({
+      id: s.id, type: s.type, name: s.name, district: s.district,
+      address: s.address, phone: s.phone, beds: s.beds, available: s.available,
+      geo: s.geo,
+    }));
+    res.json(locations);
+  });
+
   // ── CPR EMERGENCY SERVICES ───────────────────────────────────────────────────
   app.get("/api/cpr/emergency-services", (_req, res) => {
     const services = [

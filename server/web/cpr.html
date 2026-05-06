@@ -227,10 +227,11 @@ function NightSafetyModal({onClose,onSubmit,userGeo}){
   );
 }
 
-function IncidentModal({inc,onClose,onMarkSafe}){
+function IncidentModal({inc,onClose,onMarkSafe,incAudioChunks}){
   if(!inc)return null;
   const isWomen=inc.citizenName&&(inc.emergencyType==="women_safety"||inc.category==="women_safety");
   const accentColor=isWomen?"#C4B5FD":"#F87171";
+  const chunks=incAudioChunks||[];
   return(
     <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{borderColor:isWomen?"rgba(139,92,246,.4)":"rgba(239,68,68,.3)"}}>
@@ -285,6 +286,25 @@ function IncidentModal({inc,onClose,onMarkSafe}){
             <div style={{width:60,color:"#64748B",flexShrink:0}}>{fmtTime(u.time)}</div>
             <div style={{flex:1,color:"#94A3B8",lineHeight:1.5}}>{u.message}</div>
           </div>)}
+        </div>}
+
+        {chunks.length>0&&<div style={{marginBottom:14,background:"rgba(139,92,246,.06)",border:"1px solid rgba(139,92,246,.25)",borderRadius:10,padding:12}}>
+          <div style={{fontSize:11,fontWeight:800,color:"#C4B5FD",textTransform:"uppercase",letterSpacing:.5,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:14}}>🎙️</span> Live Audio Evidence ({chunks.length} clip{chunks.length!==1?"s":""})
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {chunks.map((chunk,i)=>(
+              <div key={chunk.index} style={{background:"rgba(0,0,0,.25)",borderRadius:8,padding:"8px 10px"}}>
+                <div style={{fontSize:10,color:"#8B5CF6",fontWeight:700,marginBottom:5}}>
+                  Clip {chunk.index+1} · {new Date(chunk.timestamp).toLocaleTimeString()}
+                </div>
+                <audio controls style={{width:"100%",height:28,filter:"invert(1) hue-rotate(240deg)",accentColor:"#8B5CF6"}}>
+                  <source src={chunk.url}/>
+                  Your browser does not support audio.
+                </audio>
+              </div>
+            ))}
+          </div>
         </div>}
 
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -385,6 +405,8 @@ function CPRPortal(){
   const [patrols,setPatrols]=useState([]);
   const [nightZones,setNightZones]=useState([]);
   const [emergencyServices,setEmergencyServices]=useState([]);
+  const [emergencyLocations,setEmergencyLocations]=useState([]);
+  const [audioChunks,setAudioChunks]=useState({});
   const [distFilter,setDistFilter]=useState("all");
   const [selInc,setSelInc]=useState(null);
   const [showSOS,setShowSOS]=useState(false);
@@ -395,7 +417,7 @@ function CPRPortal(){
   const [toasts,setToasts]=useState([]);
   const mapRef=useRef(null);
   const mapObj=useRef(null);
-  const markers=useRef({incidents:{},patrols:{},user:null,night:{}});
+  const markers=useRef({incidents:{},patrols:{},user:null,night:{},hospitals:[],fire:[]});
   const watchId=useRef(null);
   const esRef=useRef(null);
 
@@ -407,6 +429,7 @@ function CPRPortal(){
     fetch(`${API}/api/cpr/patrols${dist}`).then(r=>r.json()).then(d=>setPatrols(Array.isArray(d)?d:[])).catch(()=>{});
     fetch(`${API}/api/cpr/night-safety`).then(r=>r.json()).then(d=>setNightZones(Array.isArray(d)?d:[])).catch(()=>{});
     fetch(`${API}/api/cpr/emergency-services`).then(r=>r.json()).then(d=>setEmergencyServices(Array.isArray(d)?d:[])).catch(()=>{});
+    fetch(`${API}/api/cpr/emergency-locations`).then(r=>r.json()).then(d=>setEmergencyLocations(Array.isArray(d)?d:[])).catch(()=>{});
   },[distFilter]);
 
   useEffect(()=>{loadAll();},[loadAll]);
@@ -427,6 +450,14 @@ function CPRPortal(){
         if(d.type==="incident_escalated"){setIncidents(prev=>prev.map(i=>i.id===d.incident.id?d.incident:i));addToast({title:"⚠️ INCIDENT ESCALATED",body:`Level ${d.level} — ${d.incident.district}`},"warn");}
         if(d.type==="night_safety_new"){setNightZones(prev=>[d.zone,...prev]);addToast({title:"🌙 Night Safety Report",body:d.zone.location},"info");}
         if(d.type==="sos_new"){addToast({title:"🆘 SOS ALERT — Women Safety",body:`${d.triggeredBy||"Unknown"} · ${d.district}`},"error");}
+        if(d.type==="audio_chunk"){
+          setAudioChunks(prev=>{
+            const existing=prev[d.sosId]||[];
+            if(existing.find(c=>c.index===d.chunkIndex))return prev;
+            return{...prev,[d.sosId]:[...existing,{url:d.chunkUrl,index:d.chunkIndex,timestamp:d.timestamp||new Date().toISOString()}].sort((a,b)=>a.index-b.index)};
+          });
+          addToast({title:"🎙️ Live Audio — Women Safety SOS",body:`Chunk ${d.chunkIndex+1} received${d.district?" · "+d.district:""}`},"warn");
+        }
       }catch{}
     };
     return()=>{es.close();};
@@ -454,6 +485,27 @@ function CPRPortal(){
       else{const m=L.marker([inc.geo.lat,inc.geo.lng],{icon}).addTo(map).bindPopup(popup);m.on("click",()=>setIncModal(inc));markers.current.incidents[inc.id]=m;}
     });
   },[incidents]);
+
+  // Draw hospital + fire station markers
+  useEffect(()=>{
+    const map=mapObj.current;if(!map||!emergencyLocations.length)return;
+    // Remove old hospital/fire markers
+    (markers.current.hospitals||[]).forEach(m=>map.removeLayer(m));
+    (markers.current.fire||[]).forEach(m=>map.removeLayer(m));
+    markers.current.hospitals=[];
+    markers.current.fire=[];
+    emergencyLocations.forEach(loc=>{
+      if(!loc.geo)return;
+      const isHosp=loc.type==="hospital";
+      const col=isHosp?"#EC4899":"#F97316";
+      const emoji=isHosp?"🏥":"🔥";
+      const icon=L.divIcon({className:"",html:`<div style="width:24px;height:24px;background:${col};border:2.5px solid white;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 10px ${col}88;cursor:pointer">${emoji}</div>`,iconSize:[24,24],iconAnchor:[12,12]});
+      const popup=`<div style="font-size:12px;min-width:190px;font-family:sans-serif;padding:8px"><b style="color:${col}">${emoji} ${isHosp?"HOSPITAL":"FIRE STATION"}</b><br/><b>${loc.name}</b><br/><span style="color:#94A3B8">${loc.address||loc.district}</span>${loc.beds?`<br/><span style="color:#86EFAC">🛏️ ${loc.beds} beds</span>`:""}${loc.available===false?`<br/><span style="color:#F87171">⚠️ Full capacity</span>`:""}${loc.phone?`<br/><a href="tel:${loc.phone}" style="color:#93C5FD">📞 ${loc.phone}</a>`:""}</div>`;
+      const m=L.marker([loc.geo.lat,loc.geo.lng],{icon}).addTo(map).bindPopup(popup);
+      if(isHosp)markers.current.hospitals.push(m);
+      else markers.current.fire.push(m);
+    });
+  },[emergencyLocations]);
 
   // Draw patrol markers
   useEffect(()=>{
@@ -535,6 +587,8 @@ function CPRPortal(){
           <div className="leg-row"><div className="leg-dot" style={{background:"#22C55E"}}/><span>Safe / Resolved</span></div>
           <div className="leg-row"><div className="leg-dot" style={{background:"#22C55E",borderRadius:2,transform:"rotate(45deg)"}}/><span>Active patrol van</span></div>
           <div className="leg-row"><div className="leg-dot" style={{background:"#3B82F6"}}/><span>Your location</span></div>
+          <div className="leg-row"><div style={{fontSize:12,lineHeight:1}}>🏥</div><span>Hospital</span></div>
+          <div className="leg-row"><div style={{fontSize:12,lineHeight:1}}>🔥</div><span>Fire Station</span></div>
         </div>
       </div>
 
@@ -680,7 +734,7 @@ function CPRPortal(){
 
     {showSOS&&<SOSModal userGeo={userGeo} onClose={()=>setShowSOS(false)} onSubmit={inc=>{setShowSOS(false);setIncidents(prev=>[inc,...prev]);addToast({title:"🆘 SOS sent!",body:inc.assignedPatrolVan?`Patrol ${inc.assignedPatrolVan} dispatched`:"Being assigned…"},"success");flyTo(inc.geo,14);}}/>}
     {showNight&&<NightSafetyModal userGeo={userGeo} onClose={()=>setShowNight(false)} onSubmit={z=>{setShowNight(false);setNightZones(prev=>[z,...prev]);addToast({title:"🌙 Report submitted",body:"CPR will add to night patrol route"},"success");}}/>}
-    {incModal&&<IncidentModal inc={incModal} onClose={()=>setIncModal(null)} onMarkSafe={markSafe}/>}
+    {incModal&&<IncidentModal inc={incModal} onClose={()=>setIncModal(null)} onMarkSafe={markSafe} incAudioChunks={audioChunks[incModal.id]||[]}/>}
     <div style={{position:"fixed",bottom:20,right:20,zIndex:99999,display:"flex",flexDirection:"column",gap:8,maxWidth:340}}>
       {toasts.map(t=><Toast key={t.id} msg={t.msg} type={t.type} onClose={()=>setToasts(p=>p.filter(x=>x.id!==t.id))}/>)}
     </div>

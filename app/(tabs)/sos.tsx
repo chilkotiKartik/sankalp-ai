@@ -202,6 +202,9 @@ function SOSScreenInner() {
   const shakeTs = useRef<number[]>([]);
   // Ref to hold latest activateWomenSafety — avoids stale closure in accelerometer listener
   const activateWomenSafetyRef = useRef<(source: string) => void>(() => {});
+  // Ref to control chunked audio loop
+  const audioChunkActiveRef = useRef<boolean>(false);
+  const audioChunkIndexRef = useRef<number>(0);
 
   // Animations
   const btnScale = useRef(new Animated.Value(1)).current;
@@ -394,61 +397,81 @@ function SOSScreenInner() {
     }
   }, []);
 
-  // ── AUDIO RECORDING: 18-sec auto-stop + upload ────────────────────────────
+  // ── AUDIO RECORDING: 10-second chunked streaming for Women Safety SOS ───────
   const startAudioRecording = useCallback(async (alertId?: string): Promise<string | null> => {
     if (Platform.OS === "web") return null;
     try {
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== "granted") return null;
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      audioRecordingRef.current = recording;
-      setIsRecording(true);
-      // Auto-stop after 18 seconds and upload
-      setTimeout(async () => {
-        const rec = audioRecordingRef.current;
-        if (!rec) return;
-        try {
-          await rec.stopAndUnloadAsync();
-          await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-          const uri = rec.getURI();
+    } catch { return null; }
+
+    audioChunkActiveRef.current = true;
+    audioChunkIndexRef.current = 0;
+    const MAX_CHUNKS = 6;
+
+    const recordOneChunk = async () => {
+      if (!audioChunkActiveRef.current || audioChunkIndexRef.current >= MAX_CHUNKS) {
+        setIsRecording(false);
+        return;
+      }
+      try {
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+        const { recording } = await Audio.Recording.createAsync(
+          Audio.RecordingOptionsPresets.HIGH_QUALITY
+        );
+        audioRecordingRef.current = recording;
+        setIsRecording(true);
+        // Record for 10 seconds
+        await new Promise<void>(resolve => setTimeout(resolve, 10000));
+        if (!audioChunkActiveRef.current) {
+          // Cancelled during recording
+          try { await recording.stopAndUnloadAsync(); } catch {}
           audioRecordingRef.current = null;
           setIsRecording(false);
-          if (!uri) return;
-          // Read file as base64 and upload
-          const base64 = await FileSystem.readAsStringAsync(uri, { encoding: "base64" as any });
-          const { getApiUrl } = await import("@/lib/query-client");
-          const baseUrl = getApiUrl();
-          const uploadRes = await fetch(`${baseUrl}api/upload/audio`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ audio: base64, filename: `sos-${Date.now()}.m4a` }),
-          });
-          if (uploadRes.ok) {
-            const data = await uploadRes.json();
-            // Patch the SOS alert with audio URL if alertId known
-            if (alertId && data.url) {
-              try {
-                await fetch(`${baseUrl}api/sos/${alertId}/audio-url`, {
+          return;
+        }
+        await recording.stopAndUnloadAsync();
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+        const uri = recording.getURI();
+        audioRecordingRef.current = null;
+        const chunkIdx = audioChunkIndexRef.current;
+        audioChunkIndexRef.current += 1;
+        if (uri && alertId) {
+          try {
+            const base64 = await FileSystem.readAsStringAsync(uri, { encoding: "base64" as any });
+            const { getApiUrl } = await import("@/lib/query-client");
+            const baseUrl = getApiUrl();
+            const uploadRes = await fetch(`${baseUrl}api/upload/audio`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+              body: JSON.stringify({ audio: base64, filename: `sos-chunk${chunkIdx}-${Date.now()}.m4a` }),
+            });
+            if (uploadRes.ok) {
+              const data = await uploadRes.json();
+              if (data.url) {
+                await fetch(`${baseUrl}api/sos/${alertId}/audio-chunk`, {
                   method: "PUT",
                   headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                  body: JSON.stringify({ audioUrl: data.url }),
-                });
-              } catch {}
+                  body: JSON.stringify({ chunkUrl: data.url, chunkIndex: chunkIdx, duration: 10 }),
+                }).catch(() => {});
+              }
             }
-          }
-        } catch (_e) {
-          audioRecordingRef.current = null;
-          setIsRecording(false);
+          } catch {}
         }
-      }, 18000);
-      return null;
-    } catch (_e) { return null; }
+        // Record next chunk after 500ms gap
+        setTimeout(recordOneChunk, 500);
+      } catch {
+        audioRecordingRef.current = null;
+        setIsRecording(false);
+      }
+    };
+
+    recordOneChunk();
+    return null;
   }, [token]);
 
   const stopAudioRecording = useCallback(async () => {
+    audioChunkActiveRef.current = false;
     const rec = audioRecordingRef.current;
     if (!rec) return;
     try {

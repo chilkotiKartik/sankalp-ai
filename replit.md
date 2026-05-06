@@ -97,8 +97,11 @@ See `DEPLOY.md` for the full deployment guide. Key points:
 - **Real-time SOS**: Voice-announced alerts; shake ×4, tap ×6, hold 2s, Vol+×6, web keyboard (ArrowUp ×5)
 - **Women Safety**: Silent panic + audio recording + voice: "Emergency alert sent. Police notified. Stay calm." + auto-creates CPR incident
 - **Interactive Maps**: Leaflet (web + native) — complaints, SOS, workers, police stations, risk zones
-- **Admin War Room**: District-filtered monitoring for admins/super-admins
+- **Admin War Room**: District-filtered monitoring for admins/super-admins. `app/admin.tsx` — 8 KPI tiles (Total, P1 Critical, Active SOS, Pending, Resolved, Workers, Avg Score, Resolve Rate), filterable by complaints/SOS/workers.
 - **AI Chat**: Groq LLaMA 3.1 8B (primary), NVIDIA LLaMA (secondary); token sent in Authorization header
+- **Emergency Directory**: `app/(tabs)/emergency.tsx` — quick-dial grid (112/100/108/101/1070/1091), tabbed service list (hospitals, fire, ambulance, disaster), detail modal with call/maps buttons. Accessible from Quick Nav "Emergency" tile on home screen.
+- **Chunked Audio Streaming**: Women Safety SOS records 10-second audio chunks (up to 6 × 10s = 60s), uploads each chunk, then PUTs to `PUT /api/sos/:id/audio-chunk`. CPR portal receives `audio_chunk` SSE events and shows live audio player in IncidentModal.
+- **Hospital/Fire on Maps**: `GET /api/cpr/emergency-locations` (public) returns hospitals + fire stations. CPR portal draws 🏥/🔥 markers on Leaflet. Mobile map has "Hospitals" and "Fire Stns" filter buttons. `UttarakhandMap` supports `emergencyServices` prop + "hospitals"/"fire" MapFilter types.
 
 ## User preferences
 
@@ -119,6 +122,8 @@ See `DEPLOY.md` for the full deployment guide. Key points:
 - **Admin complaint notes**: `PUT /api/admin/complaints/:id` accepts `{status, adminNote}`. Note stored on complaint, visible in ComplaintModal.
 - **Dept workers**: `GET /api/dept/:deptId/workers` returns first 30 workers (requires dept JWT).
 - **ComplaintModal null guard**: `if(!c)return null` at top, and category lookup uses `Array.isArray(DEPTS[k].categories)&&` guard.
+- **Audio Chunk Loop Control**: `audioChunkActiveRef` (boolean) and `audioChunkIndexRef` (number) in sos.tsx control the 10-second chunked recording loop. `stopAudioRecording` sets `audioChunkActiveRef.current = false` to cancel cleanly.
+- **Worker status values**: `"active" | "idle" | "on_leave"` (NOT "inactive") — use `"idle"` for the inactive bucket in admin views.
 
 ## Pointers
 

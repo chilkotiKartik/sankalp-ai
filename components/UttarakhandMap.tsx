@@ -4,7 +4,7 @@ import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import type { Complaint, SOSAlert, Worker, PoliceStation, RiskZone, GeoPoint } from "@/context/AppContext";
 
-export type MapFilter = "all" | "complaints" | "sos" | "workers" | "police" | "risks";
+export type MapFilter = "all" | "complaints" | "sos" | "workers" | "police" | "risks" | "hospitals" | "fire";
 
 const DISTRICT_CENTERS: Record<string, { lat: number; lng: number; zoom: number }> = {
   "Dehradun":          { lat: 30.3165, lng: 78.0322, zoom: 11 },
@@ -33,11 +33,23 @@ interface MarkerData {
   lat: number;
   lng: number;
   color: string;
-  type: "complaint" | "sos" | "worker" | "police" | "risk";
+  type: "complaint" | "sos" | "worker" | "police" | "risk" | "hospital" | "fire";
   title: string;
   subtitle: string;
   radius: number;
   ringRadius?: number;
+}
+
+export interface EmergencyServiceMarker {
+  id: string;
+  type: "hospital" | "fire" | "ambulance" | "disaster" | "police";
+  name: string;
+  district: string;
+  address: string;
+  phone: string;
+  beds?: number;
+  available?: boolean;
+  geo: { lat: number; lng: number };
 }
 
 function buildLeafletHTML(
@@ -97,7 +109,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
 }).addTo(map);
 
 var typeLabels={
-  complaint:'ISSUE',sos:'SOS',worker:'WORKER',police:'POLICE',risk:'RISK'
+  complaint:'ISSUE',sos:'SOS',worker:'WORKER',police:'POLICE',risk:'RISK',hospital:'HOSPITAL',fire:'FIRE STN'
 };
 
 var markersData=${markersJson};
@@ -115,14 +127,34 @@ markersData.forEach(function(m){
     }).addTo(map);
   }
 
-  var marker=L.circleMarker([m.lat,m.lng],{
-    radius:m.radius,
-    fillColor:m.color,
-    color:'#ffffff',
-    weight:2,
-    opacity:1,
-    fillOpacity:0.92
-  }).addTo(map);
+  // Hospital: cross marker; Fire: diamond marker; others: circle
+  var marker;
+  if(m.type==='hospital'){
+    var hospitalIcon=L.divIcon({
+      className:'',
+      html:'<div style="width:22px;height:22px;background:'+m.color+';border:2.5px solid white;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 0 8px '+m.color+'88;">🏥</div>',
+      iconSize:[22,22],
+      iconAnchor:[11,11]
+    });
+    marker=L.marker([m.lat,m.lng],{icon:hospitalIcon}).addTo(map);
+  } else if(m.type==='fire'){
+    var fireIcon=L.divIcon({
+      className:'',
+      html:'<div style="width:22px;height:22px;background:'+m.color+';border:2.5px solid white;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 0 8px '+m.color+'88;">🔥</div>',
+      iconSize:[22,22],
+      iconAnchor:[11,11]
+    });
+    marker=L.marker([m.lat,m.lng],{icon:fireIcon}).addTo(map);
+  } else {
+    marker=L.circleMarker([m.lat,m.lng],{
+      radius:m.radius,
+      fillColor:m.color,
+      color:'#ffffff',
+      weight:2,
+      opacity:1,
+      fillOpacity:0.92
+    }).addTo(map);
+  }
 
   var popupHTML='<div class="popup-box">'
     +'<span class="popup-type" style="background:'+m.color+'18;color:'+m.color+'">'+typeLabels[m.type]+'</span>'
@@ -181,6 +213,7 @@ interface Props {
   workers?: Worker[];
   policeStations?: PoliceStation[];
   riskZones?: RiskZone[];
+  emergencyServices?: EmergencyServiceMarker[];
   filter?: MapFilter;
   userLocation?: GeoPoint | null;
   userDistrict?: string;
@@ -193,6 +226,7 @@ export default function UttarakhandMap({
   workers = [],
   policeStations = [],
   riskZones = [],
+  emergencyServices = [],
   filter = "all",
   userLocation,
   userDistrict,
@@ -200,7 +234,7 @@ export default function UttarakhandMap({
 }: Props) {
   const webViewRef = useRef<WebView>(null);
 
-  const show = (type: "complaints" | "sos" | "workers" | "police" | "risks") =>
+  const show = (type: "complaints" | "sos" | "workers" | "police" | "risks" | "hospitals" | "fire") =>
     filter === "all" || filter === type;
 
   const markers = useMemo<MarkerData[]>(() => {
@@ -275,8 +309,30 @@ export default function UttarakhandMap({
       });
     }
 
+    if (show("hospitals")) {
+      emergencyServices.filter(s => s.type === "hospital").forEach(s => {
+        result.push({
+          lat: s.geo.lat, lng: s.geo.lng,
+          color: "#EF4444", type: "hospital", radius: 10,
+          title: s.name,
+          subtitle: `${s.district}${s.beds ? ` · ${s.beds} beds` : ""} · ${s.phone}`,
+        });
+      });
+    }
+
+    if (show("fire")) {
+      emergencyServices.filter(s => s.type === "fire").forEach(s => {
+        result.push({
+          lat: s.geo.lat, lng: s.geo.lng,
+          color: "#F59E0B", type: "fire", radius: 10,
+          title: s.name,
+          subtitle: `${s.district} · ${s.phone}`,
+        });
+      });
+    }
+
     return result;
-  }, [complaints, sosAlerts, workers, policeStations, riskZones, filter]);
+  }, [complaints, sosAlerts, workers, policeStations, riskZones, emergencyServices, filter]);
 
   const center = useMemo(() => {
     if (userDistrict && userDistrict !== "Uttarakhand" && DISTRICT_CENTERS[userDistrict]) {

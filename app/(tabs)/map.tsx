@@ -9,16 +9,20 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
-import UttarakhandMap, { type MapFilter } from "@/components/UttarakhandMap";
+import UttarakhandMap, { type MapFilter, type EmergencyServiceMarker } from "@/components/UttarakhandMap";
 import type { GeoPoint } from "@/context/AppContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getApiUrl } from "@/lib/query-client";
 
 const FILTERS: { key: MapFilter; label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }[] = [
-  { key: "all",        label: "All",     icon: "apps-outline",    color: "#6B7280", bg: "#F3F4F6" },
-  { key: "complaints", label: "Issues",  icon: "alert-circle",    color: "#F59E0B", bg: "#FFFBEB" },
-  { key: "sos",        label: "SOS",     icon: "warning",         color: "#EF4444", bg: "#FEF2F2" },
-  { key: "workers",    label: "Workers", icon: "person-outline",  color: "#06B6D4", bg: "#F0FDFF" },
-  { key: "police",     label: "Police",  icon: "shield-outline",  color: "#3B82F6", bg: "#EFF6FF" },
-  { key: "risks",      label: "Risks",   icon: "flame-outline",   color: "#8B5CF6", bg: "#F5F3FF" },
+  { key: "all",        label: "All",       icon: "apps-outline",    color: "#6B7280", bg: "#F3F4F6" },
+  { key: "complaints", label: "Issues",    icon: "alert-circle",    color: "#F59E0B", bg: "#FFFBEB" },
+  { key: "sos",        label: "SOS",       icon: "warning",         color: "#EF4444", bg: "#FEF2F2" },
+  { key: "workers",    label: "Workers",   icon: "person-outline",  color: "#06B6D4", bg: "#F0FDFF" },
+  { key: "police",     label: "Police",    icon: "shield-outline",  color: "#3B82F6", bg: "#EFF6FF" },
+  { key: "risks",      label: "Risks",     icon: "flame-outline",   color: "#8B5CF6", bg: "#F5F3FF" },
+  { key: "hospitals",  label: "Hospitals", icon: "medical-outline", color: "#EF4444", bg: "#FEF2F2" },
+  { key: "fire",       label: "Fire Stns", icon: "flame",           color: "#F59E0B", bg: "#FFFBEB" },
 ];
 
 const RISK_COLORS: Record<string, string> = {
@@ -33,11 +37,28 @@ export default function MapScreen() {
   const [userGeo, setUserGeo] = useState<GeoPoint | null>(null);
   const [nearestPolice, setNearestPolice] = useState<typeof policeStations>([]);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [emergencyServices, setEmergencyServices] = useState<EmergencyServiceMarker[]>([]);
   const statsAnim = useRef(new Animated.Value(0)).current;
   const stats = getStats();
 
   useEffect(() => {
     Animated.timing(statsAnim, { toValue: 1, duration: 600, useNativeDriver: false }).start();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchEmergency = async () => {
+      try {
+        const baseUrl = getApiUrl();
+        const res = await fetch(`${baseUrl}api/cpr/emergency-locations`);
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setEmergencyServices(data);
+        }
+      } catch {}
+    };
+    fetchEmergency();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -137,6 +158,7 @@ export default function MapScreen() {
           workers={workers}
           policeStations={policeStations}
           riskZones={riskZones}
+          emergencyServices={emergencyServices}
           filter={filter}
           userLocation={userGeo}
           userDistrict={user?.district}

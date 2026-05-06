@@ -139,6 +139,7 @@ export interface SOSAlert {
   isWomenSafety?: boolean;
   audioRecordingUrl?: string;
   cprRequestId?: string;
+  audioChunks?: { url: string; chunkIndex: number; duration: number; timestamp: string }[];
 }
 
 export interface Ward {
@@ -1389,6 +1390,15 @@ class AppStorage {
     c.status = "resolved";
     c.resolvedAt = new Date().toISOString();
     return c;
+  }
+
+  // ── AUDIO CHUNKS ──────────────────────────────────────────────────────────────
+  addSOSAudioChunk(id: string, chunk: { url: string; chunkIndex: number; duration: number }): SOSAlert | null {
+    const alert = this.sosAlerts.find(a => a.id === id);
+    if (!alert) return null;
+    if (!alert.audioChunks) alert.audioChunks = [];
+    alert.audioChunks.push({ ...chunk, timestamp: new Date().toISOString() });
+    return alert;
   }
 
   // ── EMERGENCY SERVICES ────────────────────────────────────────────────────────
