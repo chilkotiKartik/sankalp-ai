@@ -94,6 +94,17 @@ label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bot
 /* Workers */
 .worker-card{background:#1c2128;border:1px solid var(--border);border-radius:10px;padding:14px;transition:all .15s}
 .worker-card:hover{border-color:var(--orange)}
+/* Announcements */
+.ann-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;transition:all .2s;position:relative;overflow:hidden}
+.ann-card:hover{border-color:#484f58;transform:translateX(2px)}
+.ann-card.urgent{border-left:3px solid var(--red);background:rgba(248,81,73,.04)}
+.ann-card.important{border-left:3px solid var(--orange);background:rgba(255,153,51,.04)}
+.ann-card.normal{border-left:3px solid var(--border)}
+.ann-compose{background:#1c2128;border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.ann-type-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;font-weight:500;transition:all .15s}
+.ann-type-btn.active{background:rgba(255,153,51,.15);border-color:rgba(255,153,51,.4);color:var(--orange)}
+.textarea{width:100%;padding:10px 14px;background:#1c2128;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:90px;transition:border .15s;font-family:inherit}
+.textarea:focus{border-color:var(--orange)}
 /* Progress */
 .progress{height:6px;border-radius:3px;background:#21262d;overflow:hidden}
 .progress-bar{height:100%;border-radius:3px;background:var(--orange);transition:width .7s ease}
@@ -157,6 +168,7 @@ const api={
   async get(p,t){const r=await fetch(API+p,{headers:this._h(t)});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.statusText);return r.json();},
   async post(p,b,t){const r=await fetch(API+p,{method:'POST',headers:this._h(t),body:JSON.stringify(b)});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.statusText);return r.json();},
   async put(p,b,t){const r=await fetch(API+p,{method:'PUT',headers:this._h(t),body:JSON.stringify(b)});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.statusText);return r.json();},
+  async delete(p,t){const r=await fetch(API+p,{method:'DELETE',headers:this._h(t)});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.statusText);return r.json();},
 };
 
 function Spinner({size=16}){return <div style={{width:size,height:size,border:'2px solid #30363d',borderTop:'2px solid var(--orange)',borderRadius:'50%'}} className="spin"/>;}
@@ -762,6 +774,153 @@ function DeptInfoPage({dept}){
   </div>;
 }
 
+/* ── ANNOUNCEMENTS PAGE ──────────────────────────────────────────────────── */
+const ANN_TYPES=['general','scheme','emergency','welfare','tender','holiday'];
+const ANN_ICONS={general:'📢',scheme:'🎁',emergency:'🚨',welfare:'❤️',tender:'📑',holiday:'🎉'};
+const ANN_PRIORITY_COL={urgent:'var(--red)',important:'var(--orange)',normal:'var(--muted)'};
+const ANN_PRIORITY_LABEL={urgent:'🔴 URGENT',important:'🟠 IMPORTANT',normal:'🔵 NORMAL'};
+const UK_DISTS_ANN=['all','Dehradun','Haridwar','Tehri Garhwal','Pauri Garhwal','Rudraprayag','Chamoli','Uttarkashi','Pithoragarh','Bageshwar','Almora','Champawat','Nainital','Udham Singh Nagar'];
+
+function AnnouncementsPage({token,dept,announcements,onRefresh,addToast}){
+  const [compose,setCompose]=useState(false);
+  const [form,setForm]=useState({title:'',body:'',type:'general',priority:'normal',targetDistrict:'all',link:'',expiresAt:''});
+  const [saving,setSaving]=useState(false);
+  const [filter,setFilter]=useState('all');
+  const [deleting,setDeleting]=useState(null);
+
+  async function submit(){
+    if(!form.title.trim()||!form.body.trim())return addToast('Title and body are required','error');
+    setSaving(true);
+    try{
+      await api.post(`/api/dept/${dept.id}/announcements`,form,token);
+      addToast('Announcement published successfully','success');
+      setCompose(false);
+      setForm({title:'',body:'',type:'general',priority:'normal',targetDistrict:'all',link:'',expiresAt:''});
+      onRefresh();
+    }catch(e){addToast(e.message,'error');}
+    setSaving(false);
+  }
+
+  async function del(id){
+    if(!confirm('Delete this announcement?'))return;
+    setDeleting(id);
+    try{
+      await api.delete(`/api/dept/${dept.id}/announcements/${id}`,token);
+      addToast('Announcement deleted','success');
+      onRefresh();
+    }catch(e){addToast(e.message,'error');}
+    setDeleting(null);
+  }
+
+  const mine=announcements.filter(a=>a.department===dept.id);
+  const all=announcements;
+  const shown=filter==='mine'?mine:filter==='urgent'?all.filter(a=>a.priority==='urgent'):filter==='emergency'?all.filter(a=>a.type==='emergency'):all;
+
+  return <div className="fade-in">
+    <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:18,flexWrap:'wrap'}}>
+      <div style={{flex:1}}>
+        <div style={{fontWeight:700,fontSize:15}}>📢 Announcements &amp; Notices</div>
+        <div style={{fontSize:12,color:'var(--muted)',marginTop:2}}>Post policies, schemes, emergency notices, and official communications</div>
+      </div>
+      <button className="btn btn-orange" onClick={()=>setCompose(c=>!c)}>{compose?'✕ Cancel':'+ New Announcement'}</button>
+    </div>
+
+    {compose&&<div className="ann-compose fade-in" style={{marginBottom:20}}>
+      <div style={{fontWeight:700,fontSize:13,marginBottom:16,color:'var(--orange)'}}>📝 Compose New Announcement</div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+        <div>
+          <label>Announcement Type</label>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:6}}>
+            {ANN_TYPES.map(t=><button key={t} className={'ann-type-btn'+(form.type===t?' active':'')} onClick={()=>setForm(f=>({...f,type:t}))}>{ANN_ICONS[t]} {t.charAt(0).toUpperCase()+t.slice(1)}</button>)}
+          </div>
+        </div>
+        <div>
+          <label>Priority Level</label>
+          <div style={{display:'flex',gap:6,marginTop:6}}>
+            {['normal','important','urgent'].map(p=><button key={p} className={'ann-type-btn'+(form.priority===p?' active':'')} style={form.priority===p?{borderColor:ANN_PRIORITY_COL[p],color:ANN_PRIORITY_COL[p],background:'transparent'}:{}} onClick={()=>setForm(f=>({...f,priority:p}))}>{p.toUpperCase()}</button>)}
+          </div>
+        </div>
+      </div>
+
+      <div style={{marginBottom:12}}>
+        <label>Title *</label>
+        <input className="input" placeholder="Announcement title…" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))}/>
+      </div>
+      <div style={{marginBottom:12}}>
+        <label>Body / Content *</label>
+        <textarea className="textarea" placeholder="Full announcement text, instructions, contact details…" value={form.body} onChange={e=>setForm(f=>({...f,body:e.target.value}))}/>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:14}}>
+        <div>
+          <label>Target District</label>
+          <select className="select" value={form.targetDistrict} onChange={e=>setForm(f=>({...f,targetDistrict:e.target.value}))}>
+            {UK_DISTS_ANN.map(d=><option key={d} value={d}>{d==='all'?'All Districts':d}</option>)}
+          </select>
+        </div>
+        <div>
+          <label>Expires On (optional)</label>
+          <input className="input" type="date" value={form.expiresAt} onChange={e=>setForm(f=>({...f,expiresAt:e.target.value}))} style={{colorScheme:'dark'}}/>
+        </div>
+        <div>
+          <label>Reference Link (optional)</label>
+          <input className="input" placeholder="https://…" value={form.link} onChange={e=>setForm(f=>({...f,link:e.target.value}))}/>
+        </div>
+      </div>
+
+      <div style={{display:'flex',gap:8}}>
+        <button className="btn btn-orange" onClick={submit} disabled={saving||!form.title.trim()||!form.body.trim()} style={{flex:1,justifyContent:'center'}}>
+          {saving?<><Spinner/> Publishing…</>:'📢 Publish Announcement'}
+        </button>
+        <button className="btn btn-ghost" onClick={()=>setCompose(false)}>Cancel</button>
+      </div>
+    </div>}
+
+    <div style={{display:'flex',gap:6,marginBottom:16,flexWrap:'wrap'}}>
+      {[['all','All',all.length],['mine','My Dept',mine.length],['urgent','Urgent',all.filter(a=>a.priority==='urgent').length],['emergency','Emergency',all.filter(a=>a.type==='emergency').length]].map(([f,l,ct])=>
+        <button key={f} className={'filter-btn'+(filter===f?' active':'')} onClick={()=>setFilter(f)}>{l} ({ct})</button>
+      )}
+    </div>
+
+    {shown.length===0?<div className="card" style={{textAlign:'center',padding:40,color:'var(--muted)'}}>
+      <div style={{fontSize:32,marginBottom:8}}>📢</div>
+      <div>No announcements found</div>
+      <div style={{fontSize:12,marginTop:4}}>Click "+ New Announcement" to post your first one</div>
+    </div>:shown.map(a=>{
+      const isOwn=a.department===dept.id;
+      const expired=a.expiresAt&&new Date(a.expiresAt)<new Date();
+      return <div key={a.id} className={'ann-card '+a.priority+(expired?' opacity-50':'')}>
+        <div style={{display:'flex',gap:8,alignItems:'flex-start',marginBottom:10}}>
+          <span style={{fontSize:22,flexShrink:0}}>{ANN_ICONS[a.type]||'📢'}</span>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:3}}>{a.title}{expired&&<span style={{fontSize:10,marginLeft:6,color:'var(--muted)',background:'#21262d',padding:'1px 6px',borderRadius:6}}>EXPIRED</span>}</div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:4}}>
+              <span className="badge" style={{background:'#21262d',color:'var(--muted)'}}>{ANN_ICONS[a.type]} {a.type}</span>
+              <span className="badge" style={{color:ANN_PRIORITY_COL[a.priority],background:'transparent',padding:'2px 0'}}>{ANN_PRIORITY_LABEL[a.priority]}</span>
+              {a.targetDistrict&&a.targetDistrict!=='all'&&<span className="badge badge-blue">📍 {a.targetDistrict}</span>}
+              {isOwn&&<span className="badge badge-green">✓ Your Dept</span>}
+            </div>
+          </div>
+          <div style={{flexShrink:0,textAlign:'right'}}>
+            <div style={{fontSize:11,color:'var(--muted)'}}>{timeAgo(a.postedAt)}</div>
+            <div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>by {a.postedBy}</div>
+          </div>
+        </div>
+        <div style={{fontSize:13,color:'var(--text)',lineHeight:1.6,marginBottom:8,background:'#1c2128',borderRadius:8,padding:'10px 12px'}}>{a.body}</div>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          {a.link&&<a href={a.link} target="_blank" style={{fontSize:12,color:'var(--blue)',textDecoration:'none'}}>🔗 Reference Link</a>}
+          {a.expiresAt&&!expired&&<span style={{fontSize:11,color:'var(--muted)'}}>⏱ Expires: {new Date(a.expiresAt).toLocaleDateString('en-IN')}</span>}
+          <span style={{fontSize:11,color:'var(--muted)',marginLeft:'auto'}}>👁 {a.views} views</span>
+          {isOwn&&<button className="btn btn-sm btn-ghost" style={{color:'var(--red)',borderColor:'rgba(248,81,73,.3)'}} onClick={()=>del(a.id)} disabled={deleting===a.id}>
+            {deleting===a.id?<Spinner/>:'🗑 Delete'}
+          </button>}
+        </div>
+      </div>;
+    })}
+  </div>;
+}
+
 /* ── MAIN DASHBOARD APP ──────────────────────────────────────────────────── */
 function Dashboard({token,dept,onLogout}){
   const [page,setPage]=useState('dashboard');
@@ -771,6 +930,8 @@ function Dashboard({token,dept,onLogout}){
   const [newIds,setNewIds]=useState(new Set());
   const [toasts,setToasts]=useState([]);
   const [sosCount,setSosCount]=useState(0);
+  const [announcements,setAnnouncements]=useState([]);
+  const [newAnnCount,setNewAnnCount]=useState(0);
   const esRef=useRef(null);
   const addToast=useCallback((msg,type='success')=>{
     const id=Date.now();setToasts(prev=>[...prev,{id,msg,type}]);
@@ -781,6 +942,7 @@ function Dashboard({token,dept,onLogout}){
     api.get(`/api/dept/${dept.id}/complaints`,token).then(d=>{setComplaints(d.complaints||[]);}).catch(()=>{});
     api.get(`/api/dept/${dept.id}/stats`,token).then(setStats).catch(()=>{});
     api.get('/api/sos',token).then(d=>{setSosCount((Array.isArray(d)?d:d.alerts||[]).filter(a=>a.status==='active').length);}).catch(()=>{});
+    api.get(`/api/dept/${dept.id}/announcements`,token).then(d=>{setAnnouncements(Array.isArray(d)?d:[]);}).catch(()=>{});
   },[token,dept.id]);
 
   useEffect(()=>{loadData();},[loadData]);
@@ -812,6 +974,17 @@ function Dashboard({token,dept,onLogout}){
             try{new Notification('🆘 SOS ALERT',{body:`${data.alert?.category?.replace('_',' ')||'Emergency'} · ${data.alert?.location||'Unknown'}`,icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🆘</text></svg>'});}catch{}
           }
         }
+        if(data.type==='announcement_new'){
+          const ann=data.announcement;
+          if(ann){
+            setAnnouncements(prev=>[ann,...prev.filter(a=>a.id!==ann.id)]);
+            setNewAnnCount(c=>c+1);
+            addToast(`📢 New announcement: ${(ann.title||'').slice(0,60)}`,'info');
+            if('Notification'in window&&Notification.permission==='granted'){
+              try{new Notification('📢 New Announcement',{body:`${ann.title} — ${(ann.body||'').slice(0,80)}`,icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📢</text></svg>'});}catch{}
+            }
+          }
+        }
       }catch{}
     };
     return()=>es.close();
@@ -827,6 +1000,7 @@ function Dashboard({token,dept,onLogout}){
     {id:'complaints',icon:'📋',label:'Complaints',badge:newIds.size||null},
     {id:'workers',icon:'👥',label:'Workers'},
     {id:'sos',icon:'🆘',label:'SOS Alerts',badge:sosCount||null},
+    {id:'announcements',icon:'📢',label:'Announcements',badge:newAnnCount||null},
     {id:'analytics',icon:'📊',label:'Analytics'},
     {id:'info',icon:'ℹ️',label:'Dept Info'},
   ];
@@ -885,7 +1059,8 @@ function Dashboard({token,dept,onLogout}){
       {page==='dashboard'&&<DashboardPage token={token} dept={dept} complaints={complaints} stats={stats} workers={workers} newIds={newIds} onRefresh={loadData} addToast={addToast}/>}
       {page==='complaints'&&<ComplaintsPage token={token} dept={dept} complaints={complaints} newIds={newIds} onRefresh={loadData} addToast={addToast}/>}
       {page==='workers'&&<WorkersPage token={token} dept={dept}/>}
-      {page==='sos'&&isPoliceOrUsdma&&<SOSPage token={token} dept={dept} addToast={addToast}/>}
+      {page==='sos'&&<SOSPage token={token} dept={dept} addToast={addToast}/>}
+      {page==='announcements'&&<AnnouncementsPage token={token} dept={dept} announcements={announcements} onRefresh={()=>{api.get(`/api/dept/${dept.id}/announcements`,token).then(d=>{setAnnouncements(Array.isArray(d)?d:[]);setNewAnnCount(0);}).catch(()=>{});}} addToast={addToast}/>}
       {page==='analytics'&&<AnalyticsPage complaints={complaints} stats={stats} dept={dept}/>}
       {page==='info'&&<DeptInfoPage dept={dept}/>}
     </div>

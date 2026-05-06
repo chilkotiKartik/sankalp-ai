@@ -55,6 +55,13 @@ EXPO_PUBLIC_DOMAIN=sankalp-ai.replit.app EXPO_NO_TELEMETRY=1 EXPO_NO_DOTENV=1 \
 - `app/(tabs)/ai.tsx`: AI chat — sends `Authorization: Bearer <token>` header
 - `static-build/web/`: Committed web bundle (served as static SPA)
 
+## Deployment
+
+See `DEPLOY.md` for the full deployment guide. Key points:
+- Production: click Deploy in Replit UI → runs `node scripts/build.js` (builds Expo bundles + web export) then `tsx server/index.ts`
+- Portal HTML files (`server/web/*.html`) require no rebuild — served directly by Express
+- Expo app changes require running `expo export --platform web` and restarting the server
+
 ## Architecture decisions
 
 - **4 Web Portals**: Plain HTML + React 18 CDN + Babel standalone. No build step, instant deploy. Each portal cross-links to the others via `/web/` paths.
@@ -70,7 +77,8 @@ EXPO_PUBLIC_DOMAIN=sankalp-ai.replit.app EXPO_NO_TELEMETRY=1 EXPO_NO_DOTENV=1 \
 - **Auth Token Key**: AsyncStorage key is `@sankalp_token` (not `"token"`) — all admin/worker screens must use this.
 - **Uploads Serving**: `/uploads/` served as static files (complaint photos, audio recordings, SOS evidence).
 - **optionalAuth**: `/api/ai/chat` uses `optionalAuth` middleware (works with or without token). Mobile app sends token; web portals don't need to.
-- **Dept SSE broadens**: `complaint_new`, `complaint_updated`, `complaint_resolved_proof`, `worker_assigned`, `sos_alert` all stream to relevant dept.
+- **Dept SSE broadens**: `complaint_new`, `complaint_updated`, `complaint_resolved_proof`, `worker_assigned`, `sos_alert`, `announcement_new` all stream to relevant dept.
+- **Dept Announcements**: `POST/GET/DELETE /api/dept/:deptId/announcements` — departments post policies, schemes, emergency notices. SSE broadcasts `announcement_new` to dept stream + WebSocket broadcast to mobile app.
 - **Night Safety Zones**: `POST /api/cpr/night-safety` stores report in memory, emits SSE to CPR portal. `GET /api/cpr/night-safety` returns all zones.
 - **Emergency Services API**: `GET /api/cpr/emergency-services` returns 8 emergency service contacts (police, fire, ambulance, women helpline, NDRF, forest fire, child helpline, USDMA).
 

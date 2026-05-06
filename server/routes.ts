@@ -1262,6 +1262,53 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
     res.json(workers.slice(0, 30));
   });
 
+  // GET /api/dept/:deptId/announcements
+  app.get("/api/dept/:deptId/announcements", requireDeptAuth, (req, res) => {
+    const deptId = (req as any).deptId as string;
+    if (req.params.deptId !== deptId) { res.status(403).json({ message: "Access denied" }); return; }
+    const all = storage.getAnnouncements();
+    const mine = all.filter(a => !a.department || a.department === deptId || a.department === "all");
+    res.json(mine.slice(0, 50));
+  });
+
+  // POST /api/dept/:deptId/announcements
+  app.post("/api/dept/:deptId/announcements", requireDeptAuth, (req, res) => {
+    const deptId = (req as any).deptId as string;
+    if (req.params.deptId !== deptId) { res.status(403).json({ message: "Access denied" }); return; }
+    const { title, body, type, priority, targetDistrict, expiresAt, link } = req.body;
+    if (!title || !body) return res.status(400).json({ message: "title and body required" });
+    const dept = DEPARTMENTS[deptId];
+    const validTypes = ["general", "scheme", "emergency", "welfare", "tender", "holiday"];
+    const validPriorities = ["normal", "important", "urgent"];
+    const announcement = storage.createAnnouncement({
+      title,
+      body,
+      type: validTypes.includes(type) ? type : "general",
+      priority: validPriorities.includes(priority) ? priority : "normal",
+      department: deptId,
+      targetDistrict: targetDistrict || "all",
+      postedBy: dept?.name || deptId,
+      link: link || undefined,
+      expiresAt: expiresAt || undefined,
+    });
+    broadcast({ type: "announcement_new", announcement, timestamp: new Date().toISOString() });
+    deptEmitter.emit("event", { type: "announcement_new", departmentId: deptId, announcement });
+    storage.addAuditLog("announcement_posted", deptId, dept?.name || deptId, `Announcement posted: ${title}`);
+    res.status(201).json(announcement);
+  });
+
+  // DELETE /api/dept/:deptId/announcements/:annId
+  app.delete("/api/dept/:deptId/announcements/:annId", requireDeptAuth, (req, res) => {
+    const deptId = (req as any).deptId as string;
+    if (req.params.deptId !== deptId) { res.status(403).json({ message: "Access denied" }); return; }
+    const all = storage.getAnnouncements();
+    const ann = all.find(a => a.id === req.params.annId);
+    if (!ann) return res.status(404).json({ message: "Announcement not found" });
+    if (ann.department !== deptId) return res.status(403).json({ message: "Cannot delete another department's announcement" });
+    const deleted = storage.deleteAnnouncement(req.params.annId);
+    res.json({ success: deleted });
+  });
+
   // PUT /api/dept/complaints/:id — update status
   app.put("/api/dept/complaints/:id", requireDeptAuth, (req, res) => {
     const { status } = req.body as { status?: string };
@@ -1293,6 +1340,8 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
       if ((e.type === "complaint_new" || e.type === "complaint_updated" || e.type === "complaint_resolved_proof" || e.type === "worker_assigned") && isMyDept) {
         res.write(`data: ${JSON.stringify(ev)}\n\n`);
       } else if (e.type === "sos_alert" && (isMyDept || isEmergencyDept)) {
+        res.write(`data: ${JSON.stringify(ev)}\n\n`);
+      } else if (e.type === "announcement_new" && (isMyDept || e.departmentId === "all" || !e.departmentId)) {
         res.write(`data: ${JSON.stringify(ev)}\n\n`);
       }
     };
