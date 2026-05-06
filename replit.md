@@ -8,10 +8,9 @@ SANKALP AI is a production-grade civic governance mobile app for Uttarakhand cit
 # Start the backend server (primary workflow)
 node_modules/.bin/tsx server/index.ts
 
-# Rebuild web bundle for deployment
+# Rebuild web bundle for deployment (output directly into static-build/web)
 EXPO_PUBLIC_DOMAIN=sankalp-ai.replit.app EXPO_NO_TELEMETRY=1 EXPO_NO_DOTENV=1 \
-  node_modules/.bin/expo export --platform web --output-dir /tmp/web-build && \
-  rm -rf static-build/web && mv /tmp/web-build static-build/web
+  node_modules/.bin/expo export --platform web --output-dir static-build/web
 
 # Required Environment Variables (all set as shared secrets):
 # EXPO_PUBLIC_DOMAIN=sankalp-ai.replit.app  (set for production builds)
@@ -64,6 +63,8 @@ See `DEPLOY.md` for the full deployment guide. Key points:
 
 ## Architecture decisions
 
+- **Expo Router Platform Split**: Files ending in `.web.tsx` override `.tsx` on web. `app/admin/workermap.tsx` uses WebView (native/Expo Go); `app/admin/workermap.web.tsx` uses iframe + SSE EventSource (web). Shared Leaflet HTML builder in `lib/workermap-html.ts`.
+- **No duplicate admin route**: Only `app/admin/index.tsx` + `app/admin/_layout.tsx` define the admin screen. `app/admin.tsx` was a leftover duplicate that caused "duplicate screen" errors and has been removed.
 - **4 Web Portals**: Plain HTML + React 18 CDN + Babel standalone. No build step, instant deploy. Each portal cross-links to the others via `/web/` paths.
 - **Dual SSE Streams**: `deptEmitter` (complaints → dept staff) and `cprEmitter` (SOS incidents → CPR command). Both are node EventEmitters with 200-listener limit.
 - **CPR Patrol System**: 18 seeded patrol vans covering all 13 Uttarakhand districts. When SOS is filed, nearest active van auto-assigned, status changes to "responding", SSE streams to all CPR portal clients.

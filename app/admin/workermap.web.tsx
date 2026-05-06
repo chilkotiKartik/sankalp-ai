@@ -1,8 +1,8 @@
-// Native version — uses react-native-webview (works in Expo Go)
+// Web version — uses iframe + srcDoc (no react-native-webview needed)
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  ActivityIndicator, Modal, Dimensions, Platform,
+  ActivityIndicator, Modal, Dimensions,
   TextInput, Animated, RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,7 +10,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { WebView } from "react-native-webview";
 import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 import {
@@ -34,7 +33,7 @@ const STATUS_META = {
 
 const DISTRICTS = Object.keys(DISTRICT_CENTERS);
 const { width: SW } = Dimensions.get("window");
-const MAP_H = Math.round(SW * 0.78);
+const MAP_H = Math.min(Math.round(SW * 0.55), 480);
 
 function buildHeatData(workers: Worker[]): DistrictHeatData[] {
   return DISTRICTS.map(d => {
@@ -56,6 +55,53 @@ function toMapData(workers: Worker[]): WorkerMapData[] {
   }));
 }
 
+// ── Web iframe map component ──────────────────────────────────────────────────
+function WebMap({
+  html,
+  iframeRef,
+  onWorkerTap,
+  height,
+}: {
+  html: string;
+  iframeRef: React.RefObject<HTMLIFrameElement | null>;
+  onWorkerTap: (id: string) => void;
+  height: number;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const el = containerRef.current;
+    if (!el) return;
+    el.innerHTML = "";
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = `width:100%;height:${height}px;border:none;display:block;background:#0d1117`;
+    iframe.setAttribute("srcdoc", html);
+    iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
+    iframe.setAttribute("title", "Worker GPS Map");
+    (iframeRef as any).current = iframe;
+    el.appendChild(iframe);
+    const handler = (e: MessageEvent) => {
+      try {
+        const msg = JSON.parse(e.data as string);
+        if (msg.type === "workerTap") onWorkerTap(msg.id);
+      } catch {}
+    };
+    window.addEventListener("message", handler);
+    return () => {
+      window.removeEventListener("message", handler);
+      if (el.contains(iframe)) el.removeChild(iframe);
+    };
+  }, [html, height]);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: "#0d1117" }}>
+      {/* @ts-ignore — web-only ref/div */}
+      <div ref={containerRef} style={{ width: "100%", height: `${height}px` }} />
+    </View>
+  );
+}
+
 export default function WorkerMapScreen() {
   const insets = useSafeAreaInsets();
   const [workers, setWorkers] = useState<Worker[]>([]);
@@ -71,39 +117,46 @@ export default function WorkerMapScreen() {
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
   const [showHeat, setShowHeat] = useState(true);
+  const [htmlContent, setHtmlContent] = useState("");
 
-  const wvRef = useRef<WebView>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const esRef = useRef<EventSource | null>(null);
   const fallbackRef = useRef<any>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const loop = Animated.loop(Animated.sequence([
-      Animated.timing(pulseAnim, { toValue: 0.25, duration: 750, useNativeDriver: true }),
-      Animated.timing(pulseAnim, { toValue: 1,    duration: 750, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 0.25, duration: 750, useNativeDriver: false }),
+      Animated.timing(pulseAnim, { toValue: 1,    duration: 750, useNativeDriver: false }),
     ]));
     loop.start();
     return () => loop.stop();
   }, []);
 
-  const inject = (js: string) => { try { wvRef.current?.injectJavaScript(js + ";true;"); } catch {} };
+  const postToIframe = useCallback((msg: object) => {
+    try {
+      const ifr = iframeRef.current;
+      if (ifr?.contentWindow) ifr.contentWindow.postMessage(JSON.stringify(msg), "*");
+    } catch {}
+  }, []);
 
   const pushMapUpdate = useCallback((updates: any[]) => {
-    inject(`window.updateWorkers&&window.updateWorkers(${JSON.stringify(updates)})`);
-  }, []);
+    postToIframe({ type: "update", updates });
+  }, [postToIframe]);
 
   const focusOnMap = useCallback((w: Worker) => {
-    inject(`window.focusWorker&&window.focusWorker(${JSON.stringify(w.id)})`);
-  }, []);
+    postToIframe({ type: "focus", id: w.id });
+  }, [postToIframe]);
 
   const resetMap = useCallback(() => {
     setMapFocusId(null);
-    inject(`window.resetView&&window.resetView()`);
-  }, []);
+    postToIframe({ type: "reset" });
+  }, [postToIframe]);
 
   const toggleHeat = () => {
     const next = !showHeat;
     setShowHeat(next);
-    inject(`window.setHeatVisible&&window.setHeatVisible(${next})`);
+    postToIframe({ type: "heat", visible: next });
   };
 
   const load = useCallback(async (silent = false) => {
@@ -132,13 +185,52 @@ export default function WorkerMapScreen() {
 
   useEffect(() => {
     const start = async () => {
-      setLiveStatus("live");
-      await load();
-      fallbackRef.current = setInterval(() => load(true), 8000);
+      const tok = await AsyncStorage.getItem("@sankalp_token");
+      if (!tok) { load(); return; }
+      const base = getApiUrl();
+      if (typeof EventSource !== "undefined") {
+        try {
+          const es = new EventSource(`${base}api/workers/stream`);
+          esRef.current = es;
+          es.onopen = () => { setLiveStatus("live"); setLastUpdate(new Date()); };
+          es.onerror = () => {
+            setLiveStatus("offline"); es.close();
+            fallbackRef.current = setInterval(() => load(true), 8000);
+          };
+          es.onmessage = (e: MessageEvent) => {
+            try {
+              const data = JSON.parse(e.data);
+              if (data.type === "initial" && Array.isArray(data.workers)) {
+                setWorkers(data.workers); setLoading(false); setLiveStatus("live"); setLastUpdate(new Date());
+              } else if (data.type === "worker_geo_update" && Array.isArray(data.updates)) {
+                setLastUpdate(new Date());
+                setWorkers(prev => prev.map(w => {
+                  const u = data.updates.find((x: any) => x.id === w.id);
+                  return u ? { ...w, geo: u.geo, status: u.status } : w;
+                }));
+                const upd = data.updates.map((u: any) => ({
+                  id: u.id, lat: u.geo.lat, lng: u.geo.lng, status: u.status, name: u.name || "",
+                }));
+                pushMapUpdate(upd);
+              }
+            } catch {}
+          };
+        } catch {
+          setLiveStatus("offline");
+          await load();
+          fallbackRef.current = setInterval(() => load(true), 8000);
+        }
+      } else {
+        setLiveStatus("live");
+        await load();
+        fallbackRef.current = setInterval(() => load(true), 8000);
+      }
     };
     start();
-    return () => clearInterval(fallbackRef.current);
-  }, [load]);
+    return () => { esRef.current?.close(); clearInterval(fallbackRef.current); };
+  }, [load, pushMapUpdate]);
+
+  useEffect(() => { load(); }, []);
 
   const filtered = workers.filter(w => {
     if (filterStatus !== "all" && w.status !== filterStatus) return false;
@@ -150,30 +242,29 @@ export default function WorkerMapScreen() {
     return true;
   });
 
-  const heatData = buildHeatData(workers);
-  const htmlContent = buildWorkerMapHTML(toMapData(filtered), heatData, mapFocusId, showHeat, false);
+  // Only rebuild HTML when filtered workers, heatData, or focus changes
+  useEffect(() => {
+    const hd = buildHeatData(workers);
+    setHtmlContent(buildWorkerMapHTML(toMapData(filtered), hd, mapFocusId, showHeat, true));
+  }, [filtered.length, filterStatus, filterDistrict, searchQuery, mapFocusId, showHeat, workers.length]);
 
+  const heatData = buildHeatData(workers);
   const activeCount = workers.filter(w => w.status === "active").length;
   const idleCount   = workers.filter(w => w.status === "idle").length;
   const leaveCount  = workers.filter(w => w.status === "on_leave").length;
 
-  const onMsg = useCallback((e: any) => {
-    try {
-      const msg = JSON.parse(e.nativeEvent.data);
-      if (msg.type === "workerTap") {
-        const w = workers.find(x => x.id === msg.id);
-        if (w) { setSelectedWorker(w); setMapFocusId(w.id); }
-      }
-    } catch {}
+  const onWorkerTap = useCallback((id: string) => {
+    const w = workers.find(x => x.id === id);
+    if (w) { setSelectedWorker(w); setMapFocusId(w.id); }
   }, [workers]);
 
   const handleWorkerPress = (w: Worker) => {
     setSelectedWorker(w); setMapFocusId(w.id); setViewMode("map");
-    setTimeout(() => focusOnMap(w), 120);
+    setTimeout(() => focusOnMap(w), 150);
   };
 
   const liveColor = liveStatus === "live" ? "#00C060" : liveStatus === "connecting" ? "#FFAB00" : "#EF4444";
-  const liveLabel = liveStatus === "live" ? "Live · 8s refresh" : liveStatus === "connecting" ? "Connecting…" : "Offline";
+  const liveLabel = liveStatus === "live" ? "Live SSE" : liveStatus === "connecting" ? "Connecting…" : "Polling";
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -210,7 +301,8 @@ export default function WorkerMapScreen() {
           { label: "Leave",   count: leaveCount,     color: "#6B7280", icon: "moon"            as const, st: "on_leave" as const },
           { label: "Total",   count: workers.length, color: Colors.saffron, icon: "people"     as const, st: "all"      as const },
         ]).map(item => (
-          <Pressable key={item.label} onPress={() => setFilterStatus(filterStatus === item.st && item.st !== "all" ? "all" : item.st)}
+          <Pressable key={item.label}
+            onPress={() => setFilterStatus(filterStatus === item.st && item.st !== "all" ? "all" : item.st)}
             style={[s.statBox, { borderColor: item.color + "44", backgroundColor: item.color + "12" },
               filterStatus === item.st && item.st !== "all" && { borderWidth: 2 }]}>
             <Ionicons name={item.icon} size={13} color={item.color} />
@@ -270,31 +362,14 @@ export default function WorkerMapScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(true); }} tintColor={Colors.green} />}>
 
-          {/* Real Map */}
-          {viewMode === "map" && (
+          {/* Real Leaflet Map via iframe */}
+          {viewMode === "map" && htmlContent ? (
             <View style={s.mapWrap}>
-              <WebView
-                ref={wvRef}
-                style={{ flex: 1, backgroundColor: "#0d1117" }}
-                source={{ html: htmlContent }}
-                javaScriptEnabled domStorageEnabled
-                onMessage={onMsg}
-                scrollEnabled={false} bounces={false}
-                originWhitelist={["*"]} mixedContentMode="always"
-                allowUniversalAccessFromFileURLs
-                allowFileAccess
-                startInLoadingState
-                renderLoading={() => (
-                  <View style={[s.mapLoading, { height: MAP_H }]}>
-                    <ActivityIndicator color={Colors.green} size="large" />
-                    <Text style={s.mapLoadingTxt}>Loading map…</Text>
-                  </View>
-                )}
-              />
+              <WebMap html={htmlContent} iframeRef={iframeRef} onWorkerTap={onWorkerTap} height={MAP_H} />
               <View style={s.mapOverlay}>
                 <View style={s.mapPill}>
                   <Ionicons name="people" size={11} color={Colors.textSecondary} />
-                  <Text style={s.mapPillTxt}>{filtered.length} worker{filtered.length !== 1 ? "s" : ""}</Text>
+                  <Text style={s.mapPillTxt}>{filtered.length} workers</Text>
                 </View>
                 {mapFocusId && (
                   <Pressable onPress={resetMap} style={s.resetBtn}>
@@ -304,15 +379,19 @@ export default function WorkerMapScreen() {
                 )}
                 <Pressable onPress={toggleHeat} style={[s.heatBtn, showHeat && s.heatBtnActive]}>
                   <Ionicons name="layers" size={12} color={showHeat ? Colors.saffron : Colors.textMuted} />
-                  <Text style={[s.heatBtnTxt, showHeat && { color: Colors.saffron }]}>Heat</Text>
+                  <Text style={[s.heatBtnTxt, showHeat && { color: Colors.saffron }]}>Heatmap</Text>
                 </Pressable>
               </View>
             </View>
-          )}
+          ) : viewMode === "map" ? (
+            <View style={[s.mapWrap, { alignItems: "center", justifyContent: "center" }]}>
+              <ActivityIndicator color={Colors.green} />
+            </View>
+          ) : null}
 
           {/* Section title */}
           <Text style={s.sectionTitle}>
-            {viewMode === "map" ? "Tap row → focus on map" : `${filtered.length} Worker${filtered.length !== 1 ? "s" : ""}`}
+            {viewMode === "map" ? "Tap row → focus worker on map" : `${filtered.length} Worker${filtered.length !== 1 ? "s" : ""}`}
             {filterDistrict !== "all" ? ` · ${filterDistrict}` : ""}
           </Text>
 
@@ -366,6 +445,31 @@ export default function WorkerMapScreen() {
               );
             })
           )}
+
+          {/* District heatmap summary */}
+          {viewMode === "list" && (
+            <>
+              <Text style={[s.sectionTitle, { marginTop: 8 }]}>District Overview</Text>
+              <View style={s.districtGrid}>
+                {heatData.filter(d => d.count > 0).map(d => {
+                  const pct = d.count > 0 ? (d.active / d.count) : 0;
+                  const heat = d.avgScore > 80 ? Colors.green : d.avgScore > 65 ? Colors.amber : "#EF4444";
+                  return (
+                    <Pressable key={d.district}
+                      onPress={() => setFilterDistrict(filterDistrict === d.district ? "all" : d.district)}
+                      style={[s.distCard, filterDistrict === d.district && { borderColor: Colors.saffron }]}>
+                      <Text style={s.distName} numberOfLines={1}>{d.district}</Text>
+                      <Text style={[s.distCount, { color: heat }]}>{d.count}</Text>
+                      <View style={s.distBar}>
+                        <View style={[s.distFill, { width: `${pct * 100}%`, backgroundColor: "#00C060" }]} />
+                      </View>
+                      <Text style={s.distMeta}>{d.active} active · {Math.round(d.avgScore)} avg</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
         </ScrollView>
       )}
 
@@ -404,10 +508,10 @@ export default function WorkerMapScreen() {
 
                   <View style={s.statsGrid}>
                     {[
-                      { label: "Today",  value: selectedWorker.resolvedToday,                icon: "today"          as const, color: "#00C060" },
-                      { label: "Total",  value: selectedWorker.totalResolved,                icon: "checkmark-done" as const, color: "#3B82F6" },
-                      { label: "Rating", value: `★${selectedWorker.avgRating.toFixed(1)}`,  icon: "star"           as const, color: Colors.turmeric },
-                      { label: "Score",  value: selectedWorker.score,                        icon: "trophy"         as const, color: Colors.saffron },
+                      { label: "Today",  value: selectedWorker.resolvedToday,               icon: "today"          as const, color: "#00C060" },
+                      { label: "Total",  value: selectedWorker.totalResolved,               icon: "checkmark-done" as const, color: "#3B82F6" },
+                      { label: "Rating", value: `★${selectedWorker.avgRating.toFixed(1)}`, icon: "star"           as const, color: Colors.turmeric },
+                      { label: "Score",  value: selectedWorker.score,                       icon: "trophy"         as const, color: Colors.saffron },
                     ].map(item => (
                       <View key={item.label} style={[s.statCard, { borderColor: item.color + "30" }]}>
                         <Ionicons name={item.icon} size={16} color={item.color} />
@@ -420,7 +524,7 @@ export default function WorkerMapScreen() {
                   <View style={s.geoBox}>
                     <View style={s.geoDot} />
                     <View style={{ flex: 1 }}>
-                      <Text style={s.geoTitle}>Live GPS</Text>
+                      <Text style={s.geoTitle}>Live GPS Location</Text>
                       <Text style={s.geoCoords}>
                         {selectedWorker.geo?.lat?.toFixed(6)}°N, {selectedWorker.geo?.lng?.toFixed(6)}°E
                       </Text>
@@ -432,7 +536,7 @@ export default function WorkerMapScreen() {
 
                   <View style={s.actionRow}>
                     <Pressable style={[s.actionBtn, { backgroundColor: "#00C06018", borderColor: "#00C060" }]}
-                      onPress={() => { setViewMode("map"); setTimeout(() => focusOnMap(selectedWorker), 80); setSelectedWorker(null); }}>
+                      onPress={() => { setViewMode("map"); setTimeout(() => focusOnMap(selectedWorker), 150); setSelectedWorker(null); }}>
                       <Ionicons name="locate" size={15} color="#00C060" />
                       <Text style={[s.actionBtnTxt, { color: "#00C060" }]}>Focus Map</Text>
                     </Pressable>
@@ -456,7 +560,7 @@ export default function WorkerMapScreen() {
             <Text style={s.pickerTitle}>Filter by District</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               {["all", ...DISTRICTS].map(d => {
-                const hw = d !== "all" ? buildHeatData(workers).find(x => x.district === d) : null;
+                const hw = d !== "all" ? heatData.find(x => x.district === d) : null;
                 return (
                   <Pressable key={d} onPress={() => { setFilterDistrict(d); setShowDistrictPicker(false); }}
                     style={[s.pickerItem, filterDistrict === d && s.pickerItemActive]}>
@@ -465,7 +569,7 @@ export default function WorkerMapScreen() {
                     <Text style={[s.pickerItemTxt, filterDistrict === d && { color: Colors.saffron, fontWeight: "700" }]} numberOfLines={1}>
                       {d === "all" ? "All Districts" : d}
                     </Text>
-                    {hw && <Text style={s.pickerCount}>{hw.count} workers</Text>}
+                    {hw && <Text style={s.pickerCount}>{hw.count} workers · avg {Math.round(hw.avgScore)}</Text>}
                     {filterDistrict === d && <Ionicons name="checkmark-circle" size={16} color={Colors.saffron} />}
                   </Pressable>
                 );
@@ -515,14 +619,12 @@ const s = StyleSheet.create({
   mainContent:  { gap: 0 },
 
   mapWrap:     { marginHorizontal: 14, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: Colors.border, height: MAP_H, marginBottom: 0, position: "relative" },
-  mapLoading:  { backgroundColor: "#0d1117", alignItems: "center", justifyContent: "center", gap: 10 },
-  mapLoadingTxt: { fontSize: 13, color: Colors.textMuted },
   mapOverlay:  { position: "absolute", bottom: 10, left: 10, right: 10, flexDirection: "row", alignItems: "center", gap: 6 },
   mapPill:     { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(6,13,24,0.9)", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: Colors.border },
   mapPillTxt:  { fontSize: 11, color: Colors.textSecondary },
   resetBtn:    { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.saffronBg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: Colors.saffron },
   resetBtnTxt: { fontSize: 11, color: Colors.saffron, fontWeight: "700" },
-  heatBtn:     { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(6,13,24,0.9)", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: Colors.border, marginLeft: "auto" },
+  heatBtn:     { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(6,13,24,0.9)", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: Colors.border, marginLeft: "auto" as any },
   heatBtnActive: { backgroundColor: Colors.saffronBg, borderColor: Colors.saffron },
   heatBtnTxt:  { fontSize: 11, color: Colors.textMuted },
 
@@ -552,6 +654,14 @@ const s = StyleSheet.create({
   scoreBox:   { alignItems: "center" },
   scoreVal:   { fontSize: 22, fontWeight: "800", color: Colors.saffron },
   scoreLbl:   { fontSize: 10, color: Colors.textMuted },
+
+  districtGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 14, marginBottom: 16 },
+  distCard:     { backgroundColor: Colors.bgCard, borderRadius: 10, padding: 10, width: "47%", borderWidth: 1, borderColor: Colors.border, gap: 4 },
+  distName:     { fontSize: 11, fontWeight: "700", color: Colors.textSecondary },
+  distCount:    { fontSize: 22, fontWeight: "800" },
+  distBar:      { height: 4, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden" },
+  distFill:     { height: "100%", borderRadius: 2 },
+  distMeta:     { fontSize: 10, color: Colors.textMuted },
 
   overlay:    { flex: 1, backgroundColor: "rgba(0,0,0,0.72)", justifyContent: "flex-end" },
   sheet:      { backgroundColor: Colors.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 12, gap: 14 },
