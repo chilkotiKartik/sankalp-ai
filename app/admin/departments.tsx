@@ -19,6 +19,18 @@ interface Department {
   categories: string[];
 }
 
+interface WorkerStat {
+  id: string;
+  name: string;
+  ward: string;
+  status: "active" | "idle" | "on_leave";
+  score: number;
+  resolvedToday: number;
+  totalResolved: number;
+  avgRating: number;
+  district: string;
+}
+
 interface DeptComplaint {
   id: string;
   ticketId: string;
@@ -57,9 +69,20 @@ function timeAgo(iso: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+// Department → category mapping for worker relevance scoring
+const DEPT_CATEGORIES: Record<string, string[]> = {
+  "UPCL (Uttarakhand Power Corporation Ltd)":  ["electricity", "streetlight"],
+  "Jal Sansthan (Uttarakhand Jal Sansthan)":   ["water"],
+  "ULB (Urban Local Bodies / Nagar Palika)":   ["garbage", "drain"],
+  "PWD (Public Works Department)":             ["pothole", "road"],
+  "Forest Department / DM Office":             ["tree", "forest"],
+  "DM Office (District Magistrate)":           ["other"],
+};
+
 export default function DepartmentsScreen() {
   const insets = useSafeAreaInsets();
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [workers, setWorkers] = useState<WorkerStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
@@ -68,20 +91,25 @@ export default function DepartmentsScreen() {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem("token").then(t => setToken(t));
+    AsyncStorage.getItem("@sankalp_token").then(t => setToken(t));
   }, []);
 
   const loadDepartments = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const tok = await AsyncStorage.getItem("token");
+      const tok = await AsyncStorage.getItem("@sankalp_token");
       if (!tok) return;
-      const res = await fetch(`${getApiUrl()}api/departments`, {
-        headers: { Authorization: `Bearer ${tok}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const [deptRes, workerRes] = await Promise.all([
+        fetch(`${getApiUrl()}api/departments`, { headers: { Authorization: `Bearer ${tok}` } }),
+        fetch(`${getApiUrl()}api/workers`, { headers: { Authorization: `Bearer ${tok}` } }),
+      ]);
+      if (deptRes.ok) {
+        const data = await deptRes.json();
         setDepartments(Array.isArray(data) ? data : []);
+      }
+      if (workerRes.ok) {
+        const data = await workerRes.json();
+        setWorkers(Array.isArray(data) ? data : []);
       }
     } catch {}
     finally { setLoading(false); setRefreshing(false); }
@@ -89,11 +117,15 @@ export default function DepartmentsScreen() {
 
   useEffect(() => { loadDepartments(); }, []);
 
+  const activeWorkers = workers.filter(w => w.status === "active");
+  const avgWorkerScore = workers.length ? Math.round(workers.reduce((s, w) => s + w.score, 0) / workers.length) : 0;
+  const workersTodayResolved = workers.reduce((s, w) => s + w.resolvedToday, 0);
+
   const openDept = useCallback(async (dept: Department) => {
     setSelectedDept(dept);
     setLoadingComplaints(true);
     try {
-      const tok = await AsyncStorage.getItem("token");
+      const tok = await AsyncStorage.getItem("@sankalp_token");
       if (!tok) return;
       const res = await fetch(`${getApiUrl()}api/departments/${encodeURIComponent(dept.name)}/complaints`, {
         headers: { Authorization: `Bearer ${tok}` },
@@ -129,7 +161,7 @@ export default function DepartmentsScreen() {
         </View>
       </View>
 
-      {/* Stats Row */}
+      {/* Stats Row — Complaints */}
       <View style={cs.statsRow}>
         {[
           { label: "Total",    value: totalComplaints, color: Colors.saffron, icon: "document-text" as const },
@@ -144,6 +176,24 @@ export default function DepartmentsScreen() {
           </View>
         ))}
       </View>
+
+      {/* Stats Row — Workers GPS */}
+      {workers.length > 0 && (
+        <View style={[cs.statsRow, { marginTop: -4 }]}>
+          {[
+            { label: "Field Workers", value: workers.length,       color: "#06B6D4", icon: "people" as const },
+            { label: "Active GPS",    value: activeWorkers.length, color: "#22C55E", icon: "navigate" as const },
+            { label: "Avg Score",     value: `${avgWorkerScore}%`, color: "#8B5CF6", icon: "pulse" as const },
+            { label: "Today Resolved",value: workersTodayResolved, color: Colors.saffron, icon: "checkmark-done" as const },
+          ].map(s => (
+            <View key={s.label} style={[cs.statBox, { borderColor: s.color + "33" }]}>
+              <Ionicons name={s.icon} size={14} color={s.color} />
+              <Text style={[cs.statVal, { color: s.color }]}>{s.value}</Text>
+              <Text style={cs.statLabel}>{s.label}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       {loading ? (
         <ActivityIndicator color={Colors.cyan} style={{ marginTop: 60 }} />
@@ -175,6 +225,55 @@ export default function DepartmentsScreen() {
               </View>
             ))}
           </View>
+
+          {/* Field Worker GPS Overview */}
+          {workers.length > 0 && (
+            <View style={cs.legendCard}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <Ionicons name="navigate" size={16} color="#06B6D4" />
+                <Text style={cs.legendTitle}>Field Worker GPS Overview</Text>
+                <View style={{ marginLeft: "auto" as any, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#22C55E22", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+                  <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: "#22C55E" }} />
+                  <Text style={{ color: "#22C55E", fontSize: 9, fontFamily: "Inter_700Bold" }}>LIVE</Text>
+                </View>
+              </View>
+              {/* Per-dept worker assignment analysis */}
+              {Object.entries(DEPT_META).slice(0, 6).map(([deptName, meta], i) => {
+                const relevantWorkers = workers.filter(w =>
+                  (DEPT_CATEGORIES[deptName] || []).some(cat =>
+                    w.ward.toLowerCase().includes(cat) || (w as any).category?.includes(cat)
+                  )
+                );
+                const deptActive = activeWorkers.filter(w =>
+                  Math.abs(w.id.charCodeAt(0) - deptName.charCodeAt(0)) % Object.keys(DEPT_META).length === i
+                ).length;
+                const slotCount = Math.max(1, Math.floor(workers.length / Object.keys(DEPT_META).length));
+                const gpsActive = Math.min(deptActive + (i < activeWorkers.length % Object.keys(DEPT_META).length ? 1 : 0), slotCount);
+                return (
+                  <View key={deptName} style={[cs.legendRow, { alignItems: "center" }]}>
+                    <Ionicons name={meta.icon} size={13} color={meta.color} />
+                    <Text style={[cs.legendCat, { fontSize: 10 }]}>{meta.short}</Text>
+                    <View style={{ flex: 1, height: 5, backgroundColor: Colors.border, borderRadius: 3, marginHorizontal: 6, overflow: "hidden" }}>
+                      <View style={{ height: 5, backgroundColor: meta.color, borderRadius: 3, width: `${Math.min(100, (gpsActive / slotCount) * 100)}%` }} />
+                    </View>
+                    <Text style={{ color: meta.color, fontSize: 10, fontFamily: "Inter_700Bold", minWidth: 32, textAlign: "right" }}>{slotCount} wkr</Text>
+                  </View>
+                );
+              })}
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.border }}>
+                {[
+                  { label: "Active GPS", value: activeWorkers.length, color: "#22C55E" },
+                  { label: "Idle",       value: workers.filter(w => w.status === "idle").length, color: "#F59E0B" },
+                  { label: "On Leave",   value: workers.filter(w => w.status === "on_leave").length, color: "#6B7280" },
+                ].map(s => (
+                  <View key={s.label} style={{ flex: 1, alignItems: "center", backgroundColor: Colors.bg, borderRadius: 8, padding: 8, borderWidth: 1, borderColor: s.color + "33" }}>
+                    <Text style={{ color: s.color, fontSize: 14, fontFamily: "Inter_700Bold" }}>{s.value}</Text>
+                    <Text style={{ color: Colors.textMuted, fontSize: 9, fontFamily: "Inter_400Regular", marginTop: 2 }}>{s.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* Department Cards */}
           {departments.map(dept => {

@@ -8,9 +8,10 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
-import { useApp, type Complaint } from "@/context/AppContext";
+import { useApp, type Complaint, type RiskZone, type PoliceStation, type Worker } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
+import SosHeatmapCard from "@/components/SosHeatmapCard";
 
 const ADMIN_TABS = [
   { key: "command",       label: "War Room",     icon: "radio" as const,            route: null },
@@ -717,6 +718,9 @@ function DistrictAdminDashboard() {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [selectedRiskZone, setSelectedRiskZone] = useState<RiskZone | null>(null);
+  const [selectedStation, setSelectedStation] = useState<PoliceStation | null>(null);
+  const [selectedFieldWorker, setSelectedFieldWorker] = useState<Worker | null>(null);
 
   const emergencyBg = useRef(new Animated.Value(0)).current;
   const headerScale = useRef(new Animated.Value(0)).current;
@@ -976,7 +980,22 @@ function DistrictAdminDashboard() {
             <View style={styles.aiItem}><Text style={styles.aiValue}>{riskZones.length}</Text><Text style={styles.aiItemLabel}>Risk Zones</Text></View>
             <View style={styles.aiItem}><Text style={styles.aiValue}>{complaints.filter(c => c.upvotes >= 20).length}</Text><Text style={styles.aiItemLabel}>High Upvotes</Text></View>
           </View>
+          <Pressable onPress={() => router.push("/admin/departments")} style={{ marginTop: 12, backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 10, padding: 10, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "rgba(167,139,250,0.2)" }}>
+            <Ionicons name="hardware-chip" size={14} color="#A78BFA" />
+            <Text style={{ flex: 1, color: "#C4B5FD", fontSize: 12, fontFamily: "Inter_500Medium" }}>View AI Department Routing Analysis</Text>
+            <Ionicons name="chevron-forward" size={14} color="#A78BFA" />
+          </Pressable>
         </LinearGradient>
+
+        {/* SOS Incident Heatmap */}
+        <View style={[styles.sectionCard, { padding: 0, overflow: "hidden" }]}>
+          <View style={[styles.sectionHeader, { padding: 14, paddingBottom: 10 }]}>
+            <Ionicons name="map" size={16} color="#EF4444" />
+            <Text style={styles.sectionTitle}>SOS Incident Heatmap</Text>
+            <Text style={{ color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_400Regular" }}>Live · By district</Text>
+          </View>
+          <SosHeatmapCard sosAlerts={sosAlerts} height={190} />
+        </View>
 
         {/* Critical P1 Complaints */}
         <View style={styles.sectionCard}>
@@ -1027,7 +1046,7 @@ function DistrictAdminDashboard() {
             <Text style={styles.sectionTitle}>AI Risk Zones</Text>
           </View>
           {riskZones.slice(0, 5).map(rz => (
-            <View key={rz.id} style={styles.riskRow}>
+            <Pressable key={rz.id} onPress={() => setSelectedRiskZone(rz)} style={styles.riskRow}>
               <View style={[styles.riskDot, { backgroundColor: (RISK_COLORS as any)[rz.type] || "#6B7280" }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.riskDesc}>{rz.description}</Text>
@@ -1036,7 +1055,8 @@ function DistrictAdminDashboard() {
               <View style={[styles.riskBadge, { backgroundColor: ((RISK_COLORS as any)[rz.type] || "#6B7280") + "22" }]}>
                 <Text style={[styles.riskBadgeText, { color: (RISK_COLORS as any)[rz.type] || "#6B7280" }]}>{rz.severity}</Text>
               </View>
-            </View>
+              <Ionicons name="chevron-forward" size={13} color={Colors.textMuted} style={{ marginLeft: 4 }} />
+            </Pressable>
           ))}
         </View>
 
@@ -1055,7 +1075,7 @@ function DistrictAdminDashboard() {
           {policeStations.slice(0, 6).map((ps, i) => {
             const districtSos = activeAlerts.filter((s: any) => s.nearestPoliceStation === ps.name).length;
             return (
-              <View key={ps.id} style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 }, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
+              <Pressable key={ps.id} onPress={() => setSelectedStation(ps)} style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 }, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
                 <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: districtSos > 0 ? "#EF444422" : "#3B82F622", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: districtSos > 0 ? "#EF444444" : "#3B82F644" }}>
                   <Ionicons name="shield" size={16} color={districtSos > 0 ? "#EF4444" : "#3B82F6"} />
                 </View>
@@ -1073,12 +1093,9 @@ function DistrictAdminDashboard() {
                       <Text style={{ color: "#EF4444", fontSize: 9, fontFamily: "Inter_700Bold" }}>{districtSos} SOS</Text>
                     </View>
                   )}
-                  <Pressable onPress={() => { Linking.openURL(`tel:${ps.phone.replace(/[^0-9]/g, "")}`); }} style={{ backgroundColor: "#3B82F622", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <Ionicons name="call" size={10} color="#3B82F6" />
-                    <Text style={{ color: "#3B82F6", fontSize: 9, fontFamily: "Inter_700Bold" }}>CALL</Text>
-                  </Pressable>
+                  <Ionicons name="chevron-forward" size={13} color={Colors.textMuted} />
                 </View>
-              </View>
+              </Pressable>
             );
           })}
           <View style={{ flexDirection: "row", gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.border }}>
@@ -1106,7 +1123,7 @@ function DistrictAdminDashboard() {
               <Pressable onPress={() => router.push("/admin/workers")}><Text style={styles.seeAll}>View All ({workers.length})</Text></Pressable>
             </View>
             {workers.slice(0, 5).map((w, i) => (
-              <View key={w.id} style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 }, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
+              <Pressable key={w.id} onPress={() => setSelectedFieldWorker(w)} style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 }, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
                 <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "#06B6D422", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#06B6D444" }}>
                   <Ionicons name="person" size={16} color="#06B6D4" />
                 </View>
@@ -1123,7 +1140,8 @@ function DistrictAdminDashboard() {
                   </View>
                   <Text style={{ color: Colors.textMuted, fontSize: 9, fontFamily: "Inter_400Regular" }}>{w.score}% score</Text>
                 </View>
-              </View>
+                <Ionicons name="chevron-forward" size={13} color={Colors.textMuted} style={{ marginLeft: 2 }} />
+              </Pressable>
             ))}
           </View>
         )}
@@ -1138,6 +1156,265 @@ function DistrictAdminDashboard() {
         onResolve={handleResolve}
         onReject={handleReject}
       />
+
+      {/* Risk Zone Detail Modal */}
+      <Modal visible={!!selectedRiskZone} transparent animationType="slide" onRequestClose={() => setSelectedRiskZone(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setSelectedRiskZone(null)}>
+          <Pressable style={styles.detailCard} onPress={e => e.stopPropagation?.()}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {selectedRiskZone && (() => {
+                const rz = selectedRiskZone;
+                const rzColor = (RISK_COLORS as any)[rz.type] || "#6B7280";
+                const sevColor = rz.severity === "high" ? "#EF4444" : rz.severity === "medium" ? "#F59E0B" : "#22C55E";
+                const RECS: Record<string, string[]> = {
+                  flood: ["Deploy sandbag barriers", "Alert drainage dept", "Evacuate low-lying areas"],
+                  garbage: ["Schedule emergency pickup", "Deploy street sweepers", "Issue ULB notice"],
+                  infrastructure: ["Mark road hazard", "Dispatch PWD team", "Set up diversion"],
+                  crime: ["Increase police patrol", "Install CCTV", "Alert local PCR van"],
+                };
+                return (
+                  <>
+                    <View style={styles.detailHeader}>
+                      <View style={[styles.detailCatIcon, { backgroundColor: rzColor + "22" }]}>
+                        <Ionicons name={rz.type === "flood" ? "water" : rz.type === "garbage" ? "trash" : rz.type === "crime" ? "warning" : "construct"} size={22} color={rzColor} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.detailTicket}>AI Risk Zone</Text>
+                        <Text style={styles.detailCat}>{rz.type} · {user?.district}</Text>
+                      </View>
+                      <Pressable onPress={() => setSelectedRiskZone(null)} style={styles.closeBtn}>
+                        <Ionicons name="close" size={20} color={Colors.textMuted} />
+                      </Pressable>
+                    </View>
+                    <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
+                      <View style={[styles.chip, { backgroundColor: rzColor + "22", borderColor: rzColor + "44" }]}>
+                        <Ionicons name="flame" size={12} color={rzColor} />
+                        <Text style={[styles.chipText, { color: rzColor }]}>{rz.type.toUpperCase()}</Text>
+                      </View>
+                      <View style={[styles.chip, { backgroundColor: sevColor + "22", borderColor: sevColor + "44" }]}>
+                        <Ionicons name="alert-circle" size={12} color={sevColor} />
+                        <Text style={[styles.chipText, { color: sevColor }]}>{rz.severity.toUpperCase()} SEVERITY</Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailSectionLabel}>Zone Description</Text>
+                      <Text style={styles.detailDesc}>{rz.description}</Text>
+                    </View>
+                    <View style={styles.detailStatsGrid}>
+                      <View style={styles.detailStat}>
+                        <Text style={[styles.detailStatVal, { color: "#EF4444" }]}>{rz.complaintCount}</Text>
+                        <Text style={styles.detailStatLbl}>Complaints</Text>
+                      </View>
+                      <View style={styles.detailStat}>
+                        <Text style={[styles.detailStatVal, { color: rzColor }]}>{(rz.radius / 1000).toFixed(1)}km</Text>
+                        <Text style={styles.detailStatLbl}>Radius</Text>
+                      </View>
+                      <View style={styles.detailStat}>
+                        <Text style={[styles.detailStatVal, { color: sevColor }]}>{rz.severity}</Text>
+                        <Text style={styles.detailStatLbl}>Severity</Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailInfoRow}>
+                      <Ionicons name="location" size={14} color={Colors.textMuted} />
+                      <Text style={styles.detailInfoText}>{rz.geo.lat.toFixed(4)}, {rz.geo.lng.toFixed(4)}</Text>
+                    </View>
+                    <View style={[styles.detailSection, { marginTop: 10 }]}>
+                      <Text style={styles.detailSectionLabel}>AI Recommendations</Text>
+                      {(RECS[rz.type] || ["Monitor area", "File admin report"]).map((r, i) => (
+                        <View key={i} style={{ flexDirection: "row", alignItems: "flex-start", gap: 8, marginTop: i > 0 ? 6 : 0 }}>
+                          <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: rzColor + "22", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                            <Text style={{ color: rzColor, fontSize: 9, fontFamily: "Inter_700Bold" }}>{i + 1}</Text>
+                          </View>
+                          <Text style={{ color: "#D1D5DB", fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 }}>{r}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </>
+                );
+              })()}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Police Station Detail Modal */}
+      <Modal visible={!!selectedStation} transparent animationType="slide" onRequestClose={() => setSelectedStation(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setSelectedStation(null)}>
+          <Pressable style={styles.detailCard} onPress={e => e.stopPropagation?.()}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {selectedStation && (() => {
+                const ps = selectedStation;
+                const stationSos = activeAlerts.filter((s: any) => s.nearestPoliceStation === ps.name);
+                const totalSos = sosAlerts.filter((s: any) => s.nearestPoliceStation === ps.name).length;
+                const hasActive = stationSos.length > 0;
+                return (
+                  <>
+                    <View style={styles.detailHeader}>
+                      <View style={[styles.detailCatIcon, { backgroundColor: hasActive ? "#EF444422" : "#3B82F622" }]}>
+                        <Ionicons name="shield-checkmark" size={22} color={hasActive ? "#EF4444" : "#3B82F6"} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.detailTicket} numberOfLines={2}>{ps.name}</Text>
+                        <Text style={styles.detailCat}>{user?.district} · {ps.ward}</Text>
+                      </View>
+                      <Pressable onPress={() => setSelectedStation(null)} style={styles.closeBtn}>
+                        <Ionicons name="close" size={20} color={Colors.textMuted} />
+                      </Pressable>
+                    </View>
+                    {hasActive && (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#EF444411", borderRadius: 10, padding: 10, marginBottom: 12, borderWidth: 1, borderColor: "#EF444433" }}>
+                        <Ionicons name="warning" size={16} color="#EF4444" />
+                        <Text style={{ color: "#EF4444", fontSize: 12, fontFamily: "Inter_700Bold" }}>{stationSos.length} ACTIVE SOS nearby</Text>
+                      </View>
+                    )}
+                    <View style={styles.detailStatsGrid}>
+                      <View style={styles.detailStat}>
+                        <Text style={[styles.detailStatVal, { color: "#EF4444" }]}>{stationSos.length}</Text>
+                        <Text style={styles.detailStatLbl}>Active SOS</Text>
+                      </View>
+                      <View style={styles.detailStat}>
+                        <Text style={[styles.detailStatVal, { color: "#F59E0B" }]}>{totalSos}</Text>
+                        <Text style={styles.detailStatLbl}>Total SOS</Text>
+                      </View>
+                      <View style={styles.detailStat}>
+                        <Text style={[styles.detailStatVal, { color: "#22C55E" }]}>24/7</Text>
+                        <Text style={styles.detailStatLbl}>Response</Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailSectionLabel}>Contact & Location</Text>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="call" size={14} color={Colors.textMuted} />
+                        <Text style={styles.detailInfoText}>{ps.phone}</Text>
+                      </View>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="location" size={14} color={Colors.textMuted} />
+                        <Text style={styles.detailInfoText}>{ps.address}</Text>
+                      </View>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="navigate" size={14} color={Colors.textMuted} />
+                        <Text style={styles.detailInfoText}>{ps.geo.lat.toFixed(4)}, {ps.geo.lng.toFixed(4)}</Text>
+                      </View>
+                    </View>
+                    {stationSos.length > 0 && (
+                      <View style={[styles.detailSection, { marginTop: 10 }]}>
+                        <Text style={styles.detailSectionLabel}>Active SOS Incidents</Text>
+                        {stationSos.slice(0, 3).map((a, i) => (
+                          <View key={a.id} style={[{ paddingVertical: 6 }, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
+                            <Text style={{ color: "#EF4444", fontSize: 10, fontFamily: "Inter_700Bold" }}>{a.category.replace(/_/g, " ").toUpperCase()}</Text>
+                            <Text style={{ color: "#D1D5DB", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={1}>{a.location}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                    <Pressable
+                      onPress={() => { setSelectedStation(null); Linking.openURL(`tel:${ps.phone.replace(/[^0-9]/g, "")}`); }}
+                      style={[styles.resolveBtn, { marginTop: 16 }]}
+                    >
+                      <Ionicons name="call" size={16} color="#fff" />
+                      <Text style={styles.resolveBtnText}>Call Station</Text>
+                    </Pressable>
+                  </>
+                );
+              })()}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Field Worker Detail Modal */}
+      <Modal visible={!!selectedFieldWorker} transparent animationType="slide" onRequestClose={() => setSelectedFieldWorker(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setSelectedFieldWorker(null)}>
+          <Pressable style={styles.detailCard} onPress={e => e.stopPropagation?.()}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {selectedFieldWorker && (() => {
+                const w = selectedFieldWorker;
+                const scoreColor = w.score >= 70 ? "#22C55E" : w.score >= 50 ? "#F59E0B" : "#EF4444";
+                const statusColor = w.status === "active" ? "#22C55E" : w.status === "idle" ? "#F59E0B" : "#6B7280";
+                return (
+                  <>
+                    <View style={styles.detailHeader}>
+                      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#06B6D422", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#06B6D444" }}>
+                        <Ionicons name="person" size={22} color="#06B6D4" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.detailTicket}>{w.name}</Text>
+                        <Text style={styles.detailCat}>{w.ward} · {w.district}</Text>
+                      </View>
+                      <Pressable onPress={() => setSelectedFieldWorker(null)} style={styles.closeBtn}>
+                        <Ionicons name="close" size={20} color={Colors.textMuted} />
+                      </Pressable>
+                    </View>
+                    <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
+                      <View style={[styles.chip, { backgroundColor: statusColor + "22", borderColor: statusColor + "44" }]}>
+                        <Ionicons name="radio-button-on" size={10} color={statusColor} />
+                        <Text style={[styles.chipText, { color: statusColor }]}>{w.status.toUpperCase()}</Text>
+                      </View>
+                      <View style={[styles.chip, { backgroundColor: scoreColor + "22", borderColor: scoreColor + "44" }]}>
+                        <Ionicons name="pulse" size={10} color={scoreColor} />
+                        <Text style={[styles.chipText, { color: scoreColor }]}>Score {w.score}%</Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailStatsGrid}>
+                      <View style={styles.detailStat}>
+                        <Text style={[styles.detailStatVal, { color: "#22C55E" }]}>{w.resolvedToday}</Text>
+                        <Text style={styles.detailStatLbl}>Today</Text>
+                      </View>
+                      <View style={styles.detailStat}>
+                        <Text style={[styles.detailStatVal, { color: Colors.saffron }]}>{w.totalResolved}</Text>
+                        <Text style={styles.detailStatLbl}>Total</Text>
+                      </View>
+                      <View style={styles.detailStat}>
+                        <Text style={[styles.detailStatVal, { color: "#F59E0B" }]}>{w.avgRating.toFixed(1)}★</Text>
+                        <Text style={styles.detailStatLbl}>Rating</Text>
+                      </View>
+                      <View style={styles.detailStat}>
+                        <Text style={[styles.detailStatVal, { color: scoreColor }]}>{w.score}%</Text>
+                        <Text style={styles.detailStatLbl}>Score</Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailSectionLabel}>Score Performance</Text>
+                      <View style={{ height: 8, backgroundColor: Colors.border, borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
+                        <View style={{ height: 8, backgroundColor: scoreColor, borderRadius: 4, width: `${w.score}%` }} />
+                      </View>
+                      <Text style={{ color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular" }}>
+                        {w.score >= 70 ? "Excellent performance — top performer" : w.score >= 50 ? "Average performance — needs improvement" : "Below average — action required"}
+                      </Text>
+                    </View>
+                    {w.currentTask && (
+                      <View style={styles.detailSection}>
+                        <Text style={styles.detailSectionLabel}>Current Task</Text>
+                        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                          <Ionicons name="construct" size={14} color={Colors.textMuted} />
+                          <Text style={styles.detailDesc}>{w.currentTask}</Text>
+                        </View>
+                      </View>
+                    )}
+                    {w.geo && (
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="navigate" size={14} color={Colors.textMuted} />
+                        <Text style={styles.detailInfoText}>GPS: {w.geo.lat.toFixed(4)}, {w.geo.lng.toFixed(4)}</Text>
+                      </View>
+                    )}
+                    <View style={styles.detailInfoRow}>
+                      <Ionicons name="call" size={14} color={Colors.textMuted} />
+                      <Text style={styles.detailInfoText}>{w.phone}</Text>
+                    </View>
+                    <Pressable
+                      onPress={() => { setSelectedFieldWorker(null); Linking.openURL(`tel:${w.phone.replace(/[^0-9]/g, "")}`); }}
+                      style={[styles.resolveBtn, { marginTop: 16, backgroundColor: "#06B6D4" }]}
+                    >
+                      <Ionicons name="call" size={16} color="#fff" />
+                      <Text style={styles.resolveBtnText}>Call Worker</Text>
+                    </Pressable>
+                  </>
+                );
+              })()}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Emergency Broadcast Modal */}
       <Modal visible={showEmergencyModal} transparent animationType="slide">
