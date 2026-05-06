@@ -96,7 +96,7 @@ export default function EmergencyScreen() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const tok = await AsyncStorage.getItem("token");
+      const tok = await AsyncStorage.getItem("@sankalp_token");
       const res = await fetch(`${getApiUrl()}api/emergency-services`, {
         headers: { Authorization: `Bearer ${tok}` },
       });

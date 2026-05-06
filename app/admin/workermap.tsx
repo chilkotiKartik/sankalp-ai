@@ -89,7 +89,7 @@ export default function WorkerMapScreen() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const tok = await AsyncStorage.getItem("token");
+      const tok = await AsyncStorage.getItem("@sankalp_token");
       if (!tok) { setLoading(false); setRefreshing(false); return; }
       const base = getApiUrl();
       // Try admin endpoint first, fall back to citizen endpoint

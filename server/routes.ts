@@ -662,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── WOMEN SAFETY NOTIFY ───────────────────────────────────────────────
   app.post("/api/sos/women-safety", requireAuth, (req, res) => {
     const user = (req as any).user;
-    const { geo, location, audioRecording } = req.body;
+    const { geo, location, audioUrl } = req.body;
     const geoPoint = geo || { lat: 30.3165, lng: 78.0322 };
     const nearestStations = storage.getNearestPoliceStations(geoPoint, 2, user.district);
     const alert = storage.createSos({
@@ -677,14 +677,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       triggeredBy: user.name,
       nearestPoliceStation: nearestStations[0]?.name,
       policeDistance: (nearestStations[0] as any)?.distance,
-      audioRecordingUrl: audioRecording ? `/uploads/sos-audio-${Date.now()}.m4a` : undefined,
+      audioRecordingUrl: audioUrl || undefined,
     } as any, user.id);
 
     const payload = {
       type: "women_safety_sos",
       alert,
       nearestStations: nearestStations.slice(0, 2),
-      audioAvailable: !!audioRecording,
+      audioAvailable: !!audioUrl,
       triggeredBy: user.name,
       phone: user.phone,
       district: user.district,
@@ -699,6 +699,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     deptEmitter.emit("event", { type: "sos_alert", departmentId: "police", alert, payload });
 
     res.status(201).json({ alert, nearestStations: nearestStations.slice(0, 2) });
+  });
+
+  // ── SOS AUDIO URL PATCH (auto-called 18s after women-safety SOS) ─────────
+  app.put("/api/sos/:id/audio-url", requireAuth, (req, res) => {
+    const { audioUrl } = req.body;
+    const id = sp(req.params.id);
+    const alerts = storage.getSosAlerts();
+    const alert = alerts.find(a => a.id === id);
+    if (!alert) return res.status(404).json({ message: "SOS alert not found" });
+    (alert as any).audioRecordingUrl = audioUrl;
+    // Notify CPR + dept with updated audio evidence
+    const updatePayload = { type: "sos_audio_evidence", alertId: id, audioUrl, timestamp: new Date().toISOString() };
+    broadcast(updatePayload);
+    cprEmitter.emit("event", updatePayload);
+    deptEmitter.emit("event", { ...updatePayload, departmentId: "police" });
+    res.json({ success: true, alertId: id, audioUrl });
   });
 
   // ── SUPER ADMIN: ASSIGN TASK TO DISTRICT ──────────────────────────────────
@@ -1045,6 +1061,93 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
     }
   });
 
+  // ── AUDIO UPLOAD (SOS evidence) ───────────────────────────────────────────────
+  app.post("/api/upload/audio", requireAuth, async (req, res) => {
+    try {
+      const { audio, filename } = req.body;
+      if (!audio) return res.status(400).json({ message: "audio data required" });
+      const { mkdirSync, writeFileSync } = await import("fs");
+      const { join } = await import("path");
+      const uploadsDir = join(process.cwd(), "uploads");
+      try { mkdirSync(uploadsDir, { recursive: true }); } catch {}
+      const ext = filename?.split(".").pop() || "m4a";
+      const name = `sos-audio-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const base64Data = audio.replace(/^data:[^;]+;base64,/, "");
+      writeFileSync(join(uploadsDir, name), Buffer.from(base64Data, "base64"));
+      const url = `/uploads/${name}`;
+      const user = (req as any).user;
+      storage.addAuditLog("sos_audio_uploaded", user.id, user.name, `SOS audio evidence uploaded: ${name}`);
+      res.json({ url, filename: name });
+    } catch (err: any) {
+      res.status(500).json({ message: "Audio upload failed", error: err.message });
+    }
+  });
+
+  // ── WORKER TEMP LOGIN ──────────────────────────────────────────────────────────
+  app.post("/api/auth/worker-login", async (req, res) => {
+    const { phone, pin, complaintId } = req.body;
+    if (!phone || !pin || !complaintId) return res.status(400).json({ message: "phone, pin, complaintId required" });
+    const valid = storage.verifyWorkerTempToken(phone, pin, complaintId);
+    if (!valid) return res.status(401).json({ message: "Invalid credentials or expired. Contact your department." });
+    const all = storage.getComplaints();
+    const c = all.find(x => x.id === complaintId);
+    if (!c) return res.status(404).json({ message: "Complaint not found" });
+    res.json({ success: true, complaint: c, workerName: c.assignedWorkerName, complaintId });
+  });
+
+  // ── COMPLAINT PROOF SUBMISSION (by assigned worker) ───────────────────────────
+  app.put("/api/complaints/:id/proof", async (req, res) => {
+    const { phone, pin, proofPhoto, proofNote } = req.body;
+    const complaintId = sp(req.params.id);
+    if (!phone || !pin) return res.status(400).json({ message: "phone and pin required" });
+    const valid = storage.verifyWorkerTempToken(phone, pin, complaintId);
+    if (!valid) return res.status(401).json({ message: "Invalid worker credentials" });
+    const c = storage.submitComplaintProof(complaintId, proofPhoto, proofNote);
+    if (!c) return res.status(404).json({ message: "Complaint not found" });
+    // Broadcast resolution to all connected clients
+    broadcast({ type: "complaint_resolved", complaintId: c.id, ticketId: (c as any).ticketId, proofSubmitted: true, timestamp: new Date().toISOString() });
+    // Notify dept SSE stream
+    const deptId = getDeptIdForCategory((c as any).category);
+    deptEmitter.emit("event", { type: "complaint_resolved_proof", departmentId: deptId, complaint: c });
+    storage.addAuditLog("proof_submitted", phone, c.assignedWorkerName || phone, `Proof submitted for complaint ${(c as any).ticketId}`, c.id);
+    res.json(c);
+  });
+
+  // ── DEPT ASSIGN WORKER ────────────────────────────────────────────────────────
+  app.put("/api/dept/complaints/:id/assign-worker", requireDeptAuth, (req, res) => {
+    const { workerName, workerPhone } = req.body;
+    const complaintId = sp(req.params.id);
+    if (!workerName || !workerPhone) return res.status(400).json({ message: "workerName and workerPhone required" });
+    const pin = storage.assignWorkerToComplaint(complaintId, workerName, workerPhone);
+    const all = storage.getComplaints();
+    const c = all.find(x => x.id === complaintId);
+    if (!c) return res.status(404).json({ message: "Complaint not found" });
+    // Notify SSE stream
+    const deptId = (req as any).deptId;
+    deptEmitter.emit("event", { type: "worker_assigned", departmentId: deptId, complaint: c });
+    // Broadcast to mobile app (admin sees assignment)
+    broadcast({ type: "worker_assigned", complaintId: c.id, workerName, workerPhone, timestamp: new Date().toISOString() });
+    storage.addAuditLog("worker_assigned", deptId, deptId, `Worker ${workerName} (${workerPhone}) assigned to complaint ${(c as any).ticketId}. PIN: ${pin}`, complaintId);
+    res.json({ success: true, pin, complaint: c, credentials: { phone: workerPhone, pin, complaintId, validFor: "48 hours" } });
+  });
+
+  // ── CPR USER REQUEST (citizen requests CPR/safety help) ───────────────────────
+  app.post("/api/cpr/user-request", requireAuth, (req, res) => {
+    const user = (req as any).user;
+    const { location, lat, lng, reason } = req.body;
+    if (!location) return res.status(400).json({ message: "location required" });
+    const incident = storage.createSafetyIncident({
+      citizenName: user.name,
+      district: user.district || "Dehradun",
+      location: location,
+      lat: lat ?? 30.3165,
+      lng: lng ?? 78.0322,
+    });
+    // Also broadcast to WebSocket (admin sees it)
+    broadcast({ type: "cpr_user_request", incident, citizenName: user.name, phone: user.phone, reason: reason || "", timestamp: new Date().toISOString() });
+    res.status(201).json({ success: true, incident, message: "CPR help requested. Nearest patrol van is being dispatched." });
+  });
+
   // ── DEPARTMENT PORTAL API ─────────────────────────────────────────────────────
   const DEPT_SECRET = process.env.DEPT_JWT_SECRET || "sankalp-dept-secret-2026";
 
@@ -1263,7 +1366,8 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
       const p1Pending = complaints.filter(c => c.priority === "P1" && c.status !== "resolved" && c.status !== "closed").length;
       const resolutionRate = total > 0 ? Math.round(resolved / total * 100) : 0;
       const grade = resolutionRate >= 80 ? "A" : resolutionRate >= 65 ? "B" : resolutionRate >= 50 ? "C" : "D";
-      return { id, ...dept, total, resolved, pending, p1Pending, resolutionRate, grade };
+      const { id: _did, ...deptRest } = dept as any;
+      return { id, ...deptRest, total, resolved, pending, p1Pending, resolutionRate, grade };
     });
     res.json(report);
   });

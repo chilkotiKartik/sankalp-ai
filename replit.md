@@ -64,8 +64,10 @@ EXPO_PUBLIC_DOMAIN=sankalp-ai.replit.app EXPO_NO_TELEMETRY=1 EXPO_NO_DOTENV=1 \
 - **Unified Leaflet Map**: Both native (WebView) and web portals use Leaflet.js with CartoDB dark tiles. No Google Maps API key needed.
 - **In-memory Backend Storage**: Simplifies deployment; suitable for demo/prototype.
 - **Live Location in CPR**: SOS location updates (`PUT /api/sos/:id/location`) now also emit to `cprEmitter` so CPR command sees live GPS in real time.
-- **Women Safety SOS**: Triggers broadcast (WS) + CPR SSE + police dept SSE simultaneously. Audio URL saved on alert.
-- **Uploads Serving**: `/uploads/` served as static files (complaint photos, audio recordings).
+- **Women Safety SOS**: Triggers broadcast (WS) + CPR SSE + police dept SSE simultaneously. 18-sec audio auto-records via expo-file-system, uploads to `/uploads/`, URL patched to alert 18s later.
+- **Proof of Work**: Dept assigns worker (name+phone) → 6-digit PIN generated (48h TTL) → worker submits photo proof → complaint auto-resolves → SSE notifies dept.
+- **Auth Token Key**: AsyncStorage key is `@sankalp_token` (not `"token"`) — all admin/worker screens must use this.
+- **Uploads Serving**: `/uploads/` served as static files (complaint photos, audio recordings, SOS evidence).
 
 ## Product
 

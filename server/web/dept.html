@@ -173,6 +173,11 @@ function Toast({msg,type,onDone}){
 function ComplaintModal({c,onClose,token,onRefresh,addToast}){
   const [status,setStatus]=useState(c.status);
   const [saving,setSaving]=useState(false);
+  const [showAssign,setShowAssign]=useState(false);
+  const [wName,setWName]=useState(c.assignedWorkerName||'');
+  const [wPhone,setWPhone]=useState(c.assignedWorkerPhone||'');
+  const [assigning,setAssigning]=useState(false);
+  const [assignResult,setAssignResult]=useState(null);
   const dept=DEPTS[Object.keys(DEPTS).find(k=>DEPTS[k].categories.includes(c.category))||'']||null;
 
   async function save(){
@@ -183,6 +188,18 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
       onRefresh();onClose();
     }catch(e){addToast(e.message,'error');}
     setSaving(false);
+  }
+
+  async function assignWorker(){
+    if(!wName.trim()||!wPhone.trim()||wPhone.length<10)return addToast('Enter valid worker name and 10-digit phone','error');
+    setAssigning(true);
+    try{
+      const r=await api.put(`/api/dept/complaints/${c.id}/assign-worker`,{workerName:wName.trim(),workerPhone:wPhone.trim()},token);
+      setAssignResult(r);
+      addToast('Worker assigned! PIN generated.','success');
+      onRefresh();
+    }catch(e){addToast(e.message,'error');}
+    setAssigning(false);
   }
 
   return <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
@@ -234,6 +251,44 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
       {c.adminNote&&<div style={{background:'rgba(88,166,255,.08)',border:'1px solid rgba(88,166,255,.2)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
         <div style={{fontWeight:600,color:'var(--blue)',marginBottom:4}}>🔵 Admin Note</div>
         <div style={{lineHeight:1.6}}>{c.adminNote}</div>
+      </div>}
+
+      {/* Proof of work section */}
+      {c.proofSubmittedAt&&<div style={{background:'rgba(63,185,80,.08)',border:'1px solid rgba(63,185,80,.25)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
+        <div style={{fontWeight:700,color:'var(--green)',marginBottom:8}}>✅ Proof of Work Submitted</div>
+        <div style={{color:'var(--muted)',marginBottom:4}}>Submitted: {new Date(c.proofSubmittedAt).toLocaleString('en-IN')}</div>
+        {c.proofNote&&<div style={{lineHeight:1.6,marginBottom:6}}>{c.proofNote}</div>}
+        {c.proofPhoto&&<img src={c.proofPhoto} alt="Proof" style={{width:'100%',maxWidth:260,borderRadius:8,border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(c.proofPhoto,'_blank')} onError={e=>e.target.style.display='none'}/>}
+      </div>}
+
+      {/* Assigned worker */}
+      {c.assignedWorkerName&&!assignResult&&<div style={{background:'rgba(255,153,51,.07)',border:'1px solid rgba(255,153,51,.25)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
+        <div style={{fontWeight:600,color:'var(--orange)',marginBottom:4}}>👷 Assigned Worker</div>
+        <div>{c.assignedWorkerName} · 📞 {c.assignedWorkerPhone}</div>
+        <div style={{color:'var(--muted)',marginTop:4,fontFamily:'monospace'}}>PIN: {c.assignedWorkerPin}</div>
+      </div>}
+
+      {/* Assign Worker Panel */}
+      {assignResult?<div style={{background:'rgba(63,185,80,.08)',border:'1px solid rgba(63,185,80,.3)',borderRadius:8,padding:16,marginBottom:14}}>
+        <div style={{fontWeight:700,color:'var(--green)',marginBottom:10}}>✅ Worker Assigned Successfully</div>
+        <div style={{fontSize:12,lineHeight:1.8}}>
+          <div><b>Worker:</b> {assignResult.complaint?.assignedWorkerName}</div>
+          <div><b>Phone:</b> {assignResult.complaint?.assignedWorkerPhone}</div>
+          <div><b>Login PIN:</b> <span style={{fontFamily:'monospace',background:'#1c2128',padding:'2px 8px',borderRadius:6,color:'var(--orange)',fontSize:14,fontWeight:700}}>{assignResult.pin}</span></div>
+          <div style={{marginTop:8,color:'var(--muted)',fontSize:11}}>Share these credentials with the worker. Valid 48 hours. Worker visits the app and submits photo proof of completion.</div>
+        </div>
+      </div>:<div style={{borderTop:'1px solid var(--border)',paddingTop:14,marginBottom:14}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+          <div style={{fontWeight:600,fontSize:13}}>👷 Assign Worker</div>
+          <button className="btn btn-ghost btn-sm" onClick={()=>setShowAssign(v=>!v)}>{showAssign?'▲ Hide':'▼ Show'}</button>
+        </div>
+        {showAssign&&<div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <div><label>Worker Name</label><input className="input" placeholder="e.g. Ramesh Kumar" value={wName} onChange={e=>setWName(e.target.value)}/></div>
+          <div><label>Worker Phone (10 digits)</label><input className="input" placeholder="e.g. 9876543210" maxLength={10} value={wPhone} onChange={e=>setWPhone(e.target.value.replace(/\D/g,''))}/></div>
+          <button className="btn btn-orange" onClick={assignWorker} disabled={assigning} style={{justifyContent:'center'}}>
+            {assigning?<Spinner/>:'🔑 Generate Worker Credentials & Assign'}
+          </button>
+        </div>}
       </div>}
 
       <div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:4}}>

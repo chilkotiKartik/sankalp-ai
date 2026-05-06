@@ -63,6 +63,8 @@ export const SOS_META: Record<string, { icon: string; color: string; label: stri
   women_safety:    { icon: "shield",         color: "#8B5CF6", label: "Women Safety" },
   medical:         { icon: "heart",          color: "#22C55E", label: "Medical Emergency" },
   infrastructure:  { icon: "tool",           color: "#6B7280", label: "Infrastructure" },
+  disaster:        { icon: "alert-octagon",  color: "#DC2626", label: "Natural Disaster" },
+  forest_fire:     { icon: "flame",          color: "#EA580C", label: "Forest Fire" },
 };
 
 export interface Complaint {
@@ -233,7 +235,7 @@ interface AppContextType {
   resolveComplaint: (id: string, rating?: number, feedback?: string, afterPhoto?: string) => Promise<void>;
   rejectComplaint: (id: string) => Promise<void>;
   triggerSOS: (data: Partial<SOSAlert>) => Promise<SOSAlert>;
-  triggerWomenSafetySOS: (geo: GeoPoint | null, location: string) => Promise<{ alert: SOSAlert; nearestStations: PoliceStation[] }>;
+  triggerWomenSafetySOS: (geo: GeoPoint | null, location: string, audioUrl?: string) => Promise<{ alert: SOSAlert; nearestStations: PoliceStation[] }>;
   resolveSOS: (id: string) => Promise<void>;
   updateSOSLocation: (id: string, geo: GeoPoint) => Promise<void>;
   broadcastEmergency: (message: string) => Promise<void>;
@@ -405,11 +407,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return result;
   }, []);
 
-  const triggerWomenSafetySOS = useCallback(async (geo: GeoPoint | null, location: string) => {
+  const triggerWomenSafetySOS = useCallback(async (geo: GeoPoint | null, location: string, audioUrl?: string) => {
     const apiCall = makeApiCall(tokenRef.current);
     const result = await apiCall("/api/sos/women-safety", "POST", {
       geo: geo || { lat: 28.6139, lng: 77.2090 },
       location,
+      audioUrl,
     });
     setSosAlerts(prev => [result.alert, ...prev]);
     return result;

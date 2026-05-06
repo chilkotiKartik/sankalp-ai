@@ -42,7 +42,8 @@ export type ComplaintCategory =
   | "drain" | "electricity" | "tree" | "other";
 export type SOSCategory =
   | "gas_leak" | "water_burst" | "electric_hazard"
-  | "fire_risk" | "road_accident" | "infrastructure" | "women_safety" | "medical";
+  | "fire_risk" | "road_accident" | "infrastructure" | "women_safety" | "medical"
+  | "disaster" | "forest_fire";
 
 export interface AppUser {
   id: string;
@@ -91,6 +92,12 @@ export interface Complaint {
   reopened?: boolean;
   department?: string;
   adminNote?: string;
+  assignedWorkerName?: string;
+  assignedWorkerPhone?: string;
+  assignedWorkerPin?: string;
+  proofPhoto?: string;
+  proofNote?: string;
+  proofSubmittedAt?: string;
 }
 
 // Department routing: AI maps complaint category → responsible government dept
@@ -130,6 +137,8 @@ export interface SOSAlert {
   policeDistance?: number;
   notifiedStations?: { name: string; phone: string; distance: number; address: string }[];
   isWomenSafety?: boolean;
+  audioRecordingUrl?: string;
+  cprRequestId?: string;
 }
 
 export interface Ward {
@@ -589,6 +598,7 @@ function distanceKm(a: GeoPoint, b: GeoPoint): number {
 class AppStorage {
   private users: Map<string, AppUser> = new Map();
   private tokens: Map<string, AuthToken> = new Map();
+  private workerTempTokens: Map<string, { complaintId: string; phone: string; pin: string; expiresAt: number }> = new Map();
   private complaints: Complaint[] = [];
   private sosAlerts: SOSAlert[] = [];
   private wards: Ward[] = [];
@@ -800,6 +810,8 @@ class AppStorage {
       infrastructure: "Retaining wall collapse, landslide debris blocking arterial road",
       women_safety: "Woman being harassed near isolated mountain road, immediate response needed",
       medical: "Elderly person collapsed on footpath, ambulance not reachable on mountain road",
+      disaster: "Flash flood warning — rivers breaching banks in low-lying areas",
+      forest_fire: "Forest fire spreading rapidly near Chakrata range, villages at risk",
     };
     for (let i = 0; i < 8; i++) {
       const ward = rnd(WARDS_DATA);
@@ -1321,6 +1333,42 @@ class AppStorage {
       return this.budgetItems.filter(b => b.district === district);
     }
     return [...this.budgetItems];
+  }
+
+  // ── WORKER TEMP CREDENTIALS ──────────────────────────────────────────────────
+  assignWorkerToComplaint(complaintId: string, workerName: string, workerPhone: string): string {
+    const pin = String(Math.floor(100000 + Math.random() * 900000));
+    const key = `${workerPhone}_${complaintId}`;
+    this.workerTempTokens.set(key, { complaintId, phone: workerPhone, pin, expiresAt: Date.now() + 48 * 3600 * 1000 });
+    const c = this.complaints.find(x => x.id === complaintId);
+    if (c) {
+      c.assignedWorkerName = workerName;
+      c.assignedWorkerPhone = workerPhone;
+      c.assignedWorkerPin = pin;
+      c.status = "in_progress";
+    }
+    return pin;
+  }
+
+  verifyWorkerTempToken(phone: string, pin: string, complaintId: string): boolean {
+    const key = `${phone}_${complaintId}`;
+    const t = this.workerTempTokens.get(key);
+    if (!t) return false;
+    if (t.pin !== pin) return false;
+    if (t.expiresAt < Date.now()) { this.workerTempTokens.delete(key); return false; }
+    return true;
+  }
+
+  submitComplaintProof(complaintId: string, proofPhoto?: string, proofNote?: string): Complaint | null {
+    const c = this.complaints.find(x => x.id === complaintId);
+    if (!c) return null;
+    c.proofPhoto = proofPhoto;
+    c.proofNote = proofNote;
+    c.proofSubmittedAt = new Date().toISOString();
+    c.hasProof = true;
+    c.status = "resolved";
+    c.resolvedAt = new Date().toISOString();
+    return c;
   }
 
   // ── EMERGENCY SERVICES ────────────────────────────────────────────────────────

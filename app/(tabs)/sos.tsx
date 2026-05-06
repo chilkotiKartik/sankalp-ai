@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, Pressable, Animated, ScrollView,
   Modal, TextInput, Platform, ActivityIndicator, Alert, Vibration, Linking, AppState,
 } from "react-native";
+import * as FileSystem from "expo-file-system";
 
 class SOSErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: string }> {
   constructor(props: any) {
@@ -59,6 +60,8 @@ const SOS_CATS = [
   { key: "women_safety",    label: "Women Safety", icon: "🛡️", color: "#8B5CF6" },
   { key: "medical",         label: "Medical",      icon: "🏥", color: "#22C55E" },
   { key: "infrastructure",  label: "Structure",    icon: "🏗️", color: "#6B7280" },
+  { key: "disaster",        label: "Disaster",     icon: "🌊", color: "#DC2626" },
+  { key: "forest_fire",     label: "Forest Fire",  icon: "🌲🔥", color: "#EA580C" },
 ];
 
 const LOCATION_UPDATE_MS = 15000;
@@ -156,6 +159,7 @@ function CountdownRing({ count, total = 5 }: { count: number; total?: number }) 
 function SOSScreenInner() {
   const insets = useSafeAreaInsets();
   const { sosAlerts, triggerSOS, triggerWomenSafetySOS, policeStations, updateSOSLocation } = useApp();
+  const { token } = useAuth();
 
   const [selectedCat, setSelectedCat] = useState("gas_leak");
   const [description, setDescription] = useState("");
@@ -170,6 +174,12 @@ function SOSScreenInner() {
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const [liveActive, setLiveActive] = useState(false);
   const [secAgo, setSecAgo] = useState<number | null>(null);
+
+  // CPR Form
+  const [showCPRForm, setShowCPRForm] = useState(false);
+  const [cprReason, setCprReason] = useState("");
+  const [cprSubmitting, setCprSubmitting] = useState(false);
+  const [cprSent, setCprSent] = useState(false);
 
   // Women Safety
   const [womenPanic, setWomenPanic] = useState(false);
@@ -384,20 +394,59 @@ function SOSScreenInner() {
     }
   }, []);
 
-  // ── START LIVE AUDIO RECORDING ────────────────────────────────────────────
-  const startAudioRecording = useCallback(async () => {
-    if (Platform.OS === "web") return;
+  // ── AUDIO RECORDING: 18-sec auto-stop + upload ────────────────────────────
+  const startAudioRecording = useCallback(async (alertId?: string): Promise<string | null> => {
+    if (Platform.OS === "web") return null;
     try {
       const { status } = await Audio.requestPermissionsAsync();
-      if (status !== "granted") return;
+      if (status !== "granted") return null;
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
       audioRecordingRef.current = recording;
       setIsRecording(true);
-    } catch (_e) {}
-  }, []);
+      // Auto-stop after 18 seconds and upload
+      setTimeout(async () => {
+        const rec = audioRecordingRef.current;
+        if (!rec) return;
+        try {
+          await rec.stopAndUnloadAsync();
+          await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+          const uri = rec.getURI();
+          audioRecordingRef.current = null;
+          setIsRecording(false);
+          if (!uri) return;
+          // Read file as base64 and upload
+          const base64 = await FileSystem.readAsStringAsync(uri, { encoding: "base64" as any });
+          const { getApiUrl } = await import("@/lib/query-client");
+          const baseUrl = getApiUrl();
+          const uploadRes = await fetch(`${baseUrl}api/upload/audio`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ audio: base64, filename: `sos-${Date.now()}.m4a` }),
+          });
+          if (uploadRes.ok) {
+            const data = await uploadRes.json();
+            // Patch the SOS alert with audio URL if alertId known
+            if (alertId && data.url) {
+              try {
+                await fetch(`${baseUrl}api/sos/${alertId}/audio-url`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                  body: JSON.stringify({ audioUrl: data.url }),
+                });
+              } catch {}
+            }
+          }
+        } catch (_e) {
+          audioRecordingRef.current = null;
+          setIsRecording(false);
+        }
+      }, 18000);
+      return null;
+    } catch (_e) { return null; }
+  }, [token]);
 
   const stopAudioRecording = useCallback(async () => {
     const rec = audioRecordingRef.current;
@@ -422,26 +471,24 @@ function SOSScreenInner() {
     // Voice alert — speak immediately to reassure the user
     try {
       Speech.speak("Emergency alert sent. Police and help notified. Stay calm. Help is on the way.", {
-        language: "en-IN",
-        rate: 0.88,
-        pitch: 1.0,
+        language: "en-IN", rate: 0.88, pitch: 1.0,
       });
     } catch {}
-    // Start live audio recording immediately
-    startAudioRecording();
     try {
       const g = currentGeoRef.current || { lat: 28.6139, lng: 77.209 };
+      // Send SOS alert immediately (no audio URL yet — will be patched after 18s)
       const result = await triggerWomenSafetySOS(g, `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}`);
       if (result?.alert) {
         setActiveAlert({ ...result.alert, isWomenSafety: true });
         setTriggered(true);
         startLive(result.alert.id);
-        // System notification
+        // Start 18-second audio recording in background, auto-patches this alert
+        startAudioRecording(result.alert.id);
         try {
           await Notifications.scheduleNotificationAsync({
             content: {
               title: "🛡️ Women Safety SOS Sent",
-              body: "Emergency alert dispatched. Police notified. Live location sharing active.",
+              body: "Emergency alert dispatched. Police notified. 18-sec audio evidence being recorded.",
               sound: true,
               priority: Notifications.AndroidNotificationPriority.MAX,
             },
@@ -528,6 +575,44 @@ function SOSScreenInner() {
     }
   };
 
+  // ── CPR HELP REQUEST ──────────────────────────────────────────────────────
+  const handleCPRRequest = async () => {
+    if (cprSubmitting || cprSent) return;
+    setCprSubmitting(true);
+    try {
+      const { getApiUrl } = await import("@/lib/query-client");
+      const baseUrl = getApiUrl();
+      const g = currentGeoRef.current || { lat: 30.3165, lng: 78.0322 };
+      const res = await fetch(`${baseUrl}api/cpr/user-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ location: `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}`, lat: g.lat, lng: g.lng, reason: cprReason }),
+      });
+      if (res.ok) {
+        setCprSent(true);
+        try {
+          Speech.speak("CPR help requested. Nearest patrol van is on its way. Stay calm.", { language: "en-IN", rate: 0.9 });
+        } catch {}
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: "🚔 CPR Help Requested",
+              body: "Nearest patrol van dispatched to your location.",
+              sound: true,
+            },
+            trigger: null,
+          });
+        } catch {}
+      } else {
+        Alert.alert("Request Failed", "Could not send CPR request. Please call 112.");
+      }
+    } catch {
+      Alert.alert("Request Failed", "Network error. Please call 112 directly.");
+    } finally {
+      setCprSubmitting(false);
+    }
+  };
+
   // ── MAIN SOS TRIGGER ──────────────────────────────────────────────────────
   const handleSOS = async () => {
     if (isTriggering || triggered) return;
@@ -605,6 +690,66 @@ function SOSScreenInner() {
           </View>
         </View>
       )}
+
+      {/* ── CPR FORM MODAL ── */}
+      <Modal visible={showCPRForm} transparent animationType="slide" statusBarTranslucent>
+        <View style={s.overlay}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => { if (!cprSubmitting) { setShowCPRForm(false); setCprSent(false); setCprReason(""); }}} />
+          <View style={[s.sheet, { maxHeight: "55%" }]}>
+            <View style={s.sheetHandle} />
+            <LinearGradient colors={["#0A2540", "#1B3A6B"]} style={s.sheetHead}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🚔</Text></View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.sheetTitle}>Request CPR Patrol Help</Text>
+                <Text style={s.sheetSub}>Nearest patrol van will be dispatched instantly</Text>
+              </View>
+            </LinearGradient>
+            <View style={{ padding: 20, gap: 14 }}>
+              {cprSent ? (
+                <View style={{ alignItems: "center", gap: 12, paddingVertical: 10 }}>
+                  <Text style={{ fontSize: 48 }}>✅</Text>
+                  <Text style={{ color: "#4ADE80", fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center" }}>CPR Help Requested!</Text>
+                  <Text style={{ color: "#9CA3AF", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" }}>Nearest patrol van has been dispatched to your GPS location.</Text>
+                  <Pressable onPress={() => { setShowCPRForm(false); setCprSent(false); setCprReason(""); }} style={{ backgroundColor: "#1B3A6B", borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 }}>
+                    <Text style={{ color: "#fff", fontFamily: "Inter_700Bold" }}>Close</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <>
+                  <View style={[s.gpsBadge, { backgroundColor: geo ? "#14532D" : "#1F2937" }]}>
+                    <LiveDot isLive={!!geo} />
+                    <Text style={[s.gpsBadgeText, { color: geo ? "#4ADE80" : "#9CA3AF" }]}>
+                      {geo ? `GPS: ${geo.lat.toFixed(5)}°N, ${geo.lng.toFixed(5)}°E` : "GPS acquiring…"}
+                    </Text>
+                  </View>
+                  <TextInput
+                    style={[s.descBox, { height: 70 }]}
+                    placeholder="Reason for requesting patrol (optional)…"
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    value={cprReason}
+                    onChangeText={setCprReason}
+                    multiline
+                  />
+                  <View style={s.sheetActions}>
+                    <Pressable onPress={() => setShowCPRForm(false)} style={s.cancelBtn}>
+                      <Text style={s.cancelText}>Cancel</Text>
+                    </Pressable>
+                    <Pressable onPress={handleCPRRequest} disabled={cprSubmitting} style={{ flex: 2, borderRadius: 14, overflow: "hidden" }}>
+                      <LinearGradient colors={["#1B3A6B", "#2563EB"]} style={s.sendBtn}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                        {cprSubmitting
+                          ? <ActivityIndicator color="#fff" />
+                          : <><Text style={{ fontSize: 16 }}>🚔</Text><Text style={s.sendBtnText}>DISPATCH PATROL NOW</Text></>}
+                      </LinearGradient>
+                    </Pressable>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── SOS CONFIRM MODAL ── */}
       <Modal visible={showModal} transparent animationType="slide" statusBarTranslucent>
@@ -1062,6 +1207,21 @@ function SOSScreenInner() {
         </Animated.View>
 
         {/* ── ACTIVE ALERTS ── */}
+        {/* ── REQUEST CPR PATROL ── */}
+        <Pressable onPress={() => setShowCPRForm(true)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
+          <LinearGradient colors={["#0A2540", "#1B3A6B", "#2563EB"]} style={{ borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontSize: 22 }}>🚔</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" }}>Request CPR Patrol Help</Text>
+              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>12 patrol vans active across Uttarakhand</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.5)" />
+          </LinearGradient>
+        </Pressable>
+
         {sosAlerts.filter(s => s.status !== "resolved").length > 0 && (
           <View style={s.card}>
             <View style={s.cardHead}>
