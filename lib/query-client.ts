@@ -1,16 +1,24 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import Constants from "expo-constants";
 
+function isBrowser(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.location !== "undefined" &&
+    typeof window.location.origin === "string" &&
+    window.location.origin !== "" &&
+    window.location.origin !== "null"
+  );
+}
+
 /**
  * Gets the base URL for the Express API server
  */
 export function getWsUrl(): string {
-  // Browser — always use same host (works in dev and prod)
-  if (typeof window !== "undefined") {
+  if (isBrowser()) {
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     return `${wsProtocol}//${window.location.host}/ws`;
   }
-  // Native Expo app — use explicit domain
   if (process.env.EXPO_PUBLIC_DOMAIN) {
     return `wss://${process.env.EXPO_PUBLIC_DOMAIN}/ws`;
   }
@@ -18,12 +26,10 @@ export function getWsUrl(): string {
 }
 
 export function getApiUrl(): string {
-  // Browser context — always use same origin so dev & prod work without config
-  if (typeof window !== "undefined") {
+  if (isBrowser()) {
     return window.location.origin + "/";
   }
 
-  // Native Expo app — use explicit domain (required for Expo Go)
   if (process.env.EXPO_PUBLIC_DOMAIN) {
     return `https://${process.env.EXPO_PUBLIC_DOMAIN}/`;
   }
