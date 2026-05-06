@@ -67,5 +67,3 @@ build = ["bash", "-c", "node scripts/build.js"]
 
 [userenv.shared]
 EXPO_PUBLIC_DOMAIN = "sankalp-ai.replit.app"
-NVIDIA_API_KEY = "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"
-GROQ_API_KEY = "REMOVED"
