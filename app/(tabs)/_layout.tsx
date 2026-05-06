@@ -83,6 +83,15 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="announcements"
+        options={{
+          title: "Notices",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "megaphone" : "megaphone-outline"} size={22} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen name="community" options={{ href: null }} />
       <Tabs.Screen name="ai" options={{ href: null }} />
       <Tabs.Screen name="bills" options={{ href: null }} />

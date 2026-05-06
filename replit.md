@@ -73,6 +73,10 @@ See `DEPLOY.md` for the full deployment guide. Key points:
 - **In-memory Backend Storage**: Simplifies deployment; suitable for demo/prototype.
 - **Live Location in CPR**: SOS location updates (`PUT /api/sos/:id/location`) also emit to `cprEmitter` so CPR command sees live GPS in real time.
 - **Women Safety SOS**: Triggers broadcast (WS) + CPR SSE + police/usdma dept SSE + **auto-creates CPR incident** (nearest van dispatched immediately). 18-sec audio auto-records.
+- **Live Worker GPS Stream**: `GET /api/workers/stream` SSE endpoint. Server-side `setInterval` every 8s perturbs active worker `geo` coords (simulated movement) + emits to `workerEmitter`. WorkerMap uses SSE on web, 8s polling on native. Green/amber/red live-status indicator in header.
+- **CPR Patrol Leaderboard**: `GET /api/cpr/leaderboard` computes officer stats from `safetyIncidents` (resolved, women-safety dispatches, response rate). Scored: resolved×10 + womenSafety×25 + rate + womenUnit?30:0. CPR portal has 🏆 Leaders tab with podium medals + sortable list.
+- **Push Token Store**: In-memory Map in `routes.ts` (not storage). `POST /api/push-token` (requireAuth) stores token keyed by userId. `getAdminPoliceTokens()` returns admin/super_admin tokens.
+- **Citizen Announcements Tab**: `app/(tabs)/announcements.tsx` — fetches `/api/announcements` (requireAuth), 60s auto-refresh, type/priority filters, full-detail modal. Visible as "Notices" tab in main bottom nav.
 - **Proof of Work**: Dept assigns worker (name+phone) → 6-digit PIN generated (48h TTL) → worker submits photo proof → complaint auto-resolves → SSE notifies dept.
 - **Auth Token Key**: AsyncStorage key is `@sankalp_token` (not `"token"`) — all admin/worker screens must use this.
 - **Uploads Serving**: `/uploads/` served as static files (complaint photos, audio recordings, SOS evidence).
@@ -86,7 +90,7 @@ See `DEPLOY.md` for the full deployment guide. Key points:
 
 - **Unified Governance Portal** (`/web/portal`): One web app — citizen login (submit/track issues, SOS, RTI, dept directory), department login (live SSE feed + web notifications, workers page, SLA tracker, dept info), admin login (war room, all complaints + admin notes, SOS management, all workers, district view, announcements, broadcast). All same live data.
 - **Department Portal** (`/web/dept`): 8 departments, HMAC JWT login, real-time SSE complaint stream, stats KPIs, district filter on complaints, SOS tab for all depts, worker call buttons, acknowledge/start workflow. Access codes: `{deptId}_2026`
-- **CPR Safety Command** (`/web/cpr`): FULLY REWRITTEN — Leaflet map with 18 patrol vans across all 13 districts, district filter dropdown, SOS send form, incident tracking, Patrols tab (with call buttons + women-safety unit badge + map flyTo), Departments tab (8 emergency services with direct call buttons + universal emergency numbers), Night Safety tab (report unsafe areas, live list), SSE live updates, auto-dispatch nearest van, elapsed timers, incident detail modal (GPS, call officer, Google Maps link, timeline, mark safe).
+- **CPR Safety Command** (`/web/cpr`): Leaflet map with 18 patrol vans across all 13 districts, district filter dropdown, SOS send form, incident tracking, Patrols tab, Departments tab (8 emergency services + universal numbers), Night Safety tab, **🏆 Leaderboard tab** (all 18 patrol officers ranked by score/resolved/women-safety/resolution-rate with sortable columns + top-3 podium medals). SSE live, auto-dispatch, incident detail modal.
 - **Public Civic Dashboard** (`/web/public`): Live complaint stats, all 8 department performance grades/rates, ward health scores, tabbed views
 - **RTI Portal** (`/web/rti`): AI-powered RTI draft generation, submit RTI, track status, "How It Works" guide, important contacts
 - **Civic Governance**: Mobile — submit/manage complaints, track status, ward health scores

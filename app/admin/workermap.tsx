@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  ActivityIndicator, RefreshControl, Modal, Dimensions,
+  ActivityIndicator, RefreshControl, Modal, Dimensions, Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -86,13 +86,15 @@ export default function WorkerMapScreen() {
   const [filterDistrict, setFilterDistrict] = useState("all");
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
 
+  const [liveStatus, setLiveStatus] = useState<"connecting" | "live" | "offline">("connecting");
+  const esRef = useRef<any>(null);
+
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
       const tok = await AsyncStorage.getItem("@sankalp_token");
       if (!tok) { setLoading(false); setRefreshing(false); return; }
       const base = getApiUrl();
-      // Try admin endpoint first, fall back to citizen endpoint
       let res = await fetch(`${base}api/admin/workers`, {
         headers: { Authorization: `Bearer ${tok}` },
       });
@@ -109,10 +111,61 @@ export default function WorkerMapScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  // Auto-refresh every 30s
+  // Live SSE stream for worker GPS updates
   useEffect(() => {
-    const interval = setInterval(() => load(true), 30000);
-    return () => clearInterval(interval);
+    let es: any = null;
+    let fallbackTimer: any = null;
+
+    const startStream = async () => {
+      const tok = await AsyncStorage.getItem("@sankalp_token");
+      if (!tok) return;
+
+      const base = getApiUrl();
+      const url = `${base}api/workers/stream`;
+
+      if (Platform.OS === "web" && typeof EventSource !== "undefined") {
+        try {
+          // Use native EventSource on web
+          es = new EventSource(url, { headers: { Authorization: `Bearer ${tok}` } } as any);
+          esRef.current = es;
+          es.onopen = () => setLiveStatus("live");
+          es.onerror = () => {
+            setLiveStatus("offline");
+            es?.close();
+            fallbackTimer = setInterval(() => load(true), 10000);
+          };
+          es.onmessage = (e: any) => {
+            try {
+              const data = JSON.parse(e.data);
+              if (data.type === "initial" && Array.isArray(data.workers)) {
+                setWorkers(data.workers);
+                setLoading(false);
+                setLiveStatus("live");
+              } else if (data.type === "worker_geo_update" && Array.isArray(data.updates)) {
+                setWorkers(prev => prev.map(w => {
+                  const upd = data.updates.find((u: any) => u.id === w.id);
+                  return upd ? { ...w, geo: upd.geo, status: upd.status } : w;
+                }));
+              }
+            } catch {}
+          };
+        } catch {
+          setLiveStatus("offline");
+          fallbackTimer = setInterval(() => load(true), 10000);
+        }
+      } else {
+        // Native: use polling at 8s to match server broadcast
+        setLiveStatus("live");
+        await load();
+        fallbackTimer = setInterval(() => load(true), 8000);
+      }
+    };
+
+    startStream();
+    return () => {
+      esRef.current?.close();
+      clearInterval(fallbackTimer);
+    };
   }, [load]);
 
   useEffect(() => { load(); }, []);
@@ -139,7 +192,13 @@ export default function WorkerMapScreen() {
         </Pressable>
         <View style={cs.headerTitle}>
           <Text style={cs.headerTitleText}>Worker GPS Map</Text>
-          <Text style={cs.headerSub}>Live field worker locations</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 }}>
+            <View style={{
+              width: 6, height: 6, borderRadius: 3,
+              backgroundColor: liveStatus === "live" ? "#22C55E" : liveStatus === "connecting" ? "#F59E0B" : "#EF4444",
+            }} />
+            <Text style={cs.headerSub}>{liveStatus === "live" ? "Live GPS" : liveStatus === "connecting" ? "Connecting…" : "Offline — polling"}</Text>
+          </View>
         </View>
         <View style={cs.viewToggle}>
           <Pressable onPress={() => setViewMode("map")} style={[cs.toggleBtn, viewMode === "map" && cs.toggleBtnActive]}>

@@ -297,6 +297,88 @@ function IncidentModal({inc,onClose,onMarkSafe}){
   );
 }
 
+function LeaderboardTab({distFilter}){
+  const [board,setBoard]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [sort,setSort]=useState("score");
+
+  useEffect(()=>{
+    setLoading(true);
+    fetch(`${API}/api/cpr/leaderboard`).then(r=>r.json()).then(d=>{setBoard(Array.isArray(d)?d:[]);setLoading(false);}).catch(()=>setLoading(false));
+  },[]);
+
+  const filtered=useMemo(()=>{
+    let data=distFilter==="all"?board:board.filter(o=>o.district===distFilter);
+    if(sort==="women") data=[...data].sort((a,b)=>b.womenSafetyDispatches-a.womenSafetyDispatches||b.score-a.score);
+    else if(sort==="resolved") data=[...data].sort((a,b)=>b.incidentsResolved-a.incidentsResolved||b.score-a.score);
+    else if(sort==="rate") data=[...data].sort((a,b)=>b.resolutionRate-a.resolutionRate||b.score-a.score);
+    else data=[...data].sort((a,b)=>b.score-a.score);
+    return data.map((o,i)=>({...o,displayRank:i+1}));
+  },[board,distFilter,sort]);
+
+  const medals=["🥇","🥈","🥉"];
+  const statusColors={active_patrol:"#22C55E",responding:"#F59E0B",base:"#64748B",off_duty:"#374151"};
+
+  if(loading)return <div style={{textAlign:"center",padding:40,color:"var(--muted)"}}>Loading leaderboard…</div>;
+  if(filtered.length===0)return <div style={{textAlign:"center",color:"#64748B",padding:40}}>No officer data{distFilter!=="all"?` for ${distFilter}`:""}</div>;
+
+  return <div>
+    <div style={{marginBottom:14}}>
+      <div style={{fontSize:11,fontWeight:800,color:"#94A3B8",textTransform:"uppercase",letterSpacing:.08,marginBottom:8}}>Rank by</div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        {[["score","⭐ Overall"],["resolved","✅ Resolved"],["women","🛡️ Women Safety"],["rate","📊 Resolution %"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setSort(v)}
+            style={{padding:"5px 10px",borderRadius:8,fontSize:10,fontWeight:700,cursor:"pointer",border:`1px solid ${sort===v?"var(--orange)":"var(--border)"}`,background:sort===v?"rgba(255,153,51,.15)":"var(--card)",color:sort===v?"var(--orange)":"var(--muted)"}}>
+            {l}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    {filtered.slice(0,3).length>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:14}}>
+      {filtered.slice(0,3).map((o,i)=>(
+        <div key={o.id} style={{background:"var(--card)",border:`1px solid ${i===0?"rgba(255,215,0,.4)":i===1?"rgba(192,192,192,.4)":"rgba(205,127,50,.4)"}`,borderRadius:10,padding:10,textAlign:"center",animation:"bounceIn .3s ease"}}>
+          <div style={{fontSize:22,marginBottom:4}}>{medals[i]}</div>
+          <div style={{fontSize:10,fontWeight:800,color:"#F1F5F9",marginBottom:2,wordBreak:"break-word"}}>{o.officerName.split(" ").slice(0,2).join(" ")}</div>
+          <div style={{fontSize:9,color:"var(--dimmed)",marginBottom:4}}>{o.vanNumber}</div>
+          <div style={{fontSize:14,fontWeight:800,color:"var(--orange)"}}>{o.score}</div>
+          <div style={{fontSize:8,color:"var(--dimmed)"}}>pts</div>
+          {o.isWomenSafetyUnit&&<div style={{fontSize:8,color:"#C4B5FD",marginTop:3}}>🛡️ Women Unit</div>}
+        </div>
+      ))}
+    </div>}
+
+    {filtered.map((o,i)=>{
+      const col=statusColors[o.status]||"#64748B";
+      return <div key={o.id} style={{background:"var(--card)",border:`1px solid ${i<3?"rgba(255,153,51,.2)":"var(--border)"}`,borderRadius:10,padding:11,marginBottom:7,animation:"slideIn .25s ease"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+          <div style={{width:24,height:24,borderRadius:12,background:i<3?"rgba(255,153,51,.15)":"rgba(255,255,255,.06)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:i<3?14:10,fontWeight:800,color:i<3?"var(--orange)":"var(--dimmed)",flexShrink:0}}>
+            {i<3?medals[i]:`#${i+1}`}
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:700,fontSize:12,color:"#F1F5F9"}}>{o.officerName}</div>
+            <div style={{fontSize:10,color:"var(--dimmed)"}}>{o.vanNumber} · {o.district}</div>
+          </div>
+          {o.isWomenSafetyUnit&&<span style={{fontSize:9,fontWeight:800,color:"#C4B5FD",background:"rgba(139,92,246,.15)",border:"1px solid rgba(139,92,246,.3)",padding:"2px 7px",borderRadius:10}}>🛡️ WOMEN</span>}
+          <div style={{width:8,height:8,borderRadius:"50%",background:col,flexShrink:0}}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:4,marginBottom:6}}>
+          {[["⭐ Score",o.score,"var(--orange)"],["✅ Resolved",o.incidentsResolved,"#86EFAC"],["🛡️ Women",o.womenSafetyDispatches,"#C4B5FD"],["📊 Rate",`${o.resolutionRate}%`,"#93C5FD"]].map(([l,v,c])=>(
+            <div key={l} style={{background:"rgba(255,255,255,.04)",borderRadius:7,padding:"6px 4px",textAlign:"center"}}>
+              <div style={{fontSize:11,fontWeight:800,color:c}}>{v}</div>
+              <div style={{fontSize:8,color:"var(--dimmed)",marginTop:1}}>{l}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <span style={{fontSize:10,color:"var(--dimmed)",flex:1}}>{o.zone} · {o.incidentsTotal} total dispatches</span>
+          <a href={"tel:"+o.phone} style={{textDecoration:"none",fontSize:9,fontWeight:700,color:"#86EFAC",background:"rgba(34,197,94,.12)",border:"1px solid rgba(34,197,94,.25)",padding:"3px 9px",borderRadius:8}}>📞</a>
+        </div>
+      </div>;
+    })}
+  </div>;
+}
+
 function CPRPortal(){
   const [tab,setTab]=useState("incidents");
   const [incidents,setIncidents]=useState([]);
@@ -459,9 +541,9 @@ function CPRPortal(){
       {/* SIDE PANEL */}
       <div className="side">
         <div className="kpi-strip">{kpis.map(k=><div key={k.l} className="kpi"><div className="kpi-n" style={{color:k.c}}>{k.n}</div><div className="kpi-l">{k.l}</div></div>)}</div>
-        <div className="tabs">
-          {[["incidents",`🆘 SOS (${activeIncs.length})`],["patrols",`🚔 Patrols (${filtered.pat.length})`],["departments","🏥 Depts"],["night",`🌙 Night (${nightZones.length})`]].map(([t,l])=>
-            <div key={t} className={`tab ${tab===t?"act":""}`} onClick={()=>setTab(t)}>{l}</div>
+        <div className="tabs" style={{overflowX:"auto"}}>
+          {[["incidents",`🆘 SOS (${activeIncs.length})`],["patrols",`🚔 (${filtered.pat.length})`],["departments","🏥"],["night",`🌙 (${nightZones.length})`],["leaderboard","🏆 Leaders"]].map(([t,l])=>
+            <div key={t} className={`tab ${tab===t?"act":""}`} onClick={()=>setTab(t)} style={{flexShrink:0}}>{l}</div>
           )}
         </div>
         <div className="scroll">
@@ -568,6 +650,9 @@ function CPRPortal(){
               </div>
             </div>
           )}
+
+          {/* LEADERBOARD TAB */}
+          {tab==="leaderboard"&&<LeaderboardTab distFilter={distFilter}/>}
 
           {/* NIGHT SAFETY TAB */}
           {tab==="night"&&(

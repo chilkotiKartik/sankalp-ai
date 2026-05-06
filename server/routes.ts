@@ -2,8 +2,52 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "node:http";
 import { execFile } from "node:child_process";
 import { createHmac } from "node:crypto";
+import { EventEmitter } from "node:events";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage, DEPARTMENTS, getDeptIdForCategory, deptEmitter, cprEmitter } from "./storage";
+
+// ── LIVE WORKER GPS STREAM ────────────────────────────────────────────────────
+const workerEmitter = new EventEmitter();
+workerEmitter.setMaxListeners(200);
+
+// Simulate live worker GPS movement every 8 seconds
+setInterval(() => {
+  const workers = storage.getWorkers();
+  const updates: Array<{ id: string; geo: { lat: number; lng: number }; status: string; name: string; currentTask?: string }> = [];
+  workers.forEach(w => {
+    if (w.status === "active" && w.geo) {
+      const dlat = (Math.random() - 0.5) * 0.0025;
+      const dlng = (Math.random() - 0.5) * 0.0025;
+      w.geo.lat = parseFloat((w.geo.lat + dlat).toFixed(6));
+      w.geo.lng = parseFloat((w.geo.lng + dlng).toFixed(6));
+      updates.push({ id: w.id, geo: { lat: w.geo.lat, lng: w.geo.lng }, status: w.status, name: w.name, currentTask: w.currentTask });
+    }
+  });
+  if (updates.length > 0) {
+    workerEmitter.emit("update", { type: "worker_geo_update", updates, timestamp: new Date().toISOString() });
+  }
+}, 8000);
+
+// ── PUSH TOKEN STORE ──────────────────────────────────────────────────────────
+const pushTokenStore = new Map<string, { token: string; platform: string; userId: string; role: string }[]>();
+
+function storePushToken(userId: string, token: string, platform: string, role: string) {
+  const existing = pushTokenStore.get(userId) || [];
+  if (!existing.find(e => e.token === token)) {
+    existing.push({ token, platform, userId, role });
+  }
+  pushTokenStore.set(userId, existing);
+}
+
+function getAdminPoliceTokens(): string[] {
+  const tokens: string[] = [];
+  pushTokenStore.forEach(entries => {
+    entries.forEach(e => {
+      if (e.role === "admin" || e.role === "super_admin") tokens.push(e.token);
+    });
+  });
+  return tokens;
+}
 
 // ── SIMPLE QR MATRIX GENERATOR (no external libs) ─────────────────────────────
 function generateQRMatrix(text: string): boolean[][] {
@@ -971,9 +1015,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── PUSH TOKEN REGISTRATION ────────────────────────────────────────────
   app.post("/api/push-token", requireAuth, (req, res) => {
+    const user = (req as any).user;
     const { token, platform } = req.body;
     if (!token) return res.status(400).json({ message: "token required" });
+    storePushToken(user.id, token, platform || "unknown", user.role);
     res.json({ success: true, registered: true });
+  });
+
+  // ── LIVE WORKER GPS STREAM (SSE) ─────────────────────────────────────────
+  app.get("/api/workers/stream", requireAuth, (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+    const allWorkers = storage.getWorkers();
+    res.write(`data: ${JSON.stringify({ type: "initial", workers: allWorkers })}\n\n`);
+    const hb = setInterval(() => res.write(`data: ${JSON.stringify({ type: "ping" })}\n\n`), 25000);
+    const listener = (data: any) => { res.write(`data: ${JSON.stringify(data)}\n\n`); };
+    workerEmitter.on("update", listener);
+    req.on("close", () => { clearInterval(hb); workerEmitter.off("update", listener); });
+  });
+
+  // ── CPR PATROL OFFICER LEADERBOARD ─────────────────────────────────────
+  app.get("/api/cpr/leaderboard", (req, res) => {
+    const patrols = storage.getPatrolVans();
+    const incidents = storage.getSafetyIncidents();
+    const board = patrols.map(van => {
+      const officerIncs = incidents.filter(i =>
+        i.assignedPatrolOfficer === van.officerInCharge || i.assignedPatrolVan === van.vanNumber
+      );
+      const resolved = officerIncs.filter(i => i.status === "safe" || i.status === "closed").length;
+      const womenSafety = officerIncs.filter(i =>
+        (i as any).emergencyType === "women_safety" || (i as any).category === "women_safety"
+      ).length;
+      const total = officerIncs.length;
+      const avgEta = total > 0 ? Math.round(officerIncs.reduce((s, i) => s + ((i as any).eta || 10), 0) / total) : 0;
+      const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+      const score = resolved * 10 + womenSafety * 25 + resolutionRate + (van.isWomenSafetyUnit ? 30 : 0);
+      return {
+        id: van.id, officerName: van.officerInCharge, phone: van.officerPhone,
+        vanNumber: van.vanNumber, district: van.district, zone: van.zone,
+        isWomenSafetyUnit: van.isWomenSafetyUnit, status: van.status, shift: van.shift,
+        crewCount: van.crewCount, incidentsTotal: total, incidentsResolved: resolved,
+        womenSafetyDispatches: womenSafety, avgResponseTimeMin: avgEta,
+        resolutionRate, score, rank: 0,
+      };
+    }).sort((a, b) => b.score - a.score || b.incidentsResolved - a.incidentsResolved);
+    board.forEach((o, i) => { o.rank = i + 1; });
+    res.json(board);
   });
 
   // ── AI CHAT ───────────────────────────────────────────────────────────
