@@ -47,7 +47,7 @@ function TypingDots() {
 
 export default function AIChatScreen() {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [messages, setMessages] = useState<Msg[]>([
     {
       id: "welcome",
@@ -72,7 +72,7 @@ export default function AIChatScreen() {
       const url = new URL("/api/ai/chat", getApiUrl());
       const res = await fetch(url.toString(), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
         body: JSON.stringify({ message: txt, userId: user?.id }),
       });
       const data = await res.json();

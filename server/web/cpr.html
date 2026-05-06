@@ -9,143 +9,174 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,sans-serif}
-body{background:#0B1120;color:#F1F5F9;height:100dvh;overflow:hidden}
-.topbar{display:flex;align-items:center;padding:10px 16px;background:#0F172A;border-bottom:1px solid #1E293B;gap:10px;height:52px;flex-shrink:0}
-.logo{font-size:15px;font-weight:800;color:#FF9933;letter-spacing:1px}
-.cpr-badge{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#F87171;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.05em}
-.live-dot{width:8px;height:8px;border-radius:50%;background:#EF4444;animation:pulse 1s infinite;flex-shrink:0}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,'Segoe UI',sans-serif}
+:root{--red:#EF4444;--orange:#FF9933;--green:#22C55E;--blue:#3B82F6;--purple:#8B5CF6;--yellow:#F59E0B;--bg:#0B1120;--panel:#0F172A;--card:#1E293B;--border:#334155;--text:#F1F5F9;--muted:#94A3B8;--dimmed:#64748B}
+html{height:100%}
+body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+#root{display:flex;flex-direction:column;height:100%}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.main-grid{display:grid;grid-template-columns:1fr 360px;height:calc(100dvh - 52px)}
-@media(max-width:768px){.main-grid{grid-template-columns:1fr;height:auto;overflow:auto}}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bounceIn{0%{opacity:0;transform:scale(.93)}60%{transform:scale(1.02)}100%{opacity:1;transform:scale(1)}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px rgba(239,68,68,.3)}50%{box-shadow:0 0 22px rgba(239,68,68,.7)}}
+/* Topbar */
+.topbar{display:flex;align-items:center;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--border);gap:10px;min-height:52px;flex-shrink:0;flex-wrap:wrap}
+.logo{font-size:15px;font-weight:800;color:var(--orange);letter-spacing:.5px}
+.cpr-badge{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#F87171;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.1em;white-space:nowrap}
+.live-wrap{display:flex;align-items:center;gap:5px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1s infinite;flex-shrink:0}
+.live-txt{font-size:11px;color:#F87171;font-weight:700;letter-spacing:.04em}
+.topbar-sep{width:1px;height:24px;background:var(--border);flex-shrink:0}
+.dist-select{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;padding:5px 10px;outline:none;cursor:pointer;min-width:160px}
+.dist-select:focus{border-color:var(--orange)}
+.topbar-link{color:var(--dimmed);font-size:11px;text-decoration:none;padding:4px 9px;background:var(--card);border-radius:6px;border:1px solid var(--border);white-space:nowrap;transition:all .15s}
+.topbar-link:hover{color:var(--text);border-color:var(--border)}
+/* Main layout */
+.main-grid{display:grid;grid-template-columns:1fr 380px;flex:1;overflow:hidden}
+@media(max-width:768px){.main-grid{grid-template-columns:1fr;overflow:auto}#map{height:55dvh!important}}
+/* Map */
 #map-wrap{position:relative}
 #map{width:100%;height:100%}
-@media(max-width:768px){#map{height:55dvh}}
-.map-legend{position:absolute;bottom:16px;left:12px;background:rgba(11,17,32,.95);border:1px solid #1E293B;border-radius:10px;padding:10px 12px;z-index:1000;font-size:11px;display:flex;flex-direction:column;gap:5px}
-.legend-row{display:flex;align-items:center;gap:7px;color:#94A3B8}
-.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.sos-btn{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:1000;background:#EF4444;color:#fff;border:none;border-radius:14px;padding:12px 28px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(239,68,68,.5);transition:all .2s;letter-spacing:.5px}
-.sos-btn:hover{background:#DC2626;transform:translateX(-50%) scale(1.03)}
-.loc-btn{position:absolute;top:16px;right:12px;z-index:1000;background:#0F172A;color:#93C5FD;border:1px solid #1E3A5F;border-radius:10px;padding:8px 14px;font-size:12px;cursor:pointer;font-weight:600;transition:all .2s}
-.loc-btn.tracking{background:#1E3A5F;border-color:#3B82F6;color:#60A5FA}
-.side{display:flex;flex-direction:column;background:#0F172A;border-left:1px solid #1E293B;overflow:hidden}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 12px;border-bottom:1px solid #1E293B;flex-shrink:0}
-.kpi{background:#1E293B;border-radius:8px;padding:9px;text-align:center}
-.kpi-n{font-size:20px;font-weight:800}
-.kpi-l{font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.05em}
-.side-tabs{display:flex;border-bottom:1px solid #1E293B;flex-shrink:0}
-.tab{flex:1;padding:9px 6px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;color:#64748B;border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.03em}
-.tab.active{color:#EF4444;border-bottom-color:#EF4444}
-.side-content{flex:1;overflow-y:auto;padding:12px}
-.inc-card{background:#1E293B;border:1px solid #334155;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:all .2s}
-.inc-card:hover,.inc-card.sel{border-color:#EF4444;box-shadow:0 0 12px rgba(239,68,68,.15)}
-.status-badge{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:20px}
-.st-active{background:rgba(239,68,68,.15);color:#F87171;border:1px solid rgba(239,68,68,.3)}
-.st-patrol_dispatched{background:rgba(245,158,11,.15);color:#FCD34D;border:1px solid rgba(245,158,11,.3)}
-.st-police_responding{background:rgba(147,197,253,.15);color:#93C5FD;border:1px solid rgba(147,197,253,.3)}
-.st-safe,.st-closed{background:rgba(34,197,94,.15);color:#86EFAC;border:1px solid rgba(34,197,94,.3)}
-.patrol-card{background:#1E293B;border:1px solid #334155;border-radius:10px;padding:11px;margin-bottom:7px}
-.pstatus-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;flex-shrink:0}
-.action-btn{padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all .2s;letter-spacing:.02em}
-.btn-g{background:rgba(34,197,94,.15);color:#86EFAC;border:1px solid rgba(34,197,94,.3)}
-.btn-g:hover{background:rgba(34,197,94,.3)}
-.timer{font-family:monospace;color:#F59E0B;font-size:12px;font-weight:700}
-.esc-badge{display:inline-block;padding:2px 7px;border-radius:12px;font-size:9px;font-weight:700;text-transform:uppercase}
-.esc-2{background:rgba(245,158,11,.15);color:#FCD34D;border:1px solid rgba(245,158,11,.3)}
-.esc-3{background:rgba(239,68,68,.15);color:#F87171;border:1px solid rgba(239,68,68,.3)}
-.esc-4{background:rgba(220,38,38,.3);color:#FCA5A5;border:1px solid rgba(220,38,38,.5);animation:pulse 1s infinite}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}
-.modal{background:#1E293B;border:1px solid #334155;border-radius:16px;padding:24px;width:100%;max-width:440px;max-height:90dvh;overflow-y:auto}
-.modal h2{font-size:16px;font-weight:700;color:#F1F5F9;margin-bottom:16px}
-.form-group{margin-bottom:14px}
-.form-group label{display:block;font-size:12px;color:#94A3B8;margin-bottom:5px;font-weight:600}
-.form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 12px;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F1F5F9;font-size:13px;outline:none}
-.form-group textarea{min-height:70px;resize:vertical}
-.modal-btns{display:flex;gap:8px;margin-top:16px}
-.mb-cancel{flex:1;padding:9px;background:#334155;border:none;color:#94A3B8;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
-.mb-submit{flex:2;padding:9px;background:#EF4444;border:none;color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;transition:all .2s}
+.map-fab{position:absolute;z-index:1000;border:none;cursor:pointer;transition:all .2s;font-weight:800;letter-spacing:.03em}
+.fab-sos{top:14px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;border-radius:14px;padding:11px 26px;font-size:13px;box-shadow:0 4px 20px rgba(239,68,68,.5)}
+.fab-sos:hover{background:#DC2626;box-shadow:0 6px 28px rgba(239,68,68,.7)}
+.fab-loc{top:14px;right:14px;background:var(--panel);color:#93C5FD;border:1px solid #1E3A5F;border-radius:10px;padding:8px 13px;font-size:12px}
+.fab-loc.on{background:#1E3A5F;border-color:var(--blue);color:#60A5FA}
+.fab-night{bottom:70px;left:14px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);color:#C4B5FD;border-radius:10px;padding:8px 13px;font-size:11px}
+.fab-night:hover{background:rgba(139,92,246,.3)}
+.map-legend{position:absolute;bottom:14px;left:14px;background:rgba(11,17,32,.95);border:1px solid var(--border);border-radius:10px;padding:10px 12px;z-index:1000;font-size:11px;display:flex;flex-direction:column;gap:5px}
+.leg-row{display:flex;align-items:center;gap:7px;color:var(--muted)}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+/* Side panel */
+.side{display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--border);overflow:hidden}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.kpi{background:var(--card);border-radius:8px;padding:8px;text-align:center}
+.kpi-n{font-size:18px;font-weight:800;line-height:1}
+.kpi-l{font-size:9px;color:var(--dimmed);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{flex:1;padding:9px 4px;text-align:center;font-size:10px;font-weight:800;cursor:pointer;color:var(--dimmed);border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.05em;text-transform:uppercase}
+.tab.act{color:var(--red);border-bottom-color:var(--red)}
+.scroll{flex:1;overflow-y:auto;padding:10px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+/* Cards */
+.inc-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:all .2s;animation:slideIn .25s ease}
+.inc-card:hover{border-color:var(--red);box-shadow:0 0 12px rgba(239,68,68,.12)}
+.inc-card.sel{border-color:var(--red)}
+.inc-card.women{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.05)}
+.inc-card.women:hover{border-color:#8B5CF6}
+.pat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:7px;animation:slideIn .25s ease}
+.dept-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;transition:all .15s}
+.dept-card:hover{border-color:#484f5a}
+/* Badges */
+.sbadge{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.sb-active{background:rgba(239,68,68,.15);color:#F87171;border:1px solid rgba(239,68,68,.3)}
+.sb-dispatched{background:rgba(245,158,11,.15);color:#FCD34D;border:1px solid rgba(245,158,11,.3)}
+.sb-responding{background:rgba(147,197,253,.15);color:#93C5FD;border:1px solid rgba(147,197,253,.3)}
+.sb-safe,.sb-closed{background:rgba(34,197,94,.15);color:#86EFAC;border:1px solid rgba(34,197,94,.3)}
+.sb-women{background:rgba(139,92,246,.15);color:#C4B5FD;border:1px solid rgba(139,92,246,.3)}
+.sb-night{background:rgba(51,65,85,.6);color:#94A3B8;border:1px solid var(--border)}
+/* Action buttons */
+.abtn{padding:5px 11px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;border:none;transition:all .2s;letter-spacing:.02em;white-space:nowrap}
+.abtn-call{background:rgba(34,197,94,.15);color:#86EFAC;border:1px solid rgba(34,197,94,.3)}
+.abtn-call:hover{background:rgba(34,197,94,.3)}
+.abtn-safe{background:rgba(34,197,94,.15);color:#86EFAC;border:1px solid rgba(34,197,94,.3)}
+.abtn-safe:hover{background:rgba(34,197,94,.3)}
+.abtn-red{background:rgba(239,68,68,.15);color:#F87171;border:1px solid rgba(239,68,68,.3)}
+.abtn-red:hover{background:rgba(239,68,68,.3)}
+.abtn-orange{background:rgba(255,153,51,.15);color:var(--orange);border:1px solid rgba(255,153,51,.3)}
+.abtn-orange:hover{background:rgba(255,153,51,.3)}
+.timer{font-family:monospace;color:var(--yellow);font-size:11px;font-weight:700}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px)}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;animation:bounceIn .25s ease}
+.modal h2{font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;transition:border .15s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--orange)}
+.fg textarea{min-height:65px;resize:vertical}
+.mbtns{display:flex;gap:8px;margin-top:14px}
+.mb-cancel{flex:1;padding:9px;background:var(--border);border:none;color:var(--muted);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
+.mb-submit{flex:2;padding:9px;background:var(--red);border:none;color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:800;transition:background .2s}
 .mb-submit:hover{background:#DC2626}
-.mb-submit:disabled{opacity:.5}
-.toast{position:fixed;bottom:24px;right:24px;background:#1E293B;border:1px solid #334155;border-radius:12px;padding:12px 16px;z-index:99999;font-size:13px;max-width:320px;animation:slideIn .3s ease}
-@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.mb-submit:disabled{opacity:.5;cursor:not-allowed}
+.mb-purple{background:var(--purple)!important}
+.mb-purple:hover{background:#7C3AED!important}
+/* Night safety */
+.ns-card{background:var(--card);border:1px solid rgba(139,92,246,.25);border-radius:10px;padding:12px;margin-bottom:8px}
+/* Toast */
+.toast{position:fixed;bottom:22px;right:20px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 16px;z-index:99999;font-size:12px;max-width:320px;animation:slideIn .3s ease;display:flex;align-items:flex-start;gap:8px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+/* Form helpers */
+.geo-display{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--muted);margin-bottom:12px}
+/* Responsive */
+@media(max-width:768px){.main-grid{grid-template-columns:1fr;height:auto}.side{height:60dvh}.map-fab.fab-sos{font-size:12px;padding:10px 20px}}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useEffect,useRef,useCallback} = React;
-const API = window.location.origin;
-const UK_DISTRICTS = ["Dehradun","Haridwar","Nainital","Udham Singh Nagar","Almora","Pithoragarh","Chamoli","Uttarkashi","Tehri Garhwal","Pauri Garhwal","Champawat","Bageshwar","Rudraprayag"];
+const {useState,useEffect,useRef,useCallback,useMemo}=React;
+const API=window.location.origin;
+const UK_DISTRICTS=["Dehradun","Haridwar","Tehri Garhwal","Pauri Garhwal","Rudraprayag","Chamoli","Uttarkashi","Pithoragarh","Bageshwar","Almora","Champawat","Nainital","Udham Singh Nagar"];
 
-function timeAgo(d){
-  if(!d) return "—";
-  const s=Math.round((Date.now()-new Date(d))/1000);
-  if(s<60) return `${s}s ago`;
-  if(s<3600) return `${Math.round(s/60)}m ago`;
-  return `${Math.round(s/3600)}h ago`;
+function timeAgo(d){if(!d)return"—";const s=Math.round((Date.now()-new Date(d))/1000);if(s<60)return`${s}s ago`;if(s<3600)return`${Math.round(s/60)}m ago`;if(s<86400)return`${Math.round(s/3600)}h ago`;return`${Math.round(s/86400)}d ago`;}
+function fmtTime(d){if(!d)return"—";return new Date(d).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});}
+function fmtDate(d){if(!d)return"—";return new Date(d).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});}
+
+function ElapsedTimer({since}){
+  const [s,setS]=useState(Math.round((Date.now()-new Date(since))/1000));
+  useEffect(()=>{const t=setInterval(()=>setS(Math.round((Date.now()-new Date(since))/1000)),1000);return()=>clearInterval(t);},[since]);
+  const m=Math.floor(s/60),sec=s%60;
+  const col=s>1800?"#F87171":s>600?"#FCD34D":"#86EFAC";
+  return <span className="timer" style={{color:col}}>{String(m).padStart(2,"0")}:{String(sec).padStart(2,"0")}</span>;
 }
 
-function ElapsedTimer({since}) {
-  const [secs,setSecs]=useState(Math.round((Date.now()-new Date(since))/1000));
-  useEffect(()=>{const t=setInterval(()=>setSecs(Math.round((Date.now()-new Date(since))/1000)),1000);return()=>clearInterval(t);},[since]);
-  const m=Math.floor(secs/60),s=secs%60;
-  return <span className="timer">{String(m).padStart(2,"0")}:{String(s).padStart(2,"0")}</span>;
+function Toast({msg,type,onClose}){
+  useEffect(()=>{const t=setTimeout(onClose,5000);return()=>clearTimeout(t);},[]);
+  const icons={error:"🚨",success:"✅",info:"ℹ️",warn:"⚠️"};
+  const colors={error:"#F87171",success:"#86EFAC",info:"#93C5FD",warn:"#FCD34D"};
+  return <div className="toast"><span style={{fontSize:16}}>{icons[type]||"🔔"}</span><div><div style={{fontWeight:700,fontSize:12,color:colors[type]||"#fff"}}>{msg.title||msg}</div>{msg.body&&<div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>{msg.body}</div>}</div></div>;
 }
 
-function Toast({msg,onClose}) {
-  useEffect(()=>{const t=setTimeout(onClose,4000);return()=>clearTimeout(t);},[]);
-  return <div className="toast">{msg}</div>;
-}
-
-function SOSModal({onClose,onSubmit,userGeo}) {
+function SOSModal({onClose,onSubmit,userGeo}){
   const [name,setName]=useState("");
+  const [phone,setPhone]=useState("");
   const [district,setDistrict]=useState("Dehradun");
-  const [location,setLocation]=useState("");
-  const [submitting,setSubmitting]=useState(false);
-  const [geoStatus,setGeoStatus]=useState(userGeo?"📍 Location detected":"Detecting location...");
+  const [loc,setLoc]=useState("");
+  const [type,setType]=useState("women_safety");
   const [geo,setGeo]=useState(userGeo||null);
-
-  useEffect(()=>{
-    if(!userGeo && navigator.geolocation){
-      navigator.geolocation.getCurrentPosition(
-        pos=>{setGeo({lat:pos.coords.latitude,lng:pos.coords.longitude});setGeoStatus(`📍 ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);},
-        ()=>setGeoStatus("⚠️ Location not detected — enter manually")
-      );
-    }
-  },[]);
-
-  const submit = async()=>{
-    if(!name.trim()||!location.trim()) return;
-    setSubmitting(true);
-    try {
-      const r=await fetch(`${API}/api/cpr/incidents`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-        citizenName:name.trim(),district,location:location.trim(),
-        lat:geo?.lat||30.3165,lng:geo?.lng||78.0322,
-      })});
+  const [geoTxt,setGeoTxt]=useState(userGeo?`📍 ${userGeo.lat.toFixed(4)}, ${userGeo.lng.toFixed(4)}`:"Detecting location…");
+  const [sub,setSub]=useState(false);
+  useEffect(()=>{if(!userGeo&&navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{setGeo({lat:p.coords.latitude,lng:p.coords.longitude});setGeoTxt(`📍 ${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`);},()=>setGeoTxt("⚠️ Enter location manually"));},[]);
+  const submit=async()=>{
+    if(!name.trim()||!loc.trim())return;
+    setSub(true);
+    try{
+      const r=await fetch(`${API}/api/cpr/incidents`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({citizenName:name.trim(),district,location:loc.trim(),lat:geo?.lat||30.3165,lng:geo?.lng||78.0322,phone:phone.trim(),emergencyType:type})});
       const inc=await r.json();
       onSubmit(inc);
-    } catch(e){ alert("Failed to send SOS: "+e.message); }
-    finally { setSubmitting(false); }
+    }catch(e){alert("Failed: "+e.message);}
+    setSub(false);
   };
-
-  return (
+  const SOS_TYPES=[["women_safety","🛡️ Women Safety"],["medical","🚑 Medical Emergency"],["fire","🔥 Fire Incident"],["accident","🚗 Road Accident"],["crime","🚔 Crime/Threat"],["disaster","🆘 Natural Disaster"],["other","📞 Other Emergency"]];
+  return(
     <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
-        <h2>🆘 Send Emergency SOS</h2>
-        <div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#F87171"}}>
-          This will immediately alert nearby patrol vans and police. Use only in genuine emergencies.
+        <h2>🆘 Send Emergency SOS Alert</h2>
+        <div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:8,padding:"9px 13px",marginBottom:14,fontSize:11,color:"#F87171",lineHeight:1.5}}>
+          This will immediately alert CPR command, nearest patrol van, and police. Use only in genuine emergencies.
         </div>
-        <div className="form-group"><label>Your Name *</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Full name"/></div>
-        <div className="form-group">
-          <label>District *</label>
-          <select value={district} onChange={e=>setDistrict(e.target.value)}>{UK_DISTRICTS.map(d=><option key={d}>{d}</option>)}</select>
+        <div className="fg"><label>Emergency Type *</label><select value={type} onChange={e=>setType(e.target.value)}>{SOS_TYPES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div className="fg"><label>Your Name *</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Full name"/></div>
+          <div className="fg"><label>Phone</label><input value={phone} onChange={e=>setPhone(e.target.value.replace(/\D/g,""))} maxLength={10} placeholder="10-digit"/></div>
         </div>
-        <div className="form-group"><label>Location Description *</label><textarea value={location} onChange={e=>setLocation(e.target.value)} placeholder="Describe your exact location (landmark, road name, area)"/></div>
-        <div style={{fontSize:11,color:"#64748B",padding:"6px 10px",background:"#0F172A",borderRadius:6,marginBottom:14}}>{geoStatus}</div>
-        <div className="modal-btns">
+        <div className="fg"><label>District *</label><select value={district} onChange={e=>setDistrict(e.target.value)}>{UK_DISTRICTS.map(d=><option key={d}>{d}</option>)}</select></div>
+        <div className="fg"><label>Exact Location / Landmark *</label><textarea value={loc} onChange={e=>setLoc(e.target.value)} placeholder="Describe your exact location — road name, landmark, area…" style={{minHeight:60}}/></div>
+        <div className="geo-display">{geoTxt}</div>
+        <div className="mbtns">
           <button className="mb-cancel" onClick={onClose}>Cancel</button>
-          <button className="mb-submit" onClick={submit} disabled={submitting||!name.trim()||!location.trim()}>
-            {submitting?"Sending SOS...":"🆘 SEND EMERGENCY SOS"}
+          <button className="mb-submit" onClick={submit} disabled={sub||!name.trim()||!loc.trim()}>
+            {sub?"Sending SOS…":"🆘 SEND EMERGENCY SOS"}
           </button>
         </div>
       </div>
@@ -153,181 +184,425 @@ function SOSModal({onClose,onSubmit,userGeo}) {
   );
 }
 
-function CPRPortal() {
+function NightSafetyModal({onClose,onSubmit,userGeo}){
+  const [loc,setLoc]=useState("");
+  const [district,setDistrict]=useState("Dehradun");
+  const [desc,setDesc]=useState("");
+  const [riskType,setRiskType]=useState("general");
+  const [reporter,setReporter]=useState("");
+  const [sub,setSub]=useState(false);
+  const submit=async()=>{
+    if(!loc.trim())return;
+    setSub(true);
+    try{
+      const r=await fetch(`${API}/api/cpr/night-safety`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({location:loc.trim(),district,description:desc.trim(),riskType,geo:userGeo||null,reporterName:reporter.trim()||"Anonymous"})});
+      const z=await r.json();onSubmit(z);
+    }catch(e){alert("Failed: "+e.message);}
+    setSub(false);
+  };
+  return(
+    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal">
+        <h2>🌙 Report Unsafe Night Area</h2>
+        <div style={{background:"rgba(139,92,246,.08)",border:"1px solid rgba(139,92,246,.25)",borderRadius:8,padding:"9px 13px",marginBottom:14,fontSize:11,color:"#C4B5FD",lineHeight:1.5}}>
+          CPR night patrols will visit this area regularly. Your report helps keep the community safe.
+        </div>
+        <div className="fg"><label>Risk Type</label>
+          <select value={riskType} onChange={e=>setRiskType(e.target.value)}>
+            {[["crime","🚔 Crime/Theft Risk"],["harassment","🛡️ Harassment Risk"],["accident","🚗 Accident-Prone"],["lighting","💡 Poor Lighting"],["general","⚠️ General Safety Concern"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
+          </select>
+        </div>
+        <div className="fg"><label>District *</label><select value={district} onChange={e=>setDistrict(e.target.value)}>{UK_DISTRICTS.map(d=><option key={d}>{d}</option>)}</select></div>
+        <div className="fg"><label>Location / Area Name *</label><input value={loc} onChange={e=>setLoc(e.target.value)} placeholder="e.g. Clock Tower back lane, Dehradun"/></div>
+        <div className="fg"><label>Description</label><textarea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="What makes this area unsafe at night? When does it become risky?"/></div>
+        <div className="fg"><label>Your Name (optional)</label><input value={reporter} onChange={e=>setReporter(e.target.value)} placeholder="Anonymous if left blank"/></div>
+        <div className="mbtns">
+          <button className="mb-cancel" onClick={onClose}>Cancel</button>
+          <button className="mb-submit mb-purple" onClick={submit} disabled={sub||!loc.trim()}>
+            {sub?"Submitting…":"🌙 Submit Night Safety Report"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IncidentModal({inc,onClose,onMarkSafe}){
+  if(!inc)return null;
+  const isWomen=inc.citizenName&&(inc.emergencyType==="women_safety"||inc.category==="women_safety");
+  const accentColor=isWomen?"#C4B5FD":"#F87171";
+  return(
+    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal" style={{borderColor:isWomen?"rgba(139,92,246,.4)":"rgba(239,68,68,.3)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+          <div>
+            <div style={{fontSize:17,fontWeight:800,color:accentColor}}>{isWomen?"🛡️ WOMEN SAFETY EMERGENCY":"🆘 EMERGENCY INCIDENT"}</div>
+            <div style={{fontSize:11,color:"#64748B",marginTop:2}}>Incident ID: {inc.id?.slice(0,8).toUpperCase()}</div>
+          </div>
+          <button onClick={onClose} style={{background:"transparent",border:"none",color:"#64748B",fontSize:16,cursor:"pointer",padding:4}}>✕</button>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14,fontSize:12}}>
+          <div style={{background:"rgba(255,255,255,.04)",borderRadius:8,padding:"10px 12px"}}>
+            <div style={{color:"#64748B",fontSize:10,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Citizen</div>
+            <div style={{fontWeight:700,fontSize:14}}>{inc.citizenName||"Unknown"}</div>
+            {inc.phone&&<div style={{color:"#94A3B8",marginTop:2,fontSize:11}}>{inc.phone}</div>}
+          </div>
+          <div style={{background:"rgba(255,255,255,.04)",borderRadius:8,padding:"10px 12px"}}>
+            <div style={{color:"#64748B",fontSize:10,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Status</div>
+            <span className={`sbadge sb-${inc.status}`}>{(inc.status||"active").replace("_"," ").toUpperCase()}</span>
+            <div style={{color:"#94A3B8",marginTop:4,fontSize:11}}>Elapsed: <ElapsedTimer since={inc.reportedAt}/></div>
+          </div>
+          <div style={{background:"rgba(255,255,255,.04)",borderRadius:8,padding:"10px 12px"}}>
+            <div style={{color:"#64748B",fontSize:10,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Location</div>
+            <div style={{fontSize:12,lineHeight:1.5}}>{inc.location||"Unknown"}</div>
+            <div style={{color:"#94A3B8",marginTop:2,fontSize:11}}>{inc.district}</div>
+          </div>
+          <div style={{background:"rgba(255,255,255,.04)",borderRadius:8,padding:"10px 12px"}}>
+            <div style={{color:"#64748B",fontSize:10,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>GPS</div>
+            {inc.geo?<>
+              <div style={{fontFamily:"monospace",fontSize:11,color:"#93C5FD"}}>{inc.geo.lat.toFixed(5)}°N</div>
+              <div style={{fontFamily:"monospace",fontSize:11,color:"#93C5FD"}}>{inc.geo.lng.toFixed(5)}°E</div>
+            </>:<div style={{color:"#64748B",fontSize:11}}>GPS not available</div>}
+          </div>
+        </div>
+
+        {inc.assignedPatrolVan&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:8,padding:12,marginBottom:14}}>
+          <div style={{fontWeight:700,color:"#FCD34D",fontSize:12,marginBottom:6}}>🚔 Patrol Dispatched</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:600}}>{inc.assignedPatrolVan}</div>
+              <div style={{fontSize:11,color:"#94A3B8"}}>{inc.assignedPatrolOfficer}</div>
+              {inc.eta&&<div style={{fontSize:11,color:"#FCD34D",marginTop:2}}>ETA ~{inc.eta} mins</div>}
+            </div>
+            {inc.assignedPatrolPhone&&<a href={"tel:"+inc.assignedPatrolPhone} className="abtn abtn-call" style={{textDecoration:"none",fontSize:12,fontWeight:700,padding:"7px 14px"}}>📞 Call Officer</a>}
+          </div>
+        </div>}
+
+        {(inc.updates||[]).length>0&&<div style={{marginBottom:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#64748B",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Timeline</div>
+          {[...(inc.updates||[])].reverse().slice(0,4).map((u,i)=><div key={i} style={{display:"flex",gap:10,marginBottom:8,fontSize:11}}>
+            <div style={{width:60,color:"#64748B",flexShrink:0}}>{fmtTime(u.time)}</div>
+            <div style={{flex:1,color:"#94A3B8",lineHeight:1.5}}>{u.message}</div>
+          </div>)}
+        </div>}
+
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {inc.geo&&<a href={`https://maps.google.com/?q=${inc.geo.lat},${inc.geo.lng}`} target="_blank" style={{textDecoration:"none"}}><button className="abtn abtn-orange" style={{padding:"8px 14px",fontSize:12}}>🗺️ Google Maps</button></a>}
+          {inc.status!=="safe"&&inc.status!=="closed"&&<button className="abtn abtn-safe" style={{padding:"8px 14px",fontSize:12}} onClick={()=>{onMarkSafe(inc.id);onClose();}}>✓ Mark Safe</button>}
+          <button onClick={onClose} style={{flex:1,padding:"8px 14px",background:"transparent",border:"1px solid var(--border)",color:"var(--muted)",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CPRPortal(){
   const [tab,setTab]=useState("incidents");
   const [incidents,setIncidents]=useState([]);
   const [patrols,setPatrols]=useState([]);
+  const [nightZones,setNightZones]=useState([]);
+  const [emergencyServices,setEmergencyServices]=useState([]);
+  const [distFilter,setDistFilter]=useState("all");
   const [selInc,setSelInc]=useState(null);
   const [showSOS,setShowSOS]=useState(false);
+  const [showNight,setShowNight]=useState(false);
+  const [incModal,setIncModal]=useState(null);
   const [tracking,setTracking]=useState(false);
   const [userGeo,setUserGeo]=useState(null);
-  const [toast,setToast]=useState(null);
+  const [toasts,setToasts]=useState([]);
   const mapRef=useRef(null);
   const mapObj=useRef(null);
-  const markers=useRef({incidents:{},patrols:{},user:null});
+  const markers=useRef({incidents:{},patrols:{},user:null,night:{}});
   const watchId=useRef(null);
   const esRef=useRef(null);
 
-  const showToast=useCallback((msg)=>{setToast(msg);},[]);
+  const addToast=useCallback((msg,type="info")=>{const id=Date.now();setToasts(p=>[...p,{id,msg,type}]);setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),6000);},[]);
 
+  const loadAll=useCallback(()=>{
+    const dist=distFilter!=="all"?`?district=${encodeURIComponent(distFilter)}`:"";
+    fetch(`${API}/api/cpr/incidents${dist}`).then(r=>r.json()).then(d=>setIncidents(Array.isArray(d)?d:[])).catch(()=>{});
+    fetch(`${API}/api/cpr/patrols${dist}`).then(r=>r.json()).then(d=>setPatrols(Array.isArray(d)?d:[])).catch(()=>{});
+    fetch(`${API}/api/cpr/night-safety`).then(r=>r.json()).then(d=>setNightZones(Array.isArray(d)?d:[])).catch(()=>{});
+    fetch(`${API}/api/cpr/emergency-services`).then(r=>r.json()).then(d=>setEmergencyServices(Array.isArray(d)?d:[])).catch(()=>{});
+  },[distFilter]);
+
+  useEffect(()=>{loadAll();},[loadAll]);
+
+  // SSE real-time
   useEffect(()=>{
-    fetch(`${API}/api/cpr/incidents`).then(r=>r.json()).then(d=>setIncidents(Array.isArray(d)?d:[])).catch(()=>{});
-    fetch(`${API}/api/cpr/patrols`).then(r=>r.json()).then(d=>setPatrols(Array.isArray(d)?d:[])).catch(()=>{});
-
     const es=new EventSource(`${API}/api/cpr/stream`);
     esRef.current=es;
     es.onmessage=e=>{
       try{
         const d=JSON.parse(e.data);
-        if(d.type==="safety_incident_new") { setIncidents(prev=>[d.incident,...prev]); showToast(`🆘 NEW SOS: ${d.incident.citizenName} — ${d.incident.district}`); }
+        if(d.type==="safety_incident_new"){
+          setIncidents(prev=>[d.incident,...prev.filter(i=>i.id!==d.incident.id)]);
+          const isWomen=d.category==="women_safety"||d.autoCreated;
+          addToast({title:isWomen?"🛡️ WOMEN SAFETY SOS! CPR Auto-Activated":"🆘 NEW SOS INCIDENT",body:`${d.incident.citizenName} — ${d.incident.district} · ${d.incident.location}`},isWomen?"warn":"error");
+        }
         if(d.type==="incident_updated") setIncidents(prev=>prev.map(i=>i.id===d.incident.id?d.incident:i));
-        if(d.type==="incident_escalated") { setIncidents(prev=>prev.map(i=>i.id===d.incident.id?d.incident:i)); showToast(`⚠️ ESCALATED: ${d.incident.district} — Level ${d.level}`); }
-      } catch {}
+        if(d.type==="incident_escalated"){setIncidents(prev=>prev.map(i=>i.id===d.incident.id?d.incident:i));addToast({title:"⚠️ INCIDENT ESCALATED",body:`Level ${d.level} — ${d.incident.district}`},"warn");}
+        if(d.type==="night_safety_new"){setNightZones(prev=>[d.zone,...prev]);addToast({title:"🌙 Night Safety Report",body:d.zone.location},"info");}
+        if(d.type==="sos_new"){addToast({title:"🆘 SOS ALERT — Women Safety",body:`${d.triggeredBy||"Unknown"} · ${d.district}`},"error");}
+      }catch{}
     };
-    return ()=>{es.close();stopTracking();};
-  },[]);
+    return()=>{es.close();};
+  },[addToast]);
 
+  // Map init
   useEffect(()=>{
-    if(!mapRef.current||mapObj.current) return;
+    if(!mapRef.current||mapObj.current)return;
     const map=L.map(mapRef.current,{center:[30.0668,79.0193],zoom:7,zoomControl:true});
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{attribution:"© OpenStreetMap © CARTO",maxZoom:19}).addTo(map);
     mapObj.current=map;
-    if(navigator.geolocation){
-      navigator.geolocation.getCurrentPosition(pos=>{setUserGeo({lat:pos.coords.latitude,lng:pos.coords.longitude});map.setView([pos.coords.latitude,pos.coords.longitude],11);}),()=>{};
-    }
+    if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{setUserGeo({lat:p.coords.latitude,lng:p.coords.longitude});map.setView([p.coords.latitude,p.coords.longitude],10);},()=>{});
   },[]);
 
+  // Draw incident markers
   useEffect(()=>{
-    const map=mapObj.current; if(!map) return;
+    const map=mapObj.current;if(!map)return;
     incidents.forEach(inc=>{
-      const col=inc.status==="active"?"#EF4444":inc.status==="safe"?"#22C55E":"#F59E0B";
-      const icon=L.divIcon({className:"",html:`<div style="width:16px;height:16px;background:${col};border:2.5px solid white;border-radius:50%;box-shadow:0 0 8px ${col}88"></div>`,iconSize:[16,16]});
-      const popup=`<div style="font-size:12px;min-width:180px"><b>⚠️ ${inc.citizenName}</b><br/><span>${inc.location}</span><br/><span>${inc.district} · ${(inc.status||"").replace("_"," ")}</span>${inc.assignedPatrolVan?`<br/><b style="color:#F59E0B">🚔 ${inc.assignedPatrolVan}</b><br/>${inc.assignedPatrolOfficer}`:""}</div>`;
-      if(markers.current.incidents[inc.id]){markers.current.incidents[inc.id].setLatLng([inc.geo.lat,inc.geo.lng]).setIcon(icon);}
-      else{const m=L.marker([inc.geo.lat,inc.geo.lng],{icon}).addTo(map).bindPopup(popup);markers.current.incidents[inc.id]=m;}
+      if(!inc.geo)return;
+      const isWomen=inc.emergencyType==="women_safety"||inc.category==="women_safety";
+      const col=inc.status==="active"?"#EF4444":inc.status==="safe"||inc.status==="closed"?"#22C55E":"#F59E0B";
+      const icon=L.divIcon({className:"",html:`<div style="width:${isWomen?18:14}px;height:${isWomen?18:14}px;background:${col};border:2.5px solid white;border-radius:50%;box-shadow:0 0 10px ${col}88;cursor:pointer">${isWomen?"":"⚡"}</div>`,iconSize:[18,18]});
+      const popup=`<div style="font-size:12px;min-width:190px;font-family:sans-serif"><b style="color:${isWomen?"#C4B5FD":"#F87171"}">${isWomen?"🛡️ WOMEN SAFETY":"⚠️ EMERGENCY"}</b><br/><b>${inc.citizenName}</b><br/><span style="color:#94A3B8">${inc.location}</span><br/><span style="color:#94A3B8">${inc.district}</span>${inc.assignedPatrolVan?`<br/><b style="color:#FCD34D">🚔 ${inc.assignedPatrolVan}</b>`:""}<br/><span style="color:#86EFAC">${(inc.status||"").replace("_"," ").toUpperCase()}</span></div>`;
+      if(markers.current.incidents[inc.id]){markers.current.incidents[inc.id].setLatLng([inc.geo.lat,inc.geo.lng]).setIcon(icon).getPopup()?.setContent(popup);}
+      else{const m=L.marker([inc.geo.lat,inc.geo.lng],{icon}).addTo(map).bindPopup(popup);m.on("click",()=>setIncModal(inc));markers.current.incidents[inc.id]=m;}
     });
   },[incidents]);
 
+  // Draw patrol markers
   useEffect(()=>{
-    const map=mapObj.current; if(!map) return;
+    const map=mapObj.current;if(!map)return;
     patrols.forEach(v=>{
       const col=v.status==="active_patrol"?"#22C55E":v.status==="responding"?"#F59E0B":"#64748B";
-      const icon=L.divIcon({className:"",html:`<div style="width:12px;height:12px;background:${col};border:2px solid white;border-radius:2px;transform:rotate(45deg);box-shadow:0 0 5px ${col}66"></div>`,iconSize:[12,12]});
+      const icon=L.divIcon({className:"",html:`<div style="width:12px;height:12px;background:${col};border:2px solid white;border-radius:2px;transform:rotate(45deg);box-shadow:0 0 6px ${col}88"></div>`,iconSize:[12,12]});
+      const popup=`<div style="font-size:12px;min-width:180px;font-family:sans-serif"><b>🚔 ${v.vanNumber}</b><br/>${v.officerInCharge}<br/><span style="color:#94A3B8">${v.zone} · ${v.district}</span><br/><span style="color:${col}">${(v.status||"").replace("_"," ").toUpperCase()}</span><br/><a href="tel:${v.officerPhone}" style="color:#93C5FD">📞 ${v.officerPhone}</a></div>`;
       if(markers.current.patrols[v.id]){markers.current.patrols[v.id].setLatLng([v.geo.lat,v.geo.lng]).setIcon(icon);}
-      else{const m=L.marker([v.geo.lat,v.geo.lng],{icon}).addTo(map).bindPopup(`<b>🚔 ${v.vanNumber}</b><br/>${v.officerInCharge}<br/>${v.zone}`);markers.current.patrols[v.id]=m;}
+      else{const m=L.marker([v.geo.lat,v.geo.lng],{icon}).addTo(map).bindPopup(popup);markers.current.patrols[v.id]=m;}
     });
   },[patrols]);
 
   const startTracking=()=>{
-    if(!navigator.geolocation){showToast("Geolocation not supported");return;}
-    setTracking(true); showToast("📍 Live location tracking started");
+    if(!navigator.geolocation){addToast("Geolocation not supported","warn");return;}
+    setTracking(true);addToast({title:"📍 Live tracking started",body:"Your location is being tracked"},"info");
     watchId.current=navigator.geolocation.watchPosition(pos=>{
-      const geo={lat:pos.coords.latitude,lng:pos.coords.longitude};
-      setUserGeo(geo);
-      const map=mapObj.current;
-      if(map){
-        const icon=L.divIcon({className:"",html:`<div style="width:14px;height:14px;background:#3B82F6;border:3px solid white;border-radius:50%;box-shadow:0 0 10px #3B82F666"></div>`,iconSize:[14,14]});
-        if(markers.current.user){markers.current.user.setLatLng([geo.lat,geo.lng]);}
-        else{markers.current.user=L.marker([geo.lat,geo.lng],{icon}).addTo(map).bindPopup("📍 Your Location");map.setView([geo.lat,geo.lng],13);}
-      }
-    },{enableHighAccuracy:true,maximumAge:5000,timeout:10000},()=>{showToast("⚠️ Location access denied");setTracking(false);});
+      const geo={lat:pos.coords.latitude,lng:pos.coords.longitude};setUserGeo(geo);
+      const map=mapObj.current;if(!map)return;
+      const icon=L.divIcon({className:"",html:`<div style="width:14px;height:14px;background:#3B82F6;border:3px solid white;border-radius:50%;box-shadow:0 0 12px #3B82F666"></div>`,iconSize:[14,14]});
+      if(markers.current.user){markers.current.user.setLatLng([geo.lat,geo.lng]);}
+      else{markers.current.user=L.marker([geo.lat,geo.lng],{icon}).addTo(map).bindPopup("📍 Your Location");map.setView([geo.lat,geo.lng],13);}
+    },{enableHighAccuracy:true,maximumAge:5000,timeout:10000},()=>{addToast("Location access denied","warn");setTracking(false);});
   };
   const stopTracking=()=>{if(watchId.current!=null){navigator.geolocation.clearWatch(watchId.current);watchId.current=null;}setTracking(false);};
 
   const markSafe=async(id)=>{
-    await fetch(`${API}/api/cpr/incidents/${id}/update`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"safe",message:"Confirmed safe by CPR command."})}).catch(()=>{});
+    await fetch(`${API}/api/cpr/incidents/${id}/update`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"safe",message:"Confirmed safe by CPR command",actor:"CPR COMMAND"})}).catch(()=>{});
     setIncidents(prev=>prev.map(i=>i.id===id?{...i,status:"safe"}:i));
-    showToast("✅ Incident marked as safe");
+    addToast({title:"✅ Citizen marked safe",body:"Assigned patrol van returning to duty"},"success");
   };
 
-  const activeIncs=incidents.filter(i=>i.status!=="safe"&&i.status!=="closed");
-  const kpis=[{n:activeIncs.length,l:"Active",c:"#F87171"},{n:patrols.filter(v=>v.status==="active_patrol").length,l:"On Patrol",c:"#86EFAC"},{n:patrols.filter(v=>v.status==="responding").length,l:"Responding",c:"#FCD34D"}];
+  const flyTo=(geo,zoom=14)=>{if(mapObj.current&&geo)mapObj.current.flyTo([geo.lat,geo.lng],zoom,{duration:1.2});};
 
-  return (
-    <div style={{display:"flex",flexDirection:"column",height:"100dvh"}}>
-      <div className="topbar">
-        <div className="logo">SANKALP AI</div>
-        <div className="cpr-badge">CPR COMMAND</div>
-        {activeIncs.length>0&&<><div className="live-dot"/><span style={{fontSize:11,color:"#F87171",fontWeight:700}}>{activeIncs.length} ACTIVE</span></>}
-        <span style={{marginLeft:"auto",fontSize:11,color:"#64748B"}}>Uttarakhand Safety Command</span>
-        <a href="/web/dept" style={{color:"#64748B",fontSize:11,textDecoration:"none",padding:"4px 8px",background:"#1E293B",borderRadius:6,border:"1px solid #334155"}}>🏛️ Dept</a>
-        <a href="/" style={{color:"#64748B",fontSize:11,textDecoration:"none",padding:"4px 8px",background:"#1E293B",borderRadius:6,border:"1px solid #334155"}}>← Home</a>
+  const filtered=useMemo(()=>{
+    const inc=distFilter==="all"?incidents:incidents.filter(i=>i.district===distFilter);
+    const pat=distFilter==="all"?patrols:patrols.filter(p=>p.district===distFilter);
+    return{inc,pat};
+  },[incidents,patrols,distFilter]);
+
+  const activeIncs=filtered.inc.filter(i=>i.status!=="safe"&&i.status!=="closed");
+  const kpis=[
+    {n:activeIncs.length,l:"Active SOS",c:"#F87171"},
+    {n:filtered.pat.filter(v=>v.status==="active_patrol").length,l:"On Patrol",c:"#86EFAC"},
+    {n:filtered.pat.filter(v=>v.status==="responding").length,l:"Responding",c:"#FCD34D"},
+    {n:distFilter==="all"?13:1,l:"Districts",c:"#93C5FD"},
+  ];
+
+  return(
+    <>
+    <div className="topbar">
+      <div className="logo">SANKALP AI</div>
+      <div className="cpr-badge">CPR COMMAND</div>
+      {activeIncs.length>0&&<div className="live-wrap"><div className="live-dot"/><span className="live-txt">{activeIncs.length} ACTIVE</span></div>}
+      <div className="topbar-sep"/>
+      <select className="dist-select" value={distFilter} onChange={e=>setDistFilter(e.target.value)}>
+        <option value="all">🗺️ All 13 Districts</option>
+        {UK_DISTRICTS.map(d=><option key={d} value={d}>{d}</option>)}
+      </select>
+      <div style={{marginLeft:"auto",display:"flex",gap:6,flexWrap:"wrap"}}>
+        <a className="topbar-link" href="/web/dept">🏛️ Dept</a>
+        <a className="topbar-link" href="/web/portal">📱 Portal</a>
+        <a className="topbar-link" href="/">← Home</a>
       </div>
-
-      <div className="main-grid">
-        <div id="map-wrap">
-          <div id="map" ref={mapRef}/>
-          <button className="sos-btn" onClick={()=>setShowSOS(true)}>🆘 SEND SOS ALERT</button>
-          <button className={`loc-btn ${tracking?"tracking":""}`} onClick={tracking?stopTracking:startTracking}>
-            {tracking?"⏹ Stop Tracking":"📍 Track My Location"}
-          </button>
-          <div className="map-legend">
-            <div className="legend-row"><div className="legend-dot" style={{background:"#EF4444"}}/><span>Active SOS incident</span></div>
-            <div className="legend-row"><div className="legend-dot" style={{background:"#F59E0B"}}/><span>Patrol dispatched</span></div>
-            <div className="legend-row"><div className="legend-dot" style={{background:"#22C55E"}}/><span>Citizen safe</span></div>
-            <div className="legend-row"><div className="legend-dot" style={{background:"#22C55E",borderRadius:2,transform:"rotate(45deg)"}}/><span>Active patrol van</span></div>
-            <div className="legend-row"><div className="legend-dot" style={{background:"#3B82F6"}}/><span>Your location</span></div>
-          </div>
-        </div>
-
-        <div className="side">
-          <div className="kpis">{kpis.map(k=><div className="kpi" key={k.l}><div className="kpi-n" style={{color:k.c}}>{k.n}</div><div className="kpi-l">{k.l}</div></div>)}</div>
-          <div className="side-tabs">
-            {[["incidents",`Incidents (${activeIncs.length})`],["patrols",`Patrols (${patrols.length})`]].map(([t,l])=>(
-              <div key={t} className={`tab ${tab===t?"active":""}`} onClick={()=>setTab(t)}>{l}</div>
-            ))}
-          </div>
-          <div className="side-content">
-            {tab==="incidents"&&(
-              incidents.length===0
-                ? <div style={{textAlign:"center",color:"#64748B",padding:"40px 16px"}}>No safety incidents yet.<br/>Send an SOS to test the system.</div>
-                : incidents.map(inc=>(
-                  <div key={inc.id} className={`inc-card ${selInc===inc.id?"sel":""}`} onClick={()=>{setSelInc(inc.id);mapObj.current?.flyTo([inc.geo.lat,inc.geo.lng],13,{duration:1});}}>
-                    <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
-                      <span className={`status-badge st-${inc.status}`}>{(inc.status||"").replace("_"," ")}</span>
-                      {inc.escalationLevel>=2&&<span className={`esc-badge esc-${inc.escalationLevel}`}>ESC L{inc.escalationLevel}</span>}
-                      <span style={{fontSize:10,color:"#64748B",marginLeft:"auto"}}><ElapsedTimer since={inc.reportedAt}/></span>
-                    </div>
-                    <div style={{fontSize:13,color:"#E2E8F0",fontWeight:600,marginBottom:2}}>{inc.citizenName}</div>
-                    <div style={{fontSize:11,color:"#64748B",marginBottom:6}}>📍 {inc.location}<br/>{inc.district}</div>
-                    {inc.assignedPatrolVan&&(
-                      <div style={{fontSize:11,color:"#FCD34D",marginBottom:6,padding:"4px 8px",background:"rgba(245,158,11,.1)",borderRadius:6}}>
-                        🚔 {inc.assignedPatrolVan} · {inc.assignedPatrolOfficer}<br/>
-                        📞 <a href={`tel:${inc.assignedPatrolPhone}`} style={{color:"#93C5FD"}}>{inc.assignedPatrolPhone}</a>
-                        {inc.eta&&<span style={{marginLeft:8}}>ETA ~{inc.eta}m</span>}
-                      </div>
-                    )}
-                    {inc.status!=="safe"&&inc.status!=="closed"&&(
-                      <button className="action-btn btn-g" onClick={e=>{e.stopPropagation();markSafe(inc.id);}}>✓ Mark Safe</button>
-                    )}
-                  </div>
-                ))
-            )}
-            {tab==="patrols"&&patrols.map(v=>(
-              <div key={v.id} className="patrol-card">
-                <div style={{display:"flex",alignItems:"center",marginBottom:5,gap:6}}>
-                  <span className="pstatus-dot" style={{background:v.status==="active_patrol"?"#22C55E":v.status==="responding"?"#F59E0B":"#64748B"}}/>
-                  <span style={{fontSize:12,fontWeight:700,color:"#E2E8F0",flex:1}}>{v.vanNumber}</span>
-                  {v.isWomenSafetyUnit&&<span style={{fontSize:9,color:"#A78BFA",background:"rgba(124,58,237,.15)",border:"1px solid rgba(124,58,237,.3)",padding:"1px 6px",borderRadius:20,fontWeight:700}}>🛡️ WOMEN</span>}
-                  {v.shift==="night"&&<span style={{fontSize:11,color:"#93C5FD"}}>🌙</span>}
-                </div>
-                <div style={{fontSize:11,color:"#94A3B8"}}>{v.officerInCharge} · {v.crewCount} crew</div>
-                <div style={{fontSize:11,color:"#64748B",marginTop:2}}>{v.zone} · {v.district}</div>
-                <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8}}>
-                  <span style={{fontSize:10,color:v.status==="active_patrol"?"#86EFAC":v.status==="responding"?"#FCD34D":"#64748B",fontWeight:700}}>{(v.status||"").replace("_"," ").toUpperCase()}</span>
-                  <a href={`tel:${v.officerPhone}`} style={{marginLeft:"auto",fontSize:11,color:"#93C5FD",textDecoration:"none",background:"rgba(30,58,95,.5)",border:"1px solid #1E3A5F",padding:"3px 10px",borderRadius:6}}>📞 {v.officerPhone}</a>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {showSOS&&<SOSModal userGeo={userGeo} onClose={()=>setShowSOS(false)} onSubmit={inc=>{setShowSOS(false);setIncidents(prev=>[inc,...prev]);showToast(`🆘 SOS sent! ${inc.assignedPatrolVan?"Nearest patrol: "+inc.assignedPatrolVan:"Being assigned..."}`);mapObj.current?.flyTo([inc.geo.lat,inc.geo.lng],13);}}/>}
-      {toast&&<Toast msg={toast} onClose={()=>setToast(null)}/>}
     </div>
+
+    <div className="main-grid">
+      {/* MAP */}
+      <div id="map-wrap">
+        <div id="map" ref={mapRef}/>
+        <button className="map-fab fab-sos" onClick={()=>setShowSOS(true)}>🆘 SEND SOS ALERT</button>
+        <button className={`map-fab fab-loc ${tracking?"on":""}`} onClick={tracking?stopTracking:startTracking}>
+          {tracking?"⏹ Stop Tracking":"📍 My Location"}
+        </button>
+        <button className="map-fab fab-night" onClick={()=>setShowNight(true)}>🌙 Report Unsafe Area</button>
+        <div className="map-legend">
+          <div className="leg-row"><div className="leg-dot" style={{background:"#EF4444"}}/><span>Active SOS</span></div>
+          <div className="leg-row"><div className="leg-dot" style={{background:"#F59E0B"}}/><span>Patrol dispatched</span></div>
+          <div className="leg-row"><div className="leg-dot" style={{background:"#22C55E"}}/><span>Safe / Resolved</span></div>
+          <div className="leg-row"><div className="leg-dot" style={{background:"#22C55E",borderRadius:2,transform:"rotate(45deg)"}}/><span>Active patrol van</span></div>
+          <div className="leg-row"><div className="leg-dot" style={{background:"#3B82F6"}}/><span>Your location</span></div>
+        </div>
+      </div>
+
+      {/* SIDE PANEL */}
+      <div className="side">
+        <div className="kpi-strip">{kpis.map(k=><div key={k.l} className="kpi"><div className="kpi-n" style={{color:k.c}}>{k.n}</div><div className="kpi-l">{k.l}</div></div>)}</div>
+        <div className="tabs">
+          {[["incidents",`🆘 SOS (${activeIncs.length})`],["patrols",`🚔 Patrols (${filtered.pat.length})`],["departments","🏥 Depts"],["night",`🌙 Night (${nightZones.length})`]].map(([t,l])=>
+            <div key={t} className={`tab ${tab===t?"act":""}`} onClick={()=>setTab(t)}>{l}</div>
+          )}
+        </div>
+        <div className="scroll">
+
+          {/* INCIDENTS TAB */}
+          {tab==="incidents"&&(
+            filtered.inc.length===0
+              ?<div style={{textAlign:"center",color:"#64748B",padding:"40px 16px",fontSize:13}}>No incidents{distFilter!=="all"?` in ${distFilter}`:""}<br/><span style={{fontSize:11,marginTop:6,display:"block"}}>Send a test SOS to see the system in action</span></div>
+              :<>
+                {activeIncs.length>0&&<div style={{fontSize:10,fontWeight:800,color:"#F87171",textTransform:"uppercase",letterSpacing:.08,marginBottom:8,display:"flex",alignItems:"center",gap:5}}><div style={{width:6,height:6,borderRadius:"50%",background:"#EF4444",animation:"pulse 1s infinite"}}/> Active ({activeIncs.length})</div>}
+                {filtered.inc.map(inc=>{
+                  const isWomen=inc.emergencyType==="women_safety"||inc.category==="women_safety";
+                  const isActive=inc.status!=="safe"&&inc.status!=="closed";
+                  return(
+                    <div key={inc.id} className={`inc-card ${selInc===inc.id?"sel":""} ${isWomen?"women":""}`}
+                      onClick={()=>{setSelInc(inc.id);flyTo(inc.geo);}}>
+                      <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
+                        <span className={`sbadge sb-${inc.status}`}>{(inc.status||"active").replace("_"," ").toUpperCase()}</span>
+                        {isWomen&&<span className="sbadge sb-women">🛡️ WOMEN</span>}
+                        {isActive&&<span style={{marginLeft:"auto"}}><ElapsedTimer since={inc.reportedAt}/></span>}
+                        {!isActive&&<span style={{fontSize:10,color:"#64748B",marginLeft:"auto"}}>{timeAgo(inc.reportedAt)}</span>}
+                      </div>
+                      <div style={{fontSize:13,color:"#E2E8F0",fontWeight:700,marginBottom:2}}>{inc.citizenName}</div>
+                      <div style={{fontSize:11,color:"#64748B",marginBottom:6}}>📍 {inc.location}<br/>🗺️ {inc.district}</div>
+                      {inc.assignedPatrolVan&&<div style={{fontSize:11,color:"#FCD34D",marginBottom:6,padding:"5px 8px",background:"rgba(245,158,11,.08)",borderRadius:6}}>
+                        🚔 {inc.assignedPatrolVan} · {inc.assignedPatrolOfficer}
+                        {inc.eta&&<span style={{marginLeft:6,color:"#94A3B8"}}>ETA ~{inc.eta}m</span>}
+                      </div>}
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                        <button className="abtn abtn-orange" onClick={e=>{e.stopPropagation();setIncModal(inc);}}>🔍 Details</button>
+                        {inc.assignedPatrolPhone&&<a href={"tel:"+inc.assignedPatrolPhone} className="abtn abtn-call" style={{textDecoration:"none"}} onClick={e=>e.stopPropagation()}>📞 Call</a>}
+                        {isActive&&<button className="abtn abtn-safe" onClick={e=>{e.stopPropagation();markSafe(inc.id);}}>✓ Safe</button>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+          )}
+
+          {/* PATROLS TAB */}
+          {tab==="patrols"&&(
+            filtered.pat.length===0
+              ?<div style={{textAlign:"center",color:"#64748B",padding:"40px 16px",fontSize:13}}>No patrols{distFilter!=="all"?` in ${distFilter}`:""}</div>
+              :<>
+                {["active_patrol","responding","base","off_duty"].map(status=>{
+                  const vans=filtered.pat.filter(v=>v.status===status);
+                  if(!vans.length)return null;
+                  const statusLabels={active_patrol:"🟢 On Active Patrol",responding:"🟡 Responding to SOS",base:"⚪ At Base",off_duty:"⚫ Off Duty"};
+                  return <div key={status}>
+                    <div style={{fontSize:10,fontWeight:800,color:"#64748B",textTransform:"uppercase",letterSpacing:.08,marginBottom:8,marginTop:4}}>{statusLabels[status]} ({vans.length})</div>
+                    {vans.map(v=>{
+                      const col=v.status==="active_patrol"?"#22C55E":v.status==="responding"?"#F59E0B":"#64748B";
+                      return <div key={v.id} className="pat-card">
+                        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:6}}>
+                          <div style={{width:8,height:8,borderRadius:"50%",background:col,flexShrink:0}}/>
+                          <div style={{flex:1,fontWeight:700,fontSize:13}}>{v.vanNumber}</div>
+                          {v.isWomenSafetyUnit&&<span className="sbadge sb-women" style={{fontSize:9}}>🛡️ WOMEN</span>}
+                          {v.shift==="night"&&<span style={{fontSize:12}}>🌙</span>}
+                        </div>
+                        <div style={{fontSize:12,color:"#94A3B8",marginBottom:6}}>{v.officerInCharge}<br/><span style={{fontSize:11}}>{v.zone} · {v.district}</span></div>
+                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                          <span style={{fontSize:10,color:col,fontWeight:700,flex:1}}>{(v.status||"").replace("_"," ").toUpperCase()}</span>
+                          <button className="abtn" style={{background:"rgba(30,58,95,.5)",border:"1px solid #1E3A5F",color:"#93C5FD"}} onClick={()=>flyTo(v.geo)}>🗺️ Map</button>
+                          <a href={"tel:"+v.officerPhone} className="abtn abtn-call" style={{textDecoration:"none"}}>📞 {v.officerPhone}</a>
+                        </div>
+                      </div>;
+                    })}
+                  </div>;
+                })}
+              </>
+          )}
+
+          {/* DEPARTMENTS TAB */}
+          {tab==="departments"&&(
+            <div>
+              <div style={{fontSize:11,color:"#64748B",marginBottom:12,lineHeight:1.5}}>Emergency services and department helplines for all of Uttarakhand.</div>
+              {emergencyServices.length===0?<div style={{textAlign:"center",color:"#64748B",padding:30}}>Loading…</div>:emergencyServices.map(s=>(
+                <div key={s.id} className="dept-card">
+                  <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:8}}>
+                    <div style={{fontSize:22}}>{s.icon}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"#F1F5F9"}}>{s.name}</div>
+                      <div style={{fontSize:11,color:"#64748B",marginTop:1}}>{s.description}</div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    <a href={"tel:"+s.helpline} style={{flex:1,textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:`rgba(${s.color.slice(1).match(/.{2}/g).map(h=>parseInt(h,16)).join(",")},0.12)`,border:`1px solid rgba(${s.color.slice(1).match(/.{2}/g).map(h=>parseInt(h,16)).join(",")},0.3)`,color:s.color,borderRadius:8,padding:"8px 12px",fontSize:14,fontWeight:800,letterSpacing:.05}}>
+                      📞 {s.helpline}
+                    </a>
+                    {s.helpline2&&<a href={"tel:"+s.helpline2} style={{textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,.04)",border:"1px solid var(--border)",color:"#94A3B8",borderRadius:8,padding:"8px 12px",fontSize:11,fontWeight:600}}>
+                      {s.helpline2}
+                    </a>}
+                  </div>
+                </div>
+              ))}
+              <div className="dept-card" style={{background:"rgba(255,153,51,.06)",borderColor:"rgba(255,153,51,.2)"}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#FF9933",marginBottom:10}}>🇮🇳 Universal Emergency</div>
+                {[["🚔 Police","100"],["🚑 Ambulance","108"],["🔥 Fire","101"],["🏥 Medical Helpline","104"],["📞 Single Emergency","112"]].map(([l,n])=>(
+                  <div key={n} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                    <span style={{fontSize:12,color:"#94A3B8"}}>{l}</span>
+                    <a href={"tel:"+n} style={{fontFamily:"monospace",fontWeight:800,fontSize:15,color:"#FF9933",textDecoration:"none",padding:"4px 10px",background:"rgba(255,153,51,.1)",borderRadius:6,border:"1px solid rgba(255,153,51,.25)"}}>📞 {n}</a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* NIGHT SAFETY TAB */}
+          {tab==="night"&&(
+            <div>
+              <button className="abtn abtn-orange" style={{width:"100%",padding:"10px",fontSize:12,marginBottom:14,justifyContent:"center",display:"flex",gap:6}} onClick={()=>setShowNight(true)}>
+                🌙 Report New Unsafe Area
+              </button>
+              {nightZones.length===0?<div style={{textAlign:"center",color:"#64748B",padding:"30px 16px",fontSize:12}}>No unsafe areas reported yet.<br/>Your report helps CPR plan nightly patrol routes.</div>
+              :nightZones.map(z=>(
+                <div key={z.id} className="ns-card">
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                    <div style={{fontSize:12,fontWeight:700,color:"#C4B5FD"}}>{z.location}</div>
+                    <span style={{fontSize:9,fontWeight:700,color:"#8B5CF6",background:"rgba(139,92,246,.15)",border:"1px solid rgba(139,92,246,.3)",padding:"2px 7px",borderRadius:10,textTransform:"uppercase",whiteSpace:"nowrap"}}>{z.riskType}</span>
+                  </div>
+                  <div style={{fontSize:11,color:"#64748B",marginBottom:4}}>🗺️ {z.district} · {timeAgo(z.reportedAt)}</div>
+                  {z.description&&<div style={{fontSize:11,color:"#94A3B8",lineHeight:1.5}}>{z.description}</div>}
+                  <div style={{fontSize:10,color:"#475569",marginTop:4}}>By {z.reporterName} · Patrol visits: {z.patrolVisits||0}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+
+    {showSOS&&<SOSModal userGeo={userGeo} onClose={()=>setShowSOS(false)} onSubmit={inc=>{setShowSOS(false);setIncidents(prev=>[inc,...prev]);addToast({title:"🆘 SOS sent!",body:inc.assignedPatrolVan?`Patrol ${inc.assignedPatrolVan} dispatched`:"Being assigned…"},"success");flyTo(inc.geo,14);}}/>}
+    {showNight&&<NightSafetyModal userGeo={userGeo} onClose={()=>setShowNight(false)} onSubmit={z=>{setShowNight(false);setNightZones(prev=>[z,...prev]);addToast({title:"🌙 Report submitted",body:"CPR will add to night patrol route"},"success");}}/>}
+    {incModal&&<IncidentModal inc={incModal} onClose={()=>setIncModal(null)} onMarkSafe={markSafe}/>}
+    <div style={{position:"fixed",bottom:20,right:20,zIndex:99999,display:"flex",flexDirection:"column",gap:8,maxWidth:340}}>
+      {toasts.map(t=><Toast key={t.id} msg={t.msg} type={t.type} onClose={()=>setToasts(p=>p.filter(x=>x.id!==t.id))}/>)}
+    </div>
+    </>
   );
 }
+
 ReactDOM.createRoot(document.getElementById("root")).render(<CPRPortal/>);
 </script>
 </body>

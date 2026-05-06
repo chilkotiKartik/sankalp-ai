@@ -263,6 +263,19 @@ export interface RTIRequest {
   deadline: string;
 }
 
+export interface NightSafetyZone {
+  id: string;
+  location: string;
+  district: string;
+  description: string;
+  riskType: "crime" | "accident" | "harassment" | "lighting" | "general";
+  geo: GeoPoint | null;
+  reporterName: string;
+  reportedAt: string;
+  status: "active" | "resolved";
+  patrolVisits: number;
+}
+
 export interface PatrolVan {
   id: string;
   vanNumber: string;
@@ -584,6 +597,12 @@ const PATROL_VANS_SEED: PatrolVan[] = [
   { id: "pv010", vanNumber: "UK07-CPR-010", officerInCharge: "SI Meena Thakur", officerPhone: "9412012010", crewCount: 3, district: "Dehradun", zone: "Prem Nagar-Selaqui", status: "off_duty", geo: { lat: 30.3565, lng: 77.9900 }, shift: "day", isWomenSafetyUnit: true },
   { id: "pv011", vanNumber: "UK04-CPR-011", officerInCharge: "SI Ramesh Dobhal", officerPhone: "9412012011", crewCount: 4, district: "Tehri Garhwal", zone: "Tehri-Devprayag", status: "active_patrol", geo: { lat: 30.3912, lng: 78.4803 }, shift: "day", isWomenSafetyUnit: false },
   { id: "pv012", vanNumber: "UK01-CPR-012", officerInCharge: "SI Anita Nautiyal", officerPhone: "9412012012", crewCount: 3, district: "Haridwar", zone: "BHEL-Sidcul", status: "active_patrol", geo: { lat: 29.9820, lng: 78.1100 }, shift: "night", isWomenSafetyUnit: true },
+  { id: "pv013", vanNumber: "UK11-CPR-013", officerInCharge: "SI Bhavna Rawat", officerPhone: "9412012013", crewCount: 3, district: "Rudraprayag", zone: "Rudraprayag Town-Agastmuni", status: "active_patrol", geo: { lat: 30.2847, lng: 78.9816 }, shift: "day", isWomenSafetyUnit: true },
+  { id: "pv014", vanNumber: "UK10-CPR-014", officerInCharge: "SI Suresh Panwar", officerPhone: "9412012014", crewCount: 4, district: "Pauri Garhwal", zone: "Pauri-Kotdwar Highway", status: "active_patrol", geo: { lat: 30.1455, lng: 78.7756 }, shift: "day", isWomenSafetyUnit: false },
+  { id: "pv015", vanNumber: "UK12-CPR-015", officerInCharge: "SI Geeta Rana", officerPhone: "9412012015", crewCount: 3, district: "Champawat", zone: "Champawat-Tanakpur Road", status: "active_patrol", geo: { lat: 29.3333, lng: 80.0905 }, shift: "day", isWomenSafetyUnit: true },
+  { id: "pv016", vanNumber: "UK13-CPR-016", officerInCharge: "SI Dinesh Mahar", officerPhone: "9412012016", crewCount: 3, district: "Bageshwar", zone: "Bageshwar Town-Kapkot", status: "active_patrol", geo: { lat: 29.8380, lng: 79.7700 }, shift: "night", isWomenSafetyUnit: false },
+  { id: "pv017", vanNumber: "UK07-CPR-017", officerInCharge: "SI Naina Bisht", officerPhone: "9412012017", crewCount: 3, district: "Dehradun", zone: "ISBT-Saharanpur Road", status: "active_patrol", geo: { lat: 30.2980, lng: 78.0520 }, shift: "night", isWomenSafetyUnit: true },
+  { id: "pv018", vanNumber: "UK01-CPR-018", officerInCharge: "SI Rajesh Thapli", officerPhone: "9412012018", crewCount: 4, district: "Haridwar", zone: "Rishikesh-Shyampur", status: "active_patrol", geo: { lat: 29.9582, lng: 78.2143 }, shift: "day", isWomenSafetyUnit: false },
 ];
 
 function distanceKm(a: GeoPoint, b: GeoPoint): number {
@@ -605,6 +624,7 @@ class AppStorage {
   private workers: Worker[] = [];
   private patrolVans: PatrolVan[] = PATROL_VANS_SEED.map(v => ({ ...v }));
   private safetyIncidents: SafetyIncident[] = [];
+  private nightSafetyZones: NightSafetyZone[] = [];
   private policeStations: PoliceStation[] = POLICE_STATIONS;
   private riskZones: RiskZone[] = [];
   private announcements: Announcement[] = [];
@@ -1517,6 +1537,28 @@ class AppStorage {
     if (!van) return null;
     van.geo = geo;
     return van;
+  }
+
+  // ── NIGHT SAFETY ZONES ────────────────────────────────────────────────────────
+  getNightSafetyZones(): NightSafetyZone[] {
+    return [...this.nightSafetyZones].sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
+  }
+
+  createNightSafetyZone(data: { location: string; district: string; description: string; riskType: string; geo: any; reporterName: string }): NightSafetyZone {
+    const zone: NightSafetyZone = {
+      id: genId(),
+      location: data.location,
+      district: data.district,
+      description: data.description,
+      riskType: (data.riskType as NightSafetyZone["riskType"]) || "general",
+      geo: data.geo || null,
+      reporterName: data.reporterName,
+      reportedAt: new Date().toISOString(),
+      status: "active",
+      patrolVisits: 0,
+    };
+    this.nightSafetyZones.unshift(zone);
+    return zone;
   }
 }
 

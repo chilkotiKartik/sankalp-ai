@@ -262,6 +262,15 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+function optionalAuth(req: Request, res: Response, next: NextFunction) {
+  const token = getToken(req);
+  if (token) {
+    const user = storage.validateToken(token);
+    if (user) (req as any).user = user;
+  }
+  next();
+}
+
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const token = getToken(req);
   if (!token) return res.status(401).json({ message: "Unauthorized" });
@@ -695,10 +704,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     broadcast(payload);
     // Stream to CPR Safety Command Center
     cprEmitter.emit("event", { ...payload, type: "sos_new" });
-    // Notify police department SSE stream
+    // Notify police + usdma department SSE streams
     deptEmitter.emit("event", { type: "sos_alert", departmentId: "police", alert, payload });
+    deptEmitter.emit("event", { type: "sos_alert", departmentId: "usdma", alert, payload });
 
-    res.status(201).json({ alert, nearestStations: nearestStations.slice(0, 2) });
+    // Auto-create CPR incident for women safety SOS
+    const cprInc = storage.createSafetyIncident({
+      citizenName: user.name,
+      district: user.district || "Dehradun",
+      location: location || `GPS: ${geoPoint.lat.toFixed(4)}, ${geoPoint.lng.toFixed(4)}`,
+      lat: geoPoint.lat,
+      lng: geoPoint.lng,
+    });
+    cprEmitter.emit("event", { type: "safety_incident_new", incident: cprInc, autoCreated: true, category: "women_safety", phone: user.phone });
+    // Also notify admin via WS
+    broadcast({ type: "cpr_incident_created", incident: cprInc, sosAlertId: alert.id, category: "women_safety", timestamp: new Date().toISOString() });
+
+    res.status(201).json({ alert, nearestStations: nearestStations.slice(0, 2), cprIncident: cprInc });
   });
 
   // ── SOS AUDIO URL PATCH (auto-called 18s after women-safety SOS) ─────────
@@ -955,7 +977,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ── AI CHAT ───────────────────────────────────────────────────────────
-  app.post("/api/ai/chat", requireAuth, rateLimit(30, 60_000), async (req, res) => {
+  app.post("/api/ai/chat", optionalAuth, rateLimit(30, 60_000), async (req, res) => {
     const { message, history } = req.body;
     if (!message) return res.status(400).json({ message: "message required" });
 
@@ -1266,7 +1288,11 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
 
     const listener = (ev: unknown) => {
       const e = ev as { type: string; departmentId?: string };
-      if (e.type === "complaint_new" && e.departmentId === deptId) {
+      const isMyDept = e.departmentId === deptId;
+      const isEmergencyDept = deptId === "police" || deptId === "usdma" || deptId === "health";
+      if ((e.type === "complaint_new" || e.type === "complaint_updated" || e.type === "complaint_resolved_proof" || e.type === "worker_assigned") && isMyDept) {
+        res.write(`data: ${JSON.stringify(ev)}\n\n`);
+      } else if (e.type === "sos_alert" && (isMyDept || isEmergencyDept)) {
         res.write(`data: ${JSON.stringify(ev)}\n\n`);
       }
     };
@@ -1339,6 +1365,35 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
     const van = storage.updatePatrolLocation(sp(req.params.id), { lat, lng });
     if (!van) return res.status(404).json({ message: "Patrol van not found" });
     res.json(van);
+  });
+
+  // ── CPR NIGHT SAFETY ZONES ───────────────────────────────────────────────────
+  app.get("/api/cpr/night-safety", (_req, res) => {
+    res.json(storage.getNightSafetyZones());
+  });
+
+  app.post("/api/cpr/night-safety", (req, res) => {
+    const { location, district, description, riskType, geo, reporterName } = req.body;
+    if (!location || !district) return res.status(400).json({ message: "location and district required" });
+    const zone = storage.createNightSafetyZone({ location, district, description: description || "", riskType: riskType || "general", geo: geo || null, reporterName: reporterName || "Anonymous" });
+    cprEmitter.emit("event", { type: "night_safety_new", zone });
+    broadcast({ type: "night_safety_reported", zone, timestamp: new Date().toISOString() });
+    res.status(201).json(zone);
+  });
+
+  // ── CPR EMERGENCY SERVICES ───────────────────────────────────────────────────
+  app.get("/api/cpr/emergency-services", (_req, res) => {
+    const services = [
+      { id: "police", name: "Uttarakhand Police", type: "police", icon: "🚔", helpline: "100", helpline2: "112", description: "Police Emergency", color: "#3B82F6" },
+      { id: "fire", name: "Fire Brigade", type: "fire", icon: "🔥", helpline: "101", helpline2: "1800-180-5555", description: "Fire & Rescue", color: "#EF4444" },
+      { id: "ambulance", name: "Ambulance (108)", type: "medical", icon: "🚑", helpline: "108", helpline2: "104", description: "Medical Emergency", color: "#10B981" },
+      { id: "women", name: "Women Helpline", type: "women", icon: "🛡️", helpline: "1090", helpline2: "181", description: "Women Safety & Support", color: "#8B5CF6" },
+      { id: "disaster", name: "USDMA Disaster", type: "disaster", icon: "🆘", helpline: "1070", helpline2: "0135-2710334", description: "Disaster Management", color: "#DC2626" },
+      { id: "ndrf", name: "NDRF / SDRF", type: "ndrf", icon: "⛑️", helpline: "1079", helpline2: "0135-2726002", description: "Rescue & Relief Force", color: "#F59E0B" },
+      { id: "forest", name: "Forest Fire Control", type: "forest", icon: "🌳", helpline: "1800-180-4288", helpline2: "0135-2756083", description: "Forest Fire Emergency", color: "#16A34A" },
+      { id: "child", name: "Child Helpline", type: "child", icon: "👶", helpline: "1098", helpline2: "0135-2782001", description: "Child Safety & Support", color: "#F97316" },
+    ];
+    res.json(services);
   });
 
   app.get("/api/cpr/stream", (req, res) => {

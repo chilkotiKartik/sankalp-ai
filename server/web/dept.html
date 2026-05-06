@@ -171,14 +171,16 @@ function Toast({msg,type,onDone}){
 
 /* ── COMPLAINT DETAIL MODAL ──────────────────────────────────────────────── */
 function ComplaintModal({c,onClose,token,onRefresh,addToast}){
-  const [status,setStatus]=useState(c.status);
+  if(!c)return null;
+  const [status,setStatus]=useState(c.status||'pending');
   const [saving,setSaving]=useState(false);
   const [showAssign,setShowAssign]=useState(false);
   const [wName,setWName]=useState(c.assignedWorkerName||'');
   const [wPhone,setWPhone]=useState(c.assignedWorkerPhone||'');
   const [assigning,setAssigning]=useState(false);
   const [assignResult,setAssignResult]=useState(null);
-  const dept=DEPTS[Object.keys(DEPTS).find(k=>DEPTS[k].categories.includes(c.category))||'']||null;
+  const deptKey=Object.keys(DEPTS).find(k=>Array.isArray(DEPTS[k].categories)&&DEPTS[k].categories.includes(c.category||''));
+  const dept=deptKey?DEPTS[deptKey]:null;
 
   async function save(){
     setSaving(true);
@@ -406,13 +408,17 @@ function DashboardPage({token,dept,complaints,stats,workers,newIds,onRefresh,add
 }
 
 /* ── COMPLAINTS PAGE ─────────────────────────────────────────────────────── */
+const UK_DISTRICTS=['All Districts','Dehradun','Haridwar','Tehri Garhwal','Pauri Garhwal','Rudraprayag','Chamoli','Uttarkashi','Pithoragarh','Bageshwar','Almora','Champawat','Nainital','Udham Singh Nagar'];
+
 function ComplaintsPage({token,dept,complaints,newIds,onRefresh,addToast}){
   const [filter,setFilter]=useState('all');
   const [search,setSearch]=useState('');
   const [sort,setSort]=useState('newest');
+  const [distFilter,setDistFilter]=useState('All Districts');
 
   const filtered=useMemo(()=>{
     let c=[...complaints];
+    if(distFilter!=='All Districts')c=c.filter(x=>x.district===distFilter);
     if(filter==='p1')c=c.filter(x=>x.priority==='P1');
     else if(filter==='pending')c=c.filter(x=>x.status==='pending');
     else if(filter==='in_progress')c=c.filter(x=>x.status==='in_progress');
@@ -423,12 +429,17 @@ function ComplaintsPage({token,dept,complaints,newIds,onRefresh,addToast}){
     else if(sort==='oldest')c.sort((a,b)=>new Date(a.submittedAt)-new Date(b.submittedAt));
     else if(sort==='priority')c.sort((a,b)=>a.priority.localeCompare(b.priority));
     return c;
-  },[complaints,filter,search,sort]);
+  },[complaints,filter,search,sort,distFilter]);
+
+  const distCounts={};complaints.forEach(c=>{const d=c.district||'Unknown';distCounts[d]=(distCounts[d]||0)+1;});
 
   return <div className="fade-in">
     <div className="card" style={{marginBottom:16}}>
       <div style={{display:'flex',gap:10,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
         <input className="search" placeholder="🔍 Search complaints, ticket IDs, locations…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:200}}/>
+        <select className="select" value={distFilter} onChange={e=>setDistFilter(e.target.value)} style={{width:'auto',minWidth:160}}>
+          {UK_DISTRICTS.map(d=><option key={d} value={d}>{d}{d!=='All Districts'&&distCounts[d]?` (${distCounts[d]})`:''}</option>)}
+        </select>
         <select className="select" value={sort} onChange={e=>setSort(e.target.value)} style={{width:'auto',minWidth:130}}>
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
@@ -440,6 +451,7 @@ function ComplaintsPage({token,dept,complaints,newIds,onRefresh,addToast}){
           <button key={f} className={'filter-btn'+(filter===f?' active':'')} onClick={()=>setFilter(f)}>{l} <span style={{opacity:.6}}>({ct})</span></button>
         )}
       </div>
+      <div style={{fontSize:11,color:'var(--muted)',marginTop:8}}>Showing {filtered.length} of {complaints.length} complaints{distFilter!=='All Districts'?` · ${distFilter}`:''}</div>
     </div>
 
     {filtered.length===0?<div className="card" style={{textAlign:'center',padding:40,color:'var(--muted)'}}>No complaints match your filter</div>:
@@ -493,7 +505,10 @@ function WorkersPage({token,dept}){
             {w.avgRating&&<span>⭐ {(w.avgRating).toFixed(1)}</span>}
           </div>
           {w.currentTask&&<div style={{fontSize:11,color:'var(--orange)',marginTop:8,background:'rgba(255,153,51,.08)',padding:'4px 8px',borderRadius:6}}>📋 {w.currentTask}</div>}
-          {w.phone&&<div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>📱 {w.phone}</div>}
+          {w.phone&&<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:8}}>
+            <span style={{fontSize:11,color:'var(--muted)'}}>📱 {w.phone}</span>
+            <a href={'tel:'+w.phone} style={{fontSize:11,fontWeight:700,color:'var(--green)',background:'rgba(63,185,80,.12)',border:'1px solid rgba(63,185,80,.25)',padding:'3px 10px',borderRadius:6,textDecoration:'none'}}>📞 Call</a>
+          </div>}
         </div>;
       })}
     </div>}
@@ -757,8 +772,6 @@ function Dashboard({token,dept,onLogout}){
   const [toasts,setToasts]=useState([]);
   const [sosCount,setSosCount]=useState(0);
   const esRef=useRef(null);
-  const isPoliceOrUsdma=dept.id==='police'||dept.id==='usdma'||dept.id==='health';
-
   const addToast=useCallback((msg,type='success')=>{
     const id=Date.now();setToasts(prev=>[...prev,{id,msg,type}]);
   },[]);
@@ -767,8 +780,8 @@ function Dashboard({token,dept,onLogout}){
   const loadData=useCallback(()=>{
     api.get(`/api/dept/${dept.id}/complaints`,token).then(d=>{setComplaints(d.complaints||[]);}).catch(()=>{});
     api.get(`/api/dept/${dept.id}/stats`,token).then(setStats).catch(()=>{});
-    if(isPoliceOrUsdma)api.get('/api/sos',token).then(d=>{setSosCount((Array.isArray(d)?d:d.alerts||[]).filter(a=>a.status==='active').length);}).catch(()=>{});
-  },[token,dept.id,isPoliceOrUsdma]);
+    api.get('/api/sos',token).then(d=>{setSosCount((Array.isArray(d)?d:d.alerts||[]).filter(a=>a.status==='active').length);}).catch(()=>{});
+  },[token,dept.id]);
 
   useEffect(()=>{loadData();},[loadData]);
 
@@ -792,14 +805,17 @@ function Dashboard({token,dept,onLogout}){
         if(data.type==='complaint_updated'){
           setComplaints(prev=>prev.map(c=>c.id===data.complaint?.id?data.complaint:c));
         }
-        if(data.type==='sos_alert'&&isPoliceOrUsdma){
+        if(data.type==='sos_alert'){
           setSosCount(c=>c+1);
-          addToast(`🆘 WOMEN SAFETY SOS ALERT! ${data.alert?.location||'Unknown location'}`,'error');
+          addToast(`🆘 SOS ALERT! ${data.alert?.location||'Unknown location'}`,'error');
+          if('Notification'in window&&Notification.permission==='granted'){
+            try{new Notification('🆘 SOS ALERT',{body:`${data.alert?.category?.replace('_',' ')||'Emergency'} · ${data.alert?.location||'Unknown'}`,icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🆘</text></svg>'});}catch{}
+          }
         }
       }catch{}
     };
     return()=>es.close();
-  },[dept.id,token,addToast,isPoliceOrUsdma]);
+  },[dept.id,token,addToast]);
 
   // Request notification permission
   useEffect(()=>{
@@ -810,10 +826,10 @@ function Dashboard({token,dept,onLogout}){
     {id:'dashboard',icon:'🏠',label:'Dashboard'},
     {id:'complaints',icon:'📋',label:'Complaints',badge:newIds.size||null},
     {id:'workers',icon:'👥',label:'Workers'},
-    isPoliceOrUsdma&&{id:'sos',icon:'🆘',label:'SOS Alerts',badge:sosCount||null},
+    {id:'sos',icon:'🆘',label:'SOS Alerts',badge:sosCount||null},
     {id:'analytics',icon:'📊',label:'Analytics'},
     {id:'info',icon:'ℹ️',label:'Dept Info'},
-  ].filter(Boolean);
+  ];
 
   return <div className="app">
     {/* SIDEBAR */}
