@@ -1,0 +1,193 @@
+You are a senior full-stack engineer and system architect.
+
+Your task is to IMPLEMENT (not describe) missing features in an existing civic complaint management app.
+
+STRICT RULES:
+
+* Do NOT generate placeholder UI or mock-only features
+* Every feature must be FULLY FUNCTIONAL (backend + frontend + database + integration)
+* Minimize external paid APIs (use free tiers, open-source, or self-hosted alternatives)
+* Code must be production-ready, scalable, and modular
+* Use real working logic, not pseudo-code
+* Prefer open-source libraries over paid services
+* Include fallback mechanisms for low network (2G/offline scenarios)
+
+TECH STACK:
+
+* Frontend: React Native (Expo)
+* Backend: Node.js + Express
+* Database: MongoDB
+* Auth: JWT-based
+* Storage: Use local storage OR free-tier cloud (Cloudinary / Supabase)
+* Realtime: Socket.io (self-hosted)
+
+IMPLEMENT THE FOLLOWING FEATURES:
+
+1. Voice Complaint Input
+
+* Add microphone button in complaint screen
+* Use open-source speech-to-text (Vosk or browser Web Speech API fallback)
+* Convert speech → text → auto-fill complaint
+* Store transcript in DB
+
+2. QR Code Field Verification
+
+* Generate QR when complaint is created (use qrcode npm)
+* Worker app must scan QR (expo-barcode-scanner)
+* Only allow complaint closure AFTER scan validation
+* Store scan timestamp + GPS
+
+3. Audit Trail (Blockchain-style, low-cost)
+
+* Implement immutable logs using append-only Mongo collection
+* Each action (create/update/close) logs:
+  userId, role, timestamp, hash(prev + current)
+* Simulate blockchain chaining (no real blockchain needed)
+
+4. WhatsApp / IVR Alternative (NO Twilio)
+
+* Build lightweight bot using:
+
+  * WhatsApp Web automation (Baileys library)
+  * OR simple SMS/email fallback
+* Allow complaint creation via text message parsing
+
+5. Predictive Maintenance (LOW COST AI)
+
+* Use simple ML logic (no heavy AI APIs):
+
+  * historical complaint frequency
+  * weather API (free IMD / OpenWeather)
+* Predict risk areas
+* Show "High Risk Zone" tag in dashboard
+
+6. SLA Auto-Escalation
+
+* Add deadline field to complaints
+* Create cron job (node-cron):
+
+  * if deadline crossed → auto escalate
+  * notify higher authority
+* Update status automatically
+
+7. Officer / Department Panel
+
+* Create role-based dashboards:
+
+  * ward_officer
+  * police
+  * health
+* Filter complaints by department
+* Add assign + resolve flow
+
+8. RTI Filing System
+
+* Create RTI model
+* Allow citizen to file RTI linked to complaint
+* Export full complaint history as downloadable JSON/PDF
+
+9. Citizen–Officer Chat
+
+* Use Socket.io
+* Create chat per complaint
+* Store messages in DB
+* Show real-time messaging
+
+10. Digital Voting / Polls
+
+* Create polls collection
+* Allow users to vote once
+* Show live vote count
+
+11. Petition System
+
+* Create petition model
+* Signature count
+* If threshold reached → auto escalate
+
+12. Civic Event Calendar
+
+* Event model + RSVP
+* Show upcoming civic events
+
+13. Emergency Services Directory
+
+* Add structured DB:
+  hospitals, ambulance, fire, shelters
+* Include phone + location
+* Show nearest using geolocation
+
+14. Ward Report Card
+
+* Generate monthly report:
+
+  * total complaints
+  * resolution rate
+* Auto-generate PDF (use pdfkit)
+* Assign grade (A–F)
+
+15. Offline Mode (CRITICAL)
+
+* Use AsyncStorage
+* Queue complaints offline
+* Auto sync when internet returns
+
+16. Push Notifications (FREE)
+
+* Use Expo Notifications
+* Send:
+
+  * complaint updates
+  * escalations
+
+17. Gamification Improvements
+
+* Add leaderboard UI
+* Monthly reset using cron
+* Add achievement animations
+
+18. Admin Heatmap
+
+* Use map (react-native-maps)
+* Plot complaints
+* Color density zones
+
+19. Budget / Project Tracker
+
+* Create project model
+* Show budget vs spent
+* Admin dashboard view
+
+20. Worker GPS Live Map
+
+* Track worker location
+* Update periodically
+* Show live on admin map
+
+21. Image Upload Fix
+
+* Upload images to Cloudinary (free tier)
+* Store URL instead of base64
+
+22. Super Admin Panel
+
+* Build UI for district-level analytics
+* Use existing /api/superadmin/districts
+
+OUTPUT FORMAT:
+
+* Folder structure
+* Backend code (routes, models, controllers)
+* Frontend screens
+* Key integration snippets
+* Environment setup
+* Step-by-step run instructions
+
+IMPORTANT:
+
+* Everything must RUN
+* Avoid paid APIs
+* Optimize for low bandwidth users
+* Keep system scalable
+
+END.

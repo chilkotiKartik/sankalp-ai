@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SANKALP AI — Uttarakhand Civic Dashboard</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+body{background:#F8FAFC;color:#1E293B}
+.topbar{background:linear-gradient(135deg,#0B1C3F,#1E3A5F);padding:14px 32px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{color:#fff;font-size:20px;font-weight:800;letter-spacing:1px}
+.logo span{color:#FF9933}
+.logo-sub{color:#93C5FD;font-size:13px}
+.nav{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.nav a{color:#93C5FD;text-decoration:none;font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid rgba(147,197,253,.3);transition:all .2s;font-weight:600}
+.nav a:hover{background:rgba(147,197,253,.1)}
+.container{max-width:1200px;margin:0 auto;padding:28px 20px}
+h1{font-size:28px;font-weight:800;color:#0B1C3F;margin-bottom:6px}
+.lead{font-size:15px;color:#64748B;margin-bottom:28px;line-height:1.5}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:32px}
+@media(max-width:768px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.stat-num{font-size:32px;font-weight:800;color:#0B1C3F;margin-bottom:4px;line-height:1}
+.stat-label{font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.section{margin-bottom:36px}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748B}
+.dept-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.dept-card{background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:18px;border-top:4px solid;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:transform .2s}
+.dept-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.dept-icon{font-size:28px;margin-bottom:8px}
+.dept-name{font-size:13px;font-weight:700;color:#1E293B;margin-bottom:2px}
+.dept-hindi{font-size:11px;color:#94A3B8;margin-bottom:10px}
+.dept-rate{font-size:28px;font-weight:800;margin-bottom:4px}
+.grade-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
+.progress-bar{background:#F1F5F9;border-radius:4px;height:6px;margin-top:10px;overflow:hidden}
+.progress-fill{height:6px;border-radius:4px;transition:width 1s ease}
+.ward-table{background:#fff;border:1px solid #E2E8F0;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.ward-row{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid #F1F5F9;transition:background .15s}
+.ward-row:last-child{border-bottom:none}
+.ward-row:hover{background:#F8FAFC}
+.ward-rank{font-size:12px;font-weight:700;color:#94A3B8;width:24px;text-align:center}
+.score-circle{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
+.ward-name{font-size:14px;font-weight:600;color:#1E293B;flex:1}
+.ward-dist{font-size:12px;color:#94A3B8}
+.tab-bar{display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid #E2E8F0;padding-bottom:0}
+.tab-btn{padding:8px 16px;font-size:13px;font-weight:600;color:#64748B;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab-btn.active{color:#0B1C3F;border-bottom-color:#FF9933}
+.live-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#22C55E;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.04em}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#22C55E;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.petition-card{background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.sig-bar{background:#F1F5F9;border-radius:4px;height:8px;overflow:hidden;margin-top:8px}
+.sig-fill{height:8px;border-radius:4px;background:linear-gradient(90deg,#10B981,#059669);transition:width .8s ease}
+footer{background:#0B1C3F;color:#475569;padding:24px 32px;text-align:center;font-size:13px;margin-top:48px}
+footer a{color:#93C5FD;text-decoration:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect}=React;
+const API=window.location.origin;
+
+function scoreColor(s){return s>=80?"#166534":s>=60?"#16A34A":s>=40?"#F59E0B":"#EF4444";}
+function gradeBg(g){return{A:"#166534",B:"#16A34A",C:"#F59E0B",D:"#EF4444"}[g]||"#64748B";}
+
+function PublicPortal() {
+  const [depts,setDepts]=useState([]);
+  const [wards,setWards]=useState([]);
+  const [stats,setStats]=useState({});
+  const [tab,setTab]=useState("overview");
+  const [animated,setAnimated]=useState(false);
+
+  useEffect(()=>{
+    fetch(`${API}/api/public/department-report`).then(r=>r.json()).then(d=>setDepts(Array.isArray(d)?d:[])).catch(()=>{});
+    fetch(`${API}/api/public/ward-health`).then(r=>r.json()).then(d=>setWards(Array.isArray(d)?d:[])).catch(()=>{});
+    fetch(`${API}/api/public/stats`).then(r=>r.json()).then(setStats).catch(()=>{});
+    setTimeout(()=>setAnimated(true),300);
+  },[]);
+
+  const totals=depts.reduce((a,d)=>({total:a.total+(d.total||0),resolved:a.resolved+(d.resolved||0),pending:a.pending+(d.pending||0),p1:a.p1+(d.p1Pending||0)}),{total:0,resolved:0,pending:0,p1:0});
+  const overallRate=totals.total>0?Math.round(totals.resolved/totals.total*100):0;
+  const topWards=[...wards].sort((a,b)=>b.healthScore-a.healthScore).slice(0,10);
+  const bottomWards=[...wards].sort((a,b)=>a.healthScore-b.healthScore).slice(0,5);
+
+  return (
+    <div>
+      <div className="topbar">
+        <div>
+          <div className="logo">SANKALP<span> AI</span></div>
+          <div className="logo-sub">Uttarakhand Open Civic Data Portal</div>
+        </div>
+        <div className="nav">
+          <a href="/web/dept">🏛️ Dept. Portal</a>
+          <a href="/web/cpr">🆘 CPR Command</a>
+          <a href="/web/rti">📋 RTI Portal</a>
+          <a href="/">← App</a>
+        </div>
+      </div>
+
+      <div className="container">
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:24}}>
+          <div>
+            <h1>Uttarakhand Civic Health Dashboard</h1>
+            <p className="lead" style={{marginBottom:0}}>Real-time government performance data across 13 districts. Updated live as citizens file complaints and departments resolve them.</p>
+          </div>
+          <div className="live-badge"><div className="live-dot"/>LIVE DATA</div>
+        </div>
+
+        <div className="stat-grid">
+          {[
+            {n:(stats.total||totals.total).toLocaleString(),l:"Total Complaints",c:"#0B1C3F"},
+            {n:`${overallRate}%`,l:"Overall Resolution Rate",c:overallRate>=70?"#166534":overallRate>=50?"#F59E0B":"#EF4444"},
+            {n:totals.pending.toLocaleString(),l:"Pending",c:"#F59E0B"},
+            {n:totals.p1.toLocaleString(),l:"P1 Critical",c:"#EF4444"},
+          ].map(s=>(
+            <div className="stat-card" key={s.l}>
+              <div className="stat-num" style={{color:s.c}}>{s.n}</div>
+              <div className="stat-label">{s.l}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="tab-bar">
+          {[["overview","📊 Overview"],["departments","🏛️ Departments"],["wards","🗺️ Ward Health"]].map(([t,l])=>(
+            <button key={t} className={`tab-btn ${tab===t?"active":""}`} onClick={()=>setTab(t)}>{l}</button>
+          ))}
+        </div>
+
+        {tab==="overview"&&(
+          <>
+            <div className="section">
+              <div className="section-hdr"><div className="section-title">Department Performance Snapshot</div></div>
+              <div className="dept-grid">
+                {depts.map(d=>(
+                  <div className="dept-card" key={d.id} style={{borderTopColor:d.color||"#64748B"}}>
+                    <div className="dept-icon">{d.icon}</div>
+                    <div className="dept-name">{d.shortName||d.name}</div>
+                    <div className="dept-hindi" style={{color:d.color||"#64748B"}}>{d.nameHindi}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <div className="dept-rate" style={{color:gradeBg(d.grade)}}>{d.resolutionRate}%</div>
+                      <div className="grade-dot" style={{background:gradeBg(d.grade)}}>{d.grade}</div>
+                    </div>
+                    <div style={{display:"flex",gap:12,fontSize:11,color:"#64748B",marginTop:4}}>
+                      <span>Total: <strong style={{color:"#1E293B"}}>{d.total}</strong></span>
+                      <span>Pending: <strong style={{color:(d.pending||0)>0?"#F59E0B":"#1E293B"}}>{d.pending||0}</strong></span>
+                    </div>
+                    <div className="progress-bar"><div className="progress-fill" style={{width:animated?`${d.resolutionRate}%`:"0%",background:d.color||"#64748B"}}/></div>
+                    <div style={{marginTop:8,fontSize:11,color:"#94A3B8"}}>📞 {d.helpline} · SLA: {d.slaHours}h</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="section">
+              <div className="section-hdr"><div className="section-title">Top Performing Wards</div></div>
+              <div className="ward-table">
+                {topWards.slice(0,8).map((w,i)=>(
+                  <div className="ward-row" key={w.id}>
+                    <span className="ward-rank">#{i+1}</span>
+                    <div className="score-circle" style={{background:scoreColor(w.healthScore)}}>{w.healthScore}</div>
+                    <div style={{flex:1}}>
+                      <div className="ward-name">{w.name}</div>
+                      <div className="ward-dist">{w.district}</div>
+                    </div>
+                    <div style={{fontSize:12,color:"#94A3B8",textAlign:"right"}}>
+                      <div>{w.resolvedCount||0}/{w.complaintCount||0} resolved</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {tab==="departments"&&(
+          <div className="dept-grid">
+            {depts.map(d=>(
+              <div className="dept-card" key={d.id} style={{borderTopColor:d.color||"#64748B"}}>
+                <div className="dept-icon">{d.icon}</div>
+                <div className="dept-name">{d.name}</div>
+                <div className="dept-hindi">{d.nameHindi}</div>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                  <div className="dept-rate" style={{color:gradeBg(d.grade)}}>{d.resolutionRate}%</div>
+                  <div className="grade-dot" style={{background:gradeBg(d.grade)}}>{d.grade}</div>
+                </div>
+                {[["Total",d.total],["Resolved",d.resolved||0],["Pending",d.pending||0],["P1 Pending",d.p1Pending||0]].map(([l,v])=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}>
+                    <span style={{color:"#64748B"}}>{l}</span><span style={{color:"#1E293B",fontWeight:600}}>{v}</span>
+                  </div>
+                ))}
+                <div className="progress-bar"><div className="progress-fill" style={{width:animated?`${d.resolutionRate}%`:"0%",background:d.color||"#64748B"}}/></div>
+                <div style={{marginTop:10,fontSize:11,color:"#94A3B8"}}>📞 {d.helpline} · ⏱ SLA: {d.slaHours}h</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab==="wards"&&(
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+            <div>
+              <div className="section-title" style={{marginBottom:12}}>🏆 Best Performing Wards</div>
+              <div className="ward-table">
+                {topWards.map((w,i)=>(
+                  <div className="ward-row" key={w.id}>
+                    <span className="ward-rank">#{i+1}</span>
+                    <div className="score-circle" style={{background:scoreColor(w.healthScore),width:38,height:38,fontSize:12}}>{w.healthScore}</div>
+                    <div style={{flex:1}}><div className="ward-name">{w.name}</div><div className="ward-dist">{w.district}</div></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="section-title" style={{marginBottom:12}}>⚠️ Needs Attention</div>
+              <div className="ward-table">
+                {bottomWards.map((w,i)=>(
+                  <div className="ward-row" key={w.id}>
+                    <span className="ward-rank">#{i+1}</span>
+                    <div className="score-circle" style={{background:scoreColor(w.healthScore),width:38,height:38,fontSize:12}}>{w.healthScore}</div>
+                    <div style={{flex:1}}><div className="ward-name">{w.name}</div><div className="ward-dist">{w.district}</div></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <footer>
+        <div style={{marginBottom:8}}><strong style={{color:"#E2E8F0"}}>SANKALP AI</strong> — Uttarakhand Civic Intelligence Platform</div>
+        <div>Data updates live · AI-powered complaint analysis · Built for Uttarakhand citizens</div>
+        <div style={{marginTop:12,display:"flex",gap:16,justifyContent:"center",flexWrap:"wrap"}}>
+          <a href="/web/dept">Department Portal</a>
+          <a href="/web/cpr">CPR Safety Command</a>
+          <a href="/web/rti">RTI Portal</a>
+          <a href="/">Main Application</a>
+        </div>
+      </footer>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<PublicPortal/>);
+</script>
+</body>
+</html>

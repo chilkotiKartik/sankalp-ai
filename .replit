@@ -1,0 +1,71 @@
+modules = ["nodejs-20", "web", "nix"]
+[nix]
+channel = "stable-25_05"
+
+[agent]
+expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start Expo Dev Server"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node_modules/.bin/tsx server/index.ts"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Start Expo Dev Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "EXPO_PACKAGER_PROXY_URL=https://$REPLIT_DEV_DOMAIN REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=sankalp-ai.replit.app node_modules/.bin/expo start --localhost --port 8080"
+waitForPort = 8080
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
+[deployment]
+deploymentTarget = "vm"
+run = ["bash", "-c", "node_modules/.bin/tsx server/index.ts"]
+build = ["bash", "-c", "node scripts/build.js"]
+
+[userenv]
+
+[userenv.shared]
+EXPO_PUBLIC_DOMAIN = "sankalp-ai.replit.app"
+NVIDIA_API_KEY = "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"
+GROQ_API_KEY = "REMOVED"

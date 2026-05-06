@@ -1,0 +1,25 @@
+CITIZEN PANEL — ALL WORKING
+Dashboard: AQI widget (PM2.5/PM10/NO2/CO colored badges), Ward Health Score (0-100 circular ring, calculated: 40% resolution rate + 30% AQI + 30% response time), quick actions grid (SOS/Complaint/Map/Bills/Schemes/Community), last 3 complaints with status.
+Complaint Filing (4 steps):
+
+Text area → after 3 words call OpenAI → returns category + priority 0-100 + title suggestion → show AI badge in real-time
+Leaflet map pin + Nominatim reverse geocode → auto-fill address
+Photo upload → call OpenAI Vision → returns detected issue + severity → auto-fill fields
+Review + submit. After submit: animated success, redirect to tracker.
+Complaint tracker: timeline (Pending→Assigned→In Progress→Resolved) with timestamps. Chat button when assigned.
+
+SOS: Full-screen red page. Large pulsing button. 3s countdown with cancel. On activate: navigator.geolocation watchPosition, emit socket 'sos:trigger', send GPS every 15s via 'sos:location_update'. Shake detection (DeviceMotionEvent >25m/s²). Show "SOS ACTIVE — Help is coming" with live coordinates.
+Live Map (Leaflet): Toggle layers: police stations (blue pins, popup with call button), active SOS (red pulsing), risk zones (colored polygons — red=crime/orange=flood/yellow=garbage), complaint pins by category, user location blue dot.
+Schemes: Cards with filter by category. Detail page: eligibility checklist, benefits, documents list with checkboxes, step-by-step apply guide, "Check Eligibility" → AI chat pre-loaded with scheme context.
+Bills: Cards for Electricity/Water/MCD/Traffic. Payment flow: mock UPI/card, PIN 1234, 2s processing animation, receipt with reference number saved to DB.
+Voting & Polls: Active polls for user's ward. Vote → animated bar chart reveals. Past polls with results.
+Petitions: List with signature progress bars. Sign button. Create petition form. Detail page shows escalated status when threshold met + official response when available.
+Voice Complaint: Mic button on complaint page → MediaRecorder API → send to OpenAI Whisper → transcription auto-fills description → AI classifies. Fallback: Web Speech API.
+Community Forum: Ward-filtered posts. Create post (category/title/body/photo). Like + comment. Tabs: All/Issues/Events/Help/General.
+Civic Event Calendar: CSS grid monthly calendar, colored dots on dates, click → events panel. RSVP toggle with live count via socket. Reminder via browser notification.
+RTI Filing: 4-step wizard. Step 1: select department + topic. Step 2: "Draft with AI" → OpenAI generates legal RTI text ("Under RTI Act 2005, Section 6...") in editable textarea. Step 3: PIO details (seeded by dept). Step 4: submit → deadline = today+30 days. Status tracker. Cron: alert 3 days before deadline.
+Emergency Services: Tabs (Hospital/Ambulance/Police/Fire/Blood Bank/Shelter). Sorted by distance (Haversine from GPS). 1-tap call (tel: link). Map view toggle.
+Ward Report Card: Monthly metrics: resolution rate % vs city avg, avg resolution time, AQI trend line chart, top issues pie chart, officer response rate. Grade A-F. Previous months dropdown.
+Citizen-Officer Chat: WhatsApp-style bubbles. Real-time via Socket.io room complaint_${id}. Read receipts. Typing indicator. Photo sharing. Opens from complaint detail when status ≠ pending.
+AI Chatbot: Floating button all pages. Slide-up panel. OpenAI with civic system prompt. Suggested prompts on first open. Streaming response. Persist history in localStorage per session.
+Gamification: Points: file complaint +10, resolved +20, sign petition +5, create escalated petition +50, RSVP+attend event +15, file RTI +25. Leaderboard: city-wide top 10 + ward top 10 + user's rank highlighted. Badges on profile.

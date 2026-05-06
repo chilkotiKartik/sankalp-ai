@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SANKALP AI — Department Portal</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
+:root{--orange:#FF9933;--bg:#0d1117;--sidebar:#080d18;--card:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--yellow:#d29922;--purple:#bc8cff}
+body{background:var(--bg);color:var(--text);min-height:100vh}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px rgba(255,153,51,.3)}50%{box-shadow:0 0 20px rgba(255,153,51,.6)}}
+@keyframes bounceIn{0%{opacity:0;transform:scale(.9)}60%{transform:scale(1.02)}100%{opacity:1;transform:scale(1)}}
+.fade-in{animation:fadeIn .35s ease both}
+.slide-in{animation:slideIn .3s ease both}
+.spin{animation:spin 1s linear infinite}
+/* Layout */
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:20;transition:width .2s}
+.sidebar-logo{padding:18px 16px 16px;border-bottom:1px solid var(--border)}
+.logo-txt{font-size:15px;font-weight:800;color:#fff;letter-spacing:.5px}
+.logo-txt span{color:var(--orange)}
+.logo-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.sidebar-nav{flex:1;padding:10px 8px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .15s;margin-bottom:2px;position:relative;user-select:none}
+.nav-item:hover{background:#1c2128;color:var(--text)}
+.nav-item.active{background:rgba(255,153,51,.12);color:var(--orange)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--orange);border-radius:0 3px 3px 0}
+.nav-badge{background:var(--orange);color:#000;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:auto}
+.sidebar-footer{padding:10px 8px;border-top:1px solid var(--border)}
+.main{margin-left:220px;padding:24px;min-height:100vh;max-width:1400px}
+/* Topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:10px}
+.dept-badge{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 16px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;flex-shrink:0}
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .2s}
+.card:hover{border-color:#484f58}
+/* KPIs */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:all .2s}
+.kpi:hover{transform:translateY(-2px);border-color:#484f58}
+.kpi-val{font-size:30px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.kpi-lbl{font-size:11px;color:var(--muted);margin-top:5px;text-transform:uppercase;letter-spacing:.04em}
+.kpi-sub{font-size:11px;margin-top:4px}
+.kpi-icon{position:absolute;right:14px;top:14px;font-size:22px;opacity:.5}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-orange{background:var(--orange);color:#000}.btn-orange:hover{opacity:.88}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{background:#1c2128;color:var(--text)}
+.btn-red{background:#da3633;color:#fff}.btn-red:hover{opacity:.88}
+.btn-green{background:#238636;color:#fff}.btn-green:hover{opacity:.88}
+.btn-blue{background:#1f6feb;color:#fff}.btn-blue:hover{opacity:.88}
+.btn-sm{padding:4px 10px;font-size:11px}
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-P1,.badge-red{background:rgba(248,81,73,.15);color:var(--red)}
+.badge-P2,.badge-orange{background:rgba(255,153,51,.15);color:var(--orange)}
+.badge-P3,.badge-blue{background:rgba(88,166,255,.15);color:var(--blue)}
+.badge-P4,.badge-muted{background:rgba(139,148,158,.12);color:var(--muted)}
+.badge-pending,.badge-yellow{background:rgba(210,153,34,.15);color:var(--yellow)}
+.badge-in_progress{background:rgba(88,166,255,.15);color:var(--blue)}
+.badge-resolved,.badge-closed,.badge-green{background:rgba(63,185,80,.15);color:var(--green)}
+/* Inputs */
+.input{width:100%;padding:10px 14px;background:#1c2128;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;transition:border .15s}
+.input:focus{border-color:var(--orange)}
+.select{width:100%;padding:10px 14px;background:#1c2128;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;cursor:pointer}
+.select:focus{border-color:var(--orange)}
+label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+/* Complaint cards */
+.complaint-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all .2s}
+.complaint-card:hover{border-color:#484f58;transform:translateX(2px)}
+.complaint-card.new-card{border-color:var(--orange);box-shadow:0 0 16px rgba(255,153,51,.15);animation:glow 2.5s infinite}
+.ticket{font-size:10px;color:var(--muted);font-family:monospace;letter-spacing:.06em}
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;backdrop-filter:blur(4px)}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:26px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:bounceIn .25s ease}
+/* Filter bar */
+.filter-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.filter-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;font-weight:500;transition:all .15s}
+.filter-btn.active{background:rgba(255,153,51,.15);border-color:rgba(255,153,51,.4);color:var(--orange)}
+/* SOS alert */
+.sos-card{background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.25);border-radius:12px;padding:16px;margin-bottom:10px;cursor:pointer;transition:all .2s}
+.sos-card:hover{border-color:rgba(248,81,73,.5)}
+.sos-card.women{background:rgba(188,140,255,.06);border-color:rgba(188,140,255,.25)}
+.sos-card.women:hover{border-color:rgba(188,140,255,.5)}
+/* Workers */
+.worker-card{background:#1c2128;border:1px solid var(--border);border-radius:10px;padding:14px;transition:all .15s}
+.worker-card:hover{border-color:var(--orange)}
+/* Progress */
+.progress{height:6px;border-radius:3px;background:#21262d;overflow:hidden}
+.progress-bar{height:100%;border-radius:3px;background:var(--orange);transition:width .7s ease}
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+/* Login */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(145deg,#0d1117,#0a0f1c);padding:20px}
+.login-card{background:var(--card);border:1px solid rgba(255,153,51,.2);border-radius:20px;padding:40px;width:100%;max-width:440px;box-shadow:0 25px 60px rgba(0,0,0,.6)}
+/* Search */
+.search{background:#1c2128;border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-size:13px;outline:none;width:100%;transition:border .15s}
+.search:focus{border-color:var(--orange)}
+/* Grid helpers */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:700px){.g2,.g3{grid-template-columns:1fr}}
+/* Bar chart */
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.bar-lbl{font-size:11px;color:var(--muted);width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;background:#1c2128;border-radius:4px;height:8px;overflow:hidden}
+.bar-fill{height:8px;border-radius:4px;transition:width .6s ease}
+.bar-num{font-size:11px;color:var(--muted);width:24px;text-align:right}
+/* Table */
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{padding:9px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border);background:rgba(0,0,0,.15)}
+.table td{padding:10px 12px;border-bottom:1px solid #21262d;vertical-align:middle}
+.table tr:hover td{background:rgba(255,153,51,.03)}
+/* Responsive */
+@media(max-width:768px){.sidebar{width:52px}.main{margin-left:52px;padding:14px}.sidebar .nav-lbl,.sidebar .logo-txt,.sidebar .logo-sub,.sidebar .nav-badge,.sidebar .dept-info{display:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback,useMemo}=React;
+const API=window.location.origin;
+
+/* ── DEPT METADATA ─────────────────────────────────────────────────────────── */
+const DEPTS={
+  pwd:{id:'pwd',name:'PWD — Public Works',nameHindi:'लोक निर्माण विभाग',icon:'🏗️',color:'#F59E0B',categories:['pothole','other'],helpline:'1800-180-4244',helpline2:'0135-2714400',sla:24,head:'Chief Engineer, PWD Uttarakhand',address:'Construction Bhawan, Subhash Road, Dehradun — 248001',email:'ce.pwd@uk.gov.in'},
+  ulb:{id:'ulb',name:'ULB — Municipal Corp',nameHindi:'नगर पालिका / नगर निगम',icon:'🗑️',color:'#10B981',categories:['garbage','drain'],helpline:'1533',helpline2:'0135-2654321',sla:48,head:'Commissioner, Urban Local Bodies',address:'Municipal Bhawan, Paltan Bazaar, Dehradun — 248001',email:'commissioner.ulb@uk.gov.in'},
+  jal:{id:'jal',name:'Jal Sansthan',nameHindi:'उत्तराखण्ड जल संस्थान',icon:'💧',color:'#3B82F6',categories:['water'],helpline:'1916',helpline2:'0135-2723456',sla:12,head:'General Manager, Jal Sansthan',address:'Jal Sansthan Bhawan, Haridwar Road, Dehradun',email:'gm.jal@uk.gov.in'},
+  upcl:{id:'upcl',name:'UPCL — Power Corp',nameHindi:'उत्तराखण्ड पावर कॉर्पोरेशन',icon:'⚡',color:'#8B5CF6',categories:['electricity','streetlight'],helpline:'1912',helpline2:'0135-2770501',sla:6,head:'Managing Director, UPCL',address:'Ranipur Mor, Haridwar Road, Dehradun — 249407',email:'md.upcl@uk.gov.in'},
+  forest:{id:'forest',name:'Forest Department',nameHindi:'वन विभाग',icon:'🌳',color:'#22c55e',categories:['tree'],helpline:'1800-180-4288',helpline2:'0135-2756083',sla:96,head:'Principal Chief Conservator of Forests',address:'Van Bhawan, Nehru Colony, Dehradun — 248001',email:'pccf@uk.gov.in'},
+  health:{id:'health',name:'Health & Family Welfare',nameHindi:'स्वास्थ्य विभाग',icon:'🏥',color:'#EF4444',categories:[],helpline:'104',helpline2:'0135-2606012',sla:24,head:'Director General of Health Services',address:'Swasthya Bhawan, Jolly Grant, Dehradun',email:'dg.health@uk.gov.in'},
+  usdma:{id:'usdma',name:'USDMA — Disaster Mgmt',nameHindi:'आपदा प्रबंधन प्राधिकरण',icon:'🆘',color:'#DC2626',categories:[],helpline:'1070',helpline2:'0135-2710334',sla:2,head:'CEO, USDMA (IAS Officer)',address:'USDMA Bhawan, Rajpur Road, Dehradun — 248001',email:'ceo.usdma@uk.gov.in'},
+  police:{id:'police',name:'Uttarakhand Police',nameHindi:'उत्तराखण्ड पुलिस',icon:'🚔',color:'#60a5fa',categories:[],helpline:'100',helpline2:'112',sla:1,head:'Director General of Police, Uttarakhand',address:'Police Headquarters, Subhash Road, Dehradun — 248001',email:'dgp@uk.gov.in'},
+};
+
+const DEPT_LIST=Object.values(DEPTS);
+const PC={P1:'badge-P1',P2:'badge-P2',P3:'badge-P3',P4:'badge-P4'};
+const SC={pending:'badge-pending',in_progress:'badge-in_progress',resolved:'badge-resolved',closed:'badge-closed'};
+const SL={pending:'Pending',in_progress:'In Progress',resolved:'Resolved',closed:'Closed'};
+const CAT_ICONS={pothole:'🕳️',garbage:'🗑️',water:'💧',electricity:'⚡',streetlight:'💡',drain:'🌊',tree:'🌳',other:'📋',women_safety:'🛡️',fire_risk:'🔥',road_accident:'🚗',medical:'🏥',water_burst:'🌊',electric_hazard:'⚡',infrastructure:'🏚️',gas_leak:'💨'};
+
+/* ── HELPERS ─────────────────────────────────────────────────────────────── */
+function timeAgo(d){if(!d)return'—';const s=Math.round((Date.now()-new Date(d))/1000);if(s<60)return`${s}s ago`;if(s<3600)return`${Math.round(s/60)}m ago`;if(s<86400)return`${Math.round(s/3600)}h ago`;return`${Math.round(s/86400)}d ago`;}
+function fmtDate(d){if(!d)return'—';return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+const api={
+  _h(t){const h={'Content-Type':'application/json'};if(t)h['Authorization']='Bearer '+t;return h;},
+  async get(p,t){const r=await fetch(API+p,{headers:this._h(t)});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.statusText);return r.json();},
+  async post(p,b,t){const r=await fetch(API+p,{method:'POST',headers:this._h(t),body:JSON.stringify(b)});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.statusText);return r.json();},
+  async put(p,b,t){const r=await fetch(API+p,{method:'PUT',headers:this._h(t),body:JSON.stringify(b)});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.statusText);return r.json();},
+};
+
+function Spinner({size=16}){return <div style={{width:size,height:size,border:'2px solid #30363d',borderTop:'2px solid var(--orange)',borderRadius:'50%'}} className="spin"/>;}
+
+function Toast({msg,type,onDone}){
+  useEffect(()=>{const t=setTimeout(onDone,3500);return()=>clearTimeout(t);},[]);
+  const bg=type==='error'?'#da3633':type==='success'?'#238636':'#1f6feb';
+  return <div style={{position:'fixed',bottom:20,right:20,background:bg,color:'#fff',padding:'11px 18px',borderRadius:10,zIndex:9999,fontSize:13,fontWeight:600,maxWidth:320,boxShadow:'0 6px 24px rgba(0,0,0,.5)',animation:'bounceIn .3s ease'}}>
+    {type==='success'?'✓ ':type==='error'?'✗ ':'ℹ '}{msg}
+  </div>;
+}
+
+/* ── COMPLAINT DETAIL MODAL ──────────────────────────────────────────────── */
+function ComplaintModal({c,onClose,token,onRefresh,addToast}){
+  const [status,setStatus]=useState(c.status);
+  const [saving,setSaving]=useState(false);
+  const dept=DEPTS[Object.keys(DEPTS).find(k=>DEPTS[k].categories.includes(c.category))||'']||null;
+
+  async function save(){
+    setSaving(true);
+    try{
+      await api.put(`/api/dept/complaints/${c.id}`,{status},token);
+      addToast('Complaint updated','success');
+      onRefresh();onClose();
+    }catch(e){addToast(e.message,'error');}
+    setSaving(false);
+  }
+
+  return <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+    <div className="modal fade-in">
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}}>
+        <div>
+          <div style={{fontSize:18,fontWeight:700,color:'var(--orange)',fontFamily:'monospace'}}>{c.ticketId||c.id?.slice(0,8).toUpperCase()}</div>
+          <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{fmtDate(c.submittedAt)}</div>
+        </div>
+        <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+      </div>
+
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
+        <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
+        <span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span>
+        <span style={{fontSize:11,color:'var(--muted)'}}>{CAT_ICONS[c.category]||'📋'} {c.category}</span>
+      </div>
+
+      <div style={{background:'#1c2128',borderRadius:8,padding:14,marginBottom:14,fontSize:13,lineHeight:1.65,color:'var(--text)'}}>
+        {c.description||'No description provided.'}
+      </div>
+
+      {(c.beforePhoto||c.afterPhoto)&&<div style={{marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:8}}>📷 Photos</div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          {c.beforePhoto&&<div><div style={{fontSize:10,color:'var(--muted)',marginBottom:3}}>BEFORE</div>
+            <img src={c.beforePhoto} alt="Before" style={{width:140,height:105,objectFit:'cover',borderRadius:8,border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(c.beforePhoto,'_blank')} onError={e=>e.target.style.display='none'}/>
+          </div>}
+          {c.afterPhoto&&<div><div style={{fontSize:10,color:'var(--muted)',marginBottom:3}}>AFTER</div>
+            <img src={c.afterPhoto} alt="After" style={{width:140,height:105,objectFit:'cover',borderRadius:8,border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(c.afterPhoto,'_blank')} onError={e=>e.target.style.display='none'}/>
+          </div>}
+        </div>
+      </div>}
+
+      <div className="g2" style={{gap:10,marginBottom:14,fontSize:12}}>
+        <div><div style={{color:'var(--muted)',marginBottom:2}}>LOCATION</div><div>📍 {c.location||'—'}</div></div>
+        <div><div style={{color:'var(--muted)',marginBottom:2}}>DISTRICT</div><div>{c.district||'—'}</div></div>
+        <div><div style={{color:'var(--muted)',marginBottom:2}}>WARD</div><div>{c.ward||'—'} (Ward #{c.wardNumber})</div></div>
+        <div><div style={{color:'var(--muted)',marginBottom:2}}>FILED BY</div><div>{c.submittedBy||'Anonymous'} {c.submittedByPhone?'· '+c.submittedByPhone:''}</div></div>
+        {c.workerName&&<div><div style={{color:'var(--muted)',marginBottom:2}}>WORKER</div><div>{c.workerName}</div></div>}
+        <div><div style={{color:'var(--muted)',marginBottom:2}}>AI SCORE</div><div>{c.aiScore||0}/100</div></div>
+      </div>
+
+      {dept&&<div style={{background:`rgba(255,153,51,.06)`,border:'1px solid rgba(255,153,51,.2)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
+        <div style={{fontWeight:600,marginBottom:3}}>{dept.icon} Routed → {dept.name}</div>
+        <div style={{color:'var(--muted)'}}>Helpline: {dept.helpline} · SLA: {dept.sla}h</div>
+      </div>}
+
+      {c.adminNote&&<div style={{background:'rgba(88,166,255,.08)',border:'1px solid rgba(88,166,255,.2)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
+        <div style={{fontWeight:600,color:'var(--blue)',marginBottom:4}}>🔵 Admin Note</div>
+        <div style={{lineHeight:1.6}}>{c.adminNote}</div>
+      </div>}
+
+      <div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:4}}>
+        <label>Update Status</label>
+        <select className="select" style={{marginBottom:12}} value={status} onChange={e=>setStatus(e.target.value)}>
+          {['pending','in_progress','resolved','closed'].map(s=><option key={s} value={s}>{SL[s]}</option>)}
+        </select>
+        <div style={{display:'flex',gap:8}}>
+          <button className="btn btn-orange" style={{flex:1,justifyContent:'center'}} onClick={save} disabled={saving}>
+            {saving?<Spinner/>:'💾 Save Changes'}
+          </button>
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+/* ── COMPLAINT CARD ──────────────────────────────────────────────────────── */
+function ComplaintCard({c,isNew,token,onRefresh,addToast}){
+  const [open,setOpen]=useState(false);
+  async function ack(e){
+    e.stopPropagation();
+    try{await api.put(`/api/dept/complaints/${c.id}`,{status:'in_progress'},token);onRefresh();addToast('Acknowledged','success');}
+    catch(e){addToast(e.message,'error');}
+  }
+  return <>
+    {open&&<ComplaintModal c={c} onClose={()=>setOpen(false)} token={token} onRefresh={onRefresh} addToast={addToast}/>}
+    <div className={'complaint-card'+(isNew?' new-card':'')} onClick={()=>setOpen(true)}>
+      <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:6,flexWrap:'wrap'}}>
+        <span className="ticket">{c.ticketId||`UK-${(c.id||'').slice(0,6).toUpperCase()}`}</span>
+        {isNew&&<span style={{fontSize:9,fontWeight:800,background:'var(--orange)',color:'#000',padding:'1px 5px',borderRadius:8}}>NEW</span>}
+        <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
+        <span className={'badge '+(SC[c.status]||'badge-muted')}>{(c.status||'pending').replace('_',' ')}</span>
+        <span style={{fontSize:11,color:'var(--muted)',marginLeft:'auto'}}>{timeAgo(c.submittedAt)}</span>
+      </div>
+      <div style={{fontSize:13,color:'var(--text)',lineHeight:1.4,marginBottom:5}}>{(c.description||'').slice(0,140)}{c.description?.length>140?'…':''}</div>
+      <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+        <span style={{fontSize:11,color:'var(--muted)'}}>📍 {c.ward||c.location||'Unknown'} · {c.district}</span>
+        {c.beforePhoto&&<span style={{fontSize:10,color:'var(--blue)'}}>📷 Photo</span>}
+      </div>
+      {(c.status==='pending'||c.status==='assigned')&&
+        <button className="btn btn-sm btn-orange" style={{marginTop:9}} onClick={ack}>✓ Acknowledge &amp; Start</button>}
+    </div>
+  </>;
+}
+
+/* ── DASHBOARD PAGE ──────────────────────────────────────────────────────── */
+function DashboardPage({token,dept,complaints,stats,workers,newIds,onRefresh,addToast}){
+  const color=dept.color||'var(--orange)';
+  const districtData={};
+  complaints.forEach(c=>{const k=c.district||'Uttarakhand';districtData[k]=(districtData[k]||0)+1;});
+  const topDists=Object.entries(districtData).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxD=topDists[0]?.[1]||1;
+  const recentResolved=complaints.filter(c=>c.status==='resolved'||c.status==='closed');
+  const resRate=stats.total?Math.round((stats.resolved||0)/stats.total*100):0;
+  const kpis=[
+    {v:stats.total||0,l:'Total',icon:'📋',c:'var(--text)'},
+    {v:stats.pending||0,l:'Pending',icon:'⏳',c:(stats.pending||0)>10?'var(--red)':'var(--yellow)'},
+    {v:stats.inProgress||0,l:'In Progress',icon:'🔄',c:'var(--blue)'},
+    {v:stats.resolved||0,l:'Resolved',icon:'✅',c:'var(--green)'},
+    {v:stats.p1Critical||0,l:'P1 Critical',icon:'🔴',c:(stats.p1Critical||0)>0?'var(--red)':'var(--muted)'},
+    {v:stats.todayCount||0,l:'Today',icon:'📅',c:'var(--orange)'},
+    {v:stats.weekCount||0,l:'This Week',icon:'📊',c:'var(--text)'},
+    {v:resRate,l:'Resolution %',icon:'⭐',c:resRate>=70?'var(--green)':resRate>=50?'var(--yellow)':'var(--red)'},
+  ];
+
+  return <div className="fade-in">
+    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:22}}>
+      {kpis.map((k,i)=><div key={i} className="kpi" style={{animationDelay:(i*.04)+'s'}}>
+        <div className="kpi-icon">{k.icon}</div>
+        <div className="kpi-val" style={{color:k.c}}>{k.v}{k.l==='Resolution %'?'%':''}</div>
+        <div className="kpi-lbl">{k.l}</div>
+      </div>)}
+    </div>
+
+    <div className="g2" style={{alignItems:'start'}}>
+      <div className="card">
+        <div style={{fontWeight:700,fontSize:13,marginBottom:14,display:'flex',alignItems:'center',gap:8}}>
+          <span>📍 Complaints by District</span>
+          <span style={{fontSize:11,color:'var(--muted)',marginLeft:'auto'}}>{complaints.length} total</span>
+        </div>
+        {topDists.length===0?<div style={{color:'var(--muted)',fontSize:12}}>No complaints yet</div>:
+        topDists.map(([dist,cnt])=><div className="bar-row" key={dist}>
+          <span className="bar-lbl">{dist}</span>
+          <div className="bar-track"><div className="bar-fill" style={{width:`${Math.round(cnt/maxD*100)}%`,background:color}}/></div>
+          <span className="bar-num">{cnt}</span>
+        </div>)}
+      </div>
+
+      <div className="card">
+        <div style={{fontWeight:700,fontSize:13,marginBottom:14}}>📊 Status Breakdown</div>
+        {[['Pending','pending','var(--yellow)'],[' In Progress','in_progress','var(--blue)'],['Resolved','resolved','var(--green)'],['Closed','closed','var(--muted)']].map(([lbl,key,col])=>{
+          const cnt=complaints.filter(c=>c.status===key).length;
+          const pct=stats.total?Math.round(cnt/stats.total*100):0;
+          return <div key={key} style={{marginBottom:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:5}}>
+              <span style={{color:'var(--muted)'}}>{lbl}</span>
+              <span style={{color:col,fontWeight:600}}>{cnt} ({pct}%)</span>
+            </div>
+            <div className="progress"><div className="progress-bar" style={{width:pct+'%',background:col}}/></div>
+          </div>;
+        })}
+        <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border)',fontSize:12,color:'var(--muted)'}}>
+          SLA Target: <b style={{color:'var(--text)'}}>{dept.sla}h response</b> · Helpline: <b style={{color:'var(--orange)'}}>{dept.helpline}</b>
+        </div>
+      </div>
+    </div>
+
+    {newIds.size>0&&<div style={{marginTop:20,background:'rgba(255,153,51,.08)',border:'1px solid rgba(255,153,51,.25)',borderRadius:12,padding:14}}>
+      <div style={{fontWeight:700,color:'var(--orange)',marginBottom:10}}>🔔 New Complaints ({newIds.size})</div>
+      {complaints.filter(c=>newIds.has(c.id)).slice(0,3).map(c=><ComplaintCard key={c.id} c={c} isNew token={token} onRefresh={onRefresh} addToast={addToast}/>)}
+    </div>}
+  </div>;
+}
+
+/* ── COMPLAINTS PAGE ─────────────────────────────────────────────────────── */
+function ComplaintsPage({token,dept,complaints,newIds,onRefresh,addToast}){
+  const [filter,setFilter]=useState('all');
+  const [search,setSearch]=useState('');
+  const [sort,setSort]=useState('newest');
+
+  const filtered=useMemo(()=>{
+    let c=[...complaints];
+    if(filter==='p1')c=c.filter(x=>x.priority==='P1');
+    else if(filter==='pending')c=c.filter(x=>x.status==='pending');
+    else if(filter==='in_progress')c=c.filter(x=>x.status==='in_progress');
+    else if(filter==='resolved')c=c.filter(x=>x.status==='resolved'||x.status==='closed');
+    else if(filter==='photos')c=c.filter(x=>x.beforePhoto||x.afterPhoto);
+    if(search)c=c.filter(x=>(x.description||'').toLowerCase().includes(search.toLowerCase())||(x.ticketId||'').toLowerCase().includes(search.toLowerCase())||(x.location||'').toLowerCase().includes(search.toLowerCase()));
+    if(sort==='newest')c.sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
+    else if(sort==='oldest')c.sort((a,b)=>new Date(a.submittedAt)-new Date(b.submittedAt));
+    else if(sort==='priority')c.sort((a,b)=>a.priority.localeCompare(b.priority));
+    return c;
+  },[complaints,filter,search,sort]);
+
+  return <div className="fade-in">
+    <div className="card" style={{marginBottom:16}}>
+      <div style={{display:'flex',gap:10,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
+        <input className="search" placeholder="🔍 Search complaints, ticket IDs, locations…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:200}}/>
+        <select className="select" value={sort} onChange={e=>setSort(e.target.value)} style={{width:'auto',minWidth:130}}>
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="priority">Priority</option>
+        </select>
+      </div>
+      <div className="filter-bar">
+        {[['all','All',complaints.length],['p1','🔴 P1 Critical',complaints.filter(c=>c.priority==='P1').length],['pending','Pending',complaints.filter(c=>c.status==='pending').length],['in_progress','In Progress',complaints.filter(c=>c.status==='in_progress').length],['resolved','Resolved',complaints.filter(c=>c.status==='resolved'||c.status==='closed').length],['photos','📷 Has Photo',complaints.filter(c=>c.beforePhoto||c.afterPhoto).length]].map(([f,l,ct])=>
+          <button key={f} className={'filter-btn'+(filter===f?' active':'')} onClick={()=>setFilter(f)}>{l} <span style={{opacity:.6}}>({ct})</span></button>
+        )}
+      </div>
+    </div>
+
+    {filtered.length===0?<div className="card" style={{textAlign:'center',padding:40,color:'var(--muted)'}}>No complaints match your filter</div>:
+    filtered.map(c=><ComplaintCard key={c.id} c={c} isNew={newIds.has(c.id)} token={token} onRefresh={onRefresh} addToast={addToast}/>)}
+  </div>;
+}
+
+/* ── WORKERS PAGE ────────────────────────────────────────────────────────── */
+function WorkersPage({token,dept}){
+  const [workers,setWorkers]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState('');
+
+  useEffect(()=>{
+    api.get(`/api/dept/${dept.id}/workers`,token).then(d=>{setWorkers(Array.isArray(d)?d:d.workers||[]);}).catch(()=>{}).finally(()=>setLoading(false));
+  },[dept.id,token]);
+
+  const filtered=workers.filter(w=>(w.name||'').toLowerCase().includes(search.toLowerCase())||(w.ward||'').toLowerCase().includes(search.toLowerCase()));
+  const active=workers.filter(w=>w.status==='active').length;
+  const onLeave=workers.filter(w=>w.status==='on_leave').length;
+
+  return <div className="fade-in">
+    <div className="g3" style={{marginBottom:18}}>
+      {[{v:workers.length,l:'Total Workers',c:'var(--text)',icon:'👥'},{v:active,l:'Active',c:'var(--green)',icon:'🟢'},{v:onLeave,l:'On Leave',c:'var(--yellow)',icon:'🟡'}].map((k,i)=>
+        <div key={i} className="kpi"><div className="kpi-icon">{k.icon}</div><div className="kpi-val" style={{color:k.c}}>{k.v}</div><div className="kpi-lbl">{k.l}</div></div>
+      )}
+    </div>
+
+    <div className="card" style={{marginBottom:16}}>
+      <input className="search" placeholder="🔍 Search by name or ward…" value={search} onChange={e=>setSearch(e.target.value)}/>
+    </div>
+
+    {loading?<div className="card" style={{textAlign:'center',padding:40}}><Spinner size={28}/></div>:
+    filtered.length===0?<div className="card" style={{textAlign:'center',padding:40,color:'var(--muted)'}}>No workers found</div>:
+    <div className="g2">
+      {filtered.map(w=>{
+        const sc=w.status==='active'?'var(--green)':w.status==='on_leave'?'var(--yellow)':'var(--muted)';
+        const bg=w.status==='active'?'rgba(63,185,80,.1)':w.status==='on_leave'?'rgba(210,153,34,.1)':'rgba(139,148,158,.1)';
+        return <div key={w.id} className="worker-card slide-in">
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+            <div>
+              <div style={{fontWeight:600,fontSize:13}}>{w.name}</div>
+              <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>📍 {w.ward} · {w.district}</div>
+            </div>
+            <span style={{fontSize:10,fontWeight:700,color:sc,background:bg,padding:'2px 8px',borderRadius:10,textTransform:'uppercase'}}>{w.status||'active'}</span>
+          </div>
+          <div style={{display:'flex',gap:12,fontSize:12,color:'var(--muted)',flexWrap:'wrap'}}>
+            <span>⭐ <b style={{color:'var(--text)'}}>{w.score||0}</b> pts</span>
+            <span>✅ <b style={{color:'var(--text)'}}>{w.totalResolved||0}</b> resolved</span>
+            <span>Today: <b style={{color:'var(--orange)'}}>{w.resolvedToday||0}</b></span>
+            {w.avgRating&&<span>⭐ {(w.avgRating).toFixed(1)}</span>}
+          </div>
+          {w.currentTask&&<div style={{fontSize:11,color:'var(--orange)',marginTop:8,background:'rgba(255,153,51,.08)',padding:'4px 8px',borderRadius:6}}>📋 {w.currentTask}</div>}
+          {w.phone&&<div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>📱 {w.phone}</div>}
+        </div>;
+      })}
+    </div>}
+  </div>;
+}
+
+/* ── SOS ALERTS PAGE ─────────────────────────────────────────────────────── */
+function SOSPage({token,dept,addToast}){
+  const [alerts,setAlerts]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [selected,setSelected]=useState(null);
+
+  const load=useCallback(()=>{
+    api.get('/api/sos',token).then(d=>{setAlerts(Array.isArray(d)?d:d.alerts||[]);}).catch(()=>{}).finally(()=>setLoading(false));
+  },[token]);
+
+  useEffect(()=>{load();},[load]);
+
+  const active=alerts.filter(a=>a.status==='active');
+  const resolved=alerts.filter(a=>a.status==='resolved');
+  const womenSafety=alerts.filter(a=>a.category==='women_safety');
+
+  return <div className="fade-in">
+    <div className="g3" style={{marginBottom:18}}>
+      {[{v:alerts.length,l:'Total Alerts',icon:'🆘',c:'var(--text)'},{v:active.length,l:'Active',icon:'🔴',c:'var(--red)'},{v:womenSafety.length,l:'Women Safety',icon:'🛡️',c:'var(--purple)'}].map((k,i)=>
+        <div key={i} className="kpi"><div className="kpi-icon">{k.icon}</div><div className="kpi-val" style={{color:k.c}}>{k.v}</div><div className="kpi-lbl">{k.l}</div></div>
+      )}
+    </div>
+
+    {active.length>0&&<div style={{marginBottom:20}}>
+      <div style={{fontWeight:700,fontSize:13,color:'var(--red)',marginBottom:10,display:'flex',alignItems:'center',gap:6}}>
+        <div style={{width:8,height:8,borderRadius:'50%',background:'var(--red)',animation:'pulse 1s infinite'}}/>
+        Active Alerts ({active.length})
+      </div>
+      {active.map(a=><div key={a.id} className={'sos-card'+(a.category==='women_safety'?' women':'')} onClick={()=>setSelected(a)}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <span style={{fontSize:20}}>{CAT_ICONS[a.category]||'🆘'}</span>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,color:a.category==='women_safety'?'var(--purple)':'var(--red)'}}>{a.category==='women_safety'?'🛡️ WOMEN SAFETY PANIC SOS':(a.category||'SOS').replace('_',' ').toUpperCase()}</div>
+              <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{timeAgo(a.triggeredAt||a.createdAt)}</div>
+            </div>
+          </div>
+          <span style={{fontSize:10,background:'rgba(248,81,73,.2)',color:'var(--red)',padding:'3px 8px',borderRadius:10,fontWeight:700}}>ACTIVE</span>
+        </div>
+        <div style={{fontSize:12,color:'var(--muted)',marginBottom:4}}>📍 {a.location||'Location updating…'}</div>
+        <div style={{fontSize:12}}>By: <b>{a.triggeredBy||'Unknown'}</b> · District: {a.district}</div>
+        {a.nearestPoliceStation&&<div style={{fontSize:11,color:'var(--blue)',marginTop:6}}>🚔 Nearest: {a.nearestPoliceStation} ({a.policeDistance?.toFixed?.(1)||'?'}km)</div>}
+        {a.audioRecordingUrl&&<div style={{fontSize:11,color:'var(--purple)',marginTop:4}}>🎙️ Audio recording available</div>}
+      </div>)}
+    </div>}
+
+    {loading?<div className="card" style={{textAlign:'center',padding:40}}><Spinner size={28}/></div>:
+    alerts.length===0?<div className="card" style={{textAlign:'center',padding:40,color:'var(--muted)'}}>No SOS alerts in your district</div>:
+    <div>
+      <div style={{fontWeight:700,fontSize:13,color:'var(--muted)',marginBottom:10}}>All Alerts ({alerts.length})</div>
+      {alerts.filter(a=>a.status!=='active').map(a=><div key={a.id} className="sos-card" style={{opacity:.75}} onClick={()=>setSelected(a)}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <span>{CAT_ICONS[a.category]||'🆘'}</span>
+            <div>
+              <div style={{fontSize:13,fontWeight:600}}>{(a.category||'SOS').replace('_',' ')}</div>
+              <div style={{fontSize:11,color:'var(--muted)'}}>{a.triggeredBy} · {timeAgo(a.triggeredAt||a.createdAt)}</div>
+            </div>
+          </div>
+          <span className="badge badge-resolved">{a.status}</span>
+        </div>
+      </div>)}
+    </div>}
+
+    {selected&&<div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setSelected(null);}}>
+      <div className="modal fade-in">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}}>
+          <div style={{fontSize:18,fontWeight:700,color:selected.category==='women_safety'?'var(--purple)':'var(--red)'}}>
+            {CAT_ICONS[selected.category]||'🆘'} {(selected.category||'SOS').replace('_',' ').toUpperCase()}
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={()=>setSelected(null)}>✕</button>
+        </div>
+        <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'}}>
+          <span className={'badge '+(selected.status==='active'?'badge-red':'badge-resolved')}>{selected.status?.toUpperCase()}</span>
+          {selected.district&&<span className="badge badge-blue">{selected.district}</span>}
+        </div>
+        <div className="g2" style={{gap:10,fontSize:12,marginBottom:14}}>
+          <div><div style={{color:'var(--muted)',marginBottom:2}}>TRIGGERED BY</div><div>{selected.triggeredBy||'Unknown'}</div></div>
+          <div><div style={{color:'var(--muted)',marginBottom:2}}>LOCATION</div><div>📍 {selected.location||'Unknown'}</div></div>
+          <div><div style={{color:'var(--muted)',marginBottom:2}}>TIME</div><div>{fmtDate(selected.triggeredAt||selected.createdAt)}</div></div>
+          {selected.geo&&<div><div style={{color:'var(--muted)',marginBottom:2}}>GPS</div><div>{selected.geo.lat?.toFixed?.(5)}, {selected.geo.lng?.toFixed?.(5)}</div></div>}
+          {selected.nearestPoliceStation&&<div><div style={{color:'var(--muted)',marginBottom:2}}>NEAREST POLICE</div><div>🚔 {selected.nearestPoliceStation}</div></div>}
+          {selected.policeDistance&&<div><div style={{color:'var(--muted)',marginBottom:2}}>DISTANCE</div><div>{selected.policeDistance?.toFixed?.(1)}km</div></div>}
+        </div>
+        {selected.description&&<div style={{background:'#1c2128',borderRadius:8,padding:12,fontSize:13,lineHeight:1.6,marginBottom:14}}>{selected.description}</div>}
+        {selected.audioRecordingUrl&&<div style={{background:'rgba(188,140,255,.1)',border:'1px solid rgba(188,140,255,.25)',borderRadius:8,padding:12,marginBottom:14}}>
+          <div style={{color:'var(--purple)',fontWeight:600,fontSize:13,marginBottom:4}}>🎙️ Audio Recording Available</div>
+          <audio controls src={selected.audioRecordingUrl} style={{width:'100%'}}/>
+        </div>}
+        {selected.geo&&<a href={`https://maps.google.com/?q=${selected.geo.lat},${selected.geo.lng}`} target="_blank" style={{display:'block',marginTop:10}}>
+          <button className="btn btn-blue" style={{width:'100%',justifyContent:'center'}}>🗺️ Open in Google Maps</button>
+        </a>}
+      </div>
+    </div>}
+  </div>;
+}
+
+/* ── ANALYTICS PAGE ──────────────────────────────────────────────────────── */
+function AnalyticsPage({complaints,stats,dept}){
+  const color=dept.color||'var(--orange)';
+  const resRate=stats.total?Math.round((stats.resolved||0)/stats.total*100):0;
+  const grade=resRate>=80?'A':resRate>=65?'B':resRate>=50?'C':'D';
+  const gradeColor={'A':'var(--green)','B':'var(--blue)','C':'var(--yellow)','D':'var(--red)'}[grade];
+
+  const byPriority={P1:0,P2:0,P3:0,P4:0};
+  complaints.forEach(c=>{if(byPriority[c.priority]!==undefined)byPriority[c.priority]++;});
+
+  const byDistrict={};
+  complaints.forEach(c=>{const k=c.district||'Unknown';byDistrict[k]=(byDistrict[k]||0)+1;});
+
+  const last30=Date.now()-30*86400000;
+  const recent=complaints.filter(c=>new Date(c.submittedAt)>last30);
+  const resolvedRecent=recent.filter(c=>c.status==='resolved'||c.status==='closed').length;
+
+  return <div className="fade-in">
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr auto',gap:14,marginBottom:22,alignItems:'start'}}>
+      <div className="card" style={{gridColumn:'1'}}>
+        <div style={{fontWeight:700,fontSize:13,marginBottom:16}}>📊 Priority Distribution</div>
+        {Object.entries(byPriority).map(([p,cnt])=>{
+          const pct=stats.total?Math.round(cnt/stats.total*100):0;
+          const col={'P1':'var(--red)','P2':'var(--orange)','P3':'var(--blue)','P4':'var(--muted)'}[p];
+          return <div key={p} style={{marginBottom:12}}>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}>
+              <span className={'badge badge-'+p}>{p}</span>
+              <span style={{color:'var(--muted)'}}>{cnt} ({pct}%)</span>
+            </div>
+            <div className="progress"><div className="progress-bar" style={{width:pct+'%',background:col}}/></div>
+          </div>;
+        })}
+      </div>
+
+      <div className="card">
+        <div style={{fontWeight:700,fontSize:13,marginBottom:16}}>📈 Last 30 Days</div>
+        <div className="kpi-val" style={{color:'var(--orange)',fontSize:36,marginBottom:4}}>{recent.length}</div>
+        <div style={{fontSize:12,color:'var(--muted)',marginBottom:14}}>Complaints filed</div>
+        <div style={{fontSize:12,marginBottom:8}}>✅ Resolved: <b style={{color:'var(--green)'}}>{resolvedRecent}</b></div>
+        <div style={{fontSize:12,marginBottom:8}}>⏳ Pending: <b style={{color:'var(--yellow)'}}>{recent.length-resolvedRecent}</b></div>
+        <div style={{fontSize:12,marginBottom:8}}>Today: <b style={{color:'var(--orange)'}}>{stats.todayCount||0}</b></div>
+        <div style={{fontSize:12}}>This week: <b style={{color:'var(--blue)'}}>{stats.weekCount||0}</b></div>
+      </div>
+
+      <div className="card" style={{textAlign:'center',minWidth:140}}>
+        <div style={{fontWeight:700,fontSize:13,marginBottom:14}}>Performance Grade</div>
+        <div style={{fontSize:72,fontWeight:800,color:gradeColor,lineHeight:1}}>{grade}</div>
+        <div style={{fontSize:13,color:'var(--muted)',marginTop:4}}>{resRate}% resolved</div>
+        <div style={{fontSize:11,color:'var(--muted)',marginTop:8}}>SLA: {dept.sla}h target</div>
+        <div style={{marginTop:12,padding:'6px 12px',background:resRate>=70?'rgba(63,185,80,.1)':'rgba(248,81,73,.1)',borderRadius:8,fontSize:11,color:resRate>=70?'var(--green)':'var(--red)',fontWeight:600}}>
+          {resRate>=70?'✅ On Track':'⚠️ Needs Attention'}
+        </div>
+      </div>
+    </div>
+
+    <div className="card">
+      <div style={{fontWeight:700,fontSize:13,marginBottom:14}}>🗺️ Top Districts by Complaint Volume</div>
+      <table className="table">
+        <thead><tr><th>District</th><th>Total</th><th>Pending</th><th>Resolved</th><th>Resolution %</th></tr></thead>
+        <tbody>
+          {Object.entries(byDistrict).sort((a,b)=>b[1]-a[1]).map(([dist,total])=>{
+            const dc=complaints.filter(c=>c.district===dist);
+            const res=dc.filter(c=>c.status==='resolved'||c.status==='closed').length;
+            const pend=dc.filter(c=>c.status==='pending').length;
+            const rate=total?Math.round(res/total*100):0;
+            return <tr key={dist}>
+              <td style={{fontWeight:600}}>{dist}</td>
+              <td>{total}</td>
+              <td style={{color:'var(--yellow)'}}>{pend}</td>
+              <td style={{color:'var(--green)'}}>{res}</td>
+              <td><span style={{color:rate>=70?'var(--green)':rate>=50?'var(--yellow)':'var(--red)',fontWeight:600}}>{rate}%</span></td>
+            </tr>;
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>;
+}
+
+/* ── DEPT INFO PAGE ──────────────────────────────────────────────────────── */
+function DeptInfoPage({dept}){
+  const info=[
+    {l:'Department Name',v:`${dept.icon} ${dept.name}`},
+    {l:'Hindi Name',v:dept.nameHindi},
+    {l:'Head of Department',v:dept.head},
+    {l:'Office Address',v:dept.address},
+    {l:'Primary Helpline',v:dept.helpline},
+    {l:'Secondary Contact',v:dept.helpline2},
+    {l:'Email',v:dept.email||`info.${dept.id}@uk.gov.in`},
+    {l:'SLA Target',v:`${dept.sla} hours first response`},
+    {l:'Complaint Categories',v:dept.categories.length>0?dept.categories.join(', '):'All civic categories'},
+  ];
+
+  const links=[
+    {l:'🌐 Public Dashboard',u:'/web/public'},
+    {l:'🆘 CPR Safety Command',u:'/web/cpr'},
+    {l:'📄 RTI Portal',u:'/web/rti'},
+    {l:'🏛️ Unified Portal',u:'/web/portal'},
+    {l:'📱 Mobile App Landing',u:'/'},
+  ];
+
+  return <div className="fade-in">
+    <div className="g2" style={{alignItems:'start'}}>
+      <div className="card">
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20,paddingBottom:16,borderBottom:'1px solid var(--border)'}}>
+          <div style={{fontSize:40}}>{dept.icon}</div>
+          <div>
+            <div style={{fontWeight:700,fontSize:16}}>{dept.name}</div>
+            <div style={{fontSize:13,color:'var(--muted)',marginTop:2}}>{dept.nameHindi}</div>
+            <div style={{fontSize:11,color:'var(--orange)',marginTop:4,fontWeight:600}}>Government of Uttarakhand</div>
+          </div>
+        </div>
+        {info.map(({l,v})=><div key={l} style={{display:'flex',gap:12,marginBottom:14,fontSize:13}}>
+          <div style={{width:160,color:'var(--muted)',flexShrink:0,fontSize:11,textTransform:'uppercase',letterSpacing:.4,paddingTop:1}}>{l}</div>
+          <div style={{fontWeight:500,flex:1}}>{v}</div>
+        </div>)}
+      </div>
+
+      <div>
+        <div className="card" style={{marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:14}}>🚨 Emergency Contacts</div>
+          <div style={{background:'rgba(255,153,51,.08)',border:'1px solid rgba(255,153,51,.2)',borderRadius:10,padding:14,marginBottom:10}}>
+            <div style={{fontSize:24,fontWeight:800,color:'var(--orange)',letterSpacing:1}}>{dept.helpline}</div>
+            <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>Primary Helpline (Toll Free)</div>
+          </div>
+          <div style={{background:'#1c2128',borderRadius:10,padding:14}}>
+            <div style={{fontSize:18,fontWeight:700,color:'var(--text)'}}>{dept.helpline2}</div>
+            <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>Office / Direct Line</div>
+          </div>
+          <div style={{marginTop:14,borderTop:'1px solid var(--border)',paddingTop:12,fontSize:12}}>
+            <div style={{color:'var(--muted)',marginBottom:6}}>National Emergency Numbers</div>
+            {[['Police','100'],['Ambulance','108'],['Women Helpline','1090'],['Disaster','1070'],['Unified Emergency','112']].map(([l,n])=>
+              <div key={l} style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                <span style={{color:'var(--muted)'}}>{l}</span>
+                <span style={{fontWeight:600,color:'var(--orange)',fontFamily:'monospace'}}>{n}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <div style={{fontWeight:700,fontSize:13,marginBottom:14}}>🔗 Portal Links</div>
+          {links.map(({l,u})=><a key={u} href={u} style={{display:'block',padding:'9px 12px',background:'#1c2128',border:'1px solid var(--border)',borderRadius:8,color:'var(--orange)',textDecoration:'none',fontSize:12,marginBottom:6,transition:'all .15s'}}
+            onMouseEnter={e=>e.target.style.borderColor='var(--orange)'} onMouseLeave={e=>e.target.style.borderColor='var(--border)'}>{l}</a>)}
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+/* ── MAIN DASHBOARD APP ──────────────────────────────────────────────────── */
+function Dashboard({token,dept,onLogout}){
+  const [page,setPage]=useState('dashboard');
+  const [complaints,setComplaints]=useState([]);
+  const [stats,setStats]=useState({});
+  const [workers,setWorkers]=useState([]);
+  const [newIds,setNewIds]=useState(new Set());
+  const [toasts,setToasts]=useState([]);
+  const [sosCount,setSosCount]=useState(0);
+  const esRef=useRef(null);
+  const isPoliceOrUsdma=dept.id==='police'||dept.id==='usdma'||dept.id==='health';
+
+  const addToast=useCallback((msg,type='success')=>{
+    const id=Date.now();setToasts(prev=>[...prev,{id,msg,type}]);
+  },[]);
+  const removeToast=useCallback(id=>setToasts(prev=>prev.filter(t=>t.id!==id)),[]);
+
+  const loadData=useCallback(()=>{
+    api.get(`/api/dept/${dept.id}/complaints`,token).then(d=>{setComplaints(d.complaints||[]);}).catch(()=>{});
+    api.get(`/api/dept/${dept.id}/stats`,token).then(setStats).catch(()=>{});
+    if(isPoliceOrUsdma)api.get('/api/sos',token).then(d=>{setSosCount((Array.isArray(d)?d:d.alerts||[]).filter(a=>a.status==='active').length);}).catch(()=>{});
+  },[token,dept.id,isPoliceOrUsdma]);
+
+  useEffect(()=>{loadData();},[loadData]);
+
+  // SSE real-time stream
+  useEffect(()=>{
+    const es=new EventSource(`${API}/api/dept/${dept.id}/stream`);
+    esRef.current=es;
+    es.onmessage=e=>{
+      try{
+        const data=JSON.parse(e.data);
+        if(data.type==='complaint_new'){
+          setComplaints(prev=>[data.complaint,...prev]);
+          setNewIds(prev=>new Set([...prev,data.complaint.id]));
+          setStats(prev=>({...prev,pending:(prev.pending||0)+1,total:(prev.total||0)+1,todayCount:(prev.todayCount||0)+1}));
+          setTimeout(()=>setNewIds(prev=>{const n=new Set(prev);n.delete(data.complaint.id);return n;}),10000);
+          addToast(`New complaint: ${data.complaint.ticketId||''}  ${(data.complaint.description||'').slice(0,50)}`,'info');
+          if('Notification'in window&&Notification.permission==='granted'){
+            try{new Notification('New Complaint',{body:`${data.complaint.ticketId||''} - ${(data.complaint.description||'').slice(0,80)}`,icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🏛️</text></svg>'});}catch{}
+          }
+        }
+        if(data.type==='complaint_updated'){
+          setComplaints(prev=>prev.map(c=>c.id===data.complaint?.id?data.complaint:c));
+        }
+        if(data.type==='sos_alert'&&isPoliceOrUsdma){
+          setSosCount(c=>c+1);
+          addToast(`🆘 WOMEN SAFETY SOS ALERT! ${data.alert?.location||'Unknown location'}`,'error');
+        }
+      }catch{}
+    };
+    return()=>es.close();
+  },[dept.id,token,addToast,isPoliceOrUsdma]);
+
+  // Request notification permission
+  useEffect(()=>{
+    if('Notification'in window&&Notification.permission==='default')Notification.requestPermission().catch(()=>{});
+  },[]);
+
+  const navItems=[
+    {id:'dashboard',icon:'🏠',label:'Dashboard'},
+    {id:'complaints',icon:'📋',label:'Complaints',badge:newIds.size||null},
+    {id:'workers',icon:'👥',label:'Workers'},
+    isPoliceOrUsdma&&{id:'sos',icon:'🆘',label:'SOS Alerts',badge:sosCount||null},
+    {id:'analytics',icon:'📊',label:'Analytics'},
+    {id:'info',icon:'ℹ️',label:'Dept Info'},
+  ].filter(Boolean);
+
+  return <div className="app">
+    {/* SIDEBAR */}
+    <div className="sidebar">
+      <div className="sidebar-logo">
+        <div className="logo-txt">SANKALP<span> AI</span></div>
+        <div className="logo-sub">Department Portal</div>
+        <div className="dept-info" style={{marginTop:10,padding:'8px',background:'rgba(255,255,255,.04)',borderRadius:8,borderLeft:`3px solid ${dept.color||'var(--orange)'}`}}>
+          <div style={{fontSize:11,fontWeight:600,color:'var(--text)'}}>{dept.icon} {dept.name}</div>
+          <div style={{fontSize:10,color:'var(--muted)',marginTop:1}}>{dept.nameHindi}</div>
+        </div>
+      </div>
+      <div className="sidebar-nav">
+        {navItems.map((n,i)=><div key={n.id} className={'nav-item'+(page===n.id?' active':'')} onClick={()=>setPage(n.id)} style={{animationDelay:(i*.03)+'s'}}>
+          <span style={{fontSize:16,flexShrink:0}}>{n.icon}</span>
+          <span className="nav-lbl" style={{flex:1}}>{n.label}</span>
+          {n.badge>0&&<span className="nav-badge">{n.badge}</span>}
+        </div>)}
+      </div>
+      <div className="sidebar-footer">
+        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8,padding:'0 4px'}}>
+          <div className="live-dot"/>
+          <span className="nav-lbl" style={{fontSize:11,color:'var(--green)',fontWeight:600}}>LIVE</span>
+          {newIds.size>0&&<span className="nav-badge">{newIds.size} new</span>}
+        </div>
+        <button className="btn btn-ghost" style={{width:'100%',justifyContent:'center',fontSize:12}} onClick={onLogout}>
+          ⏻ <span className="nav-lbl">Sign Out</span>
+        </button>
+      </div>
+    </div>
+
+    {/* MAIN CONTENT */}
+    <div className="main">
+      <div className="topbar">
+        <div className="dept-badge">
+          <span style={{fontSize:24}}>{dept.icon}</span>
+          <div>
+            <div style={{fontWeight:700,fontSize:14}}>{dept.name}</div>
+            <div style={{fontSize:11,color:'var(--muted)'}}>{dept.nameHindi}</div>
+          </div>
+          <div style={{width:1,background:'var(--border)',height:32,margin:'0 8px'}}/>
+          <div className="live-dot"/>
+          <span style={{fontSize:12,color:'var(--green)',fontWeight:600}}>LIVE</span>
+          {newIds.size>0&&<span style={{background:'var(--orange)',color:'#000',fontSize:10,fontWeight:800,padding:'2px 8px',borderRadius:10}}>{newIds.size} NEW</span>}
+        </div>
+        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+          <button className="btn btn-ghost btn-sm" onClick={loadData}>↺ Refresh</button>
+          <a href="/web/portal" style={{textDecoration:'none'}}><button className="btn btn-ghost btn-sm">🏛️ Full Portal</button></a>
+          <button className="btn btn-ghost btn-sm" onClick={onLogout}>⏻ Logout</button>
+        </div>
+      </div>
+
+      {page==='dashboard'&&<DashboardPage token={token} dept={dept} complaints={complaints} stats={stats} workers={workers} newIds={newIds} onRefresh={loadData} addToast={addToast}/>}
+      {page==='complaints'&&<ComplaintsPage token={token} dept={dept} complaints={complaints} newIds={newIds} onRefresh={loadData} addToast={addToast}/>}
+      {page==='workers'&&<WorkersPage token={token} dept={dept}/>}
+      {page==='sos'&&isPoliceOrUsdma&&<SOSPage token={token} dept={dept} addToast={addToast}/>}
+      {page==='analytics'&&<AnalyticsPage complaints={complaints} stats={stats} dept={dept}/>}
+      {page==='info'&&<DeptInfoPage dept={dept}/>}
+    </div>
+
+    {/* TOASTS */}
+    <div style={{position:'fixed',bottom:20,right:20,zIndex:9999,display:'flex',flexDirection:'column',gap:8,maxWidth:340}}>
+      {toasts.slice(-4).map(t=><Toast key={t.id} msg={t.msg} type={t.type} onDone={()=>removeToast(t.id)}/>)}
+    </div>
+  </div>;
+}
+
+/* ── LOGIN SCREEN ────────────────────────────────────────────────────────── */
+function Login({onLogin}){
+  const [deptId,setDeptId]=useState('');
+  const [code,setCode]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState('');
+
+  async function submit(){
+    if(!deptId||!code)return;
+    setLoading(true);setError('');
+    try{
+      const d=await api.post('/api/dept/login',{departmentId:deptId,accessCode:code});
+      onLogin(d.token,DEPTS[deptId]||d.department);
+    }catch(e){setError(e.message);}
+    setLoading(false);
+  }
+
+  return <div className="login-wrap">
+    <div className="login-card fade-in">
+      <div style={{textAlign:'center',marginBottom:28}}>
+        <div style={{fontSize:40,marginBottom:10}}>🏛️</div>
+        <div style={{fontSize:22,fontWeight:800,color:'#fff',letterSpacing:.5}}>SANKALP <span style={{color:'var(--orange)'}}>AI</span></div>
+        <div style={{fontSize:12,color:'var(--muted)',marginTop:4}}>Department Portal — Government of Uttarakhand</div>
+      </div>
+
+      <div style={{marginBottom:16}}>
+        <label>Select Your Department</label>
+        <select className="select" value={deptId} onChange={e=>setDeptId(e.target.value)}>
+          <option value="">— Select Department —</option>
+          {DEPT_LIST.map(d=><option key={d.id} value={d.id}>{d.icon} {d.name}</option>)}
+        </select>
+      </div>
+      <div style={{marginBottom:20}}>
+        <label>Access Code</label>
+        <input className="input" type="password" placeholder="e.g. pwd_2026" value={code}
+          onChange={e=>setCode(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()}/>
+      </div>
+      {error&&<div style={{background:'rgba(248,81,73,.12)',border:'1px solid rgba(248,81,73,.3)',borderRadius:8,padding:10,marginBottom:14,fontSize:13,color:'var(--red)'}}>✗ {error}</div>}
+      <button className="btn btn-orange" style={{width:'100%',justifyContent:'center',padding:'12px',fontSize:14}} onClick={submit} disabled={loading||!deptId||!code}>
+        {loading?<><Spinner/> Signing in…</>:'🔑 Sign In to Department Portal'}
+      </button>
+
+      <div style={{background:'rgba(255,153,51,.06)',border:'1px solid rgba(255,153,51,.15)',borderRadius:10,padding:14,marginTop:20,fontSize:12,color:'var(--muted)'}}>
+        <div style={{fontWeight:600,marginBottom:6,color:'var(--orange)'}}>Demo Access Codes</div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+          {['pwd_2026','ulb_2026','jal_2026','upcl_2026','forest_2026','health_2026','usdma_2026','police_2026'].map(c=>
+            <code key={c} style={{background:'rgba(255,153,51,.1)',padding:'2px 7px',borderRadius:5,cursor:'pointer',color:'var(--orange)'}} onClick={()=>{const [d]=c.split('_');setDeptId(d);setCode(c);}}>{c}</code>
+          )}
+        </div>
+        <div style={{marginTop:8,fontSize:11,opacity:.7}}>Click any code to auto-fill</div>
+      </div>
+
+      <div style={{marginTop:16,display:'flex',gap:6,justifyContent:'center',flexWrap:'wrap'}}>
+        {[['🌐 Public','/web/public'],['🆘 CPR','/web/cpr'],['📄 RTI','/web/rti'],['🏛️ Portal','/web/portal']].map(([l,u])=>
+          <a key={u} href={u} style={{color:'var(--muted)',fontSize:11,textDecoration:'none',padding:'4px 10px',border:'1px solid var(--border)',borderRadius:6}}>{l}</a>
+        )}
+      </div>
+    </div>
+  </div>;
+}
+
+/* ── ROOT APP ────────────────────────────────────────────────────────────── */
+function App(){
+  const [token,setToken]=useState(()=>sessionStorage.getItem('dept_token'));
+  const [dept,setDept]=useState(()=>{try{return JSON.parse(sessionStorage.getItem('dept_info')||'null');}catch{return null;}});
+
+  function login(t,d){
+    sessionStorage.setItem('dept_token',t);
+    sessionStorage.setItem('dept_info',JSON.stringify(d));
+    setToken(t);setDept(d);
+  }
+  function logout(){
+    sessionStorage.clear();setToken(null);setDept(null);
+  }
+
+  if(!token||!dept)return <Login onLogin={login}/>;
+  return <Dashboard token={token} dept={dept} onLogout={logout}/>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

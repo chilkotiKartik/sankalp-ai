@@ -1,0 +1,975 @@
+# SANKALP AI — Complete Feature Document
+## *What Every Feature Is · Why It Must Exist · Who It Serves*
+
+> **"Because every citizen deserves to be heard."**
+> सब का साथ · सब का विकास · सब की आवाज़
+
+---
+
+## 📌 Document Purpose
+
+This document explains **every single feature** of SANKALP AI — not just what it does, but **why it must exist** in a platform built for digital democracy. Every feature here solves a real problem faced by Indian citizens or governance officials.
+
+---
+
+## 🧭 Platform Overview
+
+| Attribute | Detail |
+|---|---|
+| **Platform Name** | SANKALP AI |
+| **Type** | Smart Civic Governance + Digital Democracy App |
+| **Panels** | User (Citizen) · Admin (War Room) · Officer/Department |
+| **Core Purpose** | Bridge the gap between citizens and governance using AI, real-time data, and transparent accountability |
+| **Target Users** | Every Indian citizen, municipal officers, ward workers, police, MLAs, NGOs |
+
+---
+
+## 🏗️ Design Philosophy
+
+Before reading features, understand the **three laws** that justify every decision in this app:
+
+1. **Every problem a citizen faces must have a digital path to resolution.** No complaint should die in a WhatsApp group or be ignored at a government office.
+2. **Every officer must be accountable by data, not just by promise.** Performance must be measured, visible, and escalated automatically.
+3. **Democracy is not just voting every 5 years.** It is daily participation — in local decisions, in petitions, in transparency of public money.
+
+---
+
+---
+
+# 👤 PANEL 01 — CITIZEN / USER FEATURES
+
+---
+
+## 🔐 1. Authentication & Profile
+
+### What it is
+- Phone number + PIN based login
+- JWT (JSON Web Token) secure session management
+- User profile with name, ward number, area, and civic identity
+
+### Why it must exist
+Most government apps in India require complicated Aadhaar-linked logins, desktop computers, or government portals that confuse regular citizens. A simple **phone + PIN** system means:
+- A vegetable vendor in a Delhi ward can file a complaint in 30 seconds
+- No literacy requirement for registration
+- Ward assignment ensures complaints go to the **right jurisdiction automatically**
+- JWT ensures sessions are secure and cannot be hijacked
+
+> **Without this:** The app is inaccessible. A complex login kills adoption before it starts.
+
+---
+
+## 🏠 2. Citizen Dashboard
+
+### What it is
+- Live AQI readings: PM2.5, PM10, NO2, CO
+- Ward Health Score (0–100 composite index)
+- Quick-access buttons: SOS, File Complaint, Open Map
+
+### Why it must exist
+Citizens currently have **no single place** to see the health of their own area. AQI data exists on government websites but is:
+- Not ward-specific
+- Not real-time
+- Not understandable to average citizens
+
+The Ward Health Score translates complex environmental and civic data into **one number** a citizen can understand and track over time. If the score drops, something is wrong — they know to act.
+
+> **Without this:** Citizens are blind to the state of their own neighborhood. Awareness is the first step to action.
+
+---
+
+## 📝 3. AI-Powered Complaint System
+
+### What it is
+- Text-based complaint filing with **real-time AI classification while typing**
+- Auto-detects category: Pothole · Garbage · Water · Electricity · Streetlight
+- AI assigns priority score (0–100) based on severity language
+- Photo evidence upload
+- Status tracker: Pending → In Progress → Resolved
+
+### Why it must exist
+Traditional complaint systems (toll-free numbers, physical offices, web portals) have three fatal problems:
+1. **Misrouting** — a water complaint goes to the electricity department
+2. **No priority** — a broken streetlight gets the same queue position as a collapsed road
+3. **No accountability** — after filing, the citizen hears nothing
+
+AI classification solves misrouting automatically. Priority scoring ensures **dangerous issues** (a broken road causing accidents) don't sit behind minor ones. Photo evidence makes the complaint **irrefutable** — workers cannot mark it resolved without actual work.
+
+> **Without this:** Complaints disappear into bureaucratic black holes. Citizens stop trusting the system.
+
+---
+
+## 🚨 4. SOS Emergency System
+
+### What it is
+Five trigger methods:
+1. Tap screen 6 times rapidly
+2. Hold power area for 2 seconds
+3. Shake the phone
+4. Background app toggle
+5. On-screen red button
+
+After trigger:
+- GPS location sent every 15 seconds
+- Nearest police stations auto-notified
+- Admin war room receives real-time alert
+- Timer-based escalation if no response
+
+### Why it must exist
+India records significant incidents of street harassment, accidents, medical emergencies, and crimes daily. In a dangerous situation, a person **cannot** unlock phone → open app → type address → call. The SOS system is designed for **panic situations** where motor control is limited.
+
+Five trigger methods exist because:
+- A woman being followed cannot visibly open an SOS app
+- An accident victim may only be able to shake a phone
+- An elderly person may accidentally dismiss a button
+
+GPS every 15 seconds ensures responders track **movement**, not just a static location. This can mean the difference between life and death.
+
+> **Without this:** Citizens in genuine emergencies have no reliable fast path to help. Lives are at risk.
+
+---
+
+## 🗺️ 5. Live Risk Map
+
+### What it is
+- Pins for all nearby police stations with one-tap call
+- Active SOS locations (anonymized)
+- Color-coded risk zones: flood-prone, garbage-heavy, crime-reported
+- Real-time updates as data changes
+
+### Why it must exist
+Citizens make daily decisions based on where they go and when. A **visual map of risk** gives people:
+- Awareness before entering a dangerous area at night
+- Quick access to nearest police station in emergency
+- Community understanding of which zones need attention
+
+For administrators, risk zone overlays guide **where to deploy workers** and **where to pre-position emergency resources**.
+
+> **Without this:** Risk information exists in isolated databases. Citizens walk into danger uninformed.
+
+---
+
+## 💡 6. Government Schemes Directory
+
+### What it is
+Database of major schemes: PM Awas Yojana, Ayushman Bharat, Jan Dhan, PM Kisan — with:
+- Eligibility criteria in plain language
+- Benefits explained simply
+- Required documents list
+- Step-by-step application guide
+
+### Why it must exist
+India has some of the most generous government welfare schemes in the world — and millions of eligible citizens who **never benefit from them** because:
+- They don't know the scheme exists
+- They don't understand eligibility
+- They don't know which documents to bring
+- They get turned away by middlemen asking for bribes
+
+Putting this information inside a trusted civic app — in simple language — removes middlemen and empowers citizens to **self-apply**.
+
+> **Without this:** Public money meant for the poor never reaches them due to information asymmetry.
+
+---
+
+## 💳 7. Integrated Bill Payments
+
+### What it is
+- Electricity bill payment (BSES)
+- Water bill payment (DJB)
+- MCD service charges
+- Traffic fine clearance
+
+### Why it must exist
+Citizens currently pay these bills through:
+- Multiple different apps or websites
+- Physical offices with long queues
+- Third-party agents who charge commissions
+
+Consolidating into one civic app means a citizen already using SANKALP AI for complaints and SOS **does not need to switch apps** for routine civic financial duties. This increases daily active usage and keeps citizens engaged with the platform.
+
+> **Without this:** The app is only used in emergencies. Integration makes it a **daily civic companion**.
+
+---
+
+## 🏆 8. Civic Gamification & Leaderboard
+
+### What it is
+- Citizen contribution points for: filing complaints, verifying others' complaints, volunteering, attending civic events
+- Monthly ward leaderboard
+- Badges and recognition for top contributors
+
+### Why it must exist
+Civic participation in India suffers from **apathy** — most citizens believe their individual action changes nothing. Gamification creates:
+- **Social proof**: "If my neighbor filed 12 complaints and 9 were resolved, it works"
+- **Positive competition**: Wards compete to have higher resolution rates
+- **Recognition**: Active citizens get public acknowledgment, encouraging others
+
+Research shows gamification increases app engagement by 40–60% in civic tech contexts.
+
+> **Without this:** Only motivated individuals participate. The majority remains disengaged.
+
+---
+
+## 🤖 9. AI Assistant (Chatbot)
+
+### What it is
+Natural language question-answer system that can answer:
+- "Am I eligible for PM Awas Yojana?"
+- "How do I file an RTI?"
+- "Which department handles broken streetlights?"
+- "What documents do I need for Ayushman Bharat?"
+
+### Why it must exist
+Citizens often know they have a problem but **don't know the right path** — which department, which form, which office. A civic chatbot provides **always-available guidance** without the need to visit an office or know an insider.
+
+It also offloads repetitive citizen queries from admin staff, freeing them for real work.
+
+> **Without this:** Citizens are stuck at the first step — "I don't know who to contact." The journey ends before it begins.
+
+---
+
+## 🗳️ 10. Digital Ward Voting & Polls *(NEW)*
+
+### What it is
+- Admin or ward officer creates a poll question (e.g., "What should we fix first: Road or Park?")
+- Citizens in that ward vote digitally
+- Results are public and tamper-evident
+- Winning priority is formally logged as a mandate
+
+### Why it must exist
+Currently, **no mechanism exists** for citizens to formally express collective preferences on local spending. Ward meetings happen once a month, are poorly attended, and the loudest voices dominate. Digital polling:
+- Captures the **silent majority's opinion**
+- Creates a documented mandate that officers must respect
+- Takes 30 seconds for a citizen to participate
+- Can run simultaneously across all wards
+
+This is grassroots digital democracy — every ward gets a voice in how public money is spent.
+
+> **Without this:** Local decisions are made by a handful of officers and politically connected individuals, not the actual residents.
+
+---
+
+## 📢 11. Petition System with Auto-Escalation *(NEW)*
+
+### What it is
+- Any citizen creates a petition on any civic issue
+- Other citizens in the ward/city sign it digitally
+- When signature threshold is crossed (configurable: 100, 500, 1000):
+  - Petition auto-delivered to relevant ward officer / MLA / department head
+  - Officer required to respond within 7 days (SLA enforced)
+  - Response published publicly on the petition page
+
+### Why it must exist
+Currently, citizen petitions in India:
+- Are handed as physical papers that get lost
+- Have no legal enforcement mechanism
+- Require knowing the right office to submit to
+
+This system creates **digital accountability for petitions**. The auto-escalation means a citizen does not need to know who the ward officer is — the system routes it. The mandatory response window means officials **cannot ignore** it without the system flagging them.
+
+> **Without this:** Collective citizen voice has no formal channel. A thousand people can care about something and still be ignored.
+
+---
+
+## 🎙️ 12. Voice Complaint Input *(NEW)*
+
+### What it is
+- Citizen taps microphone and speaks their complaint
+- AI transcribes speech in real-time
+- Supports Hindi, English, and major regional languages
+- AI classifies, prioritizes, and files the complaint automatically
+- Citizen confirms with one tap
+
+### Why it must exist
+India's literacy rate is improving but millions of citizens — elderly, rural, less educated — find **typing a barrier**. Voice removes this barrier entirely. A farmer in outer Delhi can say:
+
+*"Meri gali mein kal se paani nahi aa raha hai"*
+
+...and the system auto-files a Water Supply complaint with correct priority and department routing — without the farmer typing a single character.
+
+This is the **most inclusive feature** in the platform. True digital democracy requires that technology adapts to the citizen, not the other way around.
+
+> **Without this:** A significant portion of citizens — often the most vulnerable — cannot use the platform at all.
+
+---
+
+## 📸 13. AI Image Auto-Detection *(NEW)*
+
+### What it is
+- Citizen takes a photo of the problem
+- AI vision model analyzes the image
+- Automatically identifies: issue type, severity level, affected infrastructure
+- Pre-fills complaint form with detected data
+- Citizen reviews and submits in one tap
+
+### Why it must exist
+When someone photographs a flooded street, a broken footpath, or overflowing garbage — **the image itself contains all the information** needed to file a complaint. Making the citizen also type this is redundant and friction-creating.
+
+Auto-detection also ensures **consistent categorization** — two different citizens photographing the same pothole will both have it correctly classified as "Pothole — High Severity" rather than one saying "bad road" and another saying "danger on street."
+
+> **Without this:** Photo uploads are underused. Citizens still struggle with forms. Consistency in data is lost.
+
+---
+
+## 👥 14. Community Ward Forum *(NEW)*
+
+### What it is
+- Ward-specific discussion boards visible only to residents of that ward
+- Topics: Local issues, upcoming drives, neighborhood news, help requests
+- Verified citizens (by phone + ward assignment) can post
+- Admin can moderate; officers can participate officially
+
+### Why it must exist
+Currently, ward-level citizen communication happens on **unofficial WhatsApp groups** that:
+- Have no moderation
+- Spread misinformation easily
+- Are not connected to any official resolution system
+- Get noisy and people leave
+
+A built-in ward forum keeps civic discussion **in context** — a discussion about garbage overflow can link directly to a complaint already filed. Officers can join and provide official updates. Community coordination for cleanup drives can happen in-app.
+
+> **Without this:** Civic community building remains fragmented and informal, disconnected from action.
+
+---
+
+## 📅 15. Civic Event Calendar *(NEW)*
+
+### What it is
+- Ward-level calendar of official events: meetings, cleanups, vaccination camps, public hearings, government benefit drives
+- RSVP feature with attendance tracking
+- Automatic reminder notifications (app + SMS)
+- Post-event reports and attendance published
+
+### Why it must exist
+Ward committee meetings, public hearings, and government benefit camps happen **without citizens knowing**. Events are announced through:
+- Physical notices on poles (missed by most)
+- A single post on Facebook (seen by few)
+- Word of mouth (incomplete reach)
+
+A digital calendar with reminders ensures **maximum citizen participation** in decisions that affect them. For vaccination drives and benefit camps, attendance data helps the health department plan resources.
+
+> **Without this:** Important civic events are attended only by the informed few. The majority misses decisions made in their name.
+
+---
+
+## 🌐 16. RTI (Right to Information) Filing System *(NEW)*
+
+### What it is
+- Guided wizard for filing RTI applications
+- AI helps draft the RTI question clearly and legally
+- Tracks submission confirmation, response deadline (30 days by law), and received responses
+- Stores all RTI documents in the app
+- Alert when deadline is approaching or breached
+
+### Why it must exist
+The RTI Act 2005 is one of India's most powerful democratic tools — yet **millions of eligible citizens never use it** because:
+- They don't know how to word an RTI legally
+- They don't know which authority (PIO) to address it to
+- They lose track of deadlines and documents
+- The physical filing process is intimidating
+
+SANKALP AI's RTI system democratizes a powerful right. A citizen who notices irregularity in road work can immediately file an RTI asking for the contract details, spending, and tender documents — all from their phone.
+
+> **Without this:** RTI remains a tool of activists and lawyers, not ordinary citizens. A fundamental right goes unused.
+
+---
+
+## 🏥 17. Emergency Services Directory *(NEW)*
+
+### What it is
+- Live list of nearest hospitals, blood banks, ambulances (108), fire stations, women's shelters, de-addiction centers
+- Real-time bed availability (where API is available)
+- One-tap call to any service
+- Integrated with Live Map for navigation
+
+### Why it must exist
+In emergencies — heart attack, accident, fire, domestic violence — **seconds matter**. People often waste critical minutes searching Google, not knowing which hospital is closest or has availability. A **pre-loaded, location-aware directory** integrated with the same app used for SOS means:
+- No switching between apps in panic
+- Trusted, verified numbers only (no outdated internet listings)
+- Works even on 2G because data is cached
+
+> **Without this:** People in medical emergencies lose precious time on Google searches. A directory saves lives.
+
+---
+
+## 📊 18. My Ward Report Card *(NEW)*
+
+### What it is
+- Monthly auto-generated report for the citizen's ward
+- Metrics: Complaints filed vs resolved (%), Average resolution time, AQI trend, Water supply consistency, Pothole fix rate
+- Compared against last month and city average
+- Shareable as image for social media awareness
+
+### Why it must exist
+Accountability requires **visibility**. Currently, there is no public document that tells citizens:
+
+*"Your ward officer resolved only 34% of complaints this month. The city average is 61%."*
+
+The Report Card makes governance performance a **public conversation**. When a ward consistently scores low, citizens know to demand better. When it scores high, the officer gets deserved recognition. This creates **data-driven civic pressure** that is healthy for democracy.
+
+> **Without this:** Poor performance by officials goes unnoticed and unchallenged. No data = no accountability.
+
+---
+
+## 💬 19. Citizen–Officer Direct Chat *(NEW)*
+
+### What it is
+- Once a complaint is accepted by an officer, a **dedicated encrypted chat thread** opens between citizen and officer
+- Officer can ask for clarification, send update photos, share ETA
+- Citizen can respond, share additional evidence
+- All messages are timestamped and stored as complaint record
+- Chat auto-closes when complaint is resolved
+
+### Why it must exist
+The current complaint experience is: file → wait → either resolved or not, with zero communication. This creates:
+- Citizen frustration (no updates)
+- Officer inefficiency (revisits for clarification)
+- Trust erosion ("Did anyone even see my complaint?")
+
+Direct chat with timestamp accountability means:
+- Officers cannot claim they "didn't know the exact location"
+- Citizens see real progress, building trust
+- The full conversation is evidence if dispute arises
+
+> **Without this:** Complaint resolution is a black box. Citizens lose faith after the first ignored complaint.
+
+---
+
+---
+
+# 🛠️ PANEL 02 — ADMIN / WAR ROOM FEATURES
+
+---
+
+## 🧭 20. War Room Dashboard
+
+### What it is
+Central command view with:
+- Live KPIs: Total complaints, Active SOS count, Resolution rate %
+- AI-generated daily insights ("Ward 7 has 3x normal garbage complaints")
+- Real-time risk zone visualization on city map
+
+### Why it must exist
+Municipal administrators currently work with **static reports generated weekly or monthly**. By the time a report reaches a decision-maker, the problem has grown. A live dashboard means:
+- Abnormal spikes are noticed within hours, not weeks
+- Resources can be redeployed in real-time
+- Decision-making is **data-driven, not intuition-driven**
+
+> **Without this:** Administrators are flying blind. Problems escalate before they're noticed.
+
+---
+
+## 🚨 21. SOS Alert Management
+
+### What it is
+- Real-time SOS alerts appear on war room screen immediately
+- Full incident card: GPS coordinates, live location updates, user details, nearest police stations
+- Admin can dispatch with one click: "Dispatch Police Station 4"
+- Timeline log of every action taken on incident
+
+### Why it must exist
+SOS events are time-critical. A centralized management interface means **the right people are notified and dispatched within seconds**. The timeline log creates accountability — if response was delayed, the exact reason is recorded.
+
+> **Without this:** SOS alerts reach admin but response coordination is chaotic and undocumented.
+
+---
+
+## 📋 22. Complaint Management System
+
+### What it is
+- All complaints in one filterable, sortable table
+- Filters by: Status (Pending/In Progress/Resolved), Priority (0–100), Category, Ward, Date
+- Bulk action capability
+- Cluster view: see 15 garbage complaints in Ward 3 as a single cluster
+- Resolve/Reject with mandatory notes
+
+### Why it must exist
+Without a management interface, complaints are email threads or paper forms. The cluster view is critical — **15 individual complaints about the same area's garbage is a systemic problem**, not 15 small problems. The system surfaces this pattern so admin can respond with a systemic solution.
+
+> **Without this:** High-volume complaint management becomes impossible. Critical patterns are missed in the noise.
+
+---
+
+## 👷 23. Field Worker Management
+
+### What it is
+- Live GPS tracking of all field staff
+- Task assignment from admin dashboard
+- Worker status: Available / On-Task / Off-Duty
+- Performance history per worker
+- Direct call button from task card
+
+### Why it must exist
+Field workers are the last mile of governance. Without visibility into their location and status, admins:
+- Cannot assign nearest worker to a complaint
+- Cannot confirm workers are actually at the site
+- Cannot track if multiple workers are idle while others are overloaded
+
+Live tracking creates **efficiency and accountability** for the workforce that actually fixes problems.
+
+> **Without this:** Field management is done over phone calls. Coordination is slow, inefficient, and unverifiable.
+
+---
+
+## 📢 24. Emergency Broadcast System
+
+### What it is
+- Admin composes an alert message
+- Selects target: Specific ward / Entire city
+- Message delivered via: In-app notification banner + Push notification + SMS (optional)
+- Delivery confirmation tracking
+
+### Why it must exist
+In flood warnings, chemical spills, curfews, health emergencies — citizens need **immediate authoritative communication**. WhatsApp forwards contain misinformation. TV is delayed. This broadcast system reaches every SANKALP AI user in a ward **within seconds** with verified, official information.
+
+> **Without this:** Government communication in crises relies on media, which is slow and filtered. Direct citizen alerting is impossible.
+
+---
+
+## 🤖 25. AI Auto-Assignment Engine *(NEW)*
+
+### What it is
+- When a complaint is filed and accepted, AI automatically identifies:
+  - Nearest available field worker by GPS
+  - Worker with relevant skill/category (plumber for water, electrician for lights)
+  - Least loaded worker to balance workload
+- Assignment made automatically; admin only reviews disputes or escalations
+
+### Why it must exist
+Manual assignment is the biggest bottleneck in civic complaint resolution. Admins spend hours doing what an algorithm can do in milliseconds. Auto-assignment means:
+- **Zero delay** between complaint acceptance and worker assignment
+- **Optimal routing** — closest skilled worker, not whoever the supervisor remembers first
+- **Bias elimination** — assignments based on data, not personal relationships
+- Admin time freed for complex decisions
+
+> **Without this:** Assignment delays of 24–72 hours are common. Complaints age before a worker is even sent.
+
+---
+
+## 🔮 26. Predictive Maintenance AI *(NEW)*
+
+### What it is
+- AI continuously analyzes historical complaint patterns, seasonal data, and infrastructure age
+- Generates predictions: "Water pipeline failure likely in Ward 14 within 10 days based on complaint pattern"
+- Admin receives preventive maintenance task suggestion
+- If acted on: complaint is prevented. If ignored: becomes a crisis with timestamp showing it was predicted
+
+### Why it must exist
+Governance is almost entirely **reactive** — a road breaks, complaints come in, workers are sent. By then, traffic is disrupted and citizens are frustrated. Predictive AI shifts governance from **reactive to preventive**:
+- Infrastructure is maintained before failure
+- Emergency repairs (expensive) are replaced by scheduled maintenance (cheap)
+- Citizen complaints decrease as problems are solved before they're experienced
+
+> **Without this:** Every infrastructure failure is a surprise. Resources are consumed fighting fires instead of preventing them.
+
+---
+
+## 📡 27. IoT Sensor Integration *(NEW)*
+
+### What it is
+- Connect data streams from physical sensors deployed in the city:
+  - Water pressure sensors at pipeline junctions
+  - Streetlight status sensors (on/off, fault)
+  - Air quality monitoring stations
+  - Flood level gauges at drainage points
+- Admin receives automated alerts when any sensor breaches threshold
+- Sensor data feeds into ward health score
+
+### Why it must exist
+Citizens report problems they can see. IoT sensors report problems they **cannot** — a slow water pressure drop at 3am, a streetlight that flickers and dies, a drainage gauge rising before a flood. Sensor data means the city detects problems **before citizens suffer from them**.
+
+This bridges physical infrastructure monitoring with digital governance.
+
+> **Without this:** The city is only as aware as the complaints it receives. Invisible degradation goes undetected.
+
+---
+
+## 🧑‍⚖️ 28. Officer Accountability Tracker *(NEW)*
+
+### What it is
+- Per-officer performance dashboard:
+  - Complaints assigned vs resolved
+  - Average resolution time vs target SLA
+  - Citizen rating (post-resolution survey score)
+  - Escalations caused by their inaction
+- Monthly auto-generated report sent to:
+  - The officer (for self-awareness)
+  - Their department head (for review)
+  - The municipal commissioner (for systemic view)
+- Officers cannot edit or suppress their own data
+
+### Why it must exist
+Without measurement, performance cannot be managed. Currently, a ward officer who resolves 30% of complaints and one who resolves 90% receive the same salary and face no differentiated consequences. This tracker creates:
+- **Merit-based recognition** — top performers are visible
+- **Non-negotiable accountability** — low performers cannot hide
+- **Self-improvement incentive** — officers track their own score
+
+The auto-report to higher authority ensures data reaches decision-makers **without being filtered**.
+
+> **Without this:** Underperforming officials continue indefinitely. The system protects them instead of citizens.
+
+---
+
+## 🗺️ 29. Advanced Heatmap Analytics *(NEW)*
+
+### What it is
+Multi-layer city maps that visualize:
+- Complaint density by category (pothole heatmap, garbage heatmap, etc.)
+- Crime and SOS incident concentration
+- AQI levels ward by ward
+- Resolution rate performance by zone
+- Budget spending vs complaint reduction correlation
+
+### Why it must exist
+Data in table form requires expertise to interpret. A heatmap makes the same data **instantly understandable** to any decision-maker:
+- Red zone on pothole map = send road repair crew immediately
+- Budget spending is high in a zone but complaint density unchanged = investigate efficiency
+- Heatmaps make it **impossible to ignore** concentrated problems
+
+This also enables **data-driven budget allocation** — money goes where data shows need, not where political pressure is highest.
+
+> **Without this:** Resource allocation is political and anecdotal, not evidence-based.
+
+---
+
+## 🔔 30. SLA Breach Auto-Escalation *(NEW)*
+
+### What it is
+Configurable resolution timeframes by complaint type (e.g., Pothole: 7 days, Water: 24 hours, SOS: immediate). When deadline is missed:
+- Level 1 (Day 1 overdue): Alert to assigned field worker
+- Level 2 (Day 2 overdue): Alert to ward officer
+- Level 3 (Day 4 overdue): Alert to department head
+- Level 4 (Day 7 overdue): Alert to municipal commissioner + visible on public ward report card
+
+No human needs to manually escalate. System does it automatically.
+
+### Why it must exist
+The most common reason complaints die is **no one remembers to follow up**. Manual escalation requires someone to check, remember, decide to escalate, and find the right contact. All of this fails in practice. Automated escalation creates:
+- **Zero-tolerance for abandonment** — every complaint has a living clock
+- **Chain accountability** — if it reaches the commissioner, everyone in the chain is implicated
+- **Incentive to resolve early** — officers want to resolve before it escalates
+
+> **Without this:** Complaints that aren't politically important simply expire without resolution.
+
+---
+
+## 🎥 31. CCTV & Live Feed Integration *(NEW)*
+
+### What it is
+- War room displays live feed from municipal CCTV cameras during:
+  - Active SOS incidents in that zone
+  - High-priority complaint verification
+  - Natural disasters or crowd events
+- AI flags unusual activity patterns (large crowd gathering, abandoned objects, accidents) for admin review
+
+### Why it must exist
+When an SOS is received from a location, admin currently cannot verify the situation remotely — they must rely only on the GPS pin. With CCTV integration:
+- Admin can **visually confirm** the situation before dispatching resources
+- AI flagging means human admin doesn't watch 200 feeds — only flagged moments
+- Evidence is available for post-incident review
+
+> **Without this:** Emergency response is blind. Resources may be dispatched to false alarms or insufficient resources sent to serious ones.
+
+---
+
+## 📜 32. Budget & Project Transparency Tracker *(NEW)*
+
+### What it is
+- Every municipal project (road repair, park development, drains) entered with: budget allocated, tender date, contractor, timeline
+- Actual spending tracked as work proceeds
+- Completion % updated by field officers with photo evidence
+- **Linked to complaint data**: "This project was initiated because of 47 complaints in Ward 8"
+- Summary visible to citizens in their ward's Report Card
+
+### Why it must exist
+Public money misuse thrives in the dark. When citizens can see:
+- "₹45 lakh allocated for Ward 8 road repair → 60% spent → 0% complete"
+
+...the question writes itself. This tracker creates **financial transparency** as a civic right. It connects public spending to citizen-reported problems, showing that complaints actually drive resource allocation.
+
+> **Without this:** Budget allocation and public works are opaque. Citizens fund infrastructure they cannot track.
+
+---
+
+---
+
+# 🏛️ PANEL 03 — OFFICER / DEPARTMENT FEATURES *(NEW PANEL)*
+
+---
+
+## Why a Third Panel Must Exist
+
+The Admin panel is for **command-level oversight**. But a police station inspector, a ward sanitation officer, and an MLA each need **completely different views** of the same underlying data. Forcing them all to use the same admin interface creates:
+- Overload of irrelevant information
+- Security risk (police seeing health data)
+- Poor usability → officers stop using the app
+
+A role-based panel system gives each stakeholder **exactly what they need, nothing more**.
+
+---
+
+## 🏗️ 33. Ward Officer Dashboard
+
+### What it is
+Filtered view for the elected/appointed ward officer showing:
+- Only their ward's complaints, workers, and metrics
+- Task assignments and pending approvals
+- Petition signatures directed at them
+- Monthly performance score
+
+### Why it must exist
+A ward officer managing 500 complaints cannot use a city-wide admin panel with 50,000 complaints. Jurisdiction-filtered views mean **faster, more focused action** on the area they are responsible for.
+
+> **Without this:** Ward officers cannot efficiently manage their area using a city-level tool.
+
+---
+
+## 🚔 34. Police Station Dashboard
+
+### What it is
+- Real-time SOS alerts routed to the nearest police station automatically
+- Incident map showing active and historical SOS events in jurisdiction
+- Patrol status board: mark officers as On Patrol / Available / Responding
+- Escalation to higher police authority for serious incidents
+- Direct communication with admin war room
+
+### Why it must exist
+Currently, SOS notifications go to a central admin — who then has to manually call the police. This adds minutes to emergency response. Routing SOS alerts **directly to the nearest police station** means:
+- Response begins at the station level immediately
+- No admin bottleneck in the critical first minutes
+- Police have full incident context (GPS, user history) before arriving
+
+> **Without this:** Emergency response has an unnecessary human relay step that costs critical time.
+
+---
+
+## 🏥 35. Health Department Dashboard
+
+### What it is
+- View complaints tagged with health-related issues (stagnant water, garbage, air quality)
+- Map of disease outbreak reports filed by citizens or health workers
+- Vaccination drive coverage tracking by ward
+- Hospital bed capacity status integration
+- Outbreak AI: cluster of similar health complaints triggers alert
+
+### Why it must exist
+Health problems in cities often start as **civic infrastructure failures** — overflowing drains breed mosquitoes, poor garbage collection causes disease. Connecting civic complaint data to the health department creates **early warning** before outbreaks become crises.
+
+The vaccination drive tracker helps the department ensure no ward is under-covered.
+
+> **Without this:** Health and civic data exist in silos. An outbreak brews in complaint data that the health department never sees.
+
+---
+
+## ⚡ 36. Utility Department Panel
+
+### What it is
+Separate views for each utility department, showing only their relevant complaints:
+- **Electricity dept**: Streetlight failures, power outage reports, transformer issues
+- **Water dept**: Supply interruptions, pipe leaks, low pressure complaints
+- **Sewage dept**: Drain overflow, blockage reports, manhole issues
+
+Each department sees their own workers, their own SLA clock, and their own performance metrics.
+
+### Why it must exist
+In a shared admin panel, a water department worker can see electricity complaints — irrelevant to them, creating noise. Focused panels mean:
+- **Zero irrelevant data** in view
+- Department-specific SLA rules enforced
+- Workers feel ownership of their category performance
+- Interoperability when a complaint spans two departments (e.g., flooding caused by combined electrical + drainage issue)
+
+> **Without this:** Departments use the platform inefficiently. Data overload causes disengagement.
+
+---
+
+## 🏛️ 37. MLA / Councillor Portal
+
+### What it is
+- Elected representative sees aggregate data for their constituency:
+  - Top issues by volume
+  - Petition signature counts and topics
+  - Ward health scores across their wards
+  - Pending escalations that require political intervention
+- Can publish **official public responses** to petitions, visible to all signatories
+- Can raise high-priority flags on specific complaints to fast-track resolution
+
+### Why it must exist
+Elected representatives currently receive complaints through WhatsApp, in-person visits, and printed letters — formats with no tracking, no prioritization, no accountability. A formal portal means:
+- MLAs see **data-driven evidence** of constituency needs
+- Their public responses to petitions are recorded and visible
+- They can advocate for resources based on real complaint data, not anecdotes
+- Citizens can see if their representative is **actively engaged** with their area's issues
+
+> **Without this:** The connection between elected democracy (MLAs) and day-to-day governance (complaints) is broken.
+
+---
+
+## 🌍 38. NGO & Volunteer Portal
+
+### What it is
+- NGOs and individual volunteers register with verified ID
+- Admins post tasks available for volunteers: tree planting, cleanliness drives, elderly assistance, event organization
+- Volunteers claim tasks, complete with photo proof
+- Admin tracks volunteer-hours contributed per ward
+- NGOs publish impact reports visible to citizens
+
+### Why it must exist
+Government cannot solve all civic problems alone. India has a massive volunteer ecosystem — **over 3 million registered NGOs**. Currently, connecting this capacity to actual civic needs is entirely informal and depends on personal relationships.
+
+A volunteer portal creates **organized, tracked, accountable community contribution** that extends the government's reach without adding payroll.
+
+> **Without this:** Volunteer energy is wasted or duplicated. NGOs work alongside government, not with it.
+
+---
+
+---
+
+# 🚀 WHAT TO BUILD NEXT — FUTURE ROADMAP
+
+---
+
+## Phase 1 — Core MVP *(Build First)*
+| Feature | Reason |
+|---|---|
+| Auth + Phone Login | Foundation. Nothing works without identity |
+| Complaint Filing + AI Classification | Core value proposition |
+| SOS with GPS | Life-safety. Non-negotiable in v1 |
+| Admin Dashboard | Operators need visibility from day one |
+| Live Map | Makes data spatial and understandable |
+
+## Phase 2 — AI Intelligence Layer
+| Feature | Reason |
+|---|---|
+| Voice Input | Reaches illiterate and elderly users |
+| Image Auto-Detection | Removes filing friction |
+| Auto-Assignment | Eliminates manual bottleneck |
+| Predictive Maintenance | Shifts governance from reactive to preventive |
+| SLA Escalation Chain | Ensures no complaint is abandoned |
+
+## Phase 3 — Digital Democracy Layer
+| Feature | Reason |
+|---|---|
+| Ward Voting & Polls | Citizen voice in local decisions |
+| Petition System | Collective action with auto-escalation |
+| RTI Filing | Empowers citizens with their legal rights |
+| MLA / Councillor Portal | Connects elected democracy to daily governance |
+| Officer Accountability Tracker | Makes performance measurable and public |
+
+## Phase 4 — Integration & Infrastructure
+| Feature | Reason |
+|---|---|
+| IoT Sensor Data | Enables machine-reported complaints before human reports |
+| CCTV Integration | Enhances emergency response with visual context |
+| Government API Connections | Official data (police, health, AQI) in real-time |
+| Biometric Login | Higher security for officer and admin panels |
+| Budget Transparency Tracker | Closes the loop between complaint → resource → resolution |
+
+## Phase 5 — Scale & Resilience
+| Feature | Reason |
+|---|---|
+| Offline Mode with Sync | India's connectivity is uneven — app must work on 2G and offline |
+| Multi-city Deployment | Framework built to replicate across Indian cities |
+| Open Data Portal | Allow researchers and journalists to access anonymized civic data |
+| Multi-language Full Support | Hindi + 8 regional languages to reach Bharat, not just India |
+| Video SOS Streaming | Live video from citizen to police in extreme emergencies |
+
+---
+
+---
+
+# 📊 FEATURE SUMMARY TABLE
+
+| # | Feature | Panel | Status | Impact Level |
+|---|---|---|---|---|
+| 1 | Phone + PIN Authentication | User | Existing | 🔴 Critical |
+| 2 | Live AQI Dashboard | User | Existing | 🟡 High |
+| 3 | AI Complaint Classification | User | Existing | 🔴 Critical |
+| 4 | SOS Emergency System | User | Existing | 🔴 Critical |
+| 5 | Live Risk Map | User | Existing | 🟡 High |
+| 6 | Government Schemes Directory | User | Existing | 🟡 High |
+| 7 | Bill Payments | User | Existing | 🟢 Medium |
+| 8 | Civic Gamification | User | Existing | 🟢 Medium |
+| 9 | AI Chatbot Assistant | User | Existing | 🟡 High |
+| 10 | Digital Ward Voting | User | **NEW** | 🔴 Critical |
+| 11 | Petition + Auto-Escalation | User | **NEW** | 🔴 Critical |
+| 12 | Voice Complaint Input | User | **NEW** | 🔴 Critical |
+| 13 | Image Auto-Detection AI | User | **NEW** | 🟡 High |
+| 14 | Community Ward Forum | User | **NEW** | 🟡 High |
+| 15 | Civic Event Calendar | User | **NEW** | 🟢 Medium |
+| 16 | RTI Filing System | User | **NEW** | 🔴 Critical |
+| 17 | Emergency Services Directory | User | **NEW** | 🔴 Critical |
+| 18 | Ward Report Card | User | **NEW** | 🟡 High |
+| 19 | Citizen–Officer Chat | User | **NEW** | 🟡 High |
+| 20 | War Room Dashboard | Admin | Existing | 🔴 Critical |
+| 21 | SOS Alert Management | Admin | Existing | 🔴 Critical |
+| 22 | Complaint Management System | Admin | Existing | 🔴 Critical |
+| 23 | Field Worker Management | Admin | Existing | 🟡 High |
+| 24 | Emergency Broadcast | Admin | Existing | 🟡 High |
+| 25 | AI Auto-Assignment Engine | Admin | **NEW** | 🔴 Critical |
+| 26 | Predictive Maintenance AI | Admin | **NEW** | 🔴 Critical |
+| 27 | IoT Sensor Integration | Admin | **NEW** | 🟡 High |
+| 28 | Officer Accountability Tracker | Admin | **NEW** | 🔴 Critical |
+| 29 | Advanced Heatmap Analytics | Admin | **NEW** | 🟡 High |
+| 30 | SLA Breach Auto-Escalation | Admin | **NEW** | 🔴 Critical |
+| 31 | CCTV Live Feed Integration | Admin | **NEW** | 🟡 High |
+| 32 | Budget Transparency Tracker | Admin | **NEW** | 🔴 Critical |
+| 33 | Ward Officer Dashboard | Officer | **NEW** | 🔴 Critical |
+| 34 | Police Station Dashboard | Officer | **NEW** | 🔴 Critical |
+| 35 | Health Department View | Officer | **NEW** | 🟡 High |
+| 36 | Utility Department Panel | Officer | **NEW** | 🟡 High |
+| 37 | MLA / Councillor Portal | Officer | **NEW** | 🔴 Critical |
+| 38 | NGO & Volunteer Portal | Officer | **NEW** | 🟡 High |
+
+---
+
+# 🎯 Core Principle — Why SANKALP AI is Different
+
+Most civic apps are **complaint boxes**. You file, you wait, you forget.
+
+SANKALP AI is a **governance loop**:
+
+```
+Citizen observes problem
+       ↓
+Files via app (voice/photo/text)
+       ↓
+AI classifies + prioritizes + routes
+       ↓
+Officer receives task + deadline
+       ↓
+Worker assigned automatically (nearest + available)
+       ↓
+Citizen tracks progress via direct chat
+       ↓
+Resolution documented with photo evidence
+       ↓
+Citizen rates satisfaction
+       ↓
+Data feeds Ward Report Card
+       ↓
+Report Card creates political + administrative pressure
+       ↓
+Ward Officer's performance score updated
+       ↓
+Aggregate data feeds predictive AI
+       ↓
+Next problem prevented before it occurs
+```
+
+**This loop does not exist anywhere in Indian civic governance today. SANKALP AI closes it.**
+
+---
+
+## ✨ Final Statement
+
+> SANKALP AI is not built to digitize paperwork.
+> It is built to **digitize democracy itself** —
+> to make every citizen's voice count,
+> every officer's action visible,
+> and every rupee of public money traceable.
+
+> **जय हिंद 🇮🇳**
+
+---
+
+*Document Version: 2.0 | Platform: SANKALP AI | Type: Complete Feature Specification*
+*Panels: User · Admin · Officer/Department | Total Features: 38 | New Features: 22*

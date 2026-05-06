@@ -1,0 +1,14 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "O-iBFbQOlQlUJQY_qO-Tg"
+uri = "file://EXPO_GO_DEPLOYMENT.md"
+type = "text"
+title = "SANKALP AI — Expo Go Deployment Guide"
+
+[[outputs]]
+id = "aFGey-XM1o-F4CSs9AInd"
+uri = "file://APK_BUILD_GUIDE.md"
+type = "text"
+title = "SANKALP AI — Android APK Build Guide"

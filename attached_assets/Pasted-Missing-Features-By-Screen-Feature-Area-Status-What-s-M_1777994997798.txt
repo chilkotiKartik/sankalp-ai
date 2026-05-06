@@ -1,0 +1,24 @@
+Missing Features — By Screen
+Feature Area	Status	What's Missing
+Voice Complaint Input	❌ Absent	No speech-to-text. Whisper API not integrated. No microphone button on complaint screen. Hill residents who can't type have no voice channel.
+QR Code Field Verification	❌ Absent	No QR generation on complaints. No QR scanning on worker app. Officers can still close tickets without site visit — fake resolutions are possible.
+Blockchain Audit Trail	❌ Absent	No audit log of any kind. No RTI-ready timestamped record. No immutable trail of complaint actions. Mentioned in docs but zero code exists.
+WhatsApp Bot / IVR	❌ Absent	No Twilio, no Meta Cloud API, no Dialogflow integration anywhere in the repo. The omnichannel access layer in the pitch deck does not exist in code.
+Predictive Maintenance AI	❌ Absent	No time-series analysis, no IMD weather API, no prediction model. The 'industry-first' feature from the pitch is not implemented.
+SLA Auto-Escalation	❌ Absent	No cron jobs. No deadline timers. No escalation chain. A P1 water complaint can sit at 'pending' forever with zero automated consequence.
+Officer/Department Panel	❌ Absent	Only citizen and admin roles exist in the UI. No ward_officer screen, no police dashboard, no health dept view, no MLA portal — despite role field existing in user model.
+RTI Filing System	❌ Absent	No RTI screen, no RTI model, no RTI routes. Mentioned in feature docs but not built.
+Citizen–Officer Chat	❌ Absent	No messaging system within complaints. No chat model, no chat routes, no chat UI. Citizens cannot communicate with assigned officers.
+Digital Voting / Polls	❌ Absent	No polls model, no voting routes, no polling screen. Democracy feature not started.
+Petition System	❌ Absent	No petitions model, no signature counting, no auto-escalation on threshold. Not in codebase at all.
+Civic Event Calendar	❌ Absent	No events model, no calendar screen, no RSVP. Not implemented.
+Emergency Services Directory	Partial	Police stations exist with real data. But no hospitals, no ambulance services, no blood banks, no fire stations, no shelters with live status.
+Ward Report Card	Partial	Basic analytics screen exists (290 lines). But no monthly auto-generation, no PDF export, no grade (A-F), no comparison vs city average.
+Offline Mode	❌ Absent	No service worker, no offline queue, no sync-on-reconnect. Critical for hill areas with 2G. If internet drops mid-SOS, the alert is lost.
+Push Notifications	Partial	NotificationContext.tsx exists but uses in-app only. No FCM integration, no Expo push tokens, no background notifications when app is closed.
+Gamification Leaderboard	Partial	Points and badges exist in the data model. Leaderboard API exists. But no achievement animations, no monthly reset cron, no ward leaderboard.
+Admin Heatmap Analytics	❌ Absent	Admin dashboard shows KPI cards but no heatmap visualisation, no choropleth map, no multi-layer analytics overlay on map.
+Budget / Project Tracker	❌ Absent	No projects model, no budget tracking, no spending transparency features. Not in codebase.
+Worker GPS Live Map	Partial	Worker model has geo field. But no live worker location map on admin dashboard — workers are listed as cards, not plotted on a live map.
+Image Upload / Storage	Partial	expo-image-picker works. But photos are sent as base64 strings in API calls — not stored anywhere persistent. No S3, no file system, no CDN.
+Super Admin District View	Partial	/api/superadmin/districts endpoint exists. But no SuperAdmin UI panel — the data is never displayed in any screen.

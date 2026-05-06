@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SANKALP AI — RTI Portal</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+body{background:#F8FAFC;color:#1E293B;min-height:100vh}
+.topbar{background:linear-gradient(135deg,#0B1C3F,#1E3A5F);padding:14px 32px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{color:#fff;font-size:20px;font-weight:800;letter-spacing:1px}
+.logo span{color:#FF9933}
+.nav{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.nav a{color:#93C5FD;text-decoration:none;font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid rgba(147,197,253,.3);font-weight:600;transition:all .2s}
+.nav a:hover{background:rgba(147,197,253,.1)}
+.container{max-width:1000px;margin:0 auto;padding:28px 20px}
+.page-title{font-size:26px;font-weight:800;color:#0B1C3F;margin-bottom:6px}
+.lead{font-size:14px;color:#64748B;margin-bottom:24px;line-height:1.6}
+.two-col{display:grid;grid-template-columns:1fr 380px;gap:24px}
+@media(max-width:768px){.two-col{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:22px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card-title{font-size:14px;font-weight:700;color:#0B1C3F;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+label{display:block;font-size:12px;color:#64748B;font-weight:600;margin-bottom:5px;margin-top:12px}
+label:first-child{margin-top:0}
+input,select,textarea{width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;color:#1E293B;outline:none;transition:border-color .2s;background:#fff}
+input:focus,select:focus,textarea:focus{border-color:#FF9933}
+textarea{min-height:100px;resize:vertical;line-height:1.5}
+.btn{padding:11px 20px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,#FF9933,#e67e00);color:#fff;width:100%;margin-top:12px}
+.btn-primary:hover{opacity:.9}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-ai{background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;width:100%;margin-top:8px}
+.btn-ai:hover{opacity:.9}
+.btn-ai:disabled{opacity:.5;cursor:not-allowed}
+.rti-card{background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.status-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.st-drafted{background:#F1F5F9;color:#64748B;border:1px solid #CBD5E1}
+.st-submitted{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
+.st-response_received{background:#ECFDF5;color:#166534;border:1px solid #86EFAC}
+.st-overdue{background:#FEF2F2;color:#DC2626;border:1px solid #FCA5A5}
+.info-box{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px 16px;font-size:13px;color:#1D4ED8;margin-bottom:16px;line-height:1.6}
+.dept-info{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-top:16px}
+.dept-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px}
+.ai-draft-box{background:#F5F3FF;border:1px solid #DDD6FE;border-radius:10px;padding:14px;margin-top:12px;font-size:13px;color:#1E293B;line-height:1.6;white-space:pre-wrap;max-height:200px;overflow-y:auto}
+.toast{position:fixed;bottom:24px;right:24px;background:#1E293B;color:#F1F5F9;border-radius:12px;padding:12px 18px;z-index:9999;font-size:13px;max-width:320px;animation:slideIn .3s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.tab-bar{display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid #E2E8F0;padding-bottom:0}
+.tab-btn{padding:8px 16px;font-size:13px;font-weight:600;color:#64748B;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab-btn.active{color:#0B1C3F;border-bottom-color:#FF9933}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect}=React;
+const API=window.location.origin;
+
+const UK_DISTRICTS=["Dehradun","Haridwar","Nainital","Udham Singh Nagar","Almora","Pithoragarh","Chamoli","Uttarkashi","Tehri Garhwal","Pauri Garhwal","Champawat","Bageshwar","Rudraprayag"];
+const DEPARTMENTS=[
+  {id:"pwd",name:"PWD — Public Works Department",helpline:"1800-180-4244"},
+  {id:"ulb",name:"Urban Local Body — Municipal Corp.",helpline:"1533"},
+  {id:"jal",name:"Uttarakhand Jal Sansthan",helpline:"1916"},
+  {id:"upcl",name:"UPCL — Uttarakhand Power Corp.",helpline:"1912"},
+  {id:"forest",name:"Forest Department Uttarakhand",helpline:"1800-180-4288"},
+  {id:"health",name:"Health & Family Welfare Dept.",helpline:"104"},
+  {id:"usdma",name:"USDMA — Disaster Management Auth.",helpline:"1070"},
+  {id:"police",name:"Uttarakhand Police",helpline:"100"},
+];
+
+let TOKEN=null;
+function getToken(){if(TOKEN) return TOKEN; const s=localStorage.getItem("sankalp_token"); if(s){TOKEN=s;return TOKEN;} return null;}
+function setToken(t){TOKEN=t;localStorage.setItem("sankalp_token",t);}
+function daysLeft(deadline){if(!deadline) return null; return Math.ceil((new Date(deadline)-new Date())/86400000);}
+
+function Toast({msg,onClose}){useEffect(()=>{const t=setTimeout(onClose,4000);return()=>clearTimeout(t);},[]);return <div className="toast">{msg}</div>;}
+
+function RTIPortal() {
+  const [tab,setTab]=useState("new");
+  const [rtis,setRtis]=useState([]);
+  const [title,setTitle]=useState("");
+  const [question,setQuestion]=useState("");
+  const [dept,setDept]=useState("pwd");
+  const [district,setDistrict]=useState("Dehradun");
+  const [topic,setTopic]=useState("");
+  const [aiDraft,setAiDraft]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [aiLoading,setAiLoading]=useState(false);
+  const [toast,setToast]=useState(null);
+  const [token,setTokenState]=useState(getToken());
+
+  const showToast=msg=>{setToast(msg);};
+  const headers=t=>({"Content-Type":"application/json","Authorization":`Bearer ${t||token||""}`});
+
+  const autoLogin=async()=>{
+    try{
+      const r=await fetch(`${API}/api/auth/login`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:"9999999999",pin:"000000"})});
+      const d=await r.json();
+      if(d.token){setToken(d.token);setTokenState(d.token);}
+    } catch {}
+  };
+
+  const loadRTIs=async(t)=>{
+    try{
+      const r=await fetch(`${API}/api/rti`,{headers:headers(t)});
+      if(r.status===401){
+        localStorage.removeItem("sankalp_token");
+        TOKEN=null;
+        setTokenState(null);
+        return;
+      }
+      const d=await r.json();
+      setRtis(Array.isArray(d)?d:[]);
+    } catch {}
+  };
+
+  useEffect(()=>{
+    if(!token){autoLogin();}
+    else{loadRTIs(token);}
+  },[token]);
+
+  const generateAIDraft=async()=>{
+    if(!topic.trim()) return;
+    setAiLoading(true);
+    try{
+      const selectedDept=DEPARTMENTS.find(d=>d.id===dept)?.name||dept;
+      const r=await fetch(`${API}/api/rti/ai-draft`,{method:"POST",headers:headers(),body:JSON.stringify({topic,targetDepartment:selectedDept,district})});
+      const d=await r.json();
+      setAiDraft(d.text||"");
+      setQuestion(d.text||"");
+      showToast("✅ AI draft generated!");
+    } catch { showToast("❌ Failed to generate draft"); }
+    finally{setAiLoading(false);}
+  };
+
+  const submitRTI=async()=>{
+    if(!title.trim()||!question.trim()||!dept||!token) return;
+    setLoading(true);
+    try{
+      const selectedDept=DEPARTMENTS.find(d=>d.id===dept)?.name||dept;
+      const r=await fetch(`${API}/api/rti`,{method:"POST",headers:headers(),body:JSON.stringify({title,questionText:question,targetDepartment:selectedDept,aiDraftUsed:!!aiDraft,district})});
+      const rti=await r.json();
+      if(rti.id){
+        const r2=await fetch(`${API}/api/rti/${rti.id}/submit`,{method:"POST",headers:headers()});
+        const submitted=await r2.json();
+        setRtis(prev=>[submitted,...prev]);
+        setTitle("");setQuestion("");setAiDraft("");setTopic("");
+        setTab("my_rtis");
+        showToast("✅ RTI submitted! Department must respond within 30 days.");
+      }
+    } catch(e){showToast("❌ Failed: "+e.message);}
+    finally{setLoading(false);}
+  };
+
+  const selectedDept=DEPARTMENTS.find(d=>d.id===dept);
+
+  return (
+    <div>
+      <div className="topbar">
+        <div>
+          <div className="logo">SANKALP<span> AI</span></div>
+          <div style={{fontSize:12,color:"#93C5FD"}}>Right to Information Portal — Uttarakhand</div>
+        </div>
+        <div className="nav">
+          <a href="/web/dept">🏛️ Dept. Portal</a>
+          <a href="/web/cpr">🆘 CPR</a>
+          <a href="/web/public">📊 Public Data</a>
+          <a href="/">← App</a>
+        </div>
+      </div>
+
+      <div className="container">
+        <div className="page-title">📋 RTI Filing Portal</div>
+        <p className="lead">File Right to Information requests to Uttarakhand government departments. AI-powered draft generation helps you write legally correct applications. Departments must reply within 30 days under RTI Act 2005.</p>
+
+        <div className="tab-bar">
+          {[["new","📝 File New RTI"],["my_rtis",`📂 My RTIs (${rtis.length})`],["guide","📖 How It Works"]].map(([t,l])=>(
+            <button key={t} className={`tab-btn ${tab===t?"active":""}`} onClick={()=>setTab(t)}>{l}</button>
+          ))}
+        </div>
+
+        {tab==="new"&&(
+          <div className="two-col">
+            <div>
+              <div className="card">
+                <div className="card-title">✨ AI Draft Generator</div>
+                <div className="info-box">Enter a topic and our AI will draft a legally correct RTI application for you in seconds.</div>
+                <label>Topic / Issue</label>
+                <input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="e.g. Road repair budget in Dehradun, Water supply contamination"/>
+                <label>Department</label>
+                <select value={dept} onChange={e=>setDept(e.target.value)}>{DEPARTMENTS.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select>
+                <label>District</label>
+                <select value={district} onChange={e=>setDistrict(e.target.value)}>{UK_DISTRICTS.map(d=><option key={d}>{d}</option>)}</select>
+                <button className="btn btn-ai" onClick={generateAIDraft} disabled={aiLoading||!topic.trim()}>
+                  {aiLoading?"✨ Generating Draft...":"✨ Generate AI Draft"}
+                </button>
+                {aiDraft&&<div className="ai-draft-box">{aiDraft}</div>}
+              </div>
+              <div className="card">
+                <div className="card-title">📋 RTI Application</div>
+                <label>RTI Title *</label>
+                <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Brief title describing your information request"/>
+                <label>Full RTI Application Text *</label>
+                <textarea value={question} onChange={e=>setQuestion(e.target.value)} placeholder="Write or paste your RTI application here..." style={{minHeight:160}}/>
+                <button className="btn btn-primary" onClick={submitRTI} disabled={loading||!title.trim()||!question.trim()||!token}>
+                  {loading?"Submitting RTI...":!token?"Logging in...":"📨 Submit RTI Application"}
+                </button>
+              </div>
+            </div>
+            <div>
+              <div className="card">
+                <div className="card-title">🏛️ Department Details</div>
+                {selectedDept&&(
+                  <div className="dept-info">
+                    {[["Department",selectedDept.name],["Helpline",selectedDept.helpline],["Reply Deadline","30 days"],["Act","RTI Act 2005, Sec 6"]].map(([l,v])=>(
+                      <div className="dept-row" key={l}><span style={{color:"#64748B"}}>{l}</span><strong style={{color:"#0B1C3F"}}>{v}</strong></div>
+                    ))}
+                  </div>
+                )}
+                <div style={{marginTop:14,fontSize:12,color:"#64748B",lineHeight:1.6}}>
+                  <strong>Your rights under RTI Act:</strong><br/>
+                  • Reply within 30 days mandatory<br/>
+                  • First appeal if dissatisfied (day 31–60)<br/>
+                  • Second appeal to State Information Commission<br/>
+                  • Free for BPL cardholders · ₹10 for others
+                </div>
+              </div>
+              <div className="card">
+                <div className="card-title">📞 Important Contacts</div>
+                {[["State Information Commission","0135-2784480"],["DOIT Uttarakhand","0135-2669764"],["CM Helpline","1905"],["Anti-Corruption","1064"]].map(([n,p])=>(
+                  <div key={n} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F1F5F9",fontSize:13}}>
+                    <span style={{color:"#64748B"}}>{n}</span>
+                    <a href={`tel:${p}`} style={{color:"#FF9933",fontWeight:700,textDecoration:"none"}}>{p}</a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab==="my_rtis"&&(
+          <div style={{maxWidth:720}}>
+            {rtis.length===0?(
+              <div style={{textAlign:"center",color:"#64748B",padding:"60px 20px",background:"#fff",borderRadius:14,border:"1px solid #E2E8F0"}}>
+                <div style={{fontSize:40,marginBottom:12}}>📋</div>
+                <div style={{fontWeight:700,color:"#0B1C3F",marginBottom:8}}>No RTIs filed yet</div>
+                <button onClick={()=>setTab("new")} style={{marginTop:16,padding:"10px 24px",background:"#FF9933",color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontWeight:700}}>File First RTI</button>
+              </div>
+            ):rtis.map(r=>(
+              <div className="rti-card" key={r.id}>
+                <div style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:8}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,color:"#0B1C3F",fontSize:14,marginBottom:4}}>{r.title}</div>
+                    <div style={{fontSize:12,color:"#64748B",marginBottom:6}}>{r.targetDepartment} · {r.district}</div>
+                  </div>
+                  <span className={`status-badge st-${r.status}`}>{(r.status||"").replace("_"," ")}</span>
+                </div>
+                <div style={{fontSize:12,color:"#475569",background:"#F8FAFC",padding:"8px 10px",borderRadius:8,marginBottom:8,lineHeight:1.5,maxHeight:60,overflow:"hidden"}}>
+                  {(r.questionText||"").slice(0,200)}{(r.questionText||"").length>200?"...":""}
+                </div>
+                <div style={{display:"flex",gap:12,fontSize:11,color:"#94A3B8",flexWrap:"wrap"}}>
+                  {r.submittedAt&&<span>📨 {new Date(r.submittedAt).toLocaleDateString("en-IN")}</span>}
+                  {r.deadline&&(()=>{const d=daysLeft(r.deadline);return <span style={{color:d<5?"#EF4444":d<10?"#F59E0B":"#94A3B8"}}>⏱ {d>0?`${d} days left`:"OVERDUE"}</span>;})()}
+                  {r.aiDraftUsed&&<span style={{color:"#8B5CF6"}}>✨ AI drafted</span>}
+                </div>
+                {r.responseText&&(
+                  <div style={{marginTop:10,padding:"10px 12px",background:"#ECFDF5",border:"1px solid #86EFAC",borderRadius:8,fontSize:12,color:"#166534"}}>
+                    <strong>Official Response:</strong><br/>{r.responseText}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab==="guide"&&(
+          <div style={{maxWidth:720}}>
+            {[
+              {n:"1",title:"File Your RTI",desc:"Use our AI generator to create a legally correct RTI application. Choose the department, enter your topic, and let AI draft it for you.",icon:"✍️"},
+              {n:"2",title:"Submit to Department",desc:"Click Submit to officially file your RTI. The department is legally bound to reply within 30 days under RTI Act 2005.",icon:"📨"},
+              {n:"3",title:"Track Your RTI",desc:"Monitor your RTI status in 'My RTIs'. You'll see when it's received, under review, or when a response is available.",icon:"📊"},
+              {n:"4",title:"Get Information",desc:"If the response is unsatisfactory, file a First Appeal within 30 days, then a Second Appeal to the State Information Commission.",icon:"✅"},
+            ].map(s=>(
+              <div className="card" key={s.n} style={{display:"flex",gap:16,alignItems:"flex-start"}}>
+                <div style={{width:40,height:40,background:"#0B1C3F",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{s.icon}</div>
+                <div>
+                  <div style={{fontWeight:700,color:"#0B1C3F",fontSize:15,marginBottom:6}}>Step {s.n}: {s.title}</div>
+                  <div style={{color:"#64748B",fontSize:13,lineHeight:1.6}}>{s.desc}</div>
+                </div>
+              </div>
+            ))}
+            <div className="card" style={{background:"#FEF3C7",borderColor:"#FCD34D"}}>
+              <div style={{fontWeight:700,color:"#B45309",marginBottom:8}}>⚠️ Important Information</div>
+              <div style={{fontSize:13,color:"#92400E",lineHeight:1.7}}>
+                • RTI application fee: ₹10 (free for BPL cardholders)<br/>
+                • Departments must reply within 30 days<br/>
+                • If no reply in 30 days, file a First Appeal<br/>
+                • Information on national security/privacy may be exempt<br/>
+                • You can request info about yourself at any time for free
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      {toast&&<Toast msg={toast} onClose={()=>setToast(null)}/>}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<RTIPortal/>);
+</script>
+</body>
+</html>

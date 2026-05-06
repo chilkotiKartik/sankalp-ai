@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+  <head>
+    <title>SANKALP AI — APP_NAME_PLACEHOLDER</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0A0F1C" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #0A0F1C;
+        color: #e5e7eb;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 20px;
+      }
+      .wrapper { max-width: 460px; width: 100%; text-align: center; }
+
+      .logo-row {
+        display: flex; align-items: center; justify-content: center;
+        gap: 12px; margin-bottom: 8px;
+      }
+      .logo-icon {
+        width: 48px; height: 48px; border-radius: 14px;
+        background: linear-gradient(135deg, #FF9933, #e67e00);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 24px; flex-shrink: 0;
+      }
+      .logo-text { text-align: left; }
+      .logo-name { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+      .logo-sub  { font-size: 11px; color: #6B7280; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 1px; }
+
+      .tagline { font-size: 14px; color: #6B7280; margin-bottom: 32px; }
+
+      .card {
+        background: #111827; border: 1px solid #1F2937;
+        border-radius: 20px; padding: 28px 24px; margin-bottom: 16px;
+      }
+      .card-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+      .card-sub   { font-size: 13px; color: #6B7280; margin-bottom: 20px; line-height: 1.5; }
+
+      /* QR box */
+      .qr-wrap {
+        background: #fff; border-radius: 14px; padding: 14px;
+        display: inline-block; margin: 0 auto 20px; line-height: 0;
+      }
+      .qr-wrap canvas { width: 160px !important; height: 160px !important; display: block; }
+
+      /* Buttons */
+      .btn-primary {
+        display: block; width: 100%; padding: 15px;
+        background: linear-gradient(135deg, #FF9933, #e67e00);
+        color: #fff; font-size: 15px; font-weight: 700;
+        border: none; border-radius: 14px; cursor: pointer;
+        text-decoration: none; margin-bottom: 10px;
+        transition: opacity 0.15s;
+      }
+      .btn-primary:hover { opacity: 0.9; }
+
+      .btn-secondary {
+        display: block; width: 100%; padding: 14px;
+        background: transparent; color: #9CA3AF;
+        font-size: 14px; font-weight: 500;
+        border: 1px solid #1F2937; border-radius: 14px;
+        cursor: pointer; text-decoration: none; margin-bottom: 10px;
+        transition: all 0.15s;
+      }
+      .btn-secondary:hover { color: #fff; border-color: #374151; }
+
+      .store-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+      .store-btn {
+        display: inline-flex; align-items: center; gap: 7px;
+        padding: 10px 16px; background: #1F2937;
+        color: #d1d5db; font-size: 13px; font-weight: 500;
+        border: 1px solid #374151; border-radius: 10px;
+        text-decoration: none; transition: all 0.15s;
+      }
+      .store-btn:hover { background: #374151; color: #fff; }
+      .store-icon { width: 16px; height: 16px; }
+
+      .divider { display: flex; align-items: center; gap: 12px; margin: 6px 0 16px; }
+      .divider-line { flex: 1; height: 1px; background: #1F2937; }
+      .divider-text { font-size: 11px; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; }
+
+      .loading-overlay {
+        display: none; flex-direction: column; align-items: center;
+        justify-content: center; gap: 16px; padding: 40px 0;
+      }
+      .spinner {
+        width: 36px; height: 36px; border-radius: 50%;
+        border: 3px solid #1F2937; border-top-color: #FF9933;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .loading-text { font-size: 15px; color: #9CA3AF; }
+
+      .badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: #FF993315; border: 1px solid #FF993333;
+        color: #FF9933; font-size: 11px; font-weight: 600;
+        padding: 4px 10px; border-radius: 20px;
+        letter-spacing: 0.3px; text-transform: uppercase; margin-bottom: 20px;
+      }
+      .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #FF9933; }
+
+      @media (min-width: 500px) {
+        .qr-wrap canvas { width: 180px !important; height: 180px !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="logo-row">
+        <div class="logo-icon">🏛️</div>
+        <div class="logo-text">
+          <div class="logo-name">SANKALP AI</div>
+          <div class="logo-sub">Government of Uttarakhand</div>
+        </div>
+      </div>
+      <p class="tagline">Civic Governance · SOS · Real-time Maps</p>
+
+      <!-- Mobile: auto-tries Expo Go deep link, shows loading, then falls back to options -->
+      <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Opening in Expo Go…</div>
+      </div>
+
+      <div id="content">
+        <!-- Expo Go card -->
+        <div class="card" id="expo-card">
+          <div class="badge"><div class="badge-dot"></div>Best Experience</div>
+          <div class="card-title">Open in Expo Go</div>
+          <div class="card-sub">Full native app — maps, shake SOS, voice alerts, GPS tracking</div>
+
+          <div class="qr-wrap">
+            <div id="qr-code"></div>
+          </div>
+
+          <a href="exps://EXPS_URL_PLACEHOLDER" class="btn-primary" id="open-expo-btn">
+            📱 Open in Expo Go
+          </a>
+
+          <div class="divider">
+            <div class="divider-line"></div>
+            <div class="divider-text">Don't have Expo Go?</div>
+            <div class="divider-line"></div>
+          </div>
+
+          <div class="store-row">
+            <a id="ios-btn" href="https://apps.apple.com/app/id982107779" class="store-btn" target="_blank">
+              <svg class="store-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+              </svg>
+              App Store
+            </a>
+            <a id="android-btn" href="https://play.google.com/store/apps/details?id=host.exp.exponent" class="store-btn" target="_blank">
+              <svg class="store-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
+              </svg>
+              Google Play
+            </a>
+          </div>
+        </div>
+
+        <!-- Web app fallback -->
+        <a href="/home" class="btn-secondary">🌐 Continue in Web Browser</a>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/qr-code-styling@1.6.0/lib/qr-code-styling.js"></script>
+    <script>
+      (function () {
+        var deepLink = "exps://EXPS_URL_PLACEHOLDER";
+        var ua = navigator.userAgent;
+        var isAndroid = /Android/i.test(ua);
+        var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        var isMobile = isAndroid || isIOS;
+
+        // Generate QR code
+        var qr = new QRCodeStyling({
+          width: 400, height: 400,
+          data: deepLink,
+          dotsOptions: { color: "#111827", type: "rounded" },
+          backgroundOptions: { color: "#ffffff" },
+          cornersSquareOptions: { type: "extra-rounded" },
+          cornersDotOptions: { type: "dot" },
+          qrOptions: { errorCorrectionLevel: "H" },
+        });
+        qr.append(document.getElementById("qr-code"));
+
+        // On mobile: auto-attempt to open Expo Go
+        if (isMobile) {
+          var loadingEl = document.getElementById("loading");
+          var contentEl  = document.getElementById("content");
+          loadingEl.style.display = "flex";
+          contentEl.style.display = "none";
+          window.location.href = deepLink;
+          setTimeout(function () {
+            loadingEl.style.display = "none";
+            contentEl.style.display = "block";
+          }, 700);
+        }
+      })();
+    </script>
+  </body>
+</html>

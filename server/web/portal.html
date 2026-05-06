@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SANKALP AI — Unified Governance Portal</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>"/>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh}
+:root{--orange:#FF9933;--orange-dim:#cc7a29;--bg:#0d1117;--sidebar:#080d18;--card:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--yellow:#d29922;--purple:#bc8cff}
+@keyframes fadeIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideLeft{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}
+@keyframes bounceIn{0%{opacity:0;transform:scale(.88)}60%{transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}
+@keyframes shimmer{0%{background-position:-400% 0}100%{background-position:400% 0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes flash{0%{background:rgba(255,153,51,.28)}100%{background:transparent}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px rgba(255,153,51,.3)}50%{box-shadow:0 0 24px rgba(255,153,51,.7)}}
+@keyframes ripple{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.5);opacity:0}}
+.fade-in{animation:fadeIn .38s ease both}
+.slide-left{animation:slideLeft .35s ease both}
+.bounce-in{animation:bounceIn .32s ease both}
+.spin{animation:spin 1s linear infinite}
+.flash{animation:flash 1.8s ease-out}
+.pulse{animation:pulse 2s infinite}
+.glow{animation:glow 2.5s infinite}
+.skeleton{background:linear-gradient(90deg,#1c2128 25%,#21262d 50%,#1c2128 75%);background-size:400%;animation:shimmer 1.5s infinite;border-radius:6px;color:transparent;pointer-events:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap;user-select:none}
+.btn-orange{background:var(--orange);color:#000}.btn-orange:hover{background:var(--orange-dim);transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{background:#1c2128;color:var(--text)}
+.btn-red{background:#da3633;color:#fff}.btn-red:hover{background:#b91c1c}
+.btn-green{background:#238636;color:#fff}.btn-green:hover{background:#196c2e}
+.btn-blue{background:#1f6feb;color:#fff}.btn-blue:hover{background:#1158c7}
+.btn-yellow{background:#9e6a03;color:#fff}.btn-yellow:hover{background:#7d5302}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .2s}
+.card:hover{border-color:#484f58}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-orange{background:rgba(255,153,51,.15);color:var(--orange)}
+.badge-green{background:rgba(63,185,80,.15);color:var(--green)}
+.badge-red{background:rgba(248,81,73,.15);color:var(--red)}
+.badge-blue{background:rgba(88,166,255,.15);color:var(--blue)}
+.badge-yellow{background:rgba(210,153,34,.15);color:var(--yellow)}
+.badge-muted{background:rgba(139,148,158,.12);color:var(--muted)}
+.badge-purple{background:rgba(188,140,255,.15);color:var(--purple)}
+.input{width:100%;padding:10px 14px;background:#1c2128;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;transition:border .15s}
+.input:focus{border-color:var(--orange)}
+.select{width:100%;padding:10px 14px;background:#1c2128;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;cursor:pointer}
+.select:focus{border-color:var(--orange)}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:all .2s;position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;inset:0;border-radius:12px;opacity:0;transition:opacity .2s;background:radial-gradient(circle at top right,rgba(255,153,51,.06),transparent)}
+.kpi:hover::after{opacity:1}
+.kpi-val{font-size:32px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.kpi-label{font-size:12px;color:var(--muted);margin-top:5px}
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;background:rgba(0,0,0,.15)}
+.table td{padding:11px 14px;border-bottom:1px solid #21262d;vertical-align:middle}
+.table tr:hover td{background:rgba(255,153,51,.03)}
+.sidebar{width:230px;min-height:100vh;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:10}
+.sidebar-logo{padding:18px 16px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sidebar-nav{flex:1;padding:10px 8px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .15s;margin-bottom:2px;position:relative}
+.nav-item:hover{background:#1c2128;color:var(--text)}
+.nav-item.active{background:rgba(255,153,51,.1);color:var(--orange)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--orange);border-radius:0 3px 3px 0}
+.main{margin-left:230px;padding:26px;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.progress{height:6px;border-radius:3px;background:#21262d;overflow:hidden}
+.progress-bar{height:100%;border-radius:3px;background:var(--orange);transition:width .7s ease}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px;backdrop-filter:blur(5px)}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;animation:bounceIn .28s ease}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#3fb950;display:inline-block;flex-shrink:0}
+.live-dot.red{background:var(--red)}.live-dot.orange{background:var(--orange)}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+.worker-card{background:#1c2128;border:1px solid var(--border);border-radius:10px;padding:14px;transition:all .2s}
+.worker-card:hover{border-color:var(--orange);background:#21262d}
+.dept-hero{border-radius:12px;padding:20px;border:1px solid;margin-bottom:16px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#0d1117}
+::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#484f58}
+@media(max-width:900px){.sidebar{width:58px}.sidebar .nav-label,.sidebar .sidebar-logo-text,.sidebar .nav-badge{display:none}.main{margin-left:58px;padding:16px}.grid4{grid-template-columns:repeat(2,1fr)}.grid3{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.grid2{grid-template-columns:1fr}.grid4{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback,useMemo}=React;
+
+/* ── SAFE BORDER HELPER (avoids broken template-literal + CSS-var pattern) ──── */
+function bc(active,col){return '1px solid '+(active?(col||'var(--orange)'):'var(--border)');}
+
+/* ── CONSTANTS ─────────────────────────────────────────────────────────────── */
+const DEPTS={
+  pwd:{id:'pwd',name:'PWD — Public Works',nameHindi:'लोक निर्माण विभाग',icon:'🏗️',color:'#F59E0B',categories:['pothole','other'],helpline:'1800-180-4244',helpline2:'0135-2714400',sla:24,head:'Chief Engineer, PWD Uttarakhand',address:'Construction Bhawan, Subhash Road, Dehradun — 248001'},
+  ulb:{id:'ulb',name:'ULB — Municipal Corp',nameHindi:'नगर पालिका / नगर निगम',icon:'🗑️',color:'#10B981',categories:['garbage','drain'],helpline:'1533',helpline2:'0135-2654321',sla:48,head:'Commissioner, Urban Local Bodies',address:'Municipal Bhawan, Paltan Bazaar, Dehradun — 248001'},
+  jal:{id:'jal',name:'Jal Sansthan',nameHindi:'उत्तराखण्ड जल संस्थान',icon:'💧',color:'#3B82F6',categories:['water'],helpline:'1916',helpline2:'0135-2723456',sla:12,head:'General Manager, Jal Sansthan',address:'Jal Sansthan Bhawan, Haridwar Road, Dehradun'},
+  upcl:{id:'upcl',name:'UPCL — Power Corp',nameHindi:'उत्तराखण्ड पावर कॉर्पोरेशन',icon:'⚡',color:'#8B5CF6',categories:['electricity','streetlight'],helpline:'1912',helpline2:'0135-2770501',sla:6,head:'Managing Director, UPCL',address:'Ranipur Mor, Haridwar Road, Dehradun — 249407'},
+  forest:{id:'forest',name:'Forest Department',nameHindi:'वन विभाग',icon:'🌳',color:'#22c55e',categories:['tree'],helpline:'1800-180-4288',helpline2:'0135-2756083',sla:96,head:'Principal Chief Conservator of Forests',address:'Van Bhawan, Nehru Colony, Dehradun — 248001'},
+  health:{id:'health',name:'Health & Family Welfare',nameHindi:'स्वास्थ्य विभाग',icon:'🏥',color:'#EF4444',categories:[],helpline:'104',helpline2:'0135-2606012',sla:24,head:'Director General of Health Services',address:'Swasthya Bhawan, Jolly Grant, Dehradun'},
+  usdma:{id:'usdma',name:'USDMA — Disaster Mgmt',nameHindi:'आपदा प्रबंधन प्राधिकरण',icon:'🆘',color:'#DC2626',categories:[],helpline:'1070',helpline2:'0135-2710334',sla:2,head:'CEO, USDMA (IAS Officer)',address:'USDMA Bhawan, Rajpur Road, Dehradun — 248001'},
+  police:{id:'police',name:'Uttarakhand Police',nameHindi:'उत्तराखण्ड पुलिस',icon:'🚔',color:'#60a5fa',categories:[],helpline:'100',helpline2:'112',sla:1,head:'Director General of Police, Uttarakhand',address:'Police Headquarters, Subhash Road, Dehradun — 248001'},
+};
+const CAT_DEPT={pothole:'pwd',garbage:'ulb',drain:'ulb',water:'jal',electricity:'upcl',streetlight:'upcl',tree:'forest',other:'pwd'};
+const CATEGORIES=[
+  {id:'pothole',label:'Pothole / Road Damage',icon:'🕳️'},
+  {id:'garbage',label:'Garbage / Waste',icon:'🗑️'},
+  {id:'water',label:'Water Supply',icon:'💧'},
+  {id:'electricity',label:'Electricity / Power Cut',icon:'⚡'},
+  {id:'streetlight',label:'Street Light Fault',icon:'💡'},
+  {id:'drain',label:'Drain / Sewage',icon:'🌊'},
+  {id:'tree',label:'Tree / Forest Issue',icon:'🌳'},
+  {id:'other',label:'Other / General',icon:'📋'},
+];
+const SOS_CATS=[
+  {id:'fire_risk',label:'Fire Risk',icon:'🔥'},{id:'road_accident',label:'Road Accident',icon:'🚗'},
+  {id:'medical',label:'Medical Emergency',icon:'🏥'},{id:'water_burst',label:'Water Burst / Flood',icon:'🌊'},
+  {id:'electric_hazard',label:'Electric Hazard',icon:'⚡'},{id:'infrastructure',label:'Infrastructure Collapse',icon:'🏚️'},
+  {id:'women_safety',label:'Women Safety / Panic',icon:'🆘'},{id:'gas_leak',label:'Gas Leak',icon:'💨'},
+];
+const DISTRICTS=['Dehradun','Haridwar','Tehri Garhwal','Pauri Garhwal','Rudraprayag','Chamoli','Uttarkashi','Pithoragarh','Bageshwar','Almora','Champawat','Nainital','Udham Singh Nagar'];
+const PC={P1:'badge-red',P2:'badge-orange',P3:'badge-yellow',P4:'badge-muted'};
+const SC={pending:'badge-yellow',in_progress:'badge-blue',resolved:'badge-green',closed:'badge-muted'};
+const SL={pending:'Pending',in_progress:'In Progress',resolved:'Resolved',closed:'Closed'};
+
+/* ── API HELPERS ─────────────────────────────────────────────────────────────── */
+const api={
+  _h(t){const h={'Content-Type':'application/json'};if(t)h['Authorization']='Bearer '+t;return h;},
+  async get(p,t){const r=await fetch(p,{headers:this._h(t)});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.statusText);return r.json();},
+  async post(p,b,t){const r=await fetch(p,{method:'POST',headers:this._h(t),body:JSON.stringify(b)});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.statusText);return r.json();},
+  async put(p,b,t){const r=await fetch(p,{method:'PUT',headers:this._h(t),body:JSON.stringify(b)});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.statusText);return r.json();},
+};
+
+function timeAgo(iso){if(!iso)return'—';const d=Date.now()-new Date(iso).getTime();if(d<60000)return'just now';if(d<3600000)return Math.floor(d/60000)+'m ago';if(d<86400000)return Math.floor(d/3600000)+'h ago';return Math.floor(d/86400000)+'d ago';}
+function fmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+/* ── WEB NOTIFICATION HELPERS ────────────────────────────────────────────────── */
+function askNotify(){if('Notification'in window&&Notification.permission==='default')Notification.requestPermission().catch(()=>{});}
+function pushNotify(title,body){
+  if('Notification'in window&&Notification.permission==='granted'){
+    try{new Notification(title,{body,icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🏛️</text></svg>'});}catch(e){}
+  }
+}
+
+/* ── ANIMATED COUNTER HOOK ───────────────────────────────────────────────────── */
+function useCounter(target,dur){
+  dur=dur||900;
+  const [v,setV]=useState(0);
+  useEffect(()=>{
+    if(!target)return void setV(0);
+    let st=null;
+    const fn=ts=>{if(!st)st=ts;const p=Math.min((ts-st)/dur,1);const e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;setV(Math.round(e*target));if(p<1)requestAnimationFrame(fn);};
+    const id=requestAnimationFrame(fn);
+    return()=>cancelAnimationFrame(id);
+  },[target]);
+  return v;
+}
+
+/* ── TOAST ───────────────────────────────────────────────────────────────────── */
+function Toast({toasts}){
+  return <div style={{position:'fixed',bottom:24,right:24,zIndex:9999,display:'flex',flexDirection:'column',gap:8,pointerEvents:'none'}}>
+    {toasts.map(t=><div key={t.id} className="bounce-in" style={{background:t.type==='error'?'#da3633':t.type==='success'?'#238636':'#1f6feb',color:'#fff',padding:'11px 16px',borderRadius:10,fontSize:13,fontWeight:600,maxWidth:340,boxShadow:'0 6px 24px rgba(0,0,0,.5)'}}>
+      {t.type==='success'?'✓ ':t.type==='error'?'✗ ':'ℹ '}{t.msg}
+    </div>)}
+  </div>;
+}
+
+/* ── SPINNER ─────────────────────────────────────────────────────────────────── */
+function Spinner({size}){size=size||18;return <div style={{width:size,height:size,border:'2px solid var(--border)',borderTop:'2px solid var(--orange)',borderRadius:'50%'}} className="spin"/>;}
+
+/* ── KPI CARD ────────────────────────────────────────────────────────────────── */
+function KpiCard({label,value,color,icon,sub,trend}){
+  const cnt=useCounter(typeof value==='number'?value:0);
+  return <div className="kpi fade-in">
+    <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:4}}>
+      <div className="kpi-val" style={{color:color||'var(--text)'}}>{typeof value==='number'?cnt:value}</div>
+      {icon&&<div style={{fontSize:24,opacity:.65}}>{icon}</div>}
+    </div>
+    <div className="kpi-label">{label}</div>
+    {sub&&<div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>{sub}</div>}
+    {trend&&<div style={{fontSize:11,marginTop:4,color:trend>0?'var(--green)':'var(--red)'}}>{trend>0?'▲':'▼'} {Math.abs(trend)}% vs last week</div>}
+  </div>;
+}
+
+/* ── WORKER CARD ─────────────────────────────────────────────────────────────── */
+function WorkerCard({w}){
+  const sc=w.status==='active'?'var(--green)':w.status==='on_leave'?'var(--yellow)':'var(--muted)';
+  const bg=w.status==='active'?'rgba(63,185,80,.1)':w.status==='on_leave'?'rgba(210,153,34,.1)':'rgba(139,148,158,.1)';
+  return <div className="worker-card fade-in">
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+      <div>
+        <div style={{fontWeight:600,fontSize:13}}>{w.name}</div>
+        <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>📍 {w.ward} · {w.district}</div>
+      </div>
+      <span style={{fontSize:10,fontWeight:700,color:sc,background:bg,padding:'3px 8px',borderRadius:10,textTransform:'uppercase'}}>{w.status||'active'}</span>
+    </div>
+    <div style={{display:'flex',gap:12,fontSize:12,color:'var(--muted)',flexWrap:'wrap'}}>
+      <span>⭐ <b style={{color:'var(--text)'}}>{w.score||0}</b> pts</span>
+      <span>✅ <b style={{color:'var(--text)'}}>{w.totalResolved||0}</b> resolved</span>
+      <span>Today: <b style={{color:'var(--orange)'}}>{w.resolvedToday||0}</b></span>
+      <span>⭐ {(w.avgRating||0).toFixed(1)}</span>
+    </div>
+    {w.currentTask&&<div style={{fontSize:11,color:'var(--orange)',marginTop:8,background:'rgba(255,153,51,.08)',padding:'5px 8px',borderRadius:6}}>📋 {w.currentTask}</div>}
+    {w.phone&&<div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>📱 {w.phone}</div>}
+  </div>;
+}
+
+/* ── COMPLAINT MODAL ─────────────────────────────────────────────────────────── */
+function ComplaintModal({c,onClose,token,deptToken,addToast,onRefresh,isAdmin}){
+  const [status,setStatus]=useState(c.status);
+  const [note,setNote]=useState(c.adminNote||'');
+  const [saving,setSaving]=useState(false);
+  const dept=DEPTS[CAT_DEPT[c.category]||'pwd'];
+
+  async function save(){
+    setSaving(true);
+    try{
+      if(isAdmin)await api.put('/api/admin/complaints/'+c.id,{status,adminNote:note},token);
+      else if(deptToken)await api.put('/api/dept/complaints/'+c.id,{status},deptToken);
+      onRefresh();addToast('success','Complaint updated');onClose();
+    }catch(e){addToast('error',e.message);}
+    setSaving(false);
+  }
+
+  return <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+    <div className="modal">
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:700,color:'var(--orange)'}}>{c.ticketId}</div>
+          <div style={{fontSize:12,color:'var(--muted)',marginTop:2}}>{fmtDate(c.submittedAt)}</div>
+        </div>
+        <button className="btn btn-ghost btn-sm" onClick={onClose}>✕ Close</button>
+      </div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
+        <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
+        <span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span>
+        <span style={{fontSize:12,color:'var(--muted)'}}>{CATEGORIES.find(x=>x.id===c.category)?.icon} {c.category}</span>
+      </div>
+      <div style={{background:'#1c2128',borderRadius:8,padding:14,marginBottom:14,fontSize:13,lineHeight:1.65}}>{c.description}</div>
+      {(c.beforePhoto||c.afterPhoto)&&<div style={{marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:8}}>📷 Photos</div>
+        <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+          {c.beforePhoto&&<div>
+            <div style={{fontSize:10,color:'var(--muted)',marginBottom:4}}>BEFORE</div>
+            <img src={c.beforePhoto} alt="Before" style={{width:148,height:110,objectFit:'cover',borderRadius:8,border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(c.beforePhoto,'_blank')} onError={e=>{e.target.style.display='none'}}/>
+          </div>}
+          {c.afterPhoto&&<div>
+            <div style={{fontSize:10,color:'var(--muted)',marginBottom:4}}>AFTER</div>
+            <img src={c.afterPhoto} alt="After" style={{width:148,height:110,objectFit:'cover',borderRadius:8,border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(c.afterPhoto,'_blank')} onError={e=>{e.target.style.display='none'}}/>
+          </div>}
+        </div>
+      </div>}
+      <div className="grid2" style={{gap:10,marginBottom:14,fontSize:12}}>
+        <div><div style={{color:'var(--muted)',marginBottom:2}}>LOCATION</div><div>📍 {c.location}</div></div>
+        <div><div style={{color:'var(--muted)',marginBottom:2}}>DISTRICT</div><div>{c.district}</div></div>
+        <div><div style={{color:'var(--muted)',marginBottom:2}}>WARD</div><div>{c.ward||'—'} (Ward #{c.wardNumber})</div></div>
+        <div><div style={{color:'var(--muted)',marginBottom:2}}>FILED BY</div><div>{c.submittedBy||'Anonymous'} {c.submittedByPhone?'· '+c.submittedByPhone:''}</div></div>
+        {c.workerName&&<div><div style={{color:'var(--muted)',marginBottom:2}}>WORKER</div><div>{c.workerName}</div></div>}
+        <div><div style={{color:'var(--muted)',marginBottom:2}}>AI SCORE</div><div>{c.aiScore||0}/100</div></div>
+      </div>
+      {dept&&<div style={{background:'rgba(255,153,51,.06)',border:'1px solid rgba(255,153,51,.2)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
+        <div style={{fontWeight:600,marginBottom:3}}>{dept.icon} Routed → {dept.name}</div>
+        <div style={{color:'var(--muted)'}}>Helpline: {dept.helpline} · SLA: {dept.sla}h response</div>
+      </div>}
+      {c.adminNote&&<div style={{background:'rgba(88,166,255,.08)',border:'1px solid rgba(88,166,255,.2)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
+        <div style={{fontWeight:600,color:'var(--blue)',marginBottom:4}}>🔵 Admin Note</div>
+        <div style={{lineHeight:1.6}}>{c.adminNote}</div>
+      </div>}
+      {(isAdmin||deptToken)&&<div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:4}}>
+        <label>Update Status</label>
+        <select className="select" style={{marginBottom:12}} value={status} onChange={e=>setStatus(e.target.value)}>
+          {['pending','in_progress','resolved','closed'].map(s=><option key={s} value={s}>{SL[s]}</option>)}
+        </select>
+        {isAdmin&&<div style={{marginBottom:12}}>
+          <label>Admin Note (visible to dept staff)</label>
+          <textarea className="input" rows={3} style={{resize:'vertical'}} placeholder="Add internal note or instructions…" value={note} onChange={e=>setNote(e.target.value)}/>
+        </div>}
+        <button className="btn btn-orange" style={{width:'100%',justifyContent:'center',padding:'11px'}} onClick={save} disabled={saving}>
+          {saving?<Spinner/>:'💾 Save Changes'}
+        </button>
+      </div>}
+    </div>
+  </div>;
+}
+
+/* ── SIDEBAR ─────────────────────────────────────────────────────────────────── */
+function Sidebar({nav,active,setActive,user,onLogout,role,badge,badgeFor,extra}){
+  const roleC={citizen:'var(--green)',dept:'var(--orange)',admin:'var(--red)',super_admin:'var(--purple)'};
+  const rc=roleC[user?.role]||roleC[role]||'var(--muted)';
+  return <div className="sidebar">
+    <div className="sidebar-logo">
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <div style={{fontSize:26,lineHeight:1,flexShrink:0}}>🏛️</div>
+        <div className="sidebar-logo-text">
+          <div style={{fontWeight:800,fontSize:13.5,letterSpacing:.5,color:'#fff'}}>SANKALP AI</div>
+          <div style={{fontSize:10,color:'var(--muted)',marginTop:1}}>Uttarakhand Govt</div>
+        </div>
+      </div>
+      {user&&<div className="sidebar-logo-text" style={{marginTop:12,padding:'8px 10px',background:'rgba(255,255,255,.04)',borderRadius:8,borderLeft:'3px solid '+rc}}>
+        <div style={{fontWeight:600,fontSize:12,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user.name}</div>
+        <div style={{fontSize:10,color:rc,marginTop:2,textTransform:'uppercase',letterSpacing:.5}}>{user.role||role}</div>
+        {user.district&&<div style={{fontSize:10,color:'var(--muted)',marginTop:1}}>📍 {user.district}</div>}
+      </div>}
+    </div>
+    <nav className="sidebar-nav">
+      {nav.map((n,i)=><div key={n.id} className={'nav-item'+(active===n.id?' active':'')} onClick={()=>setActive(n.id)} style={{animationDelay:(i*.03)+'s'}} title={n.label}>
+        <span style={{fontSize:16,flexShrink:0}}>{n.icon}</span>
+        <span className="nav-label" style={{flex:1}}>{n.label}</span>
+        {badge&&badgeFor===n.id&&<span className="nav-badge" style={{background:'var(--orange)',color:'#000',borderRadius:10,padding:'1px 7px',fontSize:10,fontWeight:700,minWidth:18,textAlign:'center'}}>{badge}</span>}
+      </div>)}
+    </nav>
+    {extra&&<div style={{padding:'8px',borderTop:'1px solid var(--border)',flexShrink:0}}>{extra}</div>}
+    <div style={{padding:'12px 16px',borderTop:'1px solid var(--border)',flexShrink:0}}>
+      <div className="sidebar-logo-text" style={{marginBottom:8,display:'flex',gap:5,flexWrap:'wrap'}}>
+        {[['Public','/web/public'],['CPR','/web/cpr'],['RTI','/web/rti'],['Dept','/web/dept']].map(([l,h])=>
+          <a key={h} href={h} style={{color:'var(--muted)',fontSize:10,textDecoration:'none',padding:'2px 6px',border:'1px solid var(--border)',borderRadius:4,transition:'all .15s'}}>{l}</a>
+        )}
+      </div>
+      <button className="btn btn-ghost btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={onLogout}>⏻ Sign Out</button>
+    </div>
+  </div>;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   LOGIN SCREEN
+══════════════════════════════════════════════════════════════════════════════ */
+function LoginScreen({onLogin}){
+  const [tab,setTab]=useState('citizen');
+  const [phone,setPhone]=useState('');
+  const [pin,setPin]=useState('');
+  const [name,setName]=useState('');
+  const [district,setDistrict]=useState('Dehradun');
+  const [isReg,setIsReg]=useState(false);
+  const [deptId,setDeptId]=useState('pwd');
+  const [code,setCode]=useState('');
+  const [err,setErr]=useState('');
+  const [loading,setLoading]=useState(false);
+
+  async function doLogin(e){
+    e.preventDefault();setErr('');setLoading(true);
+    try{
+      if(tab==='dept'){
+        const d=await api.post('/api/dept/login',{departmentId:deptId,accessCode:code});
+        const dept=DEPTS[deptId];
+        askNotify();
+        onLogin({type:'dept',deptId,deptName:dept?.name,deptToken:d.token});
+      } else {
+        let d;
+        if(isReg){
+          if(!name.trim())throw new Error('Full name is required');
+          d=await api.post('/api/auth/register',{name,phone,pin,district});
+        } else {
+          d=await api.post('/api/auth/login',{phone,pin});
+        }
+        if(tab==='admin'&&d.user.role==='citizen')throw new Error('This account does not have admin privileges');
+        askNotify();
+        onLogin({type:'citizen',user:d.user,token:d.token});
+      }
+    }catch(e){setErr(e.message);}
+    setLoading(false);
+  }
+
+  const features=[
+    {icon:'📝',title:'Submit Issues',desc:'Auto-routed to correct dept'},
+    {icon:'🔴',title:'Live Feed',desc:'Real-time SSE complaint stream'},
+    {icon:'🆘',title:'SOS Alerts',desc:'Emergency services in seconds'},
+    {icon:'🗺️',title:'Civic Map',desc:'Live complaints on Leaflet map'},
+    {icon:'🏗️',title:'8 Depts',desc:'All Uttarakhand departments'},
+    {icon:'📊',title:'Analytics',desc:'District health scores & KPIs'},
+  ];
+
+  return <div style={{minHeight:'100vh',background:'linear-gradient(145deg,#0d1117 0%,#0a0f1c 50%,#0d1117 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'20px 16px'}}>
+    <div style={{width:'100%',maxWidth:960,display:'grid',gridTemplateColumns:'1fr 400px',gap:40,alignItems:'center'}}>
+      {/* LEFT HERO */}
+      <div className="fade-in">
+        <div style={{fontSize:64,marginBottom:16,lineHeight:1}}>🏛️</div>
+        <div style={{fontSize:36,fontWeight:800,color:'#fff',lineHeight:1.2,marginBottom:10}}>SANKALP AI</div>
+        <div style={{fontSize:16,color:'var(--orange)',fontWeight:600,marginBottom:8}}>सरकार आपके द्वार — Government at Your Doorstep</div>
+        <div style={{fontSize:14,color:'var(--muted)',lineHeight:1.7,marginBottom:28}}>Unified civic governance portal for Uttarakhand citizens, department staff, and administrators. One platform, real-time data, all 8 departments.</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+          {features.map((f,i)=><div key={i} className="fade-in" style={{animationDelay:(i*.06)+'s',background:'rgba(255,153,51,.05)',border:'1px solid rgba(255,153,51,.12)',borderRadius:10,padding:'12px',textAlign:'center',cursor:'default'}}>
+            <div style={{fontSize:22,marginBottom:5}}>{f.icon}</div>
+            <div style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{f.title}</div>
+            <div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>{f.desc}</div>
+          </div>)}
+        </div>
+      </div>
+      {/* RIGHT LOGIN */}
+      <div className="slide-left">
+        <div className="card" style={{border:'1px solid rgba(255,153,51,.2)'}}>
+          {/* Tabs */}
+          <div style={{display:'flex',gap:4,marginBottom:22,background:'#1c2128',borderRadius:10,padding:4}}>
+            {[['citizen','👤 Citizen'],['dept','🏛️ Department'],['admin','🔐 Admin']].map(([t,l])=>
+              <button key={t} onClick={()=>{setTab(t);setErr('');}} className="btn"
+                style={{flex:1,justifyContent:'center',padding:'7px 4px',fontSize:11.5,background:tab===t?'var(--orange)':'transparent',color:tab===t?'#000':'var(--muted)',border:'none',borderRadius:7,transition:'all .2s'}}>
+                {l}
+              </button>
+            )}
+          </div>
+
+          {tab==='dept' ? (
+            <form onSubmit={doLogin}>
+              <div style={{marginBottom:14}}>
+                <label>Department</label>
+                <select className="select" value={deptId} onChange={e=>setDeptId(e.target.value)}>
+                  {Object.values(DEPTS).map(d=><option key={d.id} value={d.id}>{d.icon} {d.name}</option>)}
+                </select>
+              </div>
+              <div style={{marginBottom:18}}>
+                <label>Access Code</label>
+                <input className="input" type="password" placeholder="e.g. pwd_2026" value={code} onChange={e=>setCode(e.target.value)} required/>
+                <div style={{fontSize:11,color:'var(--muted)',marginTop:6}}>Format: {'<deptId>_2026'} (e.g. pwd_2026, jal_2026)</div>
+              </div>
+              {err&&<div style={{background:'rgba(248,81,73,.12)',border:'1px solid rgba(248,81,73,.3)',borderRadius:8,padding:10,marginBottom:14,fontSize:13,color:'var(--red)'}}>✗ {err}</div>}
+              <button className="btn btn-orange" style={{width:'100%',justifyContent:'center',padding:'12px',fontSize:14}} disabled={loading}>
+                {loading?<><Spinner/> Signing in…</>:'🏛️ Department Sign In'}
+              </button>
+            </form>
+          ):(
+            <form onSubmit={doLogin}>
+              {isReg&&<div style={{marginBottom:14}}>
+                <label>Full Name</label>
+                <input className="input" placeholder="Your full name" value={name} onChange={e=>setName(e.target.value)} required/>
+              </div>}
+              <div style={{marginBottom:14}}>
+                <label>Phone Number</label>
+                <input className="input" type="tel" maxLength={10} placeholder="10-digit mobile number" value={phone} onChange={e=>setPhone(e.target.value)} required/>
+              </div>
+              {isReg&&<div style={{marginBottom:14}}>
+                <label>District</label>
+                <select className="select" value={district} onChange={e=>setDistrict(e.target.value)}>
+                  {DISTRICTS.map(d=><option key={d}>{d}</option>)}
+                </select>
+              </div>}
+              <div style={{marginBottom:18}}>
+                <label>6-Digit PIN</label>
+                <input className="input" type="password" maxLength={6} placeholder="••••••" value={pin} onChange={e=>setPin(e.target.value)} required/>
+              </div>
+              {err&&<div style={{background:'rgba(248,81,73,.12)',border:'1px solid rgba(248,81,73,.3)',borderRadius:8,padding:10,marginBottom:14,fontSize:13,color:'var(--red)'}}>✗ {err}</div>}
+              <button className="btn btn-orange" style={{width:'100%',justifyContent:'center',padding:'12px',fontSize:14}} disabled={loading}>
+                {loading?<><Spinner/> Signing in…</>:isReg?'🚀 Create Account':'🔑 Sign In'}
+              </button>
+              <button type="button" className="btn btn-ghost" style={{width:'100%',justifyContent:'center',marginTop:8}} onClick={()=>{setIsReg(!isReg);setErr('');}}>
+                {isReg?'Already have an account? Sign in':'New user? Register here'}
+              </button>
+            </form>
+          )}
+
+          <div style={{marginTop:18,padding:'12px',background:'rgba(255,153,51,.06)',borderRadius:8,fontSize:12,color:'var(--muted)'}}>
+            <div style={{fontWeight:600,marginBottom:6,color:'var(--orange)'}}>Demo Credentials</div>
+            <div>Citizen: <span style={{color:'var(--orange)'}}>9876543210 / 123456</span></div>
+            <div style={{marginTop:3}}>Admin: <span style={{color:'var(--orange)'}}>9999999999 / 000000</span></div>
+            <div style={{marginTop:3}}>Dept code: <span style={{color:'var(--orange)'}}>pwd_2026</span> (any dept)</div>
+          </div>
+        </div>
+
+        <div style={{marginTop:14,display:'flex',gap:8,justifyContent:'center'}}>
+          {[['🌐 Public Dashboard','/web/public'],['🚨 CPR Command','/web/cpr'],['📄 RTI Portal','/web/rti']].map(([l,h])=>
+            <a key={h} href={h} style={{fontSize:11,color:'var(--muted)',textDecoration:'none',padding:'5px 10px',border:'1px solid var(--border)',borderRadius:6,transition:'all .15s'}}>{l}</a>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <div style={{marginTop:32,fontSize:12,color:'var(--muted)',textAlign:'center'}}>
+      Government of Uttarakhand · SANKALP AI Civic Portal · Data is demo/prototype · Emergency: 112
+    </div>
+  </div>;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CITIZEN DASHBOARD
+══════════════════════════════════════════════════════════════════════════════ */
+function CitizenDash({session,onLogout,addToast}){
+  const {user,token}=session;
+  const [page,setPage]=useState('home');
+  const [complaints,setComplaints]=useState([]);
+  const [sos,setSos]=useState([]);
+  const [wards,setWards]=useState([]);
+  const [anns,setAnns]=useState([]);
+
+  const load=useCallback(async()=>{
+    try{
+      const [c,s,w,a]=await Promise.all([
+        api.get('/api/complaints',token),
+        api.get('/api/sos',token),
+        api.get('/api/wards',token),
+        api.get('/api/announcements',token),
+      ]);
+      setComplaints(Array.isArray(c)?c:c.complaints||[]);
+      setSos(Array.isArray(s)?s:[]);
+      setWards(Array.isArray(w)?w:[]);
+      setAnns(Array.isArray(a)?a:[]);
+    }catch(e){addToast('error','Failed to load data');}
+  },[token]);
+
+  useEffect(()=>{load();},[load]);
+
+  const mine=complaints.filter(c=>c.submittedByPhone===user.phone);
+  const mySos=sos.filter(s=>s.triggeredByPhone===user.phone&&s.status!=='resolved');
+
+  const nav=[
+    {id:'home',icon:'🏠',label:'Home'},
+    {id:'submit',icon:'📝',label:'Submit Issue'},
+    {id:'mine',icon:'📋',label:'My Complaints'},
+    {id:'sos',icon:'🆘',label:'SOS Emergency'},
+    {id:'rti',icon:'📄',label:'RTI Filing'},
+    {id:'map',icon:'🗺️',label:'Live Map'},
+  ];
+
+  return <div style={{display:'flex'}}>
+    <Sidebar nav={nav} active={page} setActive={setPage} user={user} onLogout={onLogout} role="citizen"/>
+    <div className="main">
+      {page==='home'&&<CitizenHome user={user} mine={mine} sos={sos} wards={wards} anns={anns} setPage={setPage}/>}
+      {page==='submit'&&<SubmitComplaint token={token} user={user} onDone={()=>{load();setPage('mine');}} addToast={addToast}/>}
+      {page==='mine'&&<MyComplaints complaints={mine} token={token} addToast={addToast} onRefresh={load}/>}
+      {page==='sos'&&<SOSPage token={token} user={user} activeSos={mySos} addToast={addToast} onDone={load}/>}
+      {page==='rti'&&<RTIPage token={token} user={user} addToast={addToast}/>}
+      {page==='map'&&<LiveMapPage complaints={complaints} sos={sos} wards={wards}/>}
+    </div>
+  </div>;
+}
+
+function CitizenHome({user,mine,sos,wards,anns,setPage}){
+  const resolved=mine.filter(c=>c.status==='resolved').length;
+  const pending=mine.filter(c=>c.status==='pending').length;
+  const activeSos=sos.filter(s=>s.status==='active').length;
+  const topWards=[...wards].sort((a,b)=>b.healthScore-a.healthScore).slice(0,4);
+  const urgent=anns.filter(a=>a.priority==='urgent').slice(0,3);
+
+  return <div className="fade-in">
+    <div className="topbar">
+      <div>
+        <div style={{fontSize:22,fontWeight:700}}>Welcome back, {user.name.split(' ')[0]} 👋</div>
+        <div style={{color:'var(--muted)',fontSize:13,marginTop:2}}>📍 {user.district} · Level {user.level} · {user.points} pts</div>
+      </div>
+      <button className="btn btn-orange" onClick={()=>setPage('submit')} style={{animation:'glow 2.5s infinite'}}>+ Submit Issue</button>
+    </div>
+    {urgent.length>0&&<div style={{background:'rgba(218,54,51,.1)',border:'1px solid rgba(218,54,51,.35)',borderRadius:12,padding:14,marginBottom:20}}>
+      <div style={{fontWeight:700,marginBottom:8,color:'var(--red)'}}>🚨 Urgent Announcements</div>
+      {urgent.map(a=><div key={a.id} style={{fontSize:13,marginBottom:4}}>• {a.title}</div>)}
+    </div>}
+    <div className="grid4" style={{marginBottom:20}}>
+      <KpiCard label="My Total Complaints" value={mine.length} icon="📋"/>
+      <KpiCard label="Resolved" value={resolved} color="var(--green)" icon="✅"/>
+      <KpiCard label="Pending" value={pending} color="var(--yellow)" icon="⏳"/>
+      <KpiCard label="Active SOS in District" value={activeSos} color="var(--red)" icon="🆘"/>
+    </div>
+    <div className="grid2" style={{marginBottom:20}}>
+      <div className="card">
+        <div style={{fontWeight:700,marginBottom:14,display:'flex',justifyContent:'space-between'}}>
+          Recent Complaints
+          <button className="btn btn-ghost btn-sm" onClick={()=>setPage('mine')}>View All →</button>
+        </div>
+        {mine.length===0?<div style={{color:'var(--muted)',fontSize:13,padding:'20px 0',textAlign:'center'}}>
+          <div style={{fontSize:32,marginBottom:8}}>📭</div>
+          <div>No complaints yet.</div>
+          <button className="btn btn-orange btn-sm" style={{marginTop:10}} onClick={()=>setPage('submit')}>Submit your first issue</button>
+        </div>:mine.slice(0,5).map(c=><div key={c.id} style={{padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{fontSize:13,fontWeight:600,color:'var(--orange)'}}>{c.ticketId}</div>
+            <span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span>
+          </div>
+          <div style={{fontSize:12,color:'var(--muted)',marginTop:2}}>{c.description?.slice(0,70)}… · {timeAgo(c.submittedAt)}</div>
+          {DEPTS[CAT_DEPT[c.category]]&&<div style={{fontSize:11,marginTop:3}}>{DEPTS[CAT_DEPT[c.category]].icon} {DEPTS[CAT_DEPT[c.category]].name}</div>}
+        </div>)}
+      </div>
+      <div className="card">
+        <div style={{fontWeight:700,marginBottom:14}}>🏘️ Ward Health Scores</div>
+        {topWards.length===0?<div className="skeleton" style={{height:120}}></div>:topWards.map(w=><div key={w.id} style={{marginBottom:12}}>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:4}}>
+            <span>{w.name}</span>
+            <span style={{fontWeight:700,color:w.healthScore>70?'var(--green)':w.healthScore>40?'var(--yellow)':'var(--red)'}}>{w.healthScore}/100</span>
+          </div>
+          <div className="progress"><div className="progress-bar" style={{width:w.healthScore+'%',background:w.healthScore>70?'var(--green)':w.healthScore>40?'var(--yellow)':'var(--red)'}}></div></div>
+        </div>)}
+      </div>
+    </div>
+    <div className="card">
+      <div style={{fontWeight:700,marginBottom:14}}>🏛️ All Departments — Contact Directory</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:10}}>
+        {Object.values(DEPTS).map(d=><div key={d.id} style={{background:'#1c2128',borderRadius:8,padding:12,border:'1px solid var(--border)',transition:'all .2s'}}>
+          <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:6}}>
+            <span style={{fontSize:20}}>{d.icon}</span>
+            <div style={{fontSize:13,fontWeight:600}}>{d.name}</div>
+          </div>
+          <div style={{fontSize:11,color:'var(--muted)',marginBottom:3}}>🇮🇳 {d.nameHindi}</div>
+          <div style={{fontSize:12,color:'var(--orange)'}}>📞 {d.helpline} &nbsp; <span style={{color:'var(--muted)'}}>{d.helpline2}</span></div>
+          <div style={{fontSize:11,color:'var(--muted)',marginTop:3}}>SLA: {d.sla}h · Head: {d.head.split(',')[0]}</div>
+        </div>)}
+      </div>
+    </div>
+    {anns.length>0&&<div className="card" style={{marginTop:16}}>
+      <div style={{fontWeight:700,marginBottom:14}}>📢 Announcements</div>
+      {anns.slice(0,4).map(a=><div key={a.id} style={{padding:'12px 0',borderBottom:'1px solid var(--border)',display:'flex',gap:12,alignItems:'flex-start'}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:13,fontWeight:600}}>{a.title}</div>
+          <div style={{fontSize:12,color:'var(--muted)',marginTop:3,lineHeight:1.5}}>{a.body?.slice(0,120)}{a.body?.length>120?'…':''}</div>
+        </div>
+        <span className={'badge '+(a.priority==='urgent'?'badge-red':a.priority==='important'?'badge-orange':'badge-muted')}>{a.priority}</span>
+      </div>)}
+    </div>}
+  </div>;
+}
+
+function SubmitComplaint({token,user,onDone,addToast}){
+  const [cat,setCat]=useState('pothole');
+  const [desc,setDesc]=useState('');
+  const [loc,setLoc]=useState('');
+  const [priority,setPriority]=useState('P3');
+  const [loading,setLoading]=useState(false);
+  const [done,setDone]=useState(null);
+  const dept=DEPTS[CAT_DEPT[cat]||'pwd'];
+
+  async function submit(e){
+    e.preventDefault();
+    if(!desc.trim())return addToast('error','Description required');
+    if(!loc.trim())return addToast('error','Location required');
+    setLoading(true);
+    try{
+      const r=await api.post('/api/complaints',{category:cat,description:desc,location:loc,priority,geo:{lat:30.3165,lng:78.0322},ward:user.district+' Ward 1',wardNumber:1},token);
+      setDone(r);addToast('success','Complaint submitted! Ticket: '+r.ticketId);
+    }catch(e){addToast('error',e.message);}
+    setLoading(false);
+  }
+
+  if(done)return <div className="fade-in" style={{maxWidth:480}}>
+    <div className="card" style={{textAlign:'center',padding:40,border:'1px solid var(--green)'}}>
+      <div style={{fontSize:56,marginBottom:16}}>✅</div>
+      <div style={{fontSize:20,fontWeight:700,marginBottom:8}}>Complaint Submitted!</div>
+      <div style={{fontSize:24,fontWeight:800,color:'var(--orange)',marginBottom:8}}>{done.ticketId}</div>
+      <div style={{color:'var(--muted)',fontSize:13,marginBottom:16}}>Auto-routed to <b>{dept?.name}</b> · SLA: {dept?.sla}h</div>
+      <div style={{display:'flex',gap:10,justifyContent:'center'}}>
+        <button className="btn btn-orange" onClick={onDone}>View My Complaints</button>
+        <button className="btn btn-ghost" onClick={()=>setDone(null)}>Submit Another</button>
+      </div>
+    </div>
+  </div>;
+
+  return <div className="fade-in">
+    <div className="topbar"><div style={{fontSize:20,fontWeight:700}}>📝 Submit a Civic Issue</div></div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:20,maxWidth:900}}>
+      <form className="card" onSubmit={submit}>
+        <div style={{marginBottom:18}}>
+          <label>Issue Category</label>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:6}}>
+            {CATEGORIES.map(c=><button key={c.id} type="button" onClick={()=>setCat(c.id)}
+              style={{padding:'10px 12px',borderRadius:8,border:bc(cat===c.id),background:cat===c.id?'rgba(255,153,51,.1)':'#1c2128',color:cat===c.id?'var(--orange)':'var(--muted)',cursor:'pointer',fontSize:13,textAlign:'left',display:'flex',alignItems:'center',gap:6,transition:'all .15s'}}>
+              <span>{c.icon}</span><span>{c.label}</span>
+            </button>)}
+          </div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label>Description <span style={{color:'var(--red)'}}>*</span></label>
+          <textarea className="input" rows={4} style={{resize:'vertical'}} placeholder="Describe the issue in detail — include what's broken, how long it's been this way, and impact on residents…" value={desc} onChange={e=>setDesc(e.target.value)} required/>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label>Location / Landmark <span style={{color:'var(--red)'}}>*</span></label>
+          <input className="input" placeholder="e.g. Near Clock Tower, Rajpur Road, Dehradun" value={loc} onChange={e=>setLoc(e.target.value)} required/>
+        </div>
+        <div style={{marginBottom:20}}>
+          <label>Priority</label>
+          <div style={{display:'flex',gap:8}}>
+            {[['P1','Critical 🔴'],['P2','High 🟠'],['P3','Medium 🟡'],['P4','Low ⚪']].map(([p,l])=>
+              <button key={p} type="button" onClick={()=>setPriority(p)}
+                style={{flex:1,padding:'9px 4px',borderRadius:8,border:bc(priority===p),background:priority===p?'rgba(255,153,51,.1)':'#1c2128',color:priority===p?'var(--orange)':'var(--muted)',cursor:'pointer',fontSize:12,fontWeight:600,transition:'all .15s'}}>
+                {p}<br/><span style={{fontSize:10,fontWeight:400,opacity:.8}}>{l.split(' ')[1]}</span>
+              </button>
+            )}
+          </div>
+        </div>
+        <button className="btn btn-orange" style={{width:'100%',justifyContent:'center',padding:'13px',fontSize:14,animation:'glow 2.5s infinite'}} disabled={loading}>
+          {loading?<><Spinner/> Submitting…</>:'🚀 Submit Complaint'}
+        </button>
+      </form>
+      <div>
+        <div className="card" style={{marginBottom:12,border:'1px solid rgba(255,153,51,.2)'}}>
+          <div style={{fontWeight:700,marginBottom:12}}>🎯 Auto-Routing</div>
+          <div style={{padding:'14px',background:'rgba(255,153,51,.07)',borderRadius:8,border:'1px solid rgba(255,153,51,.2)'}}>
+            <div style={{fontSize:28,marginBottom:6}}>{dept?.icon}</div>
+            <div style={{fontWeight:700}}>{dept?.name}</div>
+            <div style={{fontSize:12,color:'var(--muted)',marginTop:4}}>Helpline: {dept?.helpline}</div>
+            <div style={{fontSize:12,color:'var(--muted)'}}>SLA: {dept?.sla}h response</div>
+            <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>Head: {dept?.head}</div>
+          </div>
+          <div style={{fontSize:11,color:'var(--muted)',marginTop:10}}>Your complaint will be routed to this department automatically based on the category you select.</div>
+        </div>
+        <div className="card">
+          <div style={{fontWeight:700,marginBottom:10}}>📋 How It Works</div>
+          {['1. You submit → auto-routed to dept','2. Department receives live SSE alert','3. Worker dispatched within SLA time','4. You track status in real-time','5. Rate & verify resolution'].map((s,i)=><div key={i} style={{fontSize:12,color:'var(--muted)',marginBottom:6,display:'flex',gap:6}}>
+            <span style={{color:'var(--orange)',flexShrink:0}}>→</span>{s.slice(3)}
+          </div>)}
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+function MyComplaints({complaints,token,addToast,onRefresh}){
+  const [filter,setFilter]=useState('all');
+  const [sel,setSel]=useState(null);
+  const filtered=(filter==='all'?complaints:complaints.filter(c=>c.status===filter))
+    .sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
+
+  return <div className="fade-in">
+    <div className="topbar">
+      <div style={{fontSize:20,fontWeight:700}}>📋 My Complaints ({filtered.length})</div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+        {['all','pending','in_progress','resolved'].map(s=><button key={s} className={'btn btn-sm '+(filter===s?'btn-orange':'btn-ghost')} onClick={()=>setFilter(s)}>{SL[s]||'All'}</button>)}
+      </div>
+    </div>
+    {filtered.length===0?<div className="card" style={{textAlign:'center',padding:50,color:'var(--muted)'}}>
+      <div style={{fontSize:40,marginBottom:10}}>📭</div>No complaints in this status
+    </div>:
+    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+      {filtered.map((c,i)=>{
+        const dept=DEPTS[CAT_DEPT[c.category]];
+        return <div key={c.id} className="card fade-in" style={{animationDelay:(i*.04)+'s',cursor:'pointer',border:bc(false)}} onClick={()=>setSel(c)}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+            <div style={{flex:1}}>
+              <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginBottom:6}}>
+                <span style={{fontWeight:700,color:'var(--orange)',fontSize:14}}>{c.ticketId}</span>
+                <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
+                <span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span>
+                {dept&&<span style={{fontSize:11,color:'var(--muted)'}}>{dept.icon} {dept.name.split('—')[0].trim()}</span>}
+              </div>
+              <div style={{fontSize:13,marginBottom:4,lineHeight:1.5}}>{c.description?.slice(0,120)}</div>
+              <div style={{fontSize:12,color:'var(--muted)'}}>📍 {c.location} · {timeAgo(c.submittedAt)}</div>
+              {c.adminNote&&<div style={{fontSize:11,color:'var(--blue)',marginTop:4}}>🔵 Admin: {c.adminNote?.slice(0,80)}</div>}
+            </div>
+            <div style={{fontSize:26,marginLeft:12,opacity:.7}}>{CATEGORIES.find(x=>x.id===c.category)?.icon||'📋'}</div>
+          </div>
+        </div>;
+      })}
+    </div>}
+    {sel&&<ComplaintModal c={sel} onClose={()=>setSel(null)} token={token} addToast={addToast} onRefresh={onRefresh} isAdmin={false}/>}
+  </div>;
+}
+
+function SOSPage({token,user,activeSos,addToast,onDone}){
+  const [cat,setCat]=useState('medical');
+  const [loc,setLoc]=useState('');
+  const [desc,setDesc]=useState('');
+  const [sending,setSending]=useState(false);
+  const [sent,setSent]=useState(null);
+
+  async function send(e){
+    e.preventDefault();setSending(true);
+    try{
+      const endpoint=cat==='women_safety'?'/api/sos/women-safety':'/api/sos';
+      const body={category:cat,description:desc||'Emergency via SANKALP portal',location:loc||user.district,geo:{lat:30.3165,lng:78.0322},ward:user.district+' Block',wardNumber:1};
+      const r=await api.post(endpoint,body,token);
+      setSent(r.alert||r);addToast('success','SOS Alert Sent! Emergency services notified.');
+      pushNotify('SOS Alert Sent','Emergency services have been notified. Stay calm.');
+      onDone();
+    }catch(e){addToast('error',e.message);}
+    setSending(false);
+  }
+
+  if(sent)return <div className="card bounce-in" style={{textAlign:'center',padding:50,maxWidth:480,border:'1px solid var(--red)'}}>
+    <div style={{fontSize:64,marginBottom:16}}>🆘</div>
+    <div style={{fontSize:22,fontWeight:700,color:'var(--red)',marginBottom:8}}>SOS Alert Sent!</div>
+    <div style={{color:'var(--muted)',fontSize:13,marginBottom:20}}>Emergency services have been notified. Stay calm and stay safe.</div>
+    {sent.nearestPoliceStation&&<div style={{background:'#1c2128',borderRadius:8,padding:12,marginBottom:20,fontSize:13}}>
+      <div style={{fontWeight:700,marginBottom:4}}>🚔 Nearest Police Station</div>
+      <div>{sent.nearestPoliceStation}</div>
+      {sent.policeDistance&&<div style={{fontSize:12,color:'var(--muted)',marginTop:2}}>{sent.policeDistance?.toFixed(1)} km away</div>}
+    </div>}
+    <div style={{fontSize:36,fontWeight:800,color:'var(--red)',marginBottom:4}}>📞 112</div>
+    <div style={{fontSize:12,color:'var(--muted)',marginBottom:20}}>Unified Emergency Response Number</div>
+    <button className="btn btn-ghost" onClick={()=>setSent(null)}>Send Another Alert</button>
+  </div>;
+
+  return <div className="fade-in">
+    <div className="topbar"><div style={{fontSize:20,fontWeight:700}}>🆘 SOS Emergency Alert</div></div>
+    {activeSos.length>0&&<div style={{background:'rgba(248,81,73,.1)',border:'1px solid var(--red)',borderRadius:12,padding:14,marginBottom:20}}>
+      <div style={{fontWeight:700,color:'var(--red)',marginBottom:8}}>🔴 Your Active SOS Alerts</div>
+      {activeSos.map(s=><div key={s.id} style={{fontSize:13,marginBottom:4}}>• {s.category} — {s.location} · {timeAgo(s.triggeredAt)} · <span style={{color:'var(--orange)'}}>{s.status}</span></div>)}
+    </div>}
+    <div style={{display:'grid',gridTemplateColumns:'1fr 300px',gap:20,maxWidth:820}}>
+      <form className="card" onSubmit={send}>
+        <div style={{background:'rgba(218,54,51,.08)',border:'1px solid rgba(218,54,51,.3)',borderRadius:10,padding:12,marginBottom:18,fontSize:13}}>
+          ⚠️ Use only for genuine emergencies. Misuse is punishable under law (IPC 182).
+        </div>
+        <div style={{marginBottom:16}}>
+          <label>Emergency Type</label>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+            {SOS_CATS.map(c=><button key={c.id} type="button" onClick={()=>setCat(c.id)}
+              style={{padding:'10px',borderRadius:8,border:bc(cat===c.id,'var(--red)'),background:cat===c.id?'rgba(248,81,73,.12)':'#1c2128',color:cat===c.id?'var(--red)':'var(--muted)',cursor:'pointer',fontSize:12,textAlign:'left',display:'flex',alignItems:'center',gap:6,transition:'all .15s'}}>
+              <span>{c.icon}</span><span>{c.label}</span>
+            </button>)}
+          </div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label>Your Location</label>
+          <input className="input" placeholder="Street / Landmark / Ward" value={loc} onChange={e=>setLoc(e.target.value)}/>
+        </div>
+        <div style={{marginBottom:20}}>
+          <label>Details (optional)</label>
+          <textarea className="input" rows={2} style={{resize:'vertical'}} placeholder="Any additional details…" value={desc} onChange={e=>setDesc(e.target.value)}/>
+        </div>
+        <button className="btn btn-red" style={{width:'100%',justifyContent:'center',padding:'14px',fontSize:15,fontWeight:700,animation:'glow 2s infinite'}} disabled={sending}>
+          {sending?<><Spinner/> Sending…</>:'🆘 SEND SOS ALERT'}
+        </button>
+      </form>
+      <div>
+        <div className="card" style={{marginBottom:12,border:'1px solid rgba(248,81,73,.2)'}}>
+          <div style={{fontWeight:700,marginBottom:12,color:'var(--red)'}}>🚨 Emergency Numbers</div>
+          {[['Police','100 / 112'],['Ambulance','108'],['Fire','101'],['USDMA','1070'],['Women Helpline','1090'],['Child Helpline','1098'],['SDRF Uttarakhand','9557444486']].map(([s,n])=><div key={s} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
+            <span style={{color:'var(--muted)'}}>{s}</span>
+            <span style={{fontWeight:700,color:'var(--orange)'}}>{n}</span>
+          </div>)}
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+function RTIPage({token,user,addToast}){
+  const [subject,setSubject]=useState('');
+  const [dept,setDept]=useState('PWD (Public Works Department)');
+  const [loading,setLoading]=useState(false);
+  const [draft,setDraft]=useState('');
+  const [rtis,setRtis]=useState([]);
+
+  useEffect(()=>{
+    api.get('/api/rti/my',token).then(r=>setRtis(Array.isArray(r)?r:[])).catch(()=>{});
+  },[token]);
+
+  async function genDraft(e){
+    e.preventDefault();
+    if(!subject.trim())return addToast('error','Subject required');
+    setLoading(true);
+    try{
+      const r=await api.post('/api/rti/ai-draft',{topic:subject,targetDepartment:dept,district:user.district},token);
+      setDraft(r.draft||'');addToast('success','RTI draft generated!');
+    }catch(e){addToast('error',e.message);}
+    setLoading(false);
+  }
+
+  return <div className="fade-in">
+    <div className="topbar"><div style={{fontSize:20,fontWeight:700}}>📄 RTI Filing Portal</div></div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:20,maxWidth:900}}>
+      <div>
+        <form className="card" onSubmit={genDraft} style={{marginBottom:16}}>
+          <div style={{fontWeight:700,marginBottom:14}}>✍️ Generate AI RTI Draft</div>
+          <div style={{marginBottom:14}}>
+            <label>Information You Want to Request</label>
+            <textarea className="input" rows={3} style={{resize:'vertical'}} placeholder="e.g. Status of road repair work on Rajpur Road approved in 2024 budget" value={subject} onChange={e=>setSubject(e.target.value)} required/>
+          </div>
+          <div style={{marginBottom:18}}>
+            <label>Target Department</label>
+            <select className="select" value={dept} onChange={e=>setDept(e.target.value)}>
+              {Object.values(DEPTS).map(d=><option key={d.id}>{d.name.replace('—',' –')} ({d.nameHindi})</option>)}
+            </select>
+          </div>
+          <button className="btn btn-orange" style={{width:'100%',justifyContent:'center'}} disabled={loading}>
+            {loading?<><Spinner/> Generating draft…</>:'✨ Generate AI Draft'}
+          </button>
+        </form>
+        {draft&&<div className="card bounce-in" style={{border:'1px solid rgba(88,166,255,.25)'}}>
+          <div style={{fontWeight:700,marginBottom:10,color:'var(--blue)'}}>✅ AI-Generated RTI Draft</div>
+          <pre style={{fontSize:12,lineHeight:1.7,whiteSpace:'pre-wrap',color:'var(--muted)',background:'#1c2128',padding:14,borderRadius:8,overflow:'auto',maxHeight:300}}>{draft}</pre>
+          <div style={{display:'flex',gap:8,marginTop:12}}>
+            <button className="btn btn-orange btn-sm" onClick={()=>navigator.clipboard?.writeText(draft).then(()=>addToast('success','Copied!'))}>📋 Copy Draft</button>
+            <button className="btn btn-ghost btn-sm" onClick={()=>setDraft('')}>Clear</button>
+          </div>
+        </div>}
+      </div>
+      <div>
+        <div className="card" style={{marginBottom:12}}>
+          <div style={{fontWeight:700,marginBottom:12}}>My RTI Applications ({rtis.length})</div>
+          {rtis.length===0?<div style={{color:'var(--muted)',fontSize:13}}>No RTI applications yet</div>:
+          rtis.slice(0,5).map(r=><div key={r.id} style={{padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
+            <div style={{fontWeight:600,fontSize:13,color:'var(--orange)'}}>{r.ticketId}</div>
+            <div style={{fontSize:12,color:'var(--muted)',marginTop:2}}>{r.subject?.slice(0,50)}{r.subject?.length>50?'…':''}</div>
+            <div style={{display:'flex',justifyContent:'space-between',marginTop:4}}>
+              <span style={{fontSize:11,color:'var(--muted)'}}>{timeAgo(r.filedAt)}</span>
+              <span className={'badge '+(r.status==='responded'?'badge-green':r.status==='processing'?'badge-blue':'badge-yellow')}>{r.status}</span>
+            </div>
+          </div>)}
+        </div>
+        <div className="card">
+          <div style={{fontWeight:700,marginBottom:10}}>ℹ️ RTI Rights</div>
+          {['Reply mandatory within 30 days','First appeal: day 31–60 to PIO','Second appeal: State Information Commission','Free for BPL card holders','₹10 application fee (others)','All docs in English or Hindi'].map((s,i)=>
+            <div key={i} style={{fontSize:12,color:'var(--muted)',marginBottom:6,display:'flex',gap:5}}>
+              <span style={{color:'var(--orange)'}}>•</span>{s}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+function LiveMapPage({complaints,sos,wards}){
+  const mapRef=useRef(null);
+  const mapInstRef=useRef(null);
+  useEffect(()=>{
+    if(!mapRef.current||mapInstRef.current)return;
+    const m=L.map(mapRef.current,{center:[30.3165,78.0322],zoom:10});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© CartoDB',maxZoom:19}).addTo(m);
+    mapInstRef.current=m;
+    complaints.slice(0,40).forEach(c=>{
+      if(!c.geo)return;
+      const col=c.status==='resolved'?'#3fb950':c.status==='in_progress'?'#58a6ff':'#FF9933';
+      const icon=L.divIcon({html:'<div style="background:'+col+';width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px '+col+'50"></div>',iconSize:[12,12],className:''});
+      L.marker([c.geo.lat,c.geo.lng],{icon}).bindPopup('<b>'+c.ticketId+'</b><br/>'+c.category+'<br/>'+c.status).addTo(m);
+    });
+    sos.filter(s=>s.status==='active').forEach(s=>{
+      if(!s.geo)return;
+      const icon=L.divIcon({html:'<div style="background:#f85149;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 10px #f85149"></div>',iconSize:[16,16],className:''});
+      L.marker([s.geo.lat,s.geo.lng],{icon}).bindPopup('<b>SOS: '+s.category+'</b><br/>'+s.location).addTo(m);
+    });
+    return()=>{if(mapInstRef.current){mapInstRef.current.remove();mapInstRef.current=null;}};
+  },[]);
+
+  return <div>
+    <div className="topbar">
+      <div style={{fontSize:20,fontWeight:700}}>🗺️ Live Civic Map — Uttarakhand</div>
+      <div style={{display:'flex',gap:14,fontSize:12}}>
+        {[['var(--orange)','Pending'],['var(--blue)','In Progress'],['var(--green)','Resolved'],['var(--red)','SOS']].map(([c,l])=><span key={l}><span style={{color:c}}>●</span> {l}</span>)}
+      </div>
+    </div>
+    <div ref={mapRef} style={{height:'calc(100vh - 130px)',borderRadius:12,border:'1px solid var(--border)'}}></div>
+  </div>;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DEPARTMENT DASHBOARD
+══════════════════════════════════════════════════════════════════════════════ */
+function DeptDash({session,onLogout,addToast}){
+  const {deptId,deptName,deptToken}=session;
+  const dept=DEPTS[deptId];
+  const [page,setPage]=useState('overview');
+  const [complaints,setComplaints]=useState([]);
+  const [stats,setStats]=useState(null);
+  const [liveNew,setLiveNew]=useState([]);
+  const [workers,setWorkers]=useState([]);
+  const [sseStatus,setSseStatus]=useState('connecting');
+
+  const load=useCallback(async()=>{
+    try{
+      const [c,s]=await Promise.all([
+        api.get('/api/dept/'+deptId+'/complaints',deptToken),
+        api.get('/api/dept/'+deptId+'/stats',deptToken),
+      ]);
+      setComplaints(Array.isArray(c)?c:c.complaints||[]);
+      setStats(s);
+    }catch(e){addToast('error','Load failed: '+e.message);}
+  },[deptId,deptToken]);
+
+  useEffect(()=>{
+    load();
+    api.get('/api/dept/'+deptId+'/workers',deptToken).then(setWorkers).catch(()=>{});
+    let active=true;
+    (async()=>{
+      try{
+        const r=await fetch('/api/dept/'+deptId+'/stream',{headers:{Authorization:'Bearer '+deptToken}});
+        if(!r.ok){setSseStatus('error');return;}
+        setSseStatus('live');
+        const reader=r.body.getReader();
+        const dec=new TextDecoder();
+        let buf='';
+        while(active){
+          const {value,done}=await reader.read();
+          if(done)break;
+          buf+=dec.decode(value,{stream:true});
+          const lines=buf.split('\n');
+          buf=lines.pop()||'';
+          for(const line of lines){
+            if(line.startsWith('data:')){
+              try{
+                const ev=JSON.parse(line.slice(5).trim());
+                if(ev.type==='complaint_new'){
+                  setLiveNew(p=>[ev.complaint,...p.slice(0,29)]);
+                  setComplaints(p=>[ev.complaint,...p]);
+                  addToast('success','New complaint: '+ev.complaint.ticketId);
+                  pushNotify('New Complaint — '+dept?.name,ev.complaint.category+' · '+ev.complaint.location);
+                }
+              }catch{}
+            }
+          }
+        }
+      }catch(e){if(active)setSseStatus('error');}
+    })();
+    return()=>{active=false;};
+  },[deptId,deptToken]);
+
+  const nav=[
+    {id:'overview',icon:'📊',label:'Overview'},
+    {id:'live',icon:'🔴',label:'Live Feed'},
+    {id:'complaints',icon:'📋',label:'All Complaints'},
+    {id:'workers',icon:'👷',label:'Workers'},
+    {id:'sla',icon:'⏱️',label:'SLA Tracker'},
+    {id:'info',icon:'🏛️',label:'Dept Info'},
+  ];
+
+  const sseEl=<div style={{padding:'8px 10px',margin:'0 4px',borderRadius:8,background:sseStatus==='live'?'rgba(63,185,80,.1)':'rgba(248,81,73,.1)',fontSize:11,display:'flex',alignItems:'center',gap:6}}>
+    <span className={'live-dot '+(sseStatus==='live'?'':'red')}></span>
+    <span style={{color:sseStatus==='live'?'var(--green)':'var(--red)'}}>{sseStatus==='live'?'Live Feed Active':sseStatus==='connecting'?'Connecting…':'SSE Error'}</span>
+  </div>;
+
+  return <div style={{display:'flex'}}>
+    <Sidebar nav={nav} active={page} setActive={setPage}
+      user={{name:deptName||dept?.name||deptId,role:'dept',district:'All Districts'}}
+      onLogout={onLogout} role="dept"
+      badge={liveNew.length>0?String(liveNew.length):null} badgeFor="live"
+      extra={sseEl}/>
+    <div className="main">
+      {page==='overview'&&stats&&<DeptOverview dept={dept} stats={stats} complaints={complaints} setPage={setPage}/>}
+      {page==='live'&&<DeptLiveFeed liveNew={liveNew} complaints={complaints} deptToken={deptToken} addToast={addToast} onRefresh={load}/>}
+      {page==='complaints'&&<DeptAllComplaints complaints={complaints} deptToken={deptToken} addToast={addToast} onRefresh={load}/>}
+      {page==='workers'&&<DeptWorkers workers={workers} deptId={deptId}/>}
+      {page==='sla'&&<DeptSLA complaints={complaints} dept={dept}/>}
+      {page==='info'&&<DeptInfo dept={dept}/>}
+    </div>
+  </div>;
+}
+
+function DeptOverview({dept,stats,complaints,setPage}){
+  const byP={P1:0,P2:0,P3:0,P4:0};
+  complaints.forEach(c=>{if(byP[c.priority]!==undefined)byP[c.priority]++;});
+  const rate=stats.total?Math.round((stats.resolved/stats.total)*100):0;
+
+  return <div className="fade-in">
+    <div className="topbar">
+      <div>
+        <div style={{fontSize:22,fontWeight:700}}>{dept?.icon} {dept?.name}</div>
+        <div style={{color:'var(--muted)',fontSize:13,marginTop:2}}>{dept?.nameHindi} · SLA: {dept?.sla}h · Helpline: {dept?.helpline}</div>
+      </div>
+      <button className="btn btn-orange" onClick={()=>setPage('live')}>View Live Feed →</button>
+    </div>
+    <div className="grid4" style={{marginBottom:20}}>
+      <KpiCard label="Total Complaints" value={stats.total} icon="📋"/>
+      <KpiCard label="Pending" value={stats.pending} color="var(--yellow)" icon="⏳"/>
+      <KpiCard label="In Progress" value={stats.inProgress} color="var(--blue)" icon="🔄"/>
+      <KpiCard label="Resolved" value={stats.resolved} color="var(--green)" icon="✅"/>
+    </div>
+    <div className="grid2" style={{marginBottom:20}}>
+      <div className="kpi">
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}>
+          <div><div className="kpi-val">{rate}%</div><div className="kpi-label">Resolution Rate</div></div>
+          <div style={{textAlign:'right'}}><div className="kpi-val" style={{color:'var(--red)'}}>{stats.p1Critical}</div><div className="kpi-label">P1 Critical</div></div>
+        </div>
+        <div className="progress"><div className="progress-bar" style={{width:rate+'%',background:rate>70?'var(--green)':rate>40?'var(--orange)':'var(--red)'}}></div></div>
+        <div style={{fontSize:11,color:'var(--muted)',marginTop:8}}>Today: {stats.todayCount} new · This week: {stats.weekCount}</div>
+      </div>
+      <div className="card" style={{padding:'18px 20px'}}>
+        <div style={{fontWeight:700,marginBottom:12}}>Priority Distribution</div>
+        {Object.entries(byP).map(([p,n])=><div key={p} style={{marginBottom:10}}>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}>
+            <span className={'badge '+(PC[p]||'badge-muted')}>{p}</span>
+            <span style={{color:'var(--muted)'}}>{n} issues</span>
+          </div>
+          <div className="progress"><div className="progress-bar" style={{width:(stats.total?Math.round(n/stats.total*100):0)+'%',background:p==='P1'?'var(--red)':p==='P2'?'var(--orange)':p==='P3'?'var(--yellow)':'var(--muted)'}}></div></div>
+        </div>)}
+      </div>
+    </div>
+  </div>;
+}
+
+function DeptLiveFeed({liveNew,complaints,deptToken,addToast,onRefresh}){
+  const [upd,setUpd]=useState({});
+  const [sel,setSel]=useState(null);
+
+  async function updateStatus(id,status){
+    setUpd(p=>({...p,[id]:true}));
+    try{await api.put('/api/dept/complaints/'+id,{status},deptToken);onRefresh();addToast('success','Status updated to '+status);}
+    catch(e){addToast('error',e.message);}
+    setUpd(p=>({...p,[id]:false}));
+  }
+
+  const sorted=[...complaints].sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
+
+  return <div className="fade-in">
+    <div className="topbar">
+      <div style={{display:'flex',alignItems:'center',gap:12}}>
+        <div style={{fontSize:20,fontWeight:700}}>🔴 Live Complaint Feed</div>
+        <span className="live-dot pulse"></span>
+        <span style={{fontSize:12,color:'var(--green)'}}>Real-time SSE</span>
+      </div>
+      <span style={{color:'var(--muted)',fontSize:13}}>{sorted.length} total · {liveNew.length} new this session</span>
+    </div>
+    {liveNew.length>0&&<div className="flash" style={{background:'rgba(255,153,51,.08)',border:'1px solid rgba(255,153,51,.3)',borderRadius:10,padding:12,marginBottom:16,fontSize:13}}>
+      <span style={{color:'var(--orange)',fontWeight:700}}>⚡ {liveNew.length} new complaint{liveNew.length>1?'s':''} arrived this session</span>
+    </div>}
+    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+      {sorted.slice(0,60).map((c,i)=>{
+        const isNew=liveNew.some(n=>n.id===c.id);
+        return <div key={c.id} className={'card '+(isNew?'flash':'')} style={{border:bc(isNew),animationDelay:(i*.02)+'s',transition:'border-color .3s'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+            <div style={{flex:1,cursor:'pointer'}} onClick={()=>setSel(c)}>
+              <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginBottom:6}}>
+                <span style={{fontWeight:700,color:'var(--orange)',fontSize:13}}>{c.ticketId}</span>
+                {isNew&&<span className="badge badge-orange">NEW ⚡</span>}
+                <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
+                <span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span>
+                <span style={{fontSize:11,color:'var(--muted)'}}>{CATEGORIES.find(x=>x.id===c.category)?.icon} {c.category}</span>
+              </div>
+              <div style={{fontSize:13,marginBottom:4,lineHeight:1.5}}>{c.description?.slice(0,130)}</div>
+              <div style={{fontSize:12,color:'var(--muted)'}}>📍 {c.location} · {c.district} · {timeAgo(c.submittedAt)}</div>
+              {c.submittedBy&&<div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>Filed by: {c.submittedBy} ({c.submittedByPhone})</div>}
+            </div>
+            <div style={{display:'flex',gap:5,flexDirection:'column',marginLeft:12,flexShrink:0}}>
+              {c.status==='pending'&&<button className="btn btn-blue btn-sm" onClick={()=>updateStatus(c.id,'in_progress')} disabled={upd[c.id]}>▶ Start</button>}
+              {(c.status==='pending'||c.status==='in_progress')&&<button className="btn btn-green btn-sm" onClick={()=>updateStatus(c.id,'resolved')} disabled={upd[c.id]}>✓ Resolve</button>}
+              {c.status==='resolved'&&<button className="btn btn-ghost btn-sm" onClick={()=>updateStatus(c.id,'closed')} disabled={upd[c.id]}>Close</button>}
+              <button className="btn btn-ghost btn-sm" onClick={()=>setSel(c)}>Detail</button>
+            </div>
+          </div>
+        </div>;
+      })}
+      {sorted.length===0&&<div className="card" style={{textAlign:'center',padding:50,color:'var(--muted)'}}>
+        <div style={{fontSize:40,marginBottom:10}}>📭</div>No complaints yet
+      </div>}
+    </div>
+    {sel&&<ComplaintModal c={sel} onClose={()=>setSel(null)} deptToken={deptToken} addToast={addToast} onRefresh={onRefresh} isAdmin={false}/>}
+  </div>;
+}
+
+function DeptAllComplaints({complaints,deptToken,addToast,onRefresh}){
+  const [search,setSearch]=useState('');
+  const [filter,setFilter]=useState('all');
+  const [pf,setPf]=useState('all');
+  const [upd,setUpd]=useState({});
+  const [sel,setSel]=useState(null);
+
+  const filtered=complaints.filter(c=>{
+    const s=filter==='all'||c.status===filter;
+    const p=pf==='all'||c.priority===pf;
+    const q=!search||[c.ticketId,c.description,c.location].some(x=>x?.toLowerCase().includes(search.toLowerCase()));
+    return s&&p&&q;
+  }).sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
+
+  async function updateStatus(id,status){
+    setUpd(p=>({...p,[id]:true}));
+    try{await api.put('/api/dept/complaints/'+id,{status},deptToken);onRefresh();addToast('success','Updated');}
+    catch(e){addToast('error',e.message);}
+    setUpd(p=>({...p,[id]:false}));
+  }
+
+  return <div className="fade-in">
+    <div className="topbar"><div style={{fontSize:20,fontWeight:700}}>📋 All Complaints ({filtered.length})</div></div>
+    <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+      <input className="input" style={{width:220}} placeholder="Search ticket, desc, location…" value={search} onChange={e=>setSearch(e.target.value)}/>
+      <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+        {['all','pending','in_progress','resolved','closed'].map(s=><button key={s} className={'btn btn-sm '+(filter===s?'btn-orange':'btn-ghost')} onClick={()=>setFilter(s)}>{SL[s]||'All'}</button>)}
+      </div>
+      <div style={{display:'flex',gap:4}}>
+        {['all','P1','P2','P3','P4'].map(p=><button key={p} className={'btn btn-sm '+(pf===p?'btn-orange':'btn-ghost')} onClick={()=>setPf(p)}>{p==='all'?'All P':p}</button>)}
+      </div>
+    </div>
+    <div className="card" style={{overflow:'auto'}}>
+      <table className="table">
+        <thead><tr><th>Ticket</th><th>Category</th><th>Description</th><th>Location</th><th>Priority</th><th>Status</th><th>Filed</th><th>Actions</th></tr></thead>
+        <tbody>
+          {filtered.slice(0,80).map(c=><tr key={c.id} style={{cursor:'pointer'}} onClick={()=>setSel(c)}>
+            <td style={{fontWeight:700,color:'var(--orange)',whiteSpace:'nowrap'}}>{c.ticketId}</td>
+            <td>{CATEGORIES.find(x=>x.id===c.category)?.icon} {c.category}</td>
+            <td style={{maxWidth:180}}><span style={{fontSize:12}}>{c.description?.slice(0,80)}</span></td>
+            <td style={{maxWidth:140,fontSize:12}}>{c.location?.slice(0,50)}</td>
+            <td><span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span></td>
+            <td><span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span></td>
+            <td style={{fontSize:11,whiteSpace:'nowrap'}}>{timeAgo(c.submittedAt)}</td>
+            <td onClick={e=>e.stopPropagation()}>
+              <div style={{display:'flex',gap:4,flexWrap:'nowrap'}}>
+                {c.status==='pending'&&<button className="btn btn-blue btn-sm" onClick={()=>updateStatus(c.id,'in_progress')} disabled={upd[c.id]}>Start</button>}
+                {(c.status==='pending'||c.status==='in_progress')&&<button className="btn btn-green btn-sm" onClick={()=>updateStatus(c.id,'resolved')} disabled={upd[c.id]}>Resolve</button>}
+              </div>
+            </td>
+          </tr>)}
+        </tbody>
+      </table>
+      {filtered.length===0&&<div style={{textAlign:'center',padding:30,color:'var(--muted)'}}>No complaints match filters</div>}
+    </div>
+    {sel&&<ComplaintModal c={sel} onClose={()=>setSel(null)} deptToken={deptToken} addToast={addToast} onRefresh={onRefresh} isAdmin={false}/>}
+  </div>;
+}
+
+function DeptWorkers({workers,deptId}){
+  const active=workers.filter(w=>w.status==='active').length;
+  const idle=workers.filter(w=>w.status==='idle').length;
+  const leave=workers.filter(w=>w.status==='on_leave').length;
+
+  return <div className="fade-in">
+    <div className="topbar"><div style={{fontSize:20,fontWeight:700}}>👷 Department Workers</div>
+      <div style={{display:'flex',gap:8,fontSize:12}}>
+        <span style={{color:'var(--green)'}}>● Active: {active}</span>
+        <span style={{color:'var(--muted)'}}>● Idle: {idle}</span>
+        <span style={{color:'var(--yellow)'}}>● On Leave: {leave}</span>
+      </div>
+    </div>
+    <div className="grid4" style={{marginBottom:20}}>
+      <KpiCard label="Total Workers" value={workers.length} icon="👷"/>
+      <KpiCard label="Active Now" value={active} color="var(--green)" icon="✅"/>
+      <KpiCard label="Total Resolved" value={workers.reduce((s,w)=>s+(w.totalResolved||0),0)} icon="✓"/>
+      <KpiCard label="Resolved Today" value={workers.reduce((s,w)=>s+(w.resolvedToday||0),0)} color="var(--orange)" icon="⚡"/>
+    </div>
+    {workers.length===0?<div className="card" style={{textAlign:'center',padding:50,color:'var(--muted)'}}>
+      <div style={{fontSize:40,marginBottom:10}}>👷</div>No worker data available
+    </div>:
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
+      {workers.map((w,i)=><div key={w.id} style={{animationDelay:(i*.03)+'s'}}><WorkerCard w={w}/></div>)}
+    </div>}
+  </div>;
+}
+
+function DeptSLA({complaints,dept}){
+  const slaH=dept?.sla||48;
+  const now=Date.now();
+  const breached=complaints.filter(c=>{
+    if(c.status==='resolved'||c.status==='closed')return false;
+    return (now-new Date(c.submittedAt).getTime())/3600000>slaH;
+  }).sort((a,b)=>new Date(a.submittedAt)-new Date(b.submittedAt));
+  const near=complaints.filter(c=>{
+    if(c.status==='resolved'||c.status==='closed')return false;
+    const el=(now-new Date(c.submittedAt).getTime())/3600000;
+    return el>slaH*0.7&&el<=slaH;
+  });
+
+  return <div className="fade-in">
+    <div className="topbar">
+      <div style={{fontSize:20,fontWeight:700}}>⏱️ SLA Tracker</div>
+      <div style={{color:'var(--muted)',fontSize:13}}>SLA: {slaH}h response time</div>
+    </div>
+    {breached.length>0&&<div style={{marginBottom:20}}>
+      <div style={{fontWeight:700,color:'var(--red)',marginBottom:10}}>🔴 SLA Breached ({breached.length})</div>
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {breached.map(c=>{
+          const el=Math.round((now-new Date(c.submittedAt).getTime())/3600000);
+          return <div key={c.id} className="card" style={{border:'1px solid var(--red)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div>
+                <span style={{fontWeight:700,color:'var(--orange)'}}>{c.ticketId}</span>
+                <span className="badge badge-red" style={{marginLeft:8}}>{el}h elapsed (SLA: {slaH}h)</span>
+                <div style={{fontSize:13,marginTop:4}}>{c.description?.slice(0,100)}</div>
+                <div style={{fontSize:12,color:'var(--muted)'}}>📍 {c.location}</div>
+              </div>
+              <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
+            </div>
+          </div>;
+        })}
+      </div>
+    </div>}
+    {near.length>0&&<div style={{marginBottom:20}}>
+      <div style={{fontWeight:700,color:'var(--yellow)',marginBottom:10}}>⚠️ Approaching SLA ({near.length})</div>
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {near.map(c=>{
+          const rem=slaH-Math.round((now-new Date(c.submittedAt).getTime())/3600000);
+          return <div key={c.id} className="card" style={{border:'1px solid var(--yellow)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div>
+                <span style={{fontWeight:700,color:'var(--orange)'}}>{c.ticketId}</span>
+                <span className="badge badge-yellow" style={{marginLeft:8}}>{rem}h remaining</span>
+                <div style={{fontSize:13,marginTop:4}}>{c.description?.slice(0,100)}</div>
+              </div>
+              <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
+            </div>
+          </div>;
+        })}
+      </div>
+    </div>}
+    {breached.length===0&&near.length===0&&<div className="card" style={{textAlign:'center',padding:50}}>
+      <div style={{fontSize:48,marginBottom:12}}>✅</div>
+      <div style={{fontWeight:700,fontSize:18}}>All complaints within SLA!</div>
+      <div style={{color:'var(--muted)',fontSize:13,marginTop:6}}>No breaches or warnings</div>
+    </div>}
+  </div>;
+}
+
+function DeptInfo({dept}){
+  if(!dept)return null;
+  return <div className="fade-in">
+    <div className="topbar"><div style={{fontSize:20,fontWeight:700}}>🏛️ Department Information</div></div>
+    <div style={{maxWidth:700}}>
+      <div className="card" style={{marginBottom:16,border:'1px solid rgba(255,153,51,.2)'}}>
+        <div style={{display:'flex',gap:16,alignItems:'flex-start'}}>
+          <div style={{fontSize:60,lineHeight:1}}>{dept.icon}</div>
+          <div>
+            <div style={{fontSize:22,fontWeight:700}}>{dept.name}</div>
+            <div style={{fontSize:16,color:'var(--muted)',marginTop:4}}>🇮🇳 {dept.nameHindi}</div>
+            <div style={{fontSize:13,color:'var(--muted)',marginTop:8}}>
+              <div style={{marginBottom:4}}>👤 Head: <b style={{color:'var(--text)'}}>{dept.head}</b></div>
+              <div style={{marginBottom:4}}>📍 {dept.address}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid2" style={{marginBottom:16}}>
+        <div className="card">
+          <div style={{fontWeight:700,marginBottom:12}}>📞 Contact</div>
+          <div style={{marginBottom:10}}><div style={{fontSize:11,color:'var(--muted)'}}>TOLL-FREE HELPLINE</div><div style={{fontSize:22,fontWeight:700,color:'var(--orange)'}}>{dept.helpline}</div></div>
+          <div><div style={{fontSize:11,color:'var(--muted)'}}>OFFICE NUMBER</div><div style={{fontSize:16,fontWeight:600}}>{dept.helpline2}</div></div>
+        </div>
+        <div className="card">
+          <div style={{fontWeight:700,marginBottom:12}}>⚡ Service Level Agreement</div>
+          <div style={{fontSize:36,fontWeight:800,color:'var(--orange)'}}>{dept.sla}h</div>
+          <div style={{fontSize:13,color:'var(--muted)',marginTop:4}}>Maximum response time for all complaints</div>
+          <div style={{marginTop:12,fontSize:12,color:'var(--muted)'}}>Categories handled:</div>
+          <div style={{marginTop:4,display:'flex',gap:6,flexWrap:'wrap'}}>
+            {dept.categories.length>0?dept.categories.map(c=><span key={c} className="badge badge-orange">{c}</span>):<span style={{fontSize:12,color:'var(--muted)'}}>All civic categories</span>}
+          </div>
+        </div>
+      </div>
+      <div className="card">
+        <div style={{fontWeight:700,marginBottom:12}}>📋 Responsibilities</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+          {(dept.id==='pwd'?['Road maintenance & repair','Bridge inspection','Highway development','Culvert construction']:
+            dept.id==='ulb'?['Waste collection & disposal','Drain maintenance','Street sweeping','Sanitation facilities']:
+            dept.id==='jal'?['Water supply infrastructure','Pipe network maintenance','Water quality testing','New connection approvals']:
+            dept.id==='upcl'?['Power distribution','Transformer maintenance','Street light maintenance','New connections']:
+            dept.id==='forest'?['Forest conservation','Tree plantation drives','Wildlife protection','Fire prevention']:
+            dept.id==='health'?['Hospital services','PHC management','Disease surveillance','Vaccination drives']:
+            dept.id==='usdma'?['Disaster risk management','Early warning systems','Relief coordination','Rescue operations']:
+            ['Law enforcement','Public safety','Crime prevention','Emergency response']).map((r,i)=><div key={i} style={{fontSize:13,color:'var(--muted)',display:'flex',gap:6}}>
+            <span style={{color:'var(--orange)'}}>•</span>{r}
+          </div>)}
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ADMIN DASHBOARD
+══════════════════════════════════════════════════════════════════════════════ */
+function AdminDash({session,onLogout,addToast}){
+  const {user,token}=session;
+  const [page,setPage]=useState('overview');
+  const [stats,setStats]=useState(null);
+  const [complaints,setComplaints]=useState([]);
+  const [sosAlerts,setSosAlerts]=useState([]);
+  const [workers,setWorkers]=useState([]);
+  const [districts,setDistricts]=useState([]);
+
+  const load=useCallback(async()=>{
+    try{
+      const [s,c,sos]=await Promise.all([
+        api.get('/api/admin/stats',token),
+        api.get('/api/admin/complaints',token),
+        api.get('/api/admin/alerts',token),
+      ]);
+      setStats(s);setComplaints(c);setSosAlerts(sos);
+      api.get('/api/admin/workers',token).then(setWorkers).catch(()=>{});
+      if(user.role==='super_admin'){api.get('/api/superadmin/districts',token).then(setDistricts).catch(()=>{});}
+    }catch(e){addToast('error',e.message);}
+  },[token,user.role]);
+
+  useEffect(()=>{load();},[load]);
+
+  const nav=[
+    {id:'overview',icon:'📊',label:'Overview'},
+    {id:'complaints',icon:'📋',label:'All Complaints'},
+    {id:'sos',icon:'🆘',label:'SOS Alerts'},
+    {id:'workers',icon:'👷',label:'All Workers'},
+    {id:'districts',icon:'🗺️',label:'Districts'},
+    {id:'announce',icon:'📢',label:'Announcements'},
+    {id:'broadcast',icon:'📣',label:'Broadcast'},
+  ];
+
+  return <div style={{display:'flex'}}>
+    <Sidebar nav={nav} active={page} setActive={setPage} user={user} onLogout={onLogout} role="admin"
+      badge={sosAlerts.filter(s=>s.status==='active').length>0?String(sosAlerts.filter(s=>s.status==='active').length):null} badgeFor="sos"/>
+    <div className="main">
+      {page==='overview'&&stats&&<AdminOverview stats={stats} complaints={complaints} sosAlerts={sosAlerts} token={token} addToast={addToast} onRefresh={load}/>}
+      {page==='complaints'&&<AdminComplaints complaints={complaints} token={token} addToast={addToast} onRefresh={load}/>}
+      {page==='sos'&&<AdminSOS sosAlerts={sosAlerts} token={token} addToast={addToast} onRefresh={load}/>}
+      {page==='workers'&&<AdminWorkers workers={workers}/>}
+      {page==='districts'&&<AdminDistricts districts={districts} user={user}/>}
+      {page==='announce'&&<AdminAnnouncements token={token} addToast={addToast} user={user}/>}
+      {page==='broadcast'&&<AdminBroadcast token={token} addToast={addToast}/>}
+    </div>
+  </div>;
+}
+
+function AdminOverview({stats,complaints,sosAlerts,token,addToast,onRefresh}){
+  const activeSos=sosAlerts.filter(s=>s.status==='active').length;
+  const rate=stats.totalComplaints?Math.round(((stats.resolvedComplaints||0)/stats.totalComplaints)*100):0;
+
+  return <div className="fade-in">
+    <div className="topbar">
+      <div>
+        <div style={{fontSize:22,fontWeight:700}}>⚡ Admin War Room</div>
+        <div style={{color:'var(--muted)',fontSize:13,marginTop:2}}>Live district-wide governance dashboard</div>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:8}}>
+        <span className="live-dot pulse"></span>
+        <span style={{fontSize:13,color:'var(--green)'}}>Live Data</span>
+        <button className="btn btn-ghost btn-sm" onClick={onRefresh}>↺ Refresh</button>
+      </div>
+    </div>
+    <div className="grid4" style={{marginBottom:20}}>
+      <KpiCard label="Total Complaints" value={stats.totalComplaints||complaints.length} icon="📋"/>
+      <KpiCard label="Pending" value={stats.pendingComplaints} color="var(--yellow)" icon="⏳"/>
+      <KpiCard label="Resolved" value={stats.resolvedComplaints} color="var(--green)" icon="✅"/>
+      <KpiCard label="Active SOS" value={activeSos} color="var(--red)" icon="🆘"/>
+    </div>
+    <div className="grid2" style={{marginBottom:20}}>
+      <div className="kpi">
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}>
+          <div><div className="kpi-val">{rate}%</div><div className="kpi-label">District Resolution Rate</div></div>
+          <div style={{textAlign:'right'}}><div className="kpi-val" style={{color:'var(--orange)'}}>{stats.inProgressComplaints||0}</div><div className="kpi-label">In Progress</div></div>
+        </div>
+        <div className="progress"><div className="progress-bar" style={{width:rate+'%',background:rate>70?'var(--green)':rate>40?'var(--orange)':'var(--red)'}}></div></div>
+        <div style={{fontSize:11,color:'var(--muted)',marginTop:8}}>Today: {stats.todayComplaints||0} new · Week: {stats.weekComplaints||0}</div>
+      </div>
+      <div className="card">
+        <div style={{fontWeight:700,marginBottom:12}}>🆘 Active SOS Feed</div>
+        {sosAlerts.filter(s=>s.status==='active').length===0?
+          <div style={{color:'var(--muted)',fontSize:13,textAlign:'center',padding:'12px 0'}}>✅ No active SOS alerts</div>:
+          sosAlerts.filter(s=>s.status==='active').slice(0,3).map(s=><div key={s.id} style={{padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:13}}>
+              <span style={{fontWeight:600,color:'var(--red)'}}>{SOS_CATS.find(c=>c.id===s.category)?.icon} {s.category}</span>
+              <span className="badge badge-red">active</span>
+            </div>
+            <div style={{fontSize:12,color:'var(--muted)',marginTop:2}}>📍 {s.location?.slice(0,60)} · {timeAgo(s.triggeredAt)}</div>
+          </div>)
+        }
+      </div>
+    </div>
+    <div className="card">
+      <div style={{fontWeight:700,marginBottom:16}}>🏛️ Department-wise Performance</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
+        {Object.values(DEPTS).map(d=>{
+          const dc=d.categories.length?complaints.filter(c=>d.categories.includes(c.category)):complaints;
+          const dr=dc.filter(c=>c.status==='resolved'||c.status==='closed').length;
+          const pct=dc.length?Math.round((dr/dc.length)*100):0;
+          return <div key={d.id} style={{background:'#1c2128',borderRadius:10,padding:14,border:'1px solid var(--border)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+              <div style={{fontWeight:600,fontSize:13}}>{d.icon} {d.name.split('—')[0].trim()}</div>
+              <span style={{fontSize:13,fontWeight:700,color:pct>70?'var(--green)':pct>40?'var(--orange)':'var(--red)'}}>{pct}%</span>
+            </div>
+            <div className="progress" style={{marginBottom:4}}><div className="progress-bar" style={{width:pct+'%',background:pct>70?'var(--green)':pct>40?'var(--orange)':'var(--red)'}}></div></div>
+            <div style={{fontSize:11,color:'var(--muted)'}}>{dc.length} complaints · {dr} resolved</div>
+          </div>;
+        })}
+      </div>
+    </div>
+  </div>;
+}
+
+function AdminComplaints({complaints,token,addToast,onRefresh}){
+  const [search,setSearch]=useState('');
+  const [filter,setFilter]=useState('all');
+  const [pf,setPf]=useState('all');
+  const [df,setDf]=useState('all');
+  const [sel,setSel]=useState(null);
+
+  const filtered=complaints.filter(c=>{
+    const s=filter==='all'||c.status===filter;
+    const p=pf==='all'||c.priority===pf;
+    const d=df==='all'||c.district===df;
+    const q=!search||[c.ticketId,c.description,c.location,c.district].some(x=>x?.toLowerCase().includes(search.toLowerCase()));
+    return s&&p&&d&&q;
+  }).sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
+
+  return <div className="fade-in">
+    <div className="topbar">
+      <div style={{fontSize:20,fontWeight:700}}>📋 All Complaints ({filtered.length})</div>
+      <div style={{fontSize:13,color:'var(--muted)'}}>Click any row to view details + add admin notes</div>
+    </div>
+    <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+      <input className="input" style={{width:220}} placeholder="Search across all fields…" value={search} onChange={e=>setSearch(e.target.value)}/>
+      <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+        {['all','pending','in_progress','resolved','closed'].map(s=><button key={s} className={'btn btn-sm '+(filter===s?'btn-orange':'btn-ghost')} onClick={()=>setFilter(s)}>{SL[s]||'All Status'}</button>)}
+      </div>
+      <div style={{display:'flex',gap:4}}>
+        {['all','P1','P2','P3','P4'].map(p=><button key={p} className={'btn btn-sm '+(pf===p?'btn-orange':'btn-ghost')} onClick={()=>setPf(p)}>{p==='all'?'All P':p}</button>)}
+      </div>
+      <select className="select" style={{width:160}} value={df} onChange={e=>setDf(e.target.value)}>
+        <option value="all">All Districts</option>
+        {DISTRICTS.map(d=><option key={d}>{d}</option>)}
+      </select>
+    </div>
+    <div className="card" style={{overflow:'auto'}}>
+      <table className="table">
+        <thead><tr><th>Ticket</th><th>Category / Dept</th><th>Description</th><th>Location</th><th>District</th><th>Priority</th><th>Status</th><th>Filed</th><th>Admin Note</th></tr></thead>
+        <tbody>
+          {filtered.slice(0,100).map(c=>{
+            const dept=DEPTS[CAT_DEPT[c.category]];
+            return <tr key={c.id} style={{cursor:'pointer'}} onClick={()=>setSel(c)}>
+              <td style={{fontWeight:700,color:'var(--orange)',whiteSpace:'nowrap'}}>{c.ticketId}</td>
+              <td><div>{CATEGORIES.find(x=>x.id===c.category)?.icon} {c.category}</div>{dept&&<div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>{dept.icon} {dept.name.split('—')[0].trim()}</div>}</td>
+              <td style={{maxWidth:180}}><span style={{fontSize:12}}>{c.description?.slice(0,70)}</span></td>
+              <td style={{maxWidth:130,fontSize:12}}>{c.location?.slice(0,45)}</td>
+              <td style={{fontSize:12,whiteSpace:'nowrap'}}>{c.district}</td>
+              <td><span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span></td>
+              <td><span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span></td>
+              <td style={{fontSize:11,whiteSpace:'nowrap'}}>{timeAgo(c.submittedAt)}</td>
+              <td style={{maxWidth:120}}>{c.adminNote?<span style={{fontSize:11,color:'var(--blue)'}}>🔵 {c.adminNote.slice(0,30)}…</span>:<span style={{fontSize:11,color:'var(--border)'}}>—</span>}</td>
+            </tr>;
+          })}
+        </tbody>
+      </table>
+      {filtered.length===0&&<div style={{textAlign:'center',padding:40,color:'var(--muted)'}}>No complaints match filters</div>}
+    </div>
+    {sel&&<ComplaintModal c={sel} onClose={()=>setSel(null)} token={token} addToast={addToast} onRefresh={onRefresh} isAdmin={true}/>}
+  </div>;
+}
+
+function AdminSOS({sosAlerts,token,addToast,onRefresh}){
+  const [resolving,setResolving]=useState({});
+  const active=sosAlerts.filter(s=>s.status==='active');
+  const responding=sosAlerts.filter(s=>s.status==='responding');
+  const resolved=sosAlerts.filter(s=>s.status==='resolved').slice(0,10);
+
+  async function resolve(id){
+    setResolving(p=>({...p,[id]:true}));
+    try{await api.put('/api/sos/'+id+'/resolve',{},token);onRefresh();addToast('success','SOS resolved');}
+    catch(e){addToast('error',e.message);}
+    setResolving(p=>({...p,[id]:false}));
+  }
+
+  function SosCard({s}){
+    return <div className="card bounce-in" style={{border:'1px solid '+(s.status==='active'?'var(--red)':s.status==='responding'?'var(--orange)':'var(--border)')}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+        <div style={{flex:1}}>
+          <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:6,flexWrap:'wrap'}}>
+            <span style={{fontWeight:700,fontSize:15}}>{SOS_CATS.find(c=>c.id===s.category)?.icon||'🆘'} {s.category?.replace('_',' ')}</span>
+            <span className={'badge '+(s.status==='active'?'badge-red':s.status==='responding'?'badge-orange':'badge-green')}>{s.status}</span>
+            {s.isWomenSafety&&<span className="badge badge-red">Women Safety</span>}
+          </div>
+          <div style={{fontSize:13,marginBottom:4}}>📍 {s.location}</div>
+          <div style={{fontSize:12,color:'var(--muted)'}}>
+            {s.triggeredBy&&<span>By: {s.triggeredBy} · </span>}
+            {s.district&&<span>{s.district} · </span>}
+            {s.nearestPoliceStation&&<span>Police: {s.nearestPoliceStation} · </span>}
+            {timeAgo(s.triggeredAt)}
+          </div>
+        </div>
+        {(s.status==='active'||s.status==='responding')&&
+          <button className="btn btn-green btn-sm" onClick={()=>resolve(s.id)} disabled={resolving[s.id]}>✓ Resolve</button>}
+      </div>
+    </div>;
+  }
+
+  return <div className="fade-in">
+    <div className="topbar">
+      <div style={{fontSize:20,fontWeight:700}}>🆘 SOS Alert Management</div>
+      <div style={{color:'var(--muted)',fontSize:13}}>{active.length} active · {responding.length} responding</div>
+    </div>
+    <div className="grid3" style={{marginBottom:20}}>
+      <KpiCard label="Active Alerts" value={active.length} color="var(--red)" icon="🔴"/>
+      <KpiCard label="Being Responded" value={responding.length} color="var(--orange)" icon="🚨"/>
+      <KpiCard label="Resolved Total" value={sosAlerts.filter(s=>s.status==='resolved').length} color="var(--green)" icon="✅"/>
+    </div>
+    {active.length>0&&<div style={{marginBottom:20}}><div style={{fontWeight:700,color:'var(--red)',marginBottom:10}}>🔴 Active ({active.length})</div><div style={{display:'flex',flexDirection:'column',gap:10}}>{active.map(s=><SosCard key={s.id} s={s}/>)}</div></div>}
+    {responding.length>0&&<div style={{marginBottom:20}}><div style={{fontWeight:700,color:'var(--orange)',marginBottom:10}}>🟡 Responding ({responding.length})</div><div style={{display:'flex',flexDirection:'column',gap:10}}>{responding.map(s=><SosCard key={s.id} s={s}/>)}</div></div>}
+    {resolved.length>0&&<div><div style={{fontWeight:700,color:'var(--muted)',marginBottom:10}}>✅ Recently Resolved</div><div style={{display:'flex',flexDirection:'column',gap:10}}>{resolved.map(s=><SosCard key={s.id} s={s}/>)}</div></div>}
+    {sosAlerts.length===0&&<div className="card" style={{textAlign:'center',padding:60}}>
+      <div style={{fontSize:52,marginBottom:12}}>✅</div><div style={{fontWeight:700,fontSize:18}}>No SOS alerts</div>
+    </div>}
+  </div>;
+}
+
+function AdminWorkers({workers}){
+  const [search,setSearch]=useState('');
+  const [sf,setSf]=useState('all');
+  const [df,setDf]=useState('all');
+  const filtered=workers.filter(w=>{
+    const s=sf==='all'||w.status===sf;
+    const d=df==='all'||w.district===df;
+    const q=!search||w.name?.toLowerCase().includes(search.toLowerCase())||w.ward?.toLowerCase().includes(search.toLowerCase());
+    return s&&d&&q;
+  });
+
+  return <div className="fade-in">
+    <div className="topbar"><div style={{fontSize:20,fontWeight:700}}>👷 All Workers</div></div>
+    <div className="grid4" style={{marginBottom:20}}>
+      <KpiCard label="Total Workers" value={workers.length} icon="👷"/>
+      <KpiCard label="Active" value={workers.filter(w=>w.status==='active').length} color="var(--green)" icon="✅"/>
+      <KpiCard label="Total Resolved" value={workers.reduce((s,w)=>s+(w.totalResolved||0),0)} icon="✓"/>
+      <KpiCard label="Avg Rating" value={(workers.reduce((s,w)=>s+(w.avgRating||0),0)/Math.max(workers.length,1)).toFixed(1)} icon="⭐"/>
+    </div>
+    <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+      <input className="input" style={{width:200}} placeholder="Search by name or ward…" value={search} onChange={e=>setSearch(e.target.value)}/>
+      <div style={{display:'flex',gap:4}}>
+        {['all','active','idle','on_leave'].map(s=><button key={s} className={'btn btn-sm '+(sf===s?'btn-orange':'btn-ghost')} onClick={()=>setSf(s)}>{s==='all'?'All Status':s.replace('_',' ')}</button>)}
+      </div>
+      <select className="select" style={{width:160}} value={df} onChange={e=>setDf(e.target.value)}>
+        <option value="all">All Districts</option>
+        {[...new Set(workers.map(w=>w.district))].filter(Boolean).map(d=><option key={d}>{d}</option>)}
+      </select>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
+      {filtered.map((w,i)=><div key={w.id} style={{animationDelay:(i*.025)+'s'}}><WorkerCard w={w}/></div>)}
+    </div>
+    {filtered.length===0&&<div className="card" style={{textAlign:'center',padding:50,color:'var(--muted)'}}>No workers match filters</div>}
+  </div>;
+}
+
+function AdminDistricts({districts,user}){
+  return <div className="fade-in">
+    <div className="topbar"><div style={{fontSize:20,fontWeight:700}}>🗺️ 13 Districts of Uttarakhand</div></div>
+    {districts.length===0?<div className="card" style={{textAlign:'center',padding:60,color:'var(--muted)'}}>
+      {user.role!=='super_admin'?'Super admin access required for district view':'Loading district data…'}
+    </div>:
+    <div className="card" style={{overflow:'auto'}}>
+      <table className="table">
+        <thead><tr><th>District</th><th>Total</th><th>Pending</th><th>Resolved</th><th>Resolution %</th><th>Health Score</th><th>SOS</th><th>Wards</th></tr></thead>
+        <tbody>
+          {districts.map((d,i)=>{
+            const pct=d.totalComplaints?Math.round((d.resolvedComplaints/d.totalComplaints)*100):0;
+            return <tr key={d.district} className="fade-in" style={{animationDelay:(i*.03)+'s'}}>
+              <td style={{fontWeight:600}}>{d.district}</td>
+              <td>{d.totalComplaints}</td>
+              <td style={{color:'var(--yellow)'}}>{d.pendingComplaints}</td>
+              <td style={{color:'var(--green)'}}>{d.resolvedComplaints}</td>
+              <td>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div className="progress" style={{width:60}}><div className="progress-bar" style={{width:pct+'%'}}></div></div>
+                  <span style={{fontSize:12}}>{pct}%</span>
+                </div>
+              </td>
+              <td><span style={{fontWeight:700,color:d.avgHealthScore>70?'var(--green)':d.avgHealthScore>40?'var(--yellow)':'var(--red)'}}>{d.avgHealthScore}/100</span></td>
+              <td style={{color:d.activeSOS>0?'var(--red)':'var(--muted)'}}>{d.activeSOS||0}</td>
+              <td style={{color:'var(--muted)'}}>{d.wardCount||0}</td>
+            </tr>;
+          })}
+        </tbody>
+      </table>
+    </div>}
+  </div>;
+}
+
+function AdminAnnouncements({token,addToast,user}){
+  const [anns,setAnns]=useState([]);
+  const [title,setTitle]=useState('');
+  const [body,setBody]=useState('');
+  const [type,setType]=useState('general');
+  const [priority,setPriority]=useState('normal');
+  const [sending,setSending]=useState(false);
+
+  useEffect(()=>{
+    api.get('/api/announcements',token).then(r=>setAnns(Array.isArray(r)?r:[])).catch(()=>{});
+  },[token]);
+
+  async function post(e){
+    e.preventDefault();
+    if(!title.trim()||!body.trim())return addToast('error','Title and body required');
+    setSending(true);
+    try{
+      const r=await api.post('/api/announcements',{title,body,type,priority,department:'District Administration',postedBy:user.name},token);
+      setAnns(p=>[r,...p]);setTitle('');setBody('');addToast('success','Announcement posted!');
+    }catch(e){addToast('error',e.message);}
+    setSending(false);
+  }
+
+  return <div className="fade-in">
+    <div className="topbar"><div style={{fontSize:20,fontWeight:700}}>📢 Announcements</div></div>
+    <div style={{display:'grid',gridTemplateColumns:'360px 1fr',gap:20,maxWidth:1000}}>
+      <form className="card" onSubmit={post}>
+        <div style={{fontWeight:700,marginBottom:16}}>✍️ Post New Announcement</div>
+        <div style={{marginBottom:14}}>
+          <label>Title</label>
+          <input className="input" placeholder="Announcement title…" value={title} onChange={e=>setTitle(e.target.value)} required/>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label>Message</label>
+          <textarea className="input" rows={4} style={{resize:'vertical'}} placeholder="Detailed message…" value={body} onChange={e=>setBody(e.target.value)} required/>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label>Type</label>
+          <select className="select" value={type} onChange={e=>setType(e.target.value)}>
+            {['general','scheme','emergency','welfare','tender','holiday'].map(t=><option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:18}}>
+          <label>Priority</label>
+          <div style={{display:'flex',gap:8}}>
+            {['normal','important','urgent'].map(p=><button key={p} type="button" onClick={()=>setPriority(p)}
+              style={{flex:1,padding:'8px',borderRadius:8,border:bc(priority===p),background:priority===p?'rgba(255,153,51,.1)':'#1c2128',color:priority===p?'var(--orange)':'var(--muted)',cursor:'pointer',fontSize:12,fontWeight:600,transition:'all .15s'}}>
+              {p}
+            </button>)}
+          </div>
+        </div>
+        <button className="btn btn-orange" style={{width:'100%',justifyContent:'center'}} disabled={sending}>
+          {sending?<><Spinner/> Posting…</>:'📢 Post Announcement'}
+        </button>
+      </form>
+      <div>
+        <div style={{fontWeight:700,marginBottom:12}}>Recent Announcements ({anns.length})</div>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {anns.length===0?<div className="card" style={{textAlign:'center',padding:40,color:'var(--muted)'}}>No announcements yet</div>:
+          anns.slice(0,15).map((a,i)=><div key={a.id} className="card fade-in" style={{animationDelay:(i*.04)+'s'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+              <div style={{fontWeight:600,fontSize:14}}>{a.title}</div>
+              <span className={'badge '+(a.priority==='urgent'?'badge-red':a.priority==='important'?'badge-orange':'badge-muted')}>{a.priority}</span>
+            </div>
+            <div style={{fontSize:12,color:'var(--muted)',lineHeight:1.5,marginBottom:8}}>{a.body?.slice(0,150)}{a.body?.length>150?'…':''}</div>
+            <div style={{display:'flex',gap:8,fontSize:11,color:'var(--muted)'}}>
+              <span>{a.type}</span><span>·</span><span>{a.department}</span><span>·</span><span>{timeAgo(a.postedAt)}</span>
+            </div>
+          </div>)}
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+function AdminBroadcast({token,addToast}){
+  const [msg,setMsg]=useState('');
+  const [severity,setSeverity]=useState('high');
+  const [sending,setSending]=useState(false);
+
+  async function send(e){
+    e.preventDefault();if(!msg.trim()){addToast('error','Message required');return;}
+    setSending(true);
+    try{
+      await api.post('/api/admin/emergency-broadcast',{message:msg,severity},token);
+      addToast('success','Broadcast sent to all connected clients!');setMsg('');
+      pushNotify('Emergency Broadcast Sent','Alert delivered to all mobile app users');
+    }catch(e){addToast('error',e.message);}
+    setSending(false);
+  }
+
+  return <div className="fade-in">
+    <div className="topbar"><div style={{fontSize:20,fontWeight:700}}>📣 Emergency Broadcast</div></div>
+    <div style={{maxWidth:580}}>
+      <div style={{background:'rgba(218,54,51,.08)',border:'1px solid rgba(218,54,51,.3)',borderRadius:10,padding:14,marginBottom:24,fontSize:13}}>
+        ⚠️ This will broadcast a live WebSocket alert to ALL currently connected mobile app users in real-time. Use only for genuine district-wide emergencies.
+      </div>
+      <form className="card" onSubmit={send}>
+        <div style={{marginBottom:16}}>
+          <label>Severity Level</label>
+          <div style={{display:'flex',gap:8}}>
+            {[['low','🟢 Low'],['medium','🟡 Medium'],['high','🔴 High'],['critical','🚨 Critical']].map(([s,l])=>
+              <button key={s} type="button" onClick={()=>setSeverity(s)}
+                style={{flex:1,padding:'9px 4px',borderRadius:8,border:bc(severity===s),background:severity===s?'rgba(255,153,51,.1)':'#1c2128',color:severity===s?'var(--orange)':'var(--muted)',cursor:'pointer',fontSize:11,fontWeight:600,transition:'all .15s'}}>
+                {l}
+              </button>
+            )}
+          </div>
+        </div>
+        <div style={{marginBottom:20}}>
+          <label>Broadcast Message</label>
+          <textarea className="input" rows={5} style={{resize:'vertical'}} placeholder="District-wide emergency message to broadcast to all citizens…" value={msg} onChange={e=>setMsg(e.target.value)} required/>
+          <div style={{fontSize:11,color:'var(--muted)',marginTop:6}}>This message will appear as a push notification and in-app alert on all connected devices.</div>
+        </div>
+        <button className="btn btn-red" style={{width:'100%',justifyContent:'center',padding:'13px',fontSize:14,fontWeight:700}} disabled={sending||!msg.trim()}>
+          {sending?<><Spinner/> Broadcasting…</>:'📣 SEND EMERGENCY BROADCAST'}
+        </button>
+      </form>
+    </div>
+  </div>;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   APP ROOT
+══════════════════════════════════════════════════════════════════════════════ */
+function App(){
+  const [session,setSession]=useState(()=>{
+    try{const s=localStorage.getItem('portal_session');return s?JSON.parse(s):null;}catch{return null;}
+  });
+  const [toasts,setToasts]=useState([]);
+
+  function addToast(type,msg){
+    const id=Date.now()+Math.random();
+    setToasts(p=>[...p,{id,type,msg}]);
+    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),4500);
+  }
+
+  function login(s){
+    setSession(s);
+    try{localStorage.setItem('portal_session',JSON.stringify(s));}catch{}
+  }
+
+  function logout(){
+    setSession(null);
+    try{localStorage.removeItem('portal_session');}catch{}
+  }
+
+  const role=session?.user?.role;
+  const isAdmin=role==='admin'||role==='super_admin';
+  const isDept=session?.type==='dept';
+  const isCitizen=session?.type==='citizen'&&!isAdmin;
+
+  return <div>
+    {!session&&<LoginScreen onLogin={login}/>}
+    {isCitizen&&<CitizenDash session={session} onLogout={logout} addToast={addToast}/>}
+    {isDept&&<DeptDash session={session} onLogout={logout} addToast={addToast}/>}
+    {isAdmin&&<AdminDash session={session} onLogout={logout} addToast={addToast}/>}
+    <Toast toasts={toasts}/>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
