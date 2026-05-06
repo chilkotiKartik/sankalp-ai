@@ -1,0 +1,181 @@
+stage-0
+COPY . /app/.
+870ms
+
+stage-0
+RUN npm install && node scripts/build.js
+3s
+npm warn config production Use `--omit=dev` instead.
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@react-native/assets-registry@0.81.5',
+npm warn EBADENGINE   required: { node: '>= 20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@react-native/babel-plugin-codegen@0.81.5',
+npm warn EBADENGINE   required: { node: '>= 20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@react-native/babel-preset@0.81.5',
+npm warn EBADENGINE   required: { node: '>= 20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@react-native/codegen@0.81.5',
+npm warn EBADENGINE   required: { node: '>= 20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@react-native/community-cli-plugin@0.81.5',
+npm warn EBADENGINE   required: { node: '>= 20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@react-native/debugger-frontend@0.81.5',
+npm warn EBADENGINE   required: { node: '>= 20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@react-native/dev-middleware@0.81.5',
+npm warn EBADENGINE   required: { node: '>= 20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@react-native/gradle-plugin@0.81.5',
+npm warn EBADENGINE   required: { node: '>= 20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@react-native/js-polyfills@0.81.5',
+npm warn EBADENGINE   required: { node: '>= 20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'eslint-visitor-keys@5.0.1',
+npm warn EBADENGINE   required: { node: '^20.19.0 || ^22.13.0 || >=24' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-babel-transformer@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-cache@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-cache-key@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-config@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-core@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-file-map@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-minify-terser@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-resolver@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-runtime@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-source-map@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-symbolicate@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-transform-plugins@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'metro-transform-worker@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'ob1@0.83.3',
+npm warn EBADENGINE   required: { node: '>=20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'react-native@0.81.5',
+npm warn EBADENGINE   required: { node: '>= 20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'react-native-maps@1.27.2',
+npm warn EBADENGINE   required: { node: '>= 20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@react-native/virtualized-lists@0.81.5',
+npm warn EBADENGINE   required: { node: '>= 20.19.4' },
+npm warn EBADENGINE   current: { node: 'v20.18.1', npm: '10.8.2' }
+npm warn EBADENGINE }
+> expo-app@1.0.0 postinstall
+> patch-package
+patch-package 8.0.1
+Applying patches...
+expo-asset@12.0.12 ✔
+Warning: patch-package detected a patch file version mismatch
+  Don't worry! This is probably fine. The patch was still applied
+  successfully. Here's the deets:
+  Patch file created for
+    expo-asset@12.0.12
+  applied to
+    expo-asset@12.0.13
+  
+  At path
+  
+    node_modules/expo-asset
+  This warning is just to give you a heads-up. There is a small chance of
+  breakage even though the patch was applied successfully. Make sure the package
+  still behaves like you expect (you wrote tests, right?) and then run
+    patch-package expo-asset
+  to update the version in the patch file name and make this warning go away.
+---
+patch-package finished with 1 warning(s).
+up to date, audited 1102 packages in 3s
+204 packages are looking for funding
+  run `npm fund` for details
+9 vulnerabilities (8 moderate, 1 high)
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+Building static Expo Go deployment...
+ERROR: No deployment domain found. Set EXPO_PUBLIC_DOMAIN to your production domain (e.g. sankalp-ai.replit.app)
+Build Failed: build daemon returned an error < failed to solve: process "/bin/bash -ol pipefail -c npm install && node scripts/build.js" did not complete successfully: exit code: 1 >
