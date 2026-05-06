@@ -396,6 +396,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on("error", () => {});
   });
 
+  // ── HEALTH ────────────────────────────────────────────────────────────
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(process.uptime()),
+      service: "SANKALP AI",
+      version: "1.0.0",
+    });
+  });
+
   // ── AUTH ──────────────────────────────────────────────────────────────
   app.post("/api/auth/register", rateLimit(5, 60_000), async (req, res) => {
     try {
