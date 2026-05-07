@@ -816,6 +816,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(201).json({ alert, nearestStations: nearestStations.slice(0, 2), cprIncident: cprInc });
   });
 
+  // ── FOREST FIRE SOS ────────────────────────────────────────────────────────
+  app.post("/api/sos/forest-fire", requireAuth, async (req, res) => {
+    const user = (req as any).user;
+    const { geo, location, description } = req.body;
+    const geoPoint = geo || { lat: 30.3165, lng: 78.0322 };
+    const alert = storage.createSos({
+      category: "forest_fire",
+      description: description || "FOREST FIRE EMERGENCY — Reported via SANKALP AI citizen app",
+      location: location || `GPS: ${geoPoint.lat.toFixed(4)}, ${geoPoint.lng.toFixed(4)}`,
+      geo: geoPoint,
+      ward: user.district || "Dehradun",
+      wardNumber: 1,
+      district: user.district || "Dehradun",
+      status: "active",
+      triggeredBy: user.name,
+      triggeredByPhone: user.phone,
+      isWomenSafety: false,
+    } as any, user.id);
+
+    const payload = {
+      type: "forest_fire_sos",
+      alert,
+      triggeredBy: user.name,
+      phone: user.phone,
+      district: user.district,
+      timestamp: new Date().toISOString(),
+    };
+
+    broadcast(payload);
+    cprEmitter.emit("event", { ...payload, type: "sos_new" });
+    // Notify Forest Department + USDMA (Disaster Management) via SSE — HIGH PRIORITY
+    deptEmitter.emit("event", { type: "sos_alert", departmentId: "forest", alert, payload, priority: "HIGH" });
+    deptEmitter.emit("event", { type: "sos_alert", departmentId: "usdma", alert, payload, priority: "HIGH" });
+
+    // Push notifications to district admin + all super admins
+    const ffDistrict = user.district || "Dehradun";
+    const ffTokens = getAdminTokensForDistrict(ffDistrict);
+    if (ffTokens.length > 0) {
+      const msgs: ExpoPushMessage[] = ffTokens.map(to => ({
+        to,
+        sound: "default",
+        title: `🔥 FOREST FIRE SOS — ${ffDistrict.toUpperCase()}`,
+        body: `${user.name || "Citizen"} reported a forest fire. Location: ${location || `GPS: ${geoPoint.lat.toFixed(4)}, ${geoPoint.lng.toFixed(4)}`}`,
+        data: { type: "forest_fire_sos", alertId: alert.id, district: ffDistrict },
+        priority: "high",
+        channelId: "sos-alerts",
+        badge: 1,
+      }));
+      const chunks = expoSdk.chunkPushNotifications(msgs);
+      for (const chunk of chunks) {
+        expoSdk.sendPushNotificationsAsync(chunk).catch(() => {});
+      }
+    }
+
+    res.status(201).json({ alert });
+  });
+
   // ── SOS AUDIO URL PATCH (auto-called 18s after women-safety SOS) ─────────
   app.put("/api/sos/:id/audio-url", requireAuth, (req, res) => {
     const { audioUrl } = req.body;

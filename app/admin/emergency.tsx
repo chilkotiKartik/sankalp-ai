@@ -239,13 +239,13 @@ const cs = StyleSheet.create({
 
   filterScroll: { marginBottom: 4 },
   filterRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16 },
-  filterChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
+  filterChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
   filterChipActive: { backgroundColor: Colors.saffron + "22", borderColor: Colors.saffron },
-  filterChipText: { fontSize: 12, color: Colors.textMuted, fontWeight: "500" },
+  filterChipText: { fontSize: 11, color: Colors.textMuted, fontWeight: "500" },
 
-  districtChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
+  districtChip: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
   districtChipActive: { backgroundColor: Colors.peacock + "22", borderColor: Colors.peacock },
-  districtChipText: { fontSize: 11, color: Colors.textMuted },
+  districtChipText: { fontSize: 10, color: Colors.textMuted },
   districtChipTextActive: { color: Colors.peacock, fontWeight: "700" },
 
   scroll: { padding: 16, gap: 0 },

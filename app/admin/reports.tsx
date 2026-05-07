@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#fff", fontSize: 18, fontFamily: "Inter_700Bold", flex: 1 },
   countBadge: { backgroundColor: Colors.bgCard, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: Colors.border },
   countText: { color: Colors.textMuted, fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  pill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
+  pill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
   pillActive: { backgroundColor: Colors.green + "11", borderColor: Colors.green + "44" },
   pillText: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_500Medium" },
   card: { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: Colors.border },

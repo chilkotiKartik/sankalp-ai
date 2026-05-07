@@ -225,9 +225,9 @@ const cs = StyleSheet.create({
 
   filterScroll: { marginBottom: 8 },
   filterRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16 },
-  filterChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
+  filterChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
   filterChipActive: { backgroundColor: Colors.saffron + "22", borderColor: Colors.saffron },
-  filterChipText: { fontSize: 12, color: Colors.textMuted, fontWeight: "500" },
+  filterChipText: { fontSize: 11, color: Colors.textMuted, fontWeight: "500" },
 
   scroll: { padding: 16, gap: 0 },
 

@@ -282,11 +282,11 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, color: "#F9FAFB", fontSize: 14, fontFamily: "Inter_400Regular" },
   filterRow: { marginBottom: 4 },
   filterChip: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
-    borderWidth: 1, borderColor: "#374151", backgroundColor: "#1F2937", marginRight: 8,
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 14,
+    borderWidth: 1, borderColor: "#374151", backgroundColor: "#1F2937", marginRight: 6,
   },
-  filterChipText: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  filterChipText: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_600SemiBold" },
   emptyWrap: { alignItems: "center", paddingVertical: 40, gap: 8 },
   emptyText: { color: "#6B7280", fontSize: 14, fontFamily: "Inter_500Medium" },
   serviceCard: {

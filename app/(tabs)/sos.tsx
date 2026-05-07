@@ -181,6 +181,16 @@ function SOSScreenInner() {
   const [cprSubmitting, setCprSubmitting] = useState(false);
   const [cprSent, setCprSent] = useState(false);
 
+  // Active CPR patrols (live-polled)
+  const [nearestCPR, setNearestCPR] = useState<any[]>([]);
+  const cprPollRef = useRef<any>(null);
+
+  // Forest Fire SOS
+  const [showForestModal, setShowForestModal] = useState(false);
+  const [forestDesc, setForestDesc] = useState("");
+  const [forestSending, setForestSending] = useState(false);
+  const [forestSent, setForestSent] = useState(false);
+
   // Women Safety
   const [womenPanic, setWomenPanic] = useState(false);
   const [womenTapCount, setWomenTapCount] = useState(0);
@@ -598,6 +608,100 @@ function SOSScreenInner() {
     }
   };
 
+  // ── ACTIVE CPR PATROLS — LIVE POLL ────────────────────────────────────────
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    const fetchCPR = async () => {
+      try {
+        const { getApiUrl } = await import("@/lib/query-client");
+        const baseUrl = getApiUrl();
+        const res = await fetch(`${baseUrl}api/cpr/patrols`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok || cancelled) return;
+        const data: any[] = await res.json();
+        const active = data.filter(v => v.status === "active_patrol" || v.status === "responding");
+        const from = currentGeoRef.current || { lat: 30.3165, lng: 78.0322 };
+        const sorted = active
+          .map(v => ({
+            ...v,
+            distance: v.geo
+              ? parseFloat(
+                  Math.sqrt(
+                    Math.pow((v.geo.lat - from.lat) * 110.574, 2) +
+                    Math.pow((v.geo.lng - from.lng) * 111.320 * Math.cos((from.lat * Math.PI) / 180), 2)
+                  ).toFixed(2)
+                )
+              : 999,
+          }))
+          .sort((a, b) => a.distance - b.distance)
+          .slice(0, 3);
+        setNearestCPR(sorted);
+      } catch {}
+    };
+    fetchCPR();
+    cprPollRef.current = setInterval(fetchCPR, 30000);
+    return () => {
+      cancelled = true;
+      if (cprPollRef.current) clearInterval(cprPollRef.current);
+    };
+  }, [token]);
+
+  // ── FOREST FIRE SOS ────────────────────────────────────────────────────────
+  const handleForestFireSOS = async () => {
+    if (forestSending || forestSent) return;
+    setForestSending(true);
+    try {
+      const { getApiUrl } = await import("@/lib/query-client");
+      const baseUrl = getApiUrl();
+      const g = currentGeoRef.current || { lat: 30.3165, lng: 78.0322 };
+      const res = await fetch(`${baseUrl}api/sos/forest-fire`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          geo: g,
+          location: `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}`,
+          description: forestDesc || "Forest fire reported via SANKALP AI citizen app",
+        }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setForestSent(true);
+        setActiveAlert(result.alert);
+        setTriggered(true);
+        startLive(result.alert.id);
+        if (Platform.OS !== "web") {
+          try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); } catch {}
+          Vibration.vibrate([0, 300, 100, 300, 100, 300]);
+          try {
+            Speech.speak(
+              "Forest fire alert sent. Forest Department and Disaster Management notified. Move to safety immediately.",
+              { language: "en-IN", rate: 0.88 }
+            );
+          } catch {}
+        }
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: "🔥 Forest Fire SOS Sent",
+              body: "Forest Dept & USDMA notified. Move to safety immediately.",
+              sound: true,
+            },
+            trigger: null,
+          });
+        } catch {}
+      } else {
+        Alert.alert("Failed", "Could not send alert. Call 1800-180-4191 (Forest Helpline).");
+      }
+    } catch {
+      Alert.alert("Error", "Network error. Call 1800-180-4191 directly.");
+    } finally {
+      setForestSending(false);
+      setShowForestModal(false);
+    }
+  };
+
   // ── CPR HELP REQUEST ──────────────────────────────────────────────────────
   const handleCPRRequest = async () => {
     if (cprSubmitting || cprSent) return;
@@ -713,6 +817,62 @@ function SOSScreenInner() {
           </View>
         </View>
       )}
+
+      {/* ── FOREST FIRE CONFIRM MODAL ── */}
+      <Modal visible={showForestModal} transparent animationType="slide" statusBarTranslucent>
+        <View style={s.overlay}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => { if (!forestSending) setShowForestModal(false); }} />
+          <View style={[s.sheet, { maxHeight: "58%" }]}>
+            <View style={s.sheetHandle} />
+            <LinearGradient colors={["#1A0800", "#431800", "#7C2D12"]} style={s.sheetHead}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🔥</Text></View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.sheetTitle}>Report Forest Fire</Text>
+                <Text style={s.sheetSub}>High-priority → Forest Dept & USDMA Disaster Mgmt</Text>
+              </View>
+            </LinearGradient>
+            <View style={{ padding: 20, gap: 14 }}>
+              <View style={[s.gpsBadge, { backgroundColor: geo ? "#14532D" : "#1F2937" }]}>
+                <LiveDot isLive={!!geo} />
+                <Text style={[s.gpsBadgeText, { color: geo ? "#4ADE80" : "#9CA3AF" }]}>
+                  {geo ? `GPS: ${geo.lat.toFixed(5)}°N, ${geo.lng.toFixed(5)}°E` : "GPS acquiring…"}
+                </Text>
+              </View>
+              <TextInput
+                style={[s.descBox, { height: 70 }]}
+                placeholder="Describe fire location — forest area, nearest village…"
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                value={forestDesc}
+                onChangeText={setForestDesc}
+                multiline
+              />
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {[{ label: "Forest Helpline", num: "1800-180-4191", color: "#22C55E" }, { label: "USDMA", num: "1070", color: "#F59E0B" }].map(item => (
+                  <Pressable key={item.num} onPress={() => Linking.openURL(`tel:${item.num}`)}
+                    style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, backgroundColor: item.color + "20", borderRadius: 8, paddingVertical: 8, borderWidth: 1, borderColor: item.color + "40" }}>
+                    <Ionicons name="call" size={12} color={item.color} />
+                    <Text style={{ color: item.color, fontSize: 10, fontFamily: "Inter_700Bold" }}>{item.num}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <View style={s.sheetActions}>
+                <Pressable onPress={() => setShowForestModal(false)} style={s.cancelBtn}>
+                  <Text style={s.cancelText}>Cancel</Text>
+                </Pressable>
+                <Pressable onPress={handleForestFireSOS} disabled={forestSending} style={{ flex: 2, borderRadius: 14, overflow: "hidden" }}>
+                  <LinearGradient colors={["#7C2D12", "#EA580C", "#DC2626"]} style={s.sendBtn}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                    {forestSending
+                      ? <ActivityIndicator color="#fff" />
+                      : <><Text style={{ fontSize: 16 }}>🔥</Text><Text style={s.sendBtnText}>SEND FOREST FIRE ALERT</Text></>}
+                  </LinearGradient>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── CPR FORM MODAL ── */}
       <Modal visible={showCPRForm} transparent animationType="slide" statusBarTranslucent>
@@ -1059,6 +1219,50 @@ function SOSScreenInner() {
           </View>
         )}
 
+        {/* ── ACTIVE CPR PATROLS NEARBY (live) ── */}
+        {nearestCPR.length > 0 && (
+          <View style={[s.card, { borderColor: "#2563EB30" }]}>
+            <View style={s.cardHead}>
+              <View style={[s.cardHeadIcon, { backgroundColor: "#2563EB20" }]}>
+                <Text style={{ fontSize: 14 }}>🚔</Text>
+              </View>
+              <Text style={s.cardTitle}>Active CPR Patrols Nearby</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginLeft: "auto" }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#4ADE80" }} />
+                <Text style={{ color: "#4ADE80", fontSize: 9, fontFamily: "Inter_700Bold" }}>LIVE</Text>
+              </View>
+            </View>
+            {nearestCPR.map((van, i) => (
+              <View key={van.id || i} style={[s.psRow, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
+                <View style={[s.psRank, { backgroundColor: van.status === "responding" ? "#EF444420" : "#2563EB20" }]}>
+                  <Ionicons name="shield-checkmark" size={12} color={van.status === "responding" ? "#EF4444" : "#2563EB"} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.psName}>{van.vanNumber || `CPR-${i + 1}`}  ·  {van.officerName || "On Patrol"}</Text>
+                  <Text style={s.psAddr}>{van.zone || van.district || "Uttarakhand"}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+                    <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: van.status === "responding" ? "#EF4444" : "#4ADE80" }} />
+                    <Text style={{ color: van.status === "responding" ? "#EF4444" : "#4ADE80", fontSize: 9, fontFamily: "Inter_700Bold" }}>
+                      {van.status === "responding" ? "RESPONDING" : "ON PATROL"}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ alignItems: "flex-end", gap: 5 }}>
+                  {typeof van.distance === "number" && van.distance < 500 && (
+                    <Text style={{ color: i === 0 ? "#F59E0B" : Colors.textMuted, fontSize: 11, fontFamily: "Inter_700Bold" }}>{van.distance} km</Text>
+                  )}
+                  {van.officerPhone && (
+                    <Pressable onPress={() => Linking.openURL(`tel:${van.officerPhone}`)} style={s.callBtn}>
+                      <Ionicons name="call" size={11} color="#4ADE80" />
+                      <Text style={s.callBtnText}>Call</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* ── WOMEN SAFETY PANEL ── */}
         <Animated.View style={[s.womenCard, { transform: [{ scale: womenCardScale }], opacity: womenFlash }]}>
           <LinearGradient colors={womenPanic ? ["#4C1D95", "#6D28D9", "#7C3AED"] : ["#1A0A3C", "#2E1065", "#4C1D95"]}
@@ -1217,6 +1421,34 @@ function SOSScreenInner() {
                     <Text style={s.recordingSubText}>Evidence being captured</Text>
                   </View>
                 )}
+                {nearestCPR.length > 0 && (
+                  <View style={{ backgroundColor: "rgba(0,0,0,0.25)", borderRadius: 12, padding: 10, gap: 6 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <Text style={{ fontSize: 12 }}>🚔</Text>
+                      <Text style={{ color: "#C4B5FD", fontSize: 11, fontFamily: "Inter_700Bold" }}>CPR Patrols — Call Directly</Text>
+                      <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: "#4ADE80", marginLeft: 2 }} />
+                    </View>
+                    {nearestCPR.map((van, i) => (
+                      <View key={van.id || i} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: "#E9D5FF", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>
+                            {van.vanNumber || `CPR-${i + 1}`}  ·  {van.officerName || "Officer"}
+                          </Text>
+                          {typeof van.distance === "number" && van.distance < 500 && (
+                            <Text style={{ color: "#A78BFA", fontSize: 10, fontFamily: "Inter_400Regular" }}>{van.distance} km away</Text>
+                          )}
+                        </View>
+                        {van.officerPhone && (
+                          <Pressable onPress={() => Linking.openURL(`tel:${van.officerPhone}`)}
+                            style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#22C55E20", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: "#22C55E40" }}>
+                            <Ionicons name="call" size={12} color="#4ADE80" />
+                            <Text style={{ color: "#4ADE80", fontSize: 10, fontFamily: "Inter_700Bold" }}>CALL</Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             )}
           </LinearGradient>
@@ -1229,7 +1461,54 @@ function SOSScreenInner() {
           )}
         </Animated.View>
 
-        {/* ── ACTIVE ALERTS ── */}
+        {/* ── FOREST FIRE SOS PANEL ── */}
+        <View style={[s.card, { borderColor: "#EA580C30", overflow: "hidden", padding: 0 }]}>
+          <LinearGradient colors={["#1A0800", "#2D1000"]} style={{ borderRadius: 14, padding: 16 }}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "#EA580C20", alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 26 }}>🔥</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" }}>Forest Fire SOS</Text>
+                {forestSent
+                  ? <Text style={{ color: "#4ADE80", fontSize: 11, fontFamily: "Inter_500Medium", marginTop: 2 }}>✅ Alert sent — Forest Dept & USDMA notified</Text>
+                  : <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>High-priority alert to Forest Dept & Disaster Mgmt</Text>
+                }
+              </View>
+            </View>
+            {!forestSent ? (
+              <>
+                <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                  {[{ label: "Forest Helpline", num: "1800-180-4191", color: "#22C55E" }, { label: "USDMA", num: "1070", color: "#F59E0B" }].map(item => (
+                    <Pressable key={item.num} onPress={() => Linking.openURL(`tel:${item.num}`)}
+                      style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, backgroundColor: item.color + "20", borderRadius: 8, paddingVertical: 7, borderWidth: 1, borderColor: item.color + "40" }}>
+                      <Ionicons name="call" size={11} color={item.color} />
+                      <Text style={{ color: item.color, fontSize: 10, fontFamily: "Inter_700Bold" }}>{item.num}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <Pressable onPress={() => setShowForestModal(true)} style={{ borderRadius: 12, overflow: "hidden" }}>
+                  <LinearGradient colors={["#7C2D12", "#EA580C", "#DC2626"]} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 13 }}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                    <Text style={{ fontSize: 18 }}>🔥</Text>
+                    <Text style={{ color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold" }}>REPORT FOREST FIRE — HIGH PRIORITY</Text>
+                  </LinearGradient>
+                </Pressable>
+              </>
+            ) : (
+              <View style={{ backgroundColor: "#052E16", borderRadius: 12, padding: 12, gap: 6 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Ionicons name="checkmark-circle" size={16} color="#4ADE80" />
+                  <Text style={{ color: "#4ADE80", fontSize: 12, fontFamily: "Inter_700Bold" }}>Forest Fire Alert Active</Text>
+                </View>
+                <Text style={{ color: "#6EE7B7", fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 }}>Forest Department & USDMA Disaster Management have been notified and are responding.</Text>
+                <Text style={{ color: "#4ADE80", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>📍 GPS location being shared live with responders.</Text>
+              </View>
+            )}
+          </LinearGradient>
+        </View>
+
         {/* ── REQUEST CPR PATROL ── */}
         <Pressable onPress={() => setShowCPRForm(true)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
           <LinearGradient colors={["#0A2540", "#1B3A6B", "#2563EB"]} style={{ borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}
