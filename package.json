@@ -43,6 +43,7 @@
     "expo-notifications": "~0.32.17",
     "expo-router": "~6.0.17",
     "expo-sensors": "^55.0.9",
+    "expo-server-sdk": "^6.1.0",
     "expo-speech": "~14.0.8",
     "expo-splash-screen": "~31.0.12",
     "expo-status-bar": "~3.0.9",

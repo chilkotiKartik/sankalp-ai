@@ -5,6 +5,7 @@ import { createHmac } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage, DEPARTMENTS, getDeptIdForCategory, deptEmitter, cprEmitter } from "./storage";
+import Expo, { type ExpoPushMessage } from "expo-server-sdk";
 
 // ── LIVE WORKER GPS STREAM ────────────────────────────────────────────────────
 const workerEmitter = new EventEmitter();
@@ -29,24 +30,54 @@ setInterval(() => {
 }, 8000);
 
 // ── PUSH TOKEN STORE ──────────────────────────────────────────────────────────
-const pushTokenStore = new Map<string, { token: string; platform: string; userId: string; role: string }[]>();
+const expoSdk = new Expo({ accessToken: process.env.EXPO_ACCESS_TOKEN });
 
-function storePushToken(userId: string, token: string, platform: string, role: string) {
+const pushTokenStore = new Map<string, { token: string; platform: string; userId: string; role: string; district: string }[]>();
+
+function storePushToken(userId: string, token: string, platform: string, role: string, district: string) {
   const existing = pushTokenStore.get(userId) || [];
-  if (!existing.find(e => e.token === token)) {
-    existing.push({ token, platform, userId, role });
+  const idx = existing.findIndex(e => e.token === token);
+  if (idx === -1) {
+    existing.push({ token, platform, userId, role, district });
+  } else {
+    existing[idx] = { ...existing[idx], role, district };
   }
   pushTokenStore.set(userId, existing);
 }
 
-function getAdminPoliceTokens(): string[] {
+function getAdminTokensForDistrict(district: string): string[] {
   const tokens: string[] = [];
   pushTokenStore.forEach(entries => {
     entries.forEach(e => {
-      if (e.role === "admin" || e.role === "super_admin") tokens.push(e.token);
+      const isAdmin = e.role === "admin" || e.role === "super_admin";
+      const districtMatch = e.role === "super_admin" || e.district === district;
+      if (isAdmin && districtMatch && Expo.isExpoPushToken(e.token)) {
+        tokens.push(e.token);
+      }
     });
   });
   return tokens;
+}
+
+async function sendWomenSafetyPush(district: string, citizenName: string, location: string, alertId: string): Promise<void> {
+  const tokens = getAdminTokensForDistrict(district);
+  if (tokens.length === 0) return;
+  const messages: ExpoPushMessage[] = tokens.map(to => ({
+    to,
+    sound: "default",
+    title: "🚨 WOMEN SAFETY SOS — " + district.toUpperCase(),
+    body: `${citizenName} has triggered a Women Safety emergency. Location: ${location}`,
+    data: { type: "women_safety_sos", alertId, district },
+    priority: "high",
+    channelId: "sos-alerts",
+    badge: 1,
+  }));
+  const chunks = expoSdk.chunkPushNotifications(messages);
+  for (const chunk of chunks) {
+    try {
+      await expoSdk.sendPushNotificationsAsync(chunk);
+    } catch {}
+  }
 }
 
 // ── SIMPLE QR MATRIX GENERATOR (no external libs) ─────────────────────────────
@@ -762,6 +793,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Notify police + usdma department SSE streams
     deptEmitter.emit("event", { type: "sos_alert", departmentId: "police", alert, payload });
     deptEmitter.emit("event", { type: "sos_alert", departmentId: "usdma", alert, payload });
+    // Send Expo push notifications to matching district admin + all super admins
+    sendWomenSafetyPush(
+      user.district || "Dehradun",
+      user.name || "Citizen",
+      location || `GPS: ${geoPoint.lat.toFixed(4)}, ${geoPoint.lng.toFixed(4)}`,
+      alert.id
+    ).catch(() => {});
 
     // Auto-create CPR incident for women safety SOS
     const cprInc = storage.createSafetyIncident({
@@ -1029,7 +1067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const user = (req as any).user;
     const { token, platform } = req.body;
     if (!token) return res.status(400).json({ message: "token required" });
-    storePushToken(user.id, token, platform || "unknown", user.role);
+    storePushToken(user.id, token, platform || "unknown", user.role, user.district || "Uttarakhand");
     res.json({ success: true, registered: true });
   });
 

@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { Platform } from "react-native";
+import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import { getApiUrl, getWsUrl } from "@/lib/query-client";
 import { useAuth } from "@/context/AuthContext";
 
@@ -313,6 +316,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [token, loadData]);
+
+  // Register Expo push token with server after login (native only)
+  useEffect(() => {
+    if (!token || Platform.OS === "web") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { status: existing } = await Notifications.getPermissionsAsync();
+        let finalStatus = existing;
+        if (existing !== "granted") {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        if (finalStatus !== "granted") return;
+
+        // Android: create high-priority SOS notification channel
+        if (Platform.OS === "android") {
+          await Notifications.setNotificationChannelAsync("sos-alerts", {
+            name: "SOS Alerts",
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 500, 200, 500],
+            lightColor: "#EF4444",
+            sound: "default",
+            enableVibrate: true,
+            showBadge: true,
+          });
+        }
+
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+        if (!projectId) return;
+        const pushToken = await Notifications.getExpoPushTokenAsync({ projectId });
+        if (cancelled) return;
+        const baseUrl = getApiUrl();
+        await fetch(`${baseUrl}api/push-token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ token: pushToken.data, platform: Platform.OS }),
+        });
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [token]);
 
   // WebSocket connection for real-time alerts
   useEffect(() => {
