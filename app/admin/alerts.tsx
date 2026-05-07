@@ -245,6 +245,49 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
               </View>
             )}
 
+            {/* Women Safety Audio Evidence */}
+            {(alert.isWomenSafety || alert.category === "women_safety") && (
+              <View style={rm.section}>
+                <Text style={rm.sectionLabel}>AUDIO EVIDENCE</Text>
+                <View style={rm.descBox}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <Ionicons name="mic" size={16} color="#8B5CF6" />
+                    <Text style={{ color: "#8B5CF6", fontSize: 13, fontFamily: "Inter_700Bold" }}>Women Safety SOS — Audio Recording</Text>
+                  </View>
+                  {(alert.audioChunks && alert.audioChunks.length > 0) ? (
+                    <>
+                      <Text style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 10 }}>
+                        {alert.audioChunks.length} audio chunk(s) recorded · Tap a chunk to open
+                      </Text>
+                      {alert.audioChunks.map((chunk: any, idx: number) => (
+                        <Pressable
+                          key={idx}
+                          onPress={() => Linking.openURL(chunk.url)}
+                          style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#8B5CF622", borderRadius: 10, padding: 10, marginBottom: 6, borderWidth: 1, borderColor: "#8B5CF644" }}
+                        >
+                          <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: "#8B5CF633", alignItems: "center", justifyContent: "center" }}>
+                            <Ionicons name="play-circle" size={18} color="#8B5CF6" />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: "#D1D5DB", fontSize: 12, fontFamily: "Inter_600SemiBold" }}>Chunk #{chunk.chunkIndex + 1}</Text>
+                            <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular" }}>{chunk.duration}s · {new Date(chunk.timestamp).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })}</Text>
+                          </View>
+                          <Ionicons name="open-outline" size={14} color="#8B5CF6" />
+                        </Pressable>
+                      ))}
+                    </>
+                  ) : (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Ionicons name="radio-outline" size={14} color="#F59E0B" />
+                      <Text style={{ color: "#F59E0B", fontSize: 12, fontFamily: "Inter_500Medium" }}>
+                        {alert.status === "active" ? "Live recording in progress — chunks will appear here" : "No audio evidence recorded for this alert"}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+
             {/* Admin actions */}
             {alert.status !== "resolved" && (
               <View style={rm.section}>

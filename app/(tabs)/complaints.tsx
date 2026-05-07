@@ -788,7 +788,7 @@ export default function ComplaintsScreen() {
                     <Pressable key={c.key} onPress={() => setNewCat(c.key)}
                       style={[cs.catCard, newCat === c.key && { backgroundColor: c.bg, borderColor: c.color, borderWidth: 2 }]}
                     >
-                      <Text style={{ fontSize: 20 }}>{c.icon}</Text>
+                      <Ionicons name={c.icon} size={20} color={newCat === c.key ? c.color : "#9CA3AF"} />
                       <Text style={[cs.catCardText, newCat === c.key && { color: c.color }]}>{c.label}</Text>
                     </Pressable>
                   ))}
@@ -864,20 +864,20 @@ const cs = StyleSheet.create({
   statPill: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: "rgba(255,215,0,0.3)" },
   statPillText: { color: "#FCD34D", fontSize: 10, fontFamily: "Inter_600SemiBold" },
 
-  filterSection: { backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#F3F4F6", paddingTop: 12 },
-  searchBox: { flexDirection: "row", alignItems: "center", backgroundColor: "#F9FAFB", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, gap: 10, borderWidth: 1, borderColor: "#E5E7EB", marginHorizontal: 16, marginBottom: 10 },
-  searchInput: { flex: 1, color: "#111827", fontSize: 14, fontFamily: "Inter_400Regular" },
-  pillRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 8, flexDirection: "row" },
+  filterSection: { backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#F3F4F6", paddingTop: 8 },
+  searchBox: { flexDirection: "row", alignItems: "center", backgroundColor: "#F9FAFB", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderWidth: 1, borderColor: "#E5E7EB", marginHorizontal: 16, marginBottom: 7 },
+  searchInput: { flex: 1, color: "#111827", fontSize: 13, fontFamily: "Inter_400Regular" },
+  pillRow: { paddingHorizontal: 14, gap: 6, paddingBottom: 6, flexDirection: "row" },
 
-  pill: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB" },
-  pillText: { color: "#374151", fontSize: 12, fontFamily: "Inter_500Medium" },
+  pill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB" },
+  pillText: { color: "#374151", fontSize: 11, fontFamily: "Inter_500Medium" },
 
-  sortPill: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB" },
+  sortPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 14, backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB" },
   sortPillActive: { backgroundColor: "#FFF3E0", borderColor: "#E64A19" },
-  sortPillText: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_500Medium" },
+  sortPillText: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_500Medium" },
   sortPillTextActive: { color: "#E64A19", fontFamily: "Inter_700Bold" },
 
-  catPill: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB" },
+  catPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 14, backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB" },
   catPillText: { color: "#374151", fontSize: 11, fontFamily: "Inter_500Medium" },
 
   card: { backgroundColor: "#fff", borderRadius: 16, overflow: "hidden", flexDirection: "row", borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },

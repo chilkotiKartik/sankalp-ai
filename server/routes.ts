@@ -1530,6 +1530,21 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
     res.status(201).json(zone);
   });
 
+  // ── SOS AUDIO CHUNKS — GET for admin/super_admin ──────────────────────────────
+  app.get("/api/sos/:id/audio-chunks", requireAdmin, (req, res) => {
+    const { id } = req.params;
+    const alert = storage.getSOSAlert(id);
+    if (!alert) return res.status(404).json({ error: "SOS alert not found" });
+    res.json({
+      alertId: id,
+      category: alert.category,
+      isWomenSafety: alert.isWomenSafety || false,
+      triggeredBy: alert.triggeredBy || null,
+      district: alert.district,
+      audioChunks: alert.audioChunks || [],
+    });
+  });
+
   // ── SOS AUDIO CHUNK ───────────────────────────────────────────────────────────
   app.put("/api/sos/:id/audio-chunk", requireAuth, (req, res) => {
     const { id } = req.params;

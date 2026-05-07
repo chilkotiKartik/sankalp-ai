@@ -719,7 +719,7 @@ class AppStorage {
     // Demo citizen from Champawat
     const citizenId = genId();
     this.users.set(citizenId, {
-      id: citizenId, name: "Demo Citizen", phone: "9876543210", pin: "123456",
+      id: citizenId, name: "Arjun", phone: "9876543210", pin: "123456",
       role: "citizen", district: "Champawat", points: 350,
       badges: ["first_report", "active_citizen"], level: 4, createdAt: new Date().toISOString()
     });
@@ -801,7 +801,7 @@ class AppStorage {
         department: assignDepartment(category),
         submittedAt: hoursAgo(hoursBack),
         resolvedAt: hasProof ? hoursAgo(Math.max(1, hoursBack - rndInt(2, 48))) : undefined,
-        submittedBy: isDemo ? "Demo Citizen" : WORKER_NAMES[rndInt(0, WORKER_NAMES.length - 1)],
+        submittedBy: isDemo ? "Arjun" : WORKER_NAMES[rndInt(0, WORKER_NAMES.length - 1)],
         submittedByPhone: isDemo ? "9876543210" : undefined,
         workerName: status !== "pending" ? rnd(WORKER_NAMES) : undefined,
         upvotes: rndInt(0, 80),
@@ -892,6 +892,41 @@ class AppStorage {
         body: "Uttarakhand Tourism Department invites applications from villagers to develop eco-tourism homestays. Grant of ₹5 lakh available. Visit tourism.uk.gov.in or nearest ITDC office.",
         type: "scheme", department: "Uttarakhand Tourism Development Board", priority: "important", postedBy: "SANKALP Super Admin"
       },
+      {
+        title: "Ration Card Correction Drive — All Districts",
+        body: "Uttarakhand Food & Civil Supplies Department is conducting a special ration card correction and Aadhaar seeding drive. Citizens can get names added/corrected at tehsil offices. Documents needed: Aadhaar, old ration card, address proof. Drive runs from 1st to 31st of this month.",
+        type: "welfare", department: "Uttarakhand Food & Civil Supplies Department", priority: "important", postedBy: "SANKALP Super Admin"
+      },
+      {
+        title: "Uttarakhand Board Result 2025 — Class 10 & 12 Declared",
+        body: "Uttarakhand Board of School Education (UBSE) has declared class 10 and 12 results for 2025. Pass percentage: Class 10 — 82.3%, Class 12 — 79.6%. Students can check results at ubse.uk.gov.in. Merit certificates to be issued within 30 days. Helpline: 0135-2674117.",
+        type: "general", department: "Uttarakhand Board of School Education", priority: "important", postedBy: "SANKALP Super Admin"
+      },
+      {
+        title: "Gas Cylinder Home Delivery — Apply Online Now",
+        body: "Uttarakhand residents in remote hill areas can now register for home delivery of LPG cylinders under Pradhan Mantri Ujjwala Yojana. Apply at pmuy.gov.in or at nearest Common Service Centre. Priority for BPL families and women-headed households. Subsidy continues: ₹300 per cylinder for eligible beneficiaries.",
+        type: "scheme", department: "Ministry of Petroleum & Natural Gas, UK Nodal Office", priority: "normal", postedBy: "SANKALP Super Admin"
+      },
+      {
+        title: "Road Closure — Rishikesh–Badrinath Highway Repair",
+        body: "Due to emergency road repair work after monsoon damage, the Rishikesh–Badrinath National Highway (NH-58) will remain closed for heavy vehicles from Devprayag to Srinagar on Tuesdays and Thursdays (9 AM – 5 PM). Light vehicles and pilgrim buses will be allowed via alternate route. Helpline: 1800-180-4247.",
+        type: "emergency", department: "National Highways Authority of India (NHAI)", priority: "urgent", postedBy: "SANKALP Super Admin"
+      },
+      {
+        title: "MGNREGA 100-Day Work Guarantee — Register Now",
+        body: "All rural households of Uttarakhand can register for MGNREGA employment guarantee. 100 days of guaranteed wage employment per year. Daily wage: ₹230–₹250 for Uttarakhand (varies by district). Register at your Gram Panchayat or online at nregastrep.nic.in. Priority work includes road maintenance, tree plantation, water conservation.",
+        type: "scheme", department: "Rural Development Department, Uttarakhand", priority: "normal", postedBy: "SANKALP Super Admin"
+      },
+      {
+        title: "Holiday Notice — Uttarakhand Sthapna Diwas (9 November)",
+        body: "9 November is a public holiday in Uttarakhand on account of Uttarakhand Sthapna Diwas (State Foundation Day). All government offices, banks, schools, and courts will remain closed. Emergency services will continue. State-level cultural events to be held at Parade Ground, Dehradun from 10 AM.",
+        type: "holiday", department: "Uttarakhand General Administration Department", priority: "normal", postedBy: "SANKALP Super Admin"
+      },
+      {
+        title: "Tender Notice — LED Streetlight Upgrade Haridwar",
+        body: "Haridwar Urban Local Body invites sealed tenders from registered contractors for supply and installation of 2,400 LED streetlights across Haridwar Municipal area. Bid document available at HUL office, Civil Lines, Haridwar. Submission deadline: 15 days from notice date. EMD: ₹2 lakh. Helpline: 01334-225600.",
+        type: "tender", department: "Haridwar Urban Local Body", priority: "normal", postedBy: "Haridwar Admin", targetDistrict: "Haridwar"
+      },
     ];
     seedAnnouncements.forEach(a => {
       const id = genId();
@@ -956,7 +991,7 @@ class AppStorage {
 
     // Seed RTI examples
     const seedRTIs: Omit<RTIRequest, "id">[] = [
-      { ticketId: `RTI-UK-${rndInt(10000, 99999)}`, subject: "Status of road repair work on Rajpur Road", description: "I am a resident of Rajpur Road, Dehradun. I request information on the status of road repair work sanctioned in 2024-25 budget, total expenditure incurred, contractor details and expected completion date.", department: "Public Works Department", filedBy: "Demo Citizen", filedByPhone: "9876543210", filedAt: new Date(Date.now() - 15 * 86400000).toISOString(), status: "acknowledged", district: "Champawat", deadline: new Date(Date.now() + 15 * 86400000).toISOString() },
+      { ticketId: `RTI-UK-${rndInt(10000, 99999)}`, subject: "Status of road repair work on Rajpur Road", description: "I am a resident of Rajpur Road, Dehradun. I request information on the status of road repair work sanctioned in 2024-25 budget, total expenditure incurred, contractor details and expected completion date.", department: "Public Works Department", filedBy: "Arjun", filedByPhone: "9876543210", filedAt: new Date(Date.now() - 15 * 86400000).toISOString(), status: "acknowledged", district: "Champawat", deadline: new Date(Date.now() + 15 * 86400000).toISOString() },
     ];
     seedRTIs.forEach(r => this.rtis.push({ ...r, id: genId() }));
   }
@@ -1390,6 +1425,11 @@ class AppStorage {
     c.status = "resolved";
     c.resolvedAt = new Date().toISOString();
     return c;
+  }
+
+  // ── GET SINGLE SOS ALERT ──────────────────────────────────────────────────────
+  getSOSAlert(id: string): SOSAlert | undefined {
+    return this.sosAlerts.find(a => a.id === id);
   }
 
   // ── AUDIO CHUNKS ──────────────────────────────────────────────────────────────

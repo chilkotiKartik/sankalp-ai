@@ -120,6 +120,8 @@ export interface SOSAlert {
   notifiedStations?: { name: string; phone: string; distance: number; address: string }[];
   isWomenSafety?: boolean;
   resolvedAt?: string;
+  audioChunks?: { url: string; chunkIndex: number; duration: number; timestamp: string }[];
+  district?: string;
 }
 
 export interface Ward {

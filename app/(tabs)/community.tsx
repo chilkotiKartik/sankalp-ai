@@ -626,14 +626,28 @@ export default function CommunityScreen() {
                         <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: meta.bg, alignItems: "center", justifyContent: "center" }}>
                           <Ionicons name={row.icon as any} size={16} color={meta.color} />
                         </View>
-                        <View>
+                        <View style={{ flex: 1 }}>
                           <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_500Medium" }}>{row.label.toUpperCase()}</Text>
                           <Text style={{ color: "#111827", fontSize: 13, fontFamily: "Inter_600SemiBold" }}>{row.val}</Text>
                         </View>
                       </View>
                     ))}
+                    {/* Get Directions / Live Location */}
+                    <Pressable
+                      onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(selectedEvent.location + ", Uttarakhand")}`)}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#EFF6FF", borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: "#BFDBFE" }}
+                    >
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}>
+                        <Ionicons name="navigate" size={16} color="#2563EB" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: "#2563EB", fontSize: 13, fontFamily: "Inter_600SemiBold" }}>Get Directions</Text>
+                        <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 }}>Opens Google Maps with live location</Text>
+                      </View>
+                      <Ionicons name="open-outline" size={14} color="#9CA3AF" />
+                    </Pressable>
                     {!isPast && (
-                      <Pressable onPress={() => handleRSVP(selectedEvent.id)} style={[s.signBtn, hasRSVP && s.signedBtn, { marginTop: 8 }]}>
+                      <Pressable onPress={() => handleRSVP(selectedEvent.id)} style={[s.signBtn, hasRSVP && s.signedBtn, { marginTop: 4 }]}>
                         <Ionicons name={hasRSVP ? "checkmark-circle" : "calendar"} size={16} color={hasRSVP ? "#00A651" : "#fff"} />
                         <Text style={[s.signBtnText, { fontSize: 16 }, hasRSVP && { color: "#00A651" }]}>{hasRSVP ? "Going ✓" : "RSVP — I'll Attend"}</Text>
                       </Pressable>
