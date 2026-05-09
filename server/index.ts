@@ -211,6 +211,10 @@ function configureExpoAndLanding(app: express.Application) {
   app.get("/web/dept/",   portalRoute("dept.html"));
   app.get("/web/cpr",     portalRoute("cpr.html"));
   app.get("/web/cpr/",    portalRoute("cpr.html"));
+  app.get("/web/pcr",     portalRoute("pcr.html"));
+  app.get("/web/pcr/",    portalRoute("pcr.html"));
+  app.get("/web/video",   portalRoute("video.html"));
+  app.get("/web/video/",  portalRoute("video.html"));
   app.get("/web/public",  portalRoute("public.html"));
   app.get("/web/public/", portalRoute("public.html"));
   app.get("/web/rti",     portalRoute("rti.html"));

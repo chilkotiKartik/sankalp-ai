@@ -92,6 +92,24 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bot
 ::-webkit-scrollbar-thumb:hover{background:#484f58}
 @media(max-width:900px){.sidebar{width:58px}.sidebar .nav-label,.sidebar .sidebar-logo-text,.sidebar .nav-badge{display:none}.main{margin-left:58px;padding:16px}.grid4{grid-template-columns:repeat(2,1fr)}.grid3{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.grid2{grid-template-columns:1fr}.grid4{grid-template-columns:1fr 1fr}}
+/* ── LIVE TICKER ─── */
+@keyframes ticker{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+@keyframes tickerAlt{0%{transform:translateX(0)}100%{transform:translateX(-200%)}}
+.ticker-wrap{background:linear-gradient(90deg,rgba(255,153,51,.12),rgba(255,153,51,.06));border-bottom:1px solid rgba(255,153,51,.25);padding:7px 0;overflow:hidden;position:relative;flex-shrink:0}
+.ticker-inner{display:flex;align-items:center;white-space:nowrap;animation:ticker 32s linear infinite}
+.ticker-inner:hover{animation-play-state:paused}
+.ticker-item{font-size:12px;color:var(--text);padding:0 32px;opacity:.9}
+.ticker-sep{color:var(--orange);font-size:14px;padding:0 8px}
+.ticker-label{position:absolute;left:0;top:0;bottom:0;background:var(--sidebar);display:flex;align-items:center;padding:0 14px;font-size:11px;font-weight:700;color:var(--orange);letter-spacing:.5px;border-right:1px solid rgba(255,153,51,.3);z-index:2;white-space:nowrap}
+/* ── FILTER TABS ─── */
+.filter-strip{display:flex;gap:5px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--border);margin-bottom:14px}
+.filter-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.filter-btn:hover{background:#1c2128;color:var(--text)}
+.filter-btn.active{background:rgba(255,153,51,.15);border-color:var(--orange);color:var(--orange)}
+/* ── AUTO-REFRESH PULSE ─── */
+@keyframes refreshPulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+.refresh-live{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--green)}
+.refresh-live .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:refreshPulse 2s infinite}
 </style>
 </head>
 <body>
@@ -180,6 +198,57 @@ function Toast({toasts}){
 /* ── SPINNER ─────────────────────────────────────────────────────────────────── */
 function Spinner({size}){size=size||18;return <div style={{width:size,height:size,border:'2px solid var(--border)',borderTop:'2px solid var(--orange)',borderRadius:'50%'}} className="spin"/>;}
 
+/* ── LIVE ANNOUNCEMENTS TICKER ───────────────────────────────────────────────── */
+function LiveTicker({token}){
+  const [items,setItems]=useState([]);
+  const [lastRefresh,setLastRefresh]=useState(Date.now());
+
+  const load=useCallback(()=>{
+    const url='/api/announcements'+(token?'':'');
+    const headers=token?{Authorization:'Bearer '+token}:{};
+    fetch(url,{headers}).then(r=>r.json()).then(d=>{
+      if(Array.isArray(d)&&d.length>0)setItems(d.slice(0,10));
+      else{
+        setItems([
+          {id:'a1',title:'📢 SANKALP AI — Uttarakhand Civic Portal is LIVE',priority:'normal'},
+          {id:'a2',title:'🌐 File complaints, track status & get real-time updates across 8 departments',priority:'normal'},
+          {id:'a3',title:'🆘 SOS Emergency? Call 112 immediately · Women Safety: 1090',priority:'urgent'},
+          {id:'a4',title:'📊 All 13 Uttarakhand districts connected · Live complaint tracking active',priority:'normal'},
+        ]);
+      }
+    }).catch(()=>{
+      setItems([
+        {id:'f1',title:'📢 SANKALP AI — Real-time governance for Uttarakhand',priority:'normal'},
+        {id:'f2',title:'🆘 Emergency services: Police 100 · Ambulance 108 · Fire 101 · SDRF 1070',priority:'urgent'},
+        {id:'f3',title:'📝 Submit civic complaints and track resolution in real-time across all 8 departments',priority:'normal'},
+      ]);
+    });
+    setLastRefresh(Date.now());
+  },[token]);
+
+  useEffect(()=>{
+    load();
+    const iv=setInterval(load,30000);
+    return()=>clearInterval(iv);
+  },[load]);
+
+  if(items.length===0)return null;
+
+  const ticker=[...items,...items];
+  return <div className="ticker-wrap">
+    <span className="ticker-label">🔴 LIVE</span>
+    <div className="ticker-inner" style={{paddingLeft:80}}>
+      {ticker.map((it,i)=><span key={it.id+'_'+i}>
+        <span className="ticker-item" style={{color:it.priority==='urgent'?'var(--orange)':it.priority==='important'?'var(--yellow)':'var(--text)'}}>
+          {it.priority==='urgent'?'🚨 ':it.priority==='important'?'⚡ ':''}{it.title}
+        </span>
+        <span className="ticker-sep">◆</span>
+      </span>)}
+    </div>
+  </div>;
+}
+
+
 /* ── KPI CARD ────────────────────────────────────────────────────────────────── */
 function KpiCard({label,value,color,icon,sub,trend}){
   const cnt=useCounter(typeof value==='number'?value:0);
@@ -219,10 +288,11 @@ function WorkerCard({w}){
 
 /* ── COMPLAINT MODAL ─────────────────────────────────────────────────────────── */
 function ComplaintModal({c,onClose,token,deptToken,addToast,onRefresh,isAdmin}){
-  const [status,setStatus]=useState(c.status);
+  if(!c)return null;
+  const [status,setStatus]=useState(c.status||'pending');
   const [note,setNote]=useState(c.adminNote||'');
   const [saving,setSaving]=useState(false);
-  const dept=DEPTS[CAT_DEPT[c.category]||'pwd'];
+  const dept=DEPTS[CAT_DEPT[c.category||'other']||'pwd'];
 
   async function save(){
     setSaving(true);
@@ -324,7 +394,7 @@ function Sidebar({nav,active,setActive,user,onLogout,role,badge,badgeFor,extra})
     {extra&&<div style={{padding:'8px',borderTop:'1px solid var(--border)',flexShrink:0}}>{extra}</div>}
     <div style={{padding:'12px 16px',borderTop:'1px solid var(--border)',flexShrink:0}}>
       <div className="sidebar-logo-text" style={{marginBottom:8,display:'flex',gap:5,flexWrap:'wrap'}}>
-        {[['Public','/web/public'],['CPR','/web/cpr'],['RTI','/web/rti'],['Dept','/web/dept']].map(([l,h])=>
+        {[['Public','/web/public'],['PCR','/web/pcr'],['RTI','/web/rti'],['Dept','/web/dept']].map(([l,h])=>
           <a key={h} href={h} style={{color:'var(--muted)',fontSize:10,textDecoration:'none',padding:'2px 6px',border:'1px solid var(--border)',borderRadius:4,transition:'all .15s'}}>{l}</a>
         )}
       </div>
@@ -467,7 +537,7 @@ function LoginScreen({onLogin}){
         </div>
 
         <div style={{marginTop:14,display:'flex',gap:8,justifyContent:'center'}}>
-          {[['🌐 Public Dashboard','/web/public'],['🚨 CPR Command','/web/cpr'],['📄 RTI Portal','/web/rti']].map(([l,h])=>
+          {[['🌐 Public Dashboard','/web/public'],['🚨 PCR Command','/web/pcr'],['📄 RTI Portal','/web/rti'],['🎬 Video','/web/video']].map(([l,h])=>
             <a key={h} href={h} style={{fontSize:11,color:'var(--muted)',textDecoration:'none',padding:'5px 10px',border:'1px solid var(--border)',borderRadius:6,transition:'all .15s'}}>{l}</a>
           )}
         </div>
@@ -506,7 +576,7 @@ function CitizenDash({session,onLogout,addToast}){
     }catch(e){addToast('error','Failed to load data');}
   },[token]);
 
-  useEffect(()=>{load();},[load]);
+  useEffect(()=>{load();const iv=setInterval(load,6000);return()=>clearInterval(iv);},[load]);
 
   const mine=complaints.filter(c=>c.submittedByPhone===user.phone);
   const mySos=sos.filter(s=>s.triggeredByPhone===user.phone&&s.status!=='resolved');
@@ -522,13 +592,16 @@ function CitizenDash({session,onLogout,addToast}){
 
   return <div style={{display:'flex'}}>
     <Sidebar nav={nav} active={page} setActive={setPage} user={user} onLogout={onLogout} role="citizen"/>
-    <div className="main">
+    <div className="main" style={{display:'flex',flexDirection:'column',padding:0}}>
+      <LiveTicker token={token}/>
+      <div style={{padding:26,flex:1}}>
       {page==='home'&&<CitizenHome user={user} mine={mine} sos={sos} wards={wards} anns={anns} setPage={setPage}/>}
       {page==='submit'&&<SubmitComplaint token={token} user={user} onDone={()=>{load();setPage('mine');}} addToast={addToast}/>}
       {page==='mine'&&<MyComplaints complaints={mine} token={token} addToast={addToast} onRefresh={load}/>}
       {page==='sos'&&<SOSPage token={token} user={user} activeSos={mySos} addToast={addToast} onDone={load}/>}
       {page==='rti'&&<RTIPage token={token} user={user} addToast={addToast}/>}
       {page==='map'&&<LiveMapPage complaints={complaints} sos={sos} wards={wards}/>}
+      </div>
     </div>
   </div>;
 }
@@ -999,6 +1072,9 @@ function DeptDash({session,onLogout,addToast}){
     return()=>{active=false;};
   },[deptId,deptToken]);
 
+  // Auto-refresh every 6 seconds for the dept dashboard
+  useEffect(()=>{const iv=setInterval(load,6000);return()=>clearInterval(iv);},[load]);
+
   const nav=[
     {id:'overview',icon:'📊',label:'Overview'},
     {id:'live',icon:'🔴',label:'Live Feed'},
@@ -1019,13 +1095,16 @@ function DeptDash({session,onLogout,addToast}){
       onLogout={onLogout} role="dept"
       badge={liveNew.length>0?String(liveNew.length):null} badgeFor="live"
       extra={sseEl}/>
-    <div className="main">
+    <div className="main" style={{display:'flex',flexDirection:'column',padding:0}}>
+      <LiveTicker token={deptToken}/>
+      <div style={{padding:26,flex:1}}>
       {page==='overview'&&stats&&<DeptOverview dept={dept} stats={stats} complaints={complaints} setPage={setPage}/>}
       {page==='live'&&<DeptLiveFeed liveNew={liveNew} complaints={complaints} deptToken={deptToken} addToast={addToast} onRefresh={load}/>}
       {page==='complaints'&&<DeptAllComplaints complaints={complaints} deptToken={deptToken} addToast={addToast} onRefresh={load}/>}
       {page==='workers'&&<DeptWorkers workers={workers} deptId={deptId}/>}
       {page==='sla'&&<DeptSLA complaints={complaints} dept={dept}/>}
       {page==='info'&&<DeptInfo dept={dept}/>}
+      </div>
     </div>
   </div>;
 }
@@ -1359,7 +1438,7 @@ function AdminDash({session,onLogout,addToast}){
     }catch(e){addToast('error',e.message);}
   },[token,user.role]);
 
-  useEffect(()=>{load();},[load]);
+  useEffect(()=>{load();const iv=setInterval(load,6000);return()=>clearInterval(iv);},[load]);
 
   const nav=[
     {id:'overview',icon:'📊',label:'Overview'},
@@ -1374,7 +1453,9 @@ function AdminDash({session,onLogout,addToast}){
   return <div style={{display:'flex'}}>
     <Sidebar nav={nav} active={page} setActive={setPage} user={user} onLogout={onLogout} role="admin"
       badge={sosAlerts.filter(s=>s.status==='active').length>0?String(sosAlerts.filter(s=>s.status==='active').length):null} badgeFor="sos"/>
-    <div className="main">
+    <div className="main" style={{display:'flex',flexDirection:'column',padding:0}}>
+      <LiveTicker token={token}/>
+      <div style={{padding:26,flex:1}}>
       {page==='overview'&&stats&&<AdminOverview stats={stats} complaints={complaints} sosAlerts={sosAlerts} token={token} addToast={addToast} onRefresh={load}/>}
       {page==='complaints'&&<AdminComplaints complaints={complaints} token={token} addToast={addToast} onRefresh={load}/>}
       {page==='sos'&&<AdminSOS sosAlerts={sosAlerts} token={token} addToast={addToast} onRefresh={load}/>}
@@ -1382,6 +1463,7 @@ function AdminDash({session,onLogout,addToast}){
       {page==='districts'&&<AdminDistricts districts={districts} user={user}/>}
       {page==='announce'&&<AdminAnnouncements token={token} addToast={addToast} user={user}/>}
       {page==='broadcast'&&<AdminBroadcast token={token} addToast={addToast}/>}
+      </div>
     </div>
   </div>;
 }

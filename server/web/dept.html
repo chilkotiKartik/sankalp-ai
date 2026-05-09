@@ -945,7 +945,7 @@ function Dashboard({token,dept,onLogout}){
     api.get(`/api/dept/${dept.id}/announcements`,token).then(d=>{setAnnouncements(Array.isArray(d)?d:[]);}).catch(()=>{});
   },[token,dept.id]);
 
-  useEffect(()=>{loadData();},[loadData]);
+  useEffect(()=>{loadData();const iv=setInterval(loadData,6000);return()=>clearInterval(iv);},[loadData]);
 
   // SSE real-time stream
   useEffect(()=>{

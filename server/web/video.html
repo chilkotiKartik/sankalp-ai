@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SANKALP AI — What Is It?</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#060d1a;font-family:'Segoe UI',system-ui,sans-serif}
+:root{--or:#FF9933;--bg:#060d1a;--card:#0d1521;--text:#e6edf3;--muted:#8b949e;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--yellow:#d29922}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(6,13,26,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,153,51,.15)}
+.nav-logo{font-size:18px;font-weight:800;color:#fff;letter-spacing:.5px}
+.nav-logo span{color:var(--or)}
+.nav-links{display:flex;gap:8px}
+.nav-links a{color:var(--muted);font-size:12px;text-decoration:none;padding:5px 12px;border:1px solid rgba(255,255,255,.1);border-radius:7px;transition:all .2s}
+.nav-links a:hover{color:#fff;border-color:var(--or)}
+
+/* SCENE CONTAINER */
+#scenes{position:fixed;inset:0;overflow:hidden}
+.scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 40px;opacity:0;transform:translateY(40px);transition:opacity .7s ease,transform .7s ease;pointer-events:none}
+.scene.active{opacity:1;transform:translateY(0);pointer-events:auto}
+.scene.exit{opacity:0;transform:translateY(-40px)}
+
+/* PROGRESS BAR */
+.progress-bar{position:fixed;bottom:0;left:0;height:3px;background:var(--or);transition:width .1s linear;z-index:200}
+
+/* SCENE NAV DOTS */
+.scene-dots{position:fixed;right:24px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:100}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);cursor:pointer;transition:all .3s}
+.dot.active{background:var(--or);transform:scale(1.4)}
+
+/* SKIP/NEXT */
+.ctrl{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;gap:12px;z-index:100}
+.ctrl-btn{padding:10px 24px;border-radius:30px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:all .2s}
+.ctrl-next{background:var(--or);color:#000}
+.ctrl-next:hover{transform:scale(1.05)}
+.ctrl-skip{background:rgba(255,255,255,.08);color:var(--muted);border:1px solid rgba(255,255,255,.12)}
+.ctrl-skip:hover{color:#fff}
+
+/* SHARED SCENE STYLES */
+.scene-tag{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--or);margin-bottom:16px;opacity:.9}
+.scene-title{font-size:clamp(28px,5vw,52px);font-weight:800;color:#fff;line-height:1.15;margin-bottom:18px;text-align:center;max-width:800px}
+.scene-title span{color:var(--or)}
+.scene-desc{font-size:clamp(14px,2vw,18px);color:var(--muted);line-height:1.75;text-align:center;max-width:600px;margin-bottom:32px}
+
+/* FEATURE GRID */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:800px;width:100%}
+@media(max-width:640px){.feat-grid{grid-template-columns:1fr 1fr}}
+.feat-card{background:rgba(255,153,51,.07);border:1px solid rgba(255,153,51,.18);border-radius:14px;padding:20px 16px;text-align:center;animation:bounceIn .5s ease both}
+.feat-icon{font-size:30px;margin-bottom:8px}
+.feat-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.feat-desc{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* STAT ROW */
+.stat-row{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;max-width:700px}
+.stat-pill{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px 24px;text-align:center;min-width:130px}
+.stat-n{font-size:36px;font-weight:800;color:var(--or);line-height:1}
+.stat-l{font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+
+/* DEPT PILLS */
+.dept-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:700px}
+.dept-pill{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:8px 16px;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px;animation:bounceIn .4s ease both}
+
+/* SOS DEMO */
+.sos-demo{background:rgba(248,81,73,.08);border:2px solid rgba(248,81,73,.35);border-radius:16px;padding:24px 32px;text-align:center;max-width:420px;animation:glowPulse 2s infinite}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 20px rgba(248,81,73,.2)}50%{box-shadow:0 0 40px rgba(248,81,73,.5)}}
+.sos-btn{display:inline-block;background:var(--red);color:#fff;font-size:20px;font-weight:800;padding:16px 40px;border-radius:40px;margin:16px 0;letter-spacing:.5px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+
+/* MAP DEMO */
+.map-demo{background:#0d1521;border:1px solid rgba(255,255,255,.1);border-radius:16px;width:100%;max-width:560px;height:220px;position:relative;overflow:hidden}
+.map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:40px 40px}
+.map-pin{position:absolute;animation:pinBounce 1s ease both}
+@keyframes pinBounce{0%{transform:translateY(-20px);opacity:0}60%{transform:translateY(4px)}100%{transform:translateY(0);opacity:1}}
+.map-label{font-size:10px;color:#fff;background:rgba(0,0,0,.7);padding:2px 6px;border-radius:4px;white-space:nowrap;margin-top:4px}
+
+/* FLOW DIAGRAM */
+.flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center;max-width:720px}
+.flow-step{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 18px;text-align:center;min-width:120px;animation:slideIn .4s ease both}
+@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+.flow-arrow{font-size:22px;color:var(--or);padding:0 6px;flex-shrink:0}
+.flow-icon{font-size:24px;margin-bottom:6px}
+.flow-txt{font-size:11px;color:var(--muted);line-height:1.4}
+
+/* PEOPLE */
+.people-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:700px}
+.person-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:20px;text-align:center;min-width:160px;animation:fadeUp .5s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.person-emoji{font-size:36px;margin-bottom:8px}
+.person-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.person-desc{font-size:11px;color:var(--muted)}
+
+/* FINAL CTA */
+.cta-links{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.cta-link{padding:12px 24px;border-radius:12px;font-size:13px;font-weight:700;text-decoration:none;transition:all .2s}
+.cta-primary{background:var(--or);color:#000}
+.cta-primary:hover{opacity:.9;transform:translateY(-2px)}
+.cta-ghost{background:rgba(255,255,255,.07);color:#fff;border:1px solid rgba(255,255,255,.15)}
+.cta-ghost:hover{background:rgba(255,255,255,.12)}
+
+/* BACKGROUND PARTICLES */
+.bg-particle{position:fixed;border-radius:50%;opacity:.04;animation:float linear infinite;pointer-events:none}
+@keyframes float{0%{transform:translateY(100vh) rotate(0deg)}100%{transform:translateY(-100px) rotate(720deg)}}
+@keyframes bounceIn{0%{opacity:0;transform:scale(.8)}60%{transform:scale(1.05)}100%{opacity:1;transform:scale(1)}}
+
+/* LIVE TICKER in video */
+.v-ticker{background:rgba(255,153,51,.1);border:1px solid rgba(255,153,51,.25);border-radius:20px;padding:6px 16px;font-size:12px;color:var(--or);display:inline-flex;align-items:center;gap:6px;margin-bottom:20px}
+.v-dot{width:7px;height:7px;border-radius:50%;background:var(--or);animation:pulse 1.5s infinite}
+</style>
+</head>
+<body>
+
+<!-- Background particles -->
+<div id="particles"></div>
+
+<!-- Navigation -->
+<div class="nav">
+  <div class="nav-logo">SANKALP<span> AI</span></div>
+  <div class="nav-links">
+    <a href="/web/portal">🏛️ Portal</a>
+    <a href="/web/pcr">🚨 PCR</a>
+    <a href="/web/public">📊 Public</a>
+    <a href="/">← Home</a>
+  </div>
+</div>
+
+<!-- Progress bar -->
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene nav dots -->
+<div class="scene-dots" id="sceneDots"></div>
+
+<!-- SCENES -->
+<div id="scenes">
+
+  <!-- SCENE 0: HERO -->
+  <div class="scene active" data-dur="7000">
+    <div class="v-ticker"><div class="v-dot"></div> LIVE · Government of Uttarakhand</div>
+    <div class="scene-tag">Introducing</div>
+    <div class="scene-title">SANKALP <span>AI</span><br/>सरकार आपके द्वार</div>
+    <div class="scene-desc">The unified civic governance platform bringing all of Uttarakhand's government services into one intelligent, real-time dashboard — for citizens, departments, and administrators.</div>
+    <div class="stat-row">
+      <div class="stat-pill"><div class="stat-n">13</div><div class="stat-l">Districts</div></div>
+      <div class="stat-pill"><div class="stat-n">8</div><div class="stat-l">Departments</div></div>
+      <div class="stat-pill"><div class="stat-n">Real‑time</div><div class="stat-l">Live Data</div></div>
+      <div class="stat-pill"><div class="stat-n">112</div><div class="stat-l">Emergency</div></div>
+    </div>
+  </div>
+
+  <!-- SCENE 1: THE PROBLEM -->
+  <div class="scene" data-dur="7000">
+    <div class="scene-tag">The Problem</div>
+    <div class="scene-title">Civic Issues<br/>Go <span>Unresolved</span></div>
+    <div class="scene-desc">Roads break, water stops, lights fail — but citizens have no easy way to report, track, or hold departments accountable. SANKALP AI changes all of that.</div>
+    <div class="feat-grid" style="grid-template-columns:repeat(2,1fr);max-width:520px">
+      <div class="feat-card" style="animation-delay:.1s"><div class="feat-icon">🕳️</div><div class="feat-title">Potholes ignored</div><div class="feat-desc">No tracking, no accountability</div></div>
+      <div class="feat-card" style="animation-delay:.2s"><div class="feat-icon">💧</div><div class="feat-title">Water outages</div><div class="feat-desc">Citizens wait with no update</div></div>
+      <div class="feat-card" style="animation-delay:.3s"><div class="feat-icon">⚡</div><div class="feat-title">Power cuts</div><div class="feat-desc">No ETA, no resolution date</div></div>
+      <div class="feat-card" style="animation-delay:.4s"><div class="feat-icon">📋</div><div class="feat-title">No transparency</div><div class="feat-desc">Departments work in silos</div></div>
+    </div>
+  </div>
+
+  <!-- SCENE 2: HOW IT WORKS - CITIZEN -->
+  <div class="scene" data-dur="8000">
+    <div class="scene-tag">For Citizens</div>
+    <div class="scene-title">File. Track. <span>Resolve.</span></div>
+    <div class="scene-desc">Citizens submit complaints in seconds. Our AI instantly routes them to the right department and sets an SLA clock. You track everything in real-time.</div>
+    <div class="flow">
+      <div class="flow-step" style="animation-delay:.1s">
+        <div class="flow-icon">📱</div>
+        <div style="font-size:12px;color:#fff;font-weight:700;margin-bottom:4px">You Report</div>
+        <div class="flow-txt">Pothole, outage, waste — any civic issue</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="animation-delay:.25s">
+        <div class="flow-icon">🤖</div>
+        <div style="font-size:12px;color:#fff;font-weight:700;margin-bottom:4px">AI Routes</div>
+        <div class="flow-txt">Auto-assigned to correct department & priority</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="animation-delay:.4s">
+        <div class="flow-icon">🏗️</div>
+        <div style="font-size:12px;color:#fff;font-weight:700;margin-bottom:4px">Dept Acts</div>
+        <div class="flow-txt">Worker dispatched within SLA time</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="animation-delay:.55s">
+        <div class="flow-icon">✅</div>
+        <div style="font-size:12px;color:#fff;font-weight:700;margin-bottom:4px">Resolved</div>
+        <div class="flow-txt">You verify, rate, and close the complaint</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 3: LIVE MAP & PCR -->
+  <div class="scene" data-dur="7000">
+    <div class="scene-tag">PCR Command · Safety</div>
+    <div class="scene-title">Real-Time Safety<br/><span>Across Uttarakhand</span></div>
+    <div class="scene-desc">The PCR Command portal tracks all police patrols, emergency incidents, and SOS alerts live on an interactive map — with instant dispatch and women safety features.</div>
+    <div class="map-demo">
+      <div class="map-grid"></div>
+      <!-- Animated pins -->
+      <div class="map-pin" style="left:18%;top:22%;animation-delay:.2s"><div style="width:14px;height:14px;border-radius:50%;background:#EF4444;border:2px solid #fff;box-shadow:0 0 10px #EF4444"></div><div class="map-label">🆘 Dehradun</div></div>
+      <div class="map-pin" style="left:42%;top:38%;animation-delay:.4s"><div style="width:14px;height:14px;border-radius:50%;background:#22C55E;border:2px solid #fff;box-shadow:0 0 10px #22C55E"></div><div class="map-label">🚔 Patrol Van</div></div>
+      <div class="map-pin" style="left:65%;top:25%;animation-delay:.6s"><div style="width:14px;height:14px;border-radius:50%;background:#C4B5FD;border:2px solid #fff;box-shadow:0 0 10px #C4B5FD"></div><div class="map-label">🛡️ Women SOS</div></div>
+      <div class="map-pin" style="left:78%;top:55%;animation-delay:.8s"><div style="width:12px;height:12px;border-radius:50%;background:#F59E0B;border:2px solid #fff;box-shadow:0 0 8px #F59E0B"></div><div class="map-label">🏥 Haridwar</div></div>
+      <div class="map-pin" style="left:30%;top:65%;animation-delay:1s"><div style="width:10px;height:10px;background:#3B82F6;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 0 8px #3B82F6"></div><div class="map-label">🚔 On Patrol</div></div>
+      <!-- Live indicator -->
+      <div style="position:absolute;top:10px;right:12px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);border-radius:8px;padding:4px 10px;font-size:10px;font-weight:800;color:#EF4444;display:flex;align-items:center;gap:5px">
+        <div style="width:6px;height:6px;border-radius:50%;background:#EF4444;animation:pulse 1s infinite"></div>LIVE
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 4: DEPARTMENTS -->
+  <div class="scene" data-dur="7000">
+    <div class="scene-tag">8 Departments · One Platform</div>
+    <div class="scene-title">Every Department,<br/><span>Connected Live</span></div>
+    <div class="scene-desc">From roads to water supply, from forest conservation to disaster management — all 8 Uttarakhand departments receive real-time complaint streams via SSE.</div>
+    <div class="dept-row">
+      {["🏗️ PWD — Roads","🗑️ ULB — Sanitation","💧 Jal Sansthan","⚡ UPCL — Power","🌳 Forest Dept","🏥 Health","🆘 USDMA","🚔 UK Police"].map((d,i)=>`<div class="dept-pill" style="animation-delay:${i*.08}s">${d}</div>`).join('')}
+    </div>
+  </div>
+
+  <!-- SCENE 5: RTI + AI -->
+  <div class="scene" data-dur="7000">
+    <div class="scene-tag">AI-Powered · Right to Information</div>
+    <div class="scene-title">AI Drafts Your <span>RTI</span><br/>in Seconds</div>
+    <div class="scene-desc">Citizens can generate legally correct RTI applications using AI, track their 30-day response window, and get accountability from any government department under RTI Act 2005.</div>
+    <div class="feat-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="feat-card" style="animation-delay:.1s"><div class="feat-icon">✨</div><div class="feat-title">AI Draft Generator</div><div class="feat-desc">Enter topic → get a legally correct RTI in seconds</div></div>
+      <div class="feat-card" style="animation-delay:.2s"><div class="feat-icon">⏱️</div><div class="feat-title">30-Day Timer</div><div class="feat-desc">Automatic deadline tracking — department must reply</div></div>
+      <div class="feat-card" style="animation-delay:.3s"><div class="feat-icon">📋</div><div class="feat-title">Full Transparency</div><div class="feat-desc">All RTI filings tracked and accountable</div></div>
+    </div>
+  </div>
+
+  <!-- SCENE 6: WHO IS IT FOR -->
+  <div class="scene" data-dur="7000">
+    <div class="scene-tag">Built For Everyone</div>
+    <div class="scene-title">One Platform,<br/><span>Three Roles</span></div>
+    <div class="scene-desc">SANKALP AI serves citizens, department staff, and district administrators — each with a dedicated, purpose-built experience.</div>
+    <div class="people-row">
+      <div class="person-card" style="animation-delay:.1s">
+        <div class="person-emoji">👤</div>
+        <div class="person-title">Citizens</div>
+        <div class="person-desc">File complaints, track them, send SOS alerts, file RTIs, and rate resolutions</div>
+      </div>
+      <div class="person-card" style="animation-delay:.25s">
+        <div class="person-emoji">🏛️</div>
+        <div class="person-title">Departments</div>
+        <div class="person-desc">Receive live SSE alerts, manage workers, update statuses, track SLA compliance</div>
+      </div>
+      <div class="person-card" style="animation-delay:.4s">
+        <div class="person-emoji">⚡</div>
+        <div class="person-title">Administrators</div>
+        <div class="person-desc">War room dashboard, district analytics, broadcast announcements, manage all</div>
+      </div>
+      <div class="person-card" style="animation-delay:.55s">
+        <div class="person-emoji">🚔</div>
+        <div class="person-title">PCR Command</div>
+        <div class="person-desc">Live patrol tracking, SOS dispatch, women safety, night safety monitoring</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 7: FINAL CTA -->
+  <div class="scene" data-dur="99999">
+    <div class="v-ticker"><div class="v-dot"></div> Live Now · All 13 Uttarakhand Districts</div>
+    <div class="scene-tag">Government of Uttarakhand</div>
+    <div class="scene-title">SANKALP <span>AI</span><br/>सरकार आपके द्वार</div>
+    <div class="scene-desc" style="margin-bottom:28px">Real-time civic governance. AI-powered complaint routing. 24/7 emergency response. Transparent RTI filing. Unified across all 8 departments and 13 districts.</div>
+    <div class="cta-links">
+      <a class="cta-link cta-primary" href="/web/portal">🏛️ Open Citizen Portal</a>
+      <a class="cta-link cta-ghost" href="/web/pcr">🚨 PCR Command</a>
+      <a class="cta-link cta-ghost" href="/web/public">📊 Public Dashboard</a>
+      <a class="cta-link cta-ghost" href="/web/dept">🏛️ Dept Portal</a>
+    </div>
+    <div style="margin-top:28px;font-size:12px;color:var(--muted)">Emergency: <strong style="color:var(--or)">112</strong> · Women Safety: <strong style="color:var(--or)">1090</strong> · SDRF: <strong style="color:var(--or)">1070</strong> · CM Helpline: <strong style="color:var(--or)">1905</strong></div>
+  </div>
+
+</div>
+
+<!-- Controls -->
+<div class="ctrl">
+  <button class="ctrl-btn ctrl-skip" id="prevBtn" onclick="changeScene(-1)">← Prev</button>
+  <button class="ctrl-btn ctrl-next" id="nextBtn" onclick="changeScene(1)">Next →</button>
+</div>
+
+<script>
+// Background particles
+(function(){
+  const c=document.getElementById('particles');
+  for(let i=0;i<18;i++){
+    const p=document.createElement('div');
+    p.className='bg-particle';
+    const sz=Math.random()*120+40;
+    p.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;background:rgba(255,153,51,${Math.random()*.06+.02});animation-duration:${Math.random()*20+15}s;animation-delay:${Math.random()*10}s`;
+    c.appendChild(p);
+  }
+})();
+
+// Populate dept pills in scene 4
+(function(){
+  const depts=["🏗️ PWD — Roads","🗑️ ULB — Sanitation","💧 Jal Sansthan","⚡ UPCL — Power","🌳 Forest Dept","🏥 Health Dept","🆘 USDMA","🚔 UK Police"];
+  const rows=document.querySelectorAll('.dept-row');
+  rows.forEach(row=>{
+    row.innerHTML='';
+    depts.forEach((d,i)=>{
+      const el=document.createElement('div');
+      el.className='dept-pill';
+      el.style.animationDelay=(i*.08)+'s';
+      el.textContent=d;
+      row.appendChild(el);
+    });
+  });
+})();
+
+// Scene management
+const scenes=document.querySelectorAll('.scene');
+const dotsEl=document.getElementById('sceneDots');
+const progressBar=document.getElementById('progressBar');
+let current=0,timer=null,progressTimer=null,progressStart=0,progressDur=0;
+
+// Create dots
+scenes.forEach((_,i)=>{
+  const d=document.createElement('div');
+  d.className='dot'+(i===0?' active':'');
+  d.onclick=()=>goTo(i);
+  dotsEl.appendChild(d);
+});
+
+function getDur(idx){return parseInt(scenes[idx].dataset.dur)||6000;}
+
+function goTo(idx){
+  if(idx<0||idx>=scenes.length)return;
+  scenes[current].classList.remove('active');
+  scenes[current].classList.add('exit');
+  setTimeout(()=>scenes[current].classList.remove('exit'),700);
+  current=idx;
+  scenes[current].classList.add('active');
+  document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===current));
+  document.getElementById('prevBtn').style.opacity=current===0?'0.3':'1';
+  document.getElementById('nextBtn').textContent=current===scenes.length-1?'🚀 Explore →':'Next →';
+  document.getElementById('nextBtn').onclick=current===scenes.length-1?()=>window.location.href='/web/portal':()=>changeScene(1);
+  startProgress();
+}
+
+function changeScene(dir){
+  clearTimeout(timer);
+  clearInterval(progressTimer);
+  const next=current+dir;
+  if(next>=scenes.length){window.location.href='/web/portal';return;}
+  if(next<0)return;
+  goTo(next);
+}
+
+function startProgress(){
+  clearInterval(progressTimer);
+  const dur=getDur(current);
+  if(dur>50000){progressBar.style.width='0%';return;}
+  progressStart=Date.now();
+  progressDur=dur;
+  clearTimeout(timer);
+  timer=setTimeout(()=>changeScene(1),dur);
+  progressTimer=setInterval(()=>{
+    const pct=Math.min((Date.now()-progressStart)/progressDur*100,100);
+    progressBar.style.width=pct+'%';
+    if(pct>=100)clearInterval(progressTimer);
+  },50);
+}
+
+// Keyboard navigation
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' ')changeScene(1);
+  if(e.key==='ArrowLeft')changeScene(-1);
+});
+
+// Touch swipe
+let touchX=0;
+document.addEventListener('touchstart',e=>touchX=e.changedTouches[0].screenX,{passive:true});
+document.addEventListener('touchend',e=>{
+  const dx=touchX-e.changedTouches[0].screenX;
+  if(Math.abs(dx)>50)changeScene(dx>0?1:-1);
+},{passive:true});
+
+goTo(0);
+</script>
+</body>
+</html>

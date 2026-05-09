@@ -16,19 +16,28 @@ body{background:#F8FAFC;color:#1E293B}
 .nav{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
 .nav a{color:#93C5FD;text-decoration:none;font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid rgba(147,197,253,.3);transition:all .2s;font-weight:600}
 .nav a:hover{background:rgba(147,197,253,.1)}
+/* LIVE TICKER */
+@keyframes ticker{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+.ticker-wrap{background:linear-gradient(90deg,rgba(255,153,51,.15),rgba(255,153,51,.05));border-bottom:1px solid rgba(255,153,51,.3);padding:7px 0;overflow:hidden;position:relative}
+.ticker-inner{display:flex;align-items:center;white-space:nowrap;animation:ticker 30s linear infinite}
+.ticker-inner:hover{animation-play-state:paused}
+.ticker-item{font-size:12px;color:#1E293B;padding:0 28px}
+.ticker-sep{color:#FF9933;font-size:13px;padding:0 6px}
+.ticker-label{position:absolute;left:0;top:0;bottom:0;background:#0B1C3F;display:flex;align-items:center;padding:0 12px;font-size:10px;font-weight:800;color:#FF9933;letter-spacing:.5px;border-right:1px solid rgba(255,153,51,.3);z-index:2;white-space:nowrap}
 .container{max-width:1200px;margin:0 auto;padding:28px 20px}
 h1{font-size:28px;font-weight:800;color:#0B1C3F;margin-bottom:6px}
 .lead{font-size:15px;color:#64748B;margin-bottom:28px;line-height:1.5}
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:32px}
 @media(max-width:768px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
-.stat-card{background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.stat-card{background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05);transition:transform .2s}
+.stat-card:hover{transform:translateY(-2px)}
 .stat-num{font-size:32px;font-weight:800;color:#0B1C3F;margin-bottom:4px;line-height:1}
 .stat-label{font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
 .section{margin-bottom:36px}
 .section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748B}
 .dept-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
-.dept-card{background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:18px;border-top:4px solid;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:transform .2s}
+.dept-card{background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:18px;border-top:4px solid;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:transform .2s,box-shadow .2s}
 .dept-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
 .dept-icon{font-size:28px;margin-bottom:8px}
 .dept-name{font-size:13px;font-weight:700;color:#1E293B;margin-bottom:2px}
@@ -51,9 +60,7 @@ h1{font-size:28px;font-weight:800;color:#0B1C3F;margin-bottom:6px}
 .live-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#22C55E;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.04em}
 .live-dot{width:7px;height:7px;border-radius:50%;background:#22C55E;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.petition-card{background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.sig-bar{background:#F1F5F9;border-radius:4px;height:8px;overflow:hidden;margin-top:8px}
-.sig-fill{height:8px;border-radius:4px;background:linear-gradient(90deg,#10B981,#059669);transition:width .8s ease}
+.refresh-info{font-size:11px;color:#94A3B8;display:inline-flex;align-items:center;gap:5px}
 footer{background:#0B1C3F;color:#475569;padding:24px 32px;text-align:center;font-size:13px;margin-top:48px}
 footer a{color:#93C5FD;text-decoration:none}
 </style>
@@ -61,25 +68,66 @@ footer a{color:#93C5FD;text-decoration:none}
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useEffect}=React;
+const {useState,useEffect,useCallback}=React;
 const API=window.location.origin;
 
 function scoreColor(s){return s>=80?"#166534":s>=60?"#16A34A":s>=40?"#F59E0B":"#EF4444";}
 function gradeBg(g){return{A:"#166534",B:"#16A34A",C:"#F59E0B",D:"#EF4444"}[g]||"#64748B";}
+function timeAgo(iso){if(!iso)return"";const d=Date.now()-new Date(iso).getTime();if(d<60000)return"just now";if(d<3600000)return Math.floor(d/60000)+"m ago";return Math.floor(d/3600000)+"h ago";}
+
+function Ticker({items}){
+  if(!items||items.length===0)return null;
+  const doubled=[...items,...items];
+  return <div className="ticker-wrap">
+    <span className="ticker-label">🔴 LIVE</span>
+    <div className="ticker-inner" style={{paddingLeft:80}}>
+      {doubled.map((it,i)=><span key={(it.id||i)+'_'+i}>
+        <span className="ticker-item" style={{color:it.priority==='urgent'?"#FF9933":it.priority==='important'?"#F59E0B":"#1E293B",fontWeight:it.priority==='urgent'?700:400}}>
+          {it.priority==='urgent'?"🚨 ":it.priority==='important'?"⚡ ":""}{it.title}
+        </span>
+        <span className="ticker-sep">◆</span>
+      </span>)}
+    </div>
+  </div>;
+}
 
 function PublicPortal() {
   const [depts,setDepts]=useState([]);
   const [wards,setWards]=useState([]);
   const [stats,setStats]=useState({});
+  const [announcements,setAnnouncements]=useState([]);
   const [tab,setTab]=useState("overview");
   const [animated,setAnimated]=useState(false);
+  const [lastUpdated,setLastUpdated]=useState(null);
 
-  useEffect(()=>{
+  const loadData=useCallback(()=>{
     fetch(`${API}/api/public/department-report`).then(r=>r.json()).then(d=>setDepts(Array.isArray(d)?d:[])).catch(()=>{});
     fetch(`${API}/api/public/ward-health`).then(r=>r.json()).then(d=>setWards(Array.isArray(d)?d:[])).catch(()=>{});
     fetch(`${API}/api/public/stats`).then(r=>r.json()).then(setStats).catch(()=>{});
+    fetch(`${API}/api/public/announcements`).then(r=>r.json()).then(d=>{
+      if(Array.isArray(d)&&d.length>0)setAnnouncements(d.slice(0,12));
+      else setAnnouncements([
+        {id:'a1',title:'📢 SANKALP AI civic governance platform is live across all 13 Uttarakhand districts',priority:'normal'},
+        {id:'a2',title:'🌐 Real-time complaint tracking, SOS alerts & department performance — all in one platform',priority:'normal'},
+        {id:'a3',title:'🆘 Emergency? Call 112 (Unified) · Women Safety: 1090 · SDRF Disaster: 1070',priority:'urgent'},
+        {id:'a4',title:'📊 All 8 departments connected — PWD, ULB, Jal Sansthan, UPCL, Forest, Health, USDMA, Police',priority:'normal'},
+        {id:'a5',title:'📱 Download SANKALP AI mobile app for real-time alerts and civic engagement',priority:'normal'},
+      ]);
+    }).catch(()=>{
+      setAnnouncements([
+        {id:'f1',title:'📢 SANKALP AI — Uttarakhand Civic Governance Platform is LIVE',priority:'normal'},
+        {id:'f2',title:'🆘 Emergency: 112 · Police: 100 · Ambulance: 108 · Fire: 101 · Women Safety: 1090',priority:'urgent'},
+      ]);
+    });
+    setLastUpdated(new Date());
     setTimeout(()=>setAnimated(true),300);
   },[]);
+
+  useEffect(()=>{
+    loadData();
+    const iv=setInterval(loadData,6000);
+    return()=>clearInterval(iv);
+  },[loadData]);
 
   const totals=depts.reduce((a,d)=>({total:a.total+(d.total||0),resolved:a.resolved+(d.resolved||0),pending:a.pending+(d.pending||0),p1:a.p1+(d.p1Pending||0)}),{total:0,resolved:0,pending:0,p1:0});
   const overallRate=totals.total>0?Math.round(totals.resolved/totals.total*100):0;
@@ -94,20 +142,27 @@ function PublicPortal() {
           <div className="logo-sub">Uttarakhand Open Civic Data Portal</div>
         </div>
         <div className="nav">
+          <a href="/web/portal">🏛️ Citizen Portal</a>
           <a href="/web/dept">🏛️ Dept. Portal</a>
-          <a href="/web/cpr">🆘 CPR Command</a>
+          <a href="/web/pcr">🚨 PCR Command</a>
           <a href="/web/rti">📋 RTI Portal</a>
+          <a href="/web/video">🎬 Video</a>
           <a href="/">← App</a>
         </div>
       </div>
+
+      <Ticker items={announcements}/>
 
       <div className="container">
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:24}}>
           <div>
             <h1>Uttarakhand Civic Health Dashboard</h1>
-            <p className="lead" style={{marginBottom:0}}>Real-time government performance data across 13 districts. Updated live as citizens file complaints and departments resolve them.</p>
+            <p className="lead" style={{marginBottom:0}}>Real-time government performance data across 13 districts. Updated live every 6 seconds as citizens file complaints and departments resolve them.</p>
           </div>
-          <div className="live-badge"><div className="live-dot"/>LIVE DATA</div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
+            <div className="live-badge"><div className="live-dot"/>LIVE DATA</div>
+            {lastUpdated&&<div className="refresh-info">⟳ Updated {timeAgo(lastUpdated.toISOString())}</div>}
+          </div>
         </div>
 
         <div className="stat-grid">
@@ -230,11 +285,13 @@ function PublicPortal() {
 
       <footer>
         <div style={{marginBottom:8}}><strong style={{color:"#E2E8F0"}}>SANKALP AI</strong> — Uttarakhand Civic Intelligence Platform</div>
-        <div>Data updates live · AI-powered complaint analysis · Built for Uttarakhand citizens</div>
+        <div>Data updates every 6 seconds · AI-powered complaint analysis · Built for Uttarakhand citizens</div>
         <div style={{marginTop:12,display:"flex",gap:16,justifyContent:"center",flexWrap:"wrap"}}>
+          <a href="/web/portal">Citizen Portal</a>
           <a href="/web/dept">Department Portal</a>
-          <a href="/web/cpr">CPR Safety Command</a>
+          <a href="/web/pcr">PCR Safety Command</a>
           <a href="/web/rti">RTI Portal</a>
+          <a href="/web/video">Intro Video</a>
           <a href="/">Main Application</a>
         </div>
       </footer>
