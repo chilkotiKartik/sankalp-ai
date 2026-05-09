@@ -339,7 +339,7 @@ function ComplaintCard({c,isNew,token,onRefresh,addToast}){
         <span className={'badge '+(SC[c.status]||'badge-muted')}>{(c.status||'pending').replace('_',' ')}</span>
         <span style={{fontSize:11,color:'var(--muted)',marginLeft:'auto'}}>{timeAgo(c.submittedAt)}</span>
       </div>
-      <div style={{fontSize:13,color:'var(--text)',lineHeight:1.4,marginBottom:5}}>{(c.description||'').slice(0,140)}{c.description?.length>140?'…':''}</div>
+      <div style={{fontSize:13,color:'#e6edf3',lineHeight:1.5,marginBottom:5}}>{(c.description||'').slice(0,140)}{(c.description||'').length>140?'…':''}</div>
       <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
         <span style={{fontSize:11,color:'var(--muted)'}}>📍 {c.ward||c.location||'Unknown'} · {c.district}</span>
         {c.beforePhoto&&<span style={{fontSize:10,color:'var(--blue)'}}>📷 Photo</span>}
@@ -471,29 +471,156 @@ function ComplaintsPage({token,dept,complaints,newIds,onRefresh,addToast}){
   </div>;
 }
 
+/* ── WORKER DETAIL MODAL ─────────────────────────────────────────────────── */
+function WorkerModal({w,onClose}){
+  if(!w)return null;
+  const sc=w.status==='active'?'var(--green)':w.status==='on_leave'?'var(--yellow)':'var(--muted)';
+  const bg=w.status==='active'?'rgba(63,185,80,.1)':w.status==='on_leave'?'rgba(210,153,34,.1)':'rgba(139,148,158,.1)';
+  const taskHistory=w.taskHistory||[];
+  const rateColor=w.avgRating>=4.5?'var(--green)':w.avgRating>=3.5?'var(--yellow)':'var(--red)';
+  return <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+    <div className="modal fade-in" style={{maxWidth:560}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{width:48,height:48,borderRadius:24,background:'rgba(255,153,51,.15)',border:'2px solid rgba(255,153,51,.4)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>👷</div>
+          <div>
+            <div style={{fontSize:17,fontWeight:800,color:'var(--text)'}}>{w.name}</div>
+            <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>📍 {w.ward} · {w.district}</div>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <span style={{fontSize:11,fontWeight:700,color:sc,background:bg,padding:'3px 10px',borderRadius:10,textTransform:'uppercase'}}>{w.status||'active'}</span>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+      </div>
+
+      {/* Stats grid */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:14}}>
+        {[
+          {v:w.score||0,l:'Score',c:'var(--orange)',icon:'⭐'},
+          {v:w.totalResolved||0,l:'Resolved',c:'var(--green)',icon:'✅'},
+          {v:w.resolvedToday||0,l:'Today',c:'var(--blue)',icon:'📅'},
+          {v:w.avgRating?(w.avgRating).toFixed(1):'—',l:'Rating',c:rateColor,icon:'⭐'},
+        ].map(k=><div key={k.l} style={{background:'#1c2128',borderRadius:8,padding:'10px 6px',textAlign:'center',border:'1px solid var(--border)'}}>
+          <div style={{fontSize:20,marginBottom:3}}>{k.icon}</div>
+          <div style={{fontSize:16,fontWeight:800,color:k.c}}>{k.v}</div>
+          <div style={{fontSize:9,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.4,marginTop:2}}>{k.l}</div>
+        </div>)}
+      </div>
+
+      {/* Details */}
+      <div className="g2" style={{gap:10,marginBottom:14,fontSize:12}}>
+        {w.phone&&<div style={{background:'#1c2128',borderRadius:8,padding:10}}>
+          <div style={{color:'var(--muted)',marginBottom:3,fontSize:10,textTransform:'uppercase',letterSpacing:.4}}>📱 Phone</div>
+          <div style={{fontWeight:600}}>{w.phone}</div>
+        </div>}
+        {w.department&&<div style={{background:'#1c2128',borderRadius:8,padding:10}}>
+          <div style={{color:'var(--muted)',marginBottom:3,fontSize:10,textTransform:'uppercase',letterSpacing:.4}}>🏛️ Department</div>
+          <div style={{fontWeight:600}}>{w.department}</div>
+        </div>}
+        <div style={{background:'#1c2128',borderRadius:8,padding:10}}>
+          <div style={{color:'var(--muted)',marginBottom:3,fontSize:10,textTransform:'uppercase',letterSpacing:.4}}>🗺️ District</div>
+          <div style={{fontWeight:600}}>{w.district}</div>
+        </div>
+        {w.joinedAt&&<div style={{background:'#1c2128',borderRadius:8,padding:10}}>
+          <div style={{color:'var(--muted)',marginBottom:3,fontSize:10,textTransform:'uppercase',letterSpacing:.4}}>📅 Joined</div>
+          <div style={{fontWeight:600}}>{new Date(w.joinedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
+        </div>}
+      </div>
+
+      {/* Current Task */}
+      {w.currentTask&&<div style={{background:'rgba(255,153,51,.08)',border:'1px solid rgba(255,153,51,.25)',borderRadius:8,padding:12,marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--orange)',marginBottom:4,textTransform:'uppercase',letterSpacing:.4}}>📋 Current Task</div>
+        <div style={{fontSize:13,lineHeight:1.6,color:'var(--text)'}}>{w.currentTask}</div>
+      </div>}
+
+      {/* GPS location */}
+      {w.geo&&<div style={{background:'rgba(88,166,255,.06)',border:'1px solid rgba(88,166,255,.2)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
+        <div style={{fontWeight:700,color:'var(--blue)',marginBottom:4}}>📍 Live GPS Location</div>
+        <div style={{fontFamily:'monospace',color:'var(--text)'}}>{w.geo.lat.toFixed(5)}°N, {w.geo.lng.toFixed(5)}°E</div>
+        <a href={`https://maps.google.com/?q=${w.geo.lat},${w.geo.lng}`} target="_blank" style={{color:'var(--blue)',textDecoration:'none',fontSize:11,marginTop:4,display:'block'}}>🗺️ View on Google Maps →</a>
+      </div>}
+
+      {/* Task History */}
+      {taskHistory.length>0&&<div style={{marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.4,marginBottom:8}}>📜 Recent Task History</div>
+        {taskHistory.slice(0,5).map((t,i)=><div key={i} style={{display:'flex',gap:10,marginBottom:8,fontSize:12,padding:'8px 10px',background:'#1c2128',borderRadius:8}}>
+          <div style={{fontSize:14,flexShrink:0}}>{t.resolved?'✅':'⏳'}</div>
+          <div style={{flex:1}}>
+            <div style={{color:'var(--text)',lineHeight:1.4}}>{t.task||t.description||'Task completed'}</div>
+            {t.completedAt&&<div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>{new Date(t.completedAt).toLocaleDateString('en-IN')}</div>}
+          </div>
+        </div>)}
+      </div>}
+
+      <div style={{display:'flex',gap:8,paddingTop:12,borderTop:'1px solid var(--border)'}}>
+        {w.phone&&<a href={'tel:'+w.phone} className="btn btn-green" style={{flex:1,justifyContent:'center'}}>📞 Call Worker</a>}
+        <button className="btn btn-ghost" onClick={onClose} style={{flex:1,justifyContent:'center'}}>Close</button>
+      </div>
+    </div>
+  </div>;
+}
+
 /* ── WORKERS PAGE ────────────────────────────────────────────────────────── */
 function WorkersPage({token,dept}){
   const [workers,setWorkers]=useState([]);
   const [loading,setLoading]=useState(true);
   const [search,setSearch]=useState('');
+  const [distFilter,setDistFilter]=useState('All Districts');
+  const [selWorker,setSelWorker]=useState(null);
+  const [statusFilter,setStatusFilter]=useState('all');
+
+  const UK_DISTS_W=['All Districts','Dehradun','Haridwar','Tehri Garhwal','Pauri Garhwal','Rudraprayag','Chamoli','Uttarkashi','Pithoragarh','Bageshwar','Almora','Champawat','Nainital','Udham Singh Nagar'];
 
   useEffect(()=>{
     api.get(`/api/dept/${dept.id}/workers`,token).then(d=>{setWorkers(Array.isArray(d)?d:d.workers||[]);}).catch(()=>{}).finally(()=>setLoading(false));
   },[dept.id,token]);
 
-  const filtered=workers.filter(w=>(w.name||'').toLowerCase().includes(search.toLowerCase())||(w.ward||'').toLowerCase().includes(search.toLowerCase()));
+  const filtered=workers.filter(w=>{
+    const matchSearch=(w.name||'').toLowerCase().includes(search.toLowerCase())||(w.ward||'').toLowerCase().includes(search.toLowerCase())||(w.district||'').toLowerCase().includes(search.toLowerCase());
+    const matchDist=distFilter==='All Districts'||(w.district||'')=== distFilter;
+    const matchStatus=statusFilter==='all'||w.status===statusFilter;
+    return matchSearch&&matchDist&&matchStatus;
+  });
   const active=workers.filter(w=>w.status==='active').length;
   const onLeave=workers.filter(w=>w.status==='on_leave').length;
+  const idle=workers.filter(w=>w.status==='idle').length;
+  const topWorkers=[...workers].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,3);
 
   return <div className="fade-in">
-    <div className="g3" style={{marginBottom:18}}>
-      {[{v:workers.length,l:'Total Workers',c:'var(--text)',icon:'👥'},{v:active,l:'Active',c:'var(--green)',icon:'🟢'},{v:onLeave,l:'On Leave',c:'var(--yellow)',icon:'🟡'}].map((k,i)=>
+    {selWorker&&<WorkerModal w={selWorker} onClose={()=>setSelWorker(null)}/>}
+
+    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:18}}>
+      {[{v:workers.length,l:'Total Workers',c:'var(--text)',icon:'👥'},{v:active,l:'Active',c:'var(--green)',icon:'🟢'},{v:idle,l:'Idle',c:'var(--blue)',icon:'🔵'},{v:onLeave,l:'On Leave',c:'var(--yellow)',icon:'🟡'}].map((k,i)=>
         <div key={i} className="kpi"><div className="kpi-icon">{k.icon}</div><div className="kpi-val" style={{color:k.c}}>{k.v}</div><div className="kpi-lbl">{k.l}</div></div>
       )}
     </div>
 
+    {/* Top performers */}
+    {topWorkers.length>0&&<div style={{marginBottom:16,background:'rgba(255,153,51,.05)',border:'1px solid rgba(255,153,51,.15)',borderRadius:12,padding:14}}>
+      <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:'var(--orange)'}}>🏆 Top Performers</div>
+      <div className="g3">
+        {topWorkers.map((w,i)=><div key={w.id} style={{background:'#1c2128',borderRadius:8,padding:10,cursor:'pointer',border:'1px solid rgba(255,153,51,.2)',textAlign:'center'}} onClick={()=>setSelWorker(w)}>
+          <div style={{fontSize:22,marginBottom:4}}>{['🥇','🥈','🥉'][i]}</div>
+          <div style={{fontWeight:700,fontSize:12,color:'var(--text)'}}>{w.name.split(' ').slice(0,2).join(' ')}</div>
+          <div style={{fontSize:11,color:'var(--orange)',fontWeight:700,marginTop:4}}>{w.score||0} pts</div>
+          <div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>✅ {w.totalResolved||0} resolved</div>
+        </div>)}
+      </div>
+    </div>}
+
     <div className="card" style={{marginBottom:16}}>
-      <input className="search" placeholder="🔍 Search by name or ward…" value={search} onChange={e=>setSearch(e.target.value)}/>
+      <div style={{display:'flex',gap:10,marginBottom:12,flexWrap:'wrap'}}>
+        <input className="search" placeholder="🔍 Search by name, ward, district…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:180}}/>
+        <select className="select" value={distFilter} onChange={e=>setDistFilter(e.target.value)} style={{width:'auto',minWidth:140}}>
+          {UK_DISTS_W.map(d=><option key={d} value={d}>{d}</option>)}
+        </select>
+      </div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+        {[['all','All'],['active','🟢 Active'],['idle','🔵 Idle'],['on_leave','🟡 On Leave']].map(([v,l])=>
+          <button key={v} className={'filter-btn'+(statusFilter===v?' active':'')} onClick={()=>setStatusFilter(v)}>{l}</button>
+        )}
+      </div>
     </div>
 
     {loading?<div className="card" style={{textAlign:'center',padding:40}}><Spinner size={28}/></div>:
@@ -502,25 +629,25 @@ function WorkersPage({token,dept}){
       {filtered.map(w=>{
         const sc=w.status==='active'?'var(--green)':w.status==='on_leave'?'var(--yellow)':'var(--muted)';
         const bg=w.status==='active'?'rgba(63,185,80,.1)':w.status==='on_leave'?'rgba(210,153,34,.1)':'rgba(139,148,158,.1)';
-        return <div key={w.id} className="worker-card slide-in">
+        return <div key={w.id} className="worker-card slide-in" style={{cursor:'pointer'}} onClick={()=>setSelWorker(w)}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
             <div>
-              <div style={{fontWeight:600,fontSize:13}}>{w.name}</div>
+              <div style={{fontWeight:700,fontSize:13,color:'var(--text)'}}>{w.name}</div>
               <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>📍 {w.ward} · {w.district}</div>
             </div>
             <span style={{fontSize:10,fontWeight:700,color:sc,background:bg,padding:'2px 8px',borderRadius:10,textTransform:'uppercase'}}>{w.status||'active'}</span>
           </div>
-          <div style={{display:'flex',gap:12,fontSize:12,color:'var(--muted)',flexWrap:'wrap'}}>
-            <span>⭐ <b style={{color:'var(--text)'}}>{w.score||0}</b> pts</span>
-            <span>✅ <b style={{color:'var(--text)'}}>{w.totalResolved||0}</b> resolved</span>
-            <span>Today: <b style={{color:'var(--orange)'}}>{w.resolvedToday||0}</b></span>
-            {w.avgRating&&<span>⭐ {(w.avgRating).toFixed(1)}</span>}
+          <div style={{display:'flex',gap:10,fontSize:12,color:'#e6edf3',flexWrap:'wrap',marginBottom:6}}>
+            <span>⭐ <b style={{color:'var(--orange)'}}>{w.score||0}</b> pts</span>
+            <span>✅ <b style={{color:'var(--green)'}}>{w.totalResolved||0}</b> resolved</span>
+            <span>Today: <b style={{color:'var(--blue)'}}>{w.resolvedToday||0}</b></span>
+            {w.avgRating&&<span>⭐ <b style={{color:'var(--yellow)'}}>{(w.avgRating).toFixed(1)}</b></span>}
           </div>
-          {w.currentTask&&<div style={{fontSize:11,color:'var(--orange)',marginTop:8,background:'rgba(255,153,51,.08)',padding:'4px 8px',borderRadius:6}}>📋 {w.currentTask}</div>}
-          {w.phone&&<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:8}}>
-            <span style={{fontSize:11,color:'var(--muted)'}}>📱 {w.phone}</span>
-            <a href={'tel:'+w.phone} style={{fontSize:11,fontWeight:700,color:'var(--green)',background:'rgba(63,185,80,.12)',border:'1px solid rgba(63,185,80,.25)',padding:'3px 10px',borderRadius:6,textDecoration:'none'}}>📞 Call</a>
-          </div>}
+          {w.currentTask&&<div style={{fontSize:11,color:'var(--orange)',background:'rgba(255,153,51,.08)',padding:'4px 8px',borderRadius:6,marginBottom:6}}>📋 {w.currentTask}</div>}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            {w.phone&&<span style={{fontSize:11,color:'var(--muted)'}}>📱 {w.phone}</span>}
+            <span style={{fontSize:11,color:'var(--blue)',marginLeft:'auto'}}>👆 Click for details</span>
+          </div>
         </div>;
       })}
     </div>}
@@ -719,7 +846,7 @@ function DeptInfoPage({dept}){
 
   const links=[
     {l:'🌐 Public Dashboard',u:'/web/public'},
-    {l:'🆘 CPR Safety Command',u:'/web/cpr'},
+    {l:'🚔 PCR Safety Command',u:'/web/pcr'},
     {l:'📄 RTI Portal',u:'/web/rti'},
     {l:'🏛️ Unified Portal',u:'/web/portal'},
     {l:'📱 Mobile App Landing',u:'/'},
@@ -1125,7 +1252,7 @@ function Login({onLogin}){
       </div>
 
       <div style={{marginTop:16,display:'flex',gap:6,justifyContent:'center',flexWrap:'wrap'}}>
-        {[['🌐 Public','/web/public'],['🆘 CPR','/web/cpr'],['📄 RTI','/web/rti'],['🏛️ Portal','/web/portal']].map(([l,u])=>
+        {[['🌐 Public','/web/public'],['🚔 PCR','/web/pcr'],['📄 RTI','/web/rti'],['🏛️ Portal','/web/portal']].map(([l,u])=>
           <a key={u} href={u} style={{color:'var(--muted)',fontSize:11,textDecoration:'none',padding:'4px 10px',border:'1px solid var(--border)',borderRadius:6}}>{l}</a>
         )}
       </div>

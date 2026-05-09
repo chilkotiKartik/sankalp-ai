@@ -18,6 +18,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;displa
 @keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes bounceIn{0%{opacity:0;transform:scale(.93)}60%{transform:scale(1.02)}100%{opacity:1;transform:scale(1)}}
 @keyframes glow{0%,100%{box-shadow:0 0 8px rgba(239,68,68,.3)}50%{box-shadow:0 0 22px rgba(239,68,68,.7)}}
+@keyframes womenBlink{0%,100%{box-shadow:0 0 10px 3px rgba(139,92,246,.5),0 0 0 0 rgba(139,92,246,.3)}50%{box-shadow:0 0 28px 10px rgba(139,92,246,.9),0 0 0 6px rgba(139,92,246,.15)}}
+@keyframes pulseRed{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.35);opacity:.7}}
+.budget-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px}
+.budget-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.audio-live-panel{background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.25);border-radius:10px;padding:10px;margin-bottom:10px}
+.audio-clip{background:rgba(0,0,0,.3);border-radius:8px;padding:8px 10px;margin-bottom:6px}
+.budget-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;animation:slideIn .25s ease}
 /* Topbar */
 .topbar{display:flex;align-items:center;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--border);gap:10px;min-height:52px;flex-shrink:0;flex-wrap:wrap}
 .logo{font-size:15px;font-weight:800;color:var(--orange);letter-spacing:.5px}
@@ -317,6 +324,67 @@ function IncidentModal({inc,onClose,onMarkSafe,incAudioChunks}){
   );
 }
 
+function BudgetTab({distFilter}){
+  const [items,setItems]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [selDist,setSelDist]=useState(distFilter==="all"?"Dehradun":distFilter);
+
+  useEffect(()=>{
+    setLoading(true);
+    fetch(`${API}/api/public/budget?district=${encodeURIComponent(selDist)}`).then(r=>r.json()).then(d=>{setItems(Array.isArray(d)?d:[]);setLoading(false);}).catch(()=>{setLoading(false);});
+  },[selDist]);
+
+  const totalAlloc=items.reduce((s,i)=>s+(i.allocated||0),0);
+  const totalSpent=items.reduce((s,i)=>s+(i.spent||0),0);
+  const utilPct=totalAlloc?Math.round(totalSpent/totalAlloc*100):0;
+
+  const statusColor={on_track:"#22C55E",delayed:"#F59E0B",completed:"#86EFAC",at_risk:"#F87171"};
+
+  if(loading)return <div style={{textAlign:"center",padding:40,color:"var(--muted)"}}>Loading budget…</div>;
+
+  return <div>
+    <div style={{marginBottom:10}}>
+      <label style={{fontSize:10,color:"var(--dimmed)",fontWeight:700,textTransform:"uppercase",letterSpacing:.04,display:"block",marginBottom:4}}>District</label>
+      <select value={selDist} onChange={e=>setSelDist(e.target.value)} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",fontSize:12,padding:"6px 10px",width:"100%",outline:"none"}}>
+        {UK_DISTRICTS.map(d=><option key={d} value={d}>{d}</option>)}
+      </select>
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:12}}>
+      {[
+        {v:`₹${(totalAlloc/1e7).toFixed(1)}Cr`,l:"Total Allocated",c:"#93C5FD"},
+        {v:`₹${(totalSpent/1e7).toFixed(1)}Cr`,l:"Total Spent",c:"#FCD34D"},
+        {v:`${utilPct}%`,l:"Utilization",c:utilPct>=80?"#86EFAC":utilPct>=50?"#FCD34D":"#F87171"},
+        {v:items.length,l:"Schemes",c:"var(--orange)"},
+      ].map(k=><div key={k.l} style={{background:"var(--card)",borderRadius:8,padding:"10px 8px",textAlign:"center",border:"1px solid var(--border)"}}>
+        <div style={{fontSize:15,fontWeight:800,color:k.c}}>{k.v}</div>
+        <div style={{fontSize:9,color:"var(--dimmed)",textTransform:"uppercase",letterSpacing:.04,marginTop:2}}>{k.l}</div>
+      </div>)}
+    </div>
+
+    {items.length===0?<div style={{textAlign:"center",color:"var(--dimmed)",padding:"20px 0",fontSize:12}}>No budget data for {selDist}</div>:
+    items.map(item=>{
+      const pct=item.allocated?Math.round((item.spent||0)/item.allocated*100):0;
+      const sc=statusColor[item.status]||"#94A3B8";
+      return <div key={item.id} className="budget-card">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#F1F5F9",lineHeight:1.3}}>{item.scheme||item.projectName}</div>
+            <div style={{fontSize:10,color:"var(--dimmed)",marginTop:2}}>{item.department} · {item.district}</div>
+          </div>
+          {item.status&&<span style={{fontSize:9,fontWeight:700,color:sc,background:`rgba(${sc==='#22C55E'?'34,197,94':sc==='#F59E0B'?'245,158,11':sc==='#F87171'?'248,113,113':'134,239,172'},.12)`,border:`1px solid ${sc}44`,padding:"2px 8px",borderRadius:10,textTransform:"uppercase",whiteSpace:"nowrap",marginLeft:6}}>{item.status?.replace("_"," ")||"active"}</span>}
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
+          <span style={{color:"var(--dimmed)"}}>Allocated: <b style={{color:"#93C5FD"}}>₹{((item.allocated||0)/1e5).toFixed(1)}L</b></span>
+          <span style={{color:"var(--dimmed)"}}>Spent: <b style={{color:"#FCD34D"}}>₹{((item.spent||0)/1e5).toFixed(1)}L</b> ({pct}%)</span>
+        </div>
+        <div className="budget-bar"><div className="budget-fill" style={{width:`${Math.min(pct,100)}%`,background:pct>=90?"#F87171":pct>=60?"#FCD34D":"#22C55E"}}/></div>
+        {item.deadline&&<div style={{fontSize:10,color:"var(--dimmed)",marginTop:5}}>📅 Deadline: {new Date(item.deadline).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</div>}
+      </div>;
+    })}
+  </div>;
+}
+
 function LeaderboardTab({distFilter}){
   const [board,setBoard]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -479,7 +547,11 @@ function PCRPortal(){
       if(!inc.geo)return;
       const isWomen=inc.emergencyType==="women_safety"||inc.category==="women_safety";
       const col=inc.status==="active"?"#EF4444":inc.status==="safe"||inc.status==="closed"?"#22C55E":"#F59E0B";
-      const icon=L.divIcon({className:"",html:`<div style="width:${isWomen?18:14}px;height:${isWomen?18:14}px;background:${col};border:2.5px solid white;border-radius:50%;box-shadow:0 0 10px ${col}88;cursor:pointer">${isWomen?"":"⚡"}</div>`,iconSize:[18,18]});
+      const womenActive=isWomen&&inc.status==="active";
+      const markerSize=isWomen?20:14;
+      const blinkStyle=womenActive?`animation:womenBlink 1s infinite;`:`box-shadow:0 0 10px ${col}88;`;
+      const innerContent=isWomen?`<span style="font-size:9px;line-height:1">🛡️</span>`:`<span style="font-size:9px">⚡</span>`;
+      const icon=L.divIcon({className:"",html:`<div style="width:${markerSize}px;height:${markerSize}px;background:${col};border:2.5px solid white;border-radius:50%;${blinkStyle}cursor:pointer;display:flex;align-items:center;justify-content:center">${innerContent}</div>`,iconSize:[markerSize,markerSize]});
       const popup=`<div style="font-size:12px;min-width:190px;font-family:sans-serif"><b style="color:${isWomen?"#C4B5FD":"#F87171"}">${isWomen?"🛡️ WOMEN SAFETY":"⚠️ EMERGENCY"}</b><br/><b>${inc.citizenName}</b><br/><span style="color:#94A3B8">${inc.location}</span><br/><span style="color:#94A3B8">${inc.district}</span>${inc.assignedPatrolVan?`<br/><b style="color:#FCD34D">🚔 ${inc.assignedPatrolVan}</b>`:""}<br/><span style="color:#86EFAC">${(inc.status||"").replace("_"," ").toUpperCase()}</span></div>`;
       if(markers.current.incidents[inc.id]){markers.current.incidents[inc.id].setLatLng([inc.geo.lat,inc.geo.lng]).setIcon(icon).getPopup()?.setContent(popup);}
       else{const m=L.marker([inc.geo.lat,inc.geo.lng],{icon}).addTo(map).bindPopup(popup);m.on("click",()=>setIncModal(inc));markers.current.incidents[inc.id]=m;}
@@ -583,6 +655,7 @@ function PCRPortal(){
         <button className="map-fab fab-night" onClick={()=>setShowNight(true)}>🌙 Report Unsafe Area</button>
         <div className="map-legend">
           <div className="leg-row"><div className="leg-dot" style={{background:"#EF4444"}}/><span>Active SOS</span></div>
+          <div className="leg-row"><div className="leg-dot" style={{background:"#8B5CF6",animation:"womenBlink 1s infinite"}}/><span>Women Safety (live)</span></div>
           <div className="leg-row"><div className="leg-dot" style={{background:"#F59E0B"}}/><span>Patrol dispatched</span></div>
           <div className="leg-row"><div className="leg-dot" style={{background:"#22C55E"}}/><span>Safe / Resolved</span></div>
           <div className="leg-row"><div className="leg-dot" style={{background:"#22C55E",borderRadius:2,transform:"rotate(45deg)"}}/><span>Active patrol van</span></div>
@@ -596,7 +669,7 @@ function PCRPortal(){
       <div className="side">
         <div className="kpi-strip">{kpis.map(k=><div key={k.l} className="kpi"><div className="kpi-n" style={{color:k.c}}>{k.n}</div><div className="kpi-l">{k.l}</div></div>)}</div>
         <div className="tabs" style={{overflowX:"auto"}}>
-          {[["incidents",`🆘 SOS (${activeIncs.length})`],["patrols",`🚔 (${filtered.pat.length})`],["departments","🏥"],["night",`🌙 (${nightZones.length})`],["leaderboard","🏆 Leaders"]].map(([t,l])=>
+          {[["incidents",`🆘 SOS (${activeIncs.length})`],["patrols",`🚔 (${filtered.pat.length})`],["departments","🏥"],["night",`🌙 (${nightZones.length})`],["leaderboard","🏆"],["budget","💰"]].map(([t,l])=>
             <div key={t} className={`tab ${tab===t?"act":""}`} onClick={()=>setTab(t)} style={{flexShrink:0}}>{l}</div>
           )}
         </div>
@@ -608,20 +681,44 @@ function PCRPortal(){
               ?<div style={{textAlign:"center",color:"#64748B",padding:"40px 16px",fontSize:13}}>No incidents{distFilter!=="all"?` in ${distFilter}`:""}<br/><span style={{fontSize:11,marginTop:6,display:"block"}}>Send a test SOS to see the system in action</span></div>
               :<>
                 {activeIncs.length>0&&<div style={{fontSize:10,fontWeight:800,color:"#F87171",textTransform:"uppercase",letterSpacing:.08,marginBottom:8,display:"flex",alignItems:"center",gap:5}}><div style={{width:6,height:6,borderRadius:"50%",background:"#EF4444",animation:"pulse 1s infinite"}}/> Active ({activeIncs.length})</div>}
+                {/* Live audio panel — show all audio chunks received */}
+                {Object.keys(audioChunks).length>0&&(()=>{
+                  const allChunks=Object.entries(audioChunks).flatMap(([sosId,chunks])=>chunks.map(c=>({...c,sosId})));
+                  if(allChunks.length===0)return null;
+                  return <div className="audio-live-panel">
+                    <div style={{fontSize:11,fontWeight:800,color:"#C4B5FD",display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                      <div style={{width:8,height:8,borderRadius:"50%",background:"#8B5CF6",animation:"pulse 1s infinite"}}/>
+                      🎙️ LIVE AUDIO — Women Safety ({allChunks.length} clip{allChunks.length!==1?"s":""})
+                    </div>
+                    {allChunks.slice(-3).reverse().map((chunk,i)=>(
+                      <div key={chunk.index+"_"+chunk.sosId} className="audio-clip">
+                        <div style={{fontSize:10,color:"#8B5CF6",fontWeight:700,marginBottom:4}}>
+                          Clip {chunk.index+1} · {new Date(chunk.timestamp).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}
+                        </div>
+                        <audio controls style={{width:"100%",height:26,filter:"invert(1) hue-rotate(240deg)"}}>
+                          <source src={chunk.url}/>
+                        </audio>
+                      </div>
+                    ))}
+                  </div>;
+                })()}
+
                 {filtered.inc.map(inc=>{
                   const isWomen=inc.emergencyType==="women_safety"||inc.category==="women_safety";
                   const isActive=inc.status!=="safe"&&inc.status!=="closed";
+                  const incChunks=audioChunks[inc.id]||[];
                   return(
                     <div key={inc.id} className={`inc-card ${selInc===inc.id?"sel":""} ${isWomen?"women":""}`}
                       onClick={()=>{setSelInc(inc.id);flyTo(inc.geo);}}>
                       <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
                         <span className={`sbadge sb-${inc.status}`}>{(inc.status||"active").replace("_"," ").toUpperCase()}</span>
-                        {isWomen&&<span className="sbadge sb-women">🛡️ WOMEN</span>}
+                        {isWomen&&<span className="sbadge sb-women" style={{animation:isActive?"womenBlink 1.5s infinite":undefined}}>🛡️ WOMEN</span>}
+                        {incChunks.length>0&&<span style={{fontSize:9,fontWeight:800,color:"#C4B5FD",background:"rgba(139,92,246,.2)",border:"1px solid rgba(139,92,246,.4)",padding:"1px 6px",borderRadius:8}}>🎙️ {incChunks.length}</span>}
                         {isActive&&<span style={{marginLeft:"auto"}}><ElapsedTimer since={inc.reportedAt}/></span>}
                         {!isActive&&<span style={{fontSize:10,color:"#64748B",marginLeft:"auto"}}>{timeAgo(inc.reportedAt)}</span>}
                       </div>
                       <div style={{fontSize:13,color:"#E2E8F0",fontWeight:700,marginBottom:2}}>{inc.citizenName}</div>
-                      <div style={{fontSize:11,color:"#64748B",marginBottom:6}}>📍 {inc.location}<br/>🗺️ {inc.district}</div>
+                      <div style={{fontSize:11,color:"#94A3B8",marginBottom:6}}>📍 {inc.location} · 🗺️ {inc.district}</div>
                       {inc.assignedPatrolVan&&<div style={{fontSize:11,color:"#FCD34D",marginBottom:6,padding:"5px 8px",background:"rgba(245,158,11,.08)",borderRadius:6}}>
                         🚔 {inc.assignedPatrolVan} · {inc.assignedPatrolOfficer}
                         {inc.eta&&<span style={{marginLeft:6,color:"#94A3B8"}}>ETA ~{inc.eta}m</span>}
@@ -707,6 +804,9 @@ function PCRPortal(){
 
           {/* LEADERBOARD TAB */}
           {tab==="leaderboard"&&<LeaderboardTab distFilter={distFilter}/>}
+
+          {/* BUDGET TAB */}
+          {tab==="budget"&&<BudgetTab distFilter={distFilter}/>}
 
           {/* NIGHT SAFETY TAB */}
           {tab==="night"&&(

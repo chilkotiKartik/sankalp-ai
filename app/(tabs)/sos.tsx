@@ -160,7 +160,7 @@ function CountdownRing({ count, total = 5 }: { count: number; total?: number }) 
 function SOSScreenInner() {
   const insets = useSafeAreaInsets();
   const { sosAlerts, triggerSOS, triggerWomenSafetySOS, policeStations, updateSOSLocation } = useApp();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [selectedCat, setSelectedCat] = useState("gas_leak");
   const [description, setDescription] = useState("");
@@ -232,6 +232,23 @@ function SOSScreenInner() {
   const intervalRef = useRef<any>(null);
   const currentGeoRef = useRef<GeoPoint | null>(null);
 
+  // District-center coordinates for GPS fallback when location is denied
+  const DISTRICT_CENTERS: Record<string, GeoPoint> = {
+    "Dehradun":           { lat: 30.3165, lng: 78.0322 },
+    "Haridwar":           { lat: 29.9457, lng: 78.1642 },
+    "Tehri Garhwal":      { lat: 30.3783, lng: 78.4801 },
+    "Pauri Garhwal":      { lat: 30.1546, lng: 78.7747 },
+    "Rudraprayag":        { lat: 30.2846, lng: 78.9820 },
+    "Chamoli":            { lat: 30.4019, lng: 79.3210 },
+    "Uttarkashi":         { lat: 30.7268, lng: 78.4354 },
+    "Pithoragarh":        { lat: 29.5829, lng: 80.2178 },
+    "Bageshwar":          { lat: 29.8374, lng: 79.7712 },
+    "Almora":             { lat: 29.5971, lng: 79.6591 },
+    "Champawat":          { lat: 29.3336, lng: 80.0909 },
+    "Nainital":           { lat: 29.3919, lng: 79.4542 },
+    "Udham Singh Nagar":  { lat: 28.9945, lng: 79.5224 },
+  };
+
   function sortStations(pts: typeof policeStations, from: GeoPoint) {
     return pts
       .map(ps => ({ ...ps, distance: parseFloat(haversineKm(from, ps.geo).toFixed(2)) }))
@@ -251,11 +268,13 @@ function SOSScreenInner() {
     let cancelled = false;
     let webWatchId: number | null = null;
     let watchSub: Location.LocationSubscription | null = null;
-    const fallbackGeo: GeoPoint = { lat: 30.3165, lng: 78.0322 };
+    // Use user's district center as fallback (far more accurate than always defaulting to Dehradun)
+    const userDistrict: string = (user as any)?.district || "Dehradun";
+    const fallbackGeo: GeoPoint = DISTRICT_CENTERS[userDistrict] || { lat: 30.3165, lng: 78.0322 };
     const useFallback = () => {
       if (cancelled) return;
       setGeo(fallbackGeo); currentGeoRef.current = fallbackGeo; setGeoStatus("found");
-      setNearestPS(policeStations.slice(0, 3).map(ps => ({ ...ps, distance: parseFloat(haversineKm(fallbackGeo, ps.geo).toFixed(2)) })));
+      setNearestPS(sortStations(policeStations, fallbackGeo));
     };
     const init = async () => {
       setGeoStatus("locating");
@@ -316,7 +335,7 @@ function SOSScreenInner() {
       }
       try { watchSub?.remove(); } catch {}
     };
-  }, [policeStations]);
+  }, [policeStations, user]);
 
   // ── ACCELEROMETER SHAKE ───────────────────────────────────────────────────
   useEffect(() => {

@@ -59,6 +59,40 @@ function getAdminTokensForDistrict(district: string): string[] {
   return tokens;
 }
 
+function getCitizenTokensForUserId(userId: string): string[] {
+  const tokens: string[] = [];
+  const entries = pushTokenStore.get(userId) || [];
+  entries.forEach(e => {
+    if (Expo.isExpoPushToken(e.token)) tokens.push(e.token);
+  });
+  return tokens;
+}
+
+async function sendComplaintStatusPush(userId: string, ticketId: string, status: string, district: string): Promise<void> {
+  const tokens = getCitizenTokensForUserId(userId);
+  if (tokens.length === 0) return;
+  const statusLabels: Record<string, string> = {
+    pending: "⏳ Pending",
+    in_progress: "🔄 In Progress",
+    resolved: "✅ Resolved",
+    closed: "🔒 Closed",
+  };
+  const statusLabel = statusLabels[status] || status;
+  const messages: ExpoPushMessage[] = tokens.map(to => ({
+    to,
+    sound: "default",
+    title: `📋 Complaint Update — ${ticketId}`,
+    body: `Your complaint status has been updated to: ${statusLabel}`,
+    data: { type: "complaint_status_update", ticketId, status, district },
+    priority: "normal",
+    channelId: "complaint-updates",
+  }));
+  const chunks = expoSdk.chunkPushNotifications(messages);
+  for (const chunk of chunks) {
+    try { await expoSdk.sendPushNotificationsAsync(chunk); } catch {}
+  }
+}
+
 async function sendWomenSafetyPush(district: string, citizenName: string, location: string, alertId: string): Promise<void> {
   const tokens = getAdminTokensForDistrict(district);
   if (tokens.length === 0) return;
@@ -686,10 +720,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (status) (c as any).status = status;
     if (adminNote !== undefined) (c as any).adminNote = adminNote;
     if (status === "resolved") c.resolvedAt = new Date().toISOString();
+    const ticketId = (c as any).ticketId || c.id.slice(0, 8).toUpperCase();
+    // Push notification to citizen
+    const userId = (c as any).userId || (c as any).submittedById;
+    if (status && userId) sendComplaintStatusPush(userId, ticketId, status, c.district || "Uttarakhand").catch(() => {});
     // Notify via WebSocket when complaint is resolved
-    if (status === "resolved" || status === "closed") {
-      broadcast({ type: "complaint_resolved", complaintId: c.id, ticketId: (c as any).ticketId, status, timestamp: new Date().toISOString() });
-    }
+    broadcast({ type: "complaint_status_update", complaintId: c.id, ticketId, status, timestamp: new Date().toISOString() });
     // Also notify the relevant department SSE stream
     const deptId = getDeptIdForCategory((c as any).category);
     deptEmitter.emit("event", { type: "complaint_updated", departmentId: deptId, complaint: c });
@@ -1067,6 +1103,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/budget", requireAuth, (req, res) => {
     const user = (req as any).user;
     const district = (req.query.district as string) || (user.role === "super_admin" ? undefined : user.district);
+    res.json(storage.getBudgetItems(district));
+  });
+
+  // Public budget endpoint (no auth required — for PCR portal)
+  app.get("/api/public/budget", (req, res) => {
+    const district = req.query.district as string | undefined;
     res.json(storage.getBudgetItems(district));
   });
 
@@ -1510,7 +1552,19 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
     const all = storage.getComplaints();
     const c = all.find(x => x.id === req.params.id);
     if (!c) { res.status(404).json({ message: "Complaint not found" }); return; }
-    if (status) (c as any).status = status;
+    if (status) {
+      (c as any).status = status;
+      if (status === "resolved") c.resolvedAt = new Date().toISOString();
+      // Notify citizen via push notification
+      const userId = (c as any).userId || (c as any).submittedById;
+      const ticketId = (c as any).ticketId || c.id.slice(0, 8).toUpperCase();
+      if (userId) sendComplaintStatusPush(userId, ticketId, status, c.district || "Uttarakhand").catch(() => {});
+      // Notify dept SSE stream
+      const deptId = getDeptIdForCategory((c as any).category);
+      deptEmitter.emit("event", { type: "complaint_updated", departmentId: deptId, complaint: c });
+      // Notify WS clients
+      broadcast({ type: "complaint_status_update", complaintId: c.id, ticketId, status, timestamp: new Date().toISOString() });
+    }
     res.json(c);
   });
 
