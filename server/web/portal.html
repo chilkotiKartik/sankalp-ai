@@ -293,6 +293,16 @@ function ComplaintModal({c,onClose,token,deptToken,addToast,onRefresh,isAdmin}){
   const [note,setNote]=useState(c.adminNote||'');
   const [saving,setSaving]=useState(false);
   const dept=DEPTS[CAT_DEPT[c.category||'other']||'pwd'];
+  const catIcon=CATEGORIES.find(x=>x.id===c.category)?.icon||'📋';
+  const hoursElapsed=c.submittedAt?Math.round((Date.now()-new Date(c.submittedAt).getTime())/3600000):0;
+  const slaMap={P1:24,P2:48,P3:72,P4:168};
+  const slaHours=slaMap[c.priority]||72;
+  const slaBreached=(c.status==='pending'||c.status==='in_progress')&&hoursElapsed>slaHours;
+  const timeline=[
+    {icon:'📝',label:'Submitted',time:c.submittedAt,color:'var(--orange)',done:true},
+    {icon:'⚙️',label:'In Progress',time:c.status!=='pending'?c.updatedAt:null,color:'var(--blue)',done:c.status!=='pending'},
+    {icon:'✅',label:'Resolved',time:c.status==='resolved'||c.status==='closed'?c.updatedAt:null,color:'var(--green)',done:c.status==='resolved'||c.status==='closed'},
+  ];
 
   async function save(){
     setSaving(true);
@@ -306,19 +316,73 @@ function ComplaintModal({c,onClose,token,deptToken,addToast,onRefresh,isAdmin}){
 
   return <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
     <div className="modal">
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}}>
-        <div>
-          <div style={{fontSize:20,fontWeight:700,color:'var(--orange)'}}>{c.ticketId}</div>
-          <div style={{fontSize:12,color:'var(--muted)',marginTop:2}}>{fmtDate(c.submittedAt)}</div>
+      {/* Header */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <div style={{fontSize:28,lineHeight:1}}>{catIcon}</div>
+          <div>
+            <div style={{fontSize:18,fontWeight:700,color:'var(--orange)'}}>{c.ticketId}</div>
+            <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>Filed {fmtDate(c.submittedAt)}</div>
+          </div>
         </div>
         <button className="btn btn-ghost btn-sm" onClick={onClose}>✕ Close</button>
       </div>
+
+      {/* Status & Priority badges */}
       <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
         <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
         <span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span>
-        <span style={{fontSize:12,color:'var(--muted)'}}>{CATEGORIES.find(x=>x.id===c.category)?.icon} {c.category}</span>
+        <span style={{fontSize:11,color:'var(--muted)',padding:'2px 8px',border:'1px solid var(--border)',borderRadius:6}}>{c.category}</span>
+        {slaBreached&&<span className="badge badge-red">⚠️ SLA Breached</span>}
       </div>
-      <div style={{background:'#1c2128',borderRadius:8,padding:14,marginBottom:14,fontSize:13,lineHeight:1.65}}>{c.description}</div>
+
+      {/* Description */}
+      <div style={{background:'#1c2128',borderRadius:8,padding:14,marginBottom:14,fontSize:13,lineHeight:1.7,color:'var(--text)',border:'1px solid var(--border)'}}>{c.description}</div>
+
+      {/* Status Timeline */}
+      <div style={{marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:10}}>📊 Status Timeline</div>
+        <div style={{display:'flex',alignItems:'center',gap:0}}>
+          {timeline.map((t,i)=><React.Fragment key={t.label}>
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',flex:1}}>
+              <div style={{width:32,height:32,borderRadius:'50%',background:t.done?t.color+'22':'#1c2128',border:'2px solid '+(t.done?t.color:'var(--border)'),display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,marginBottom:4}}>{t.icon}</div>
+              <div style={{fontSize:10,fontWeight:600,color:t.done?t.color:'var(--muted)',textAlign:'center'}}>{t.label}</div>
+              {t.time&&<div style={{fontSize:9,color:'var(--muted)',textAlign:'center',marginTop:2}}>{timeAgo(t.time)}</div>}
+            </div>
+            {i<timeline.length-1&&<div style={{height:2,flex:.5,background:timeline[i+1].done?'var(--green)':'var(--border)',flexShrink:0,marginBottom:18}}/>}
+          </React.Fragment>)}
+        </div>
+      </div>
+
+      {/* Details grid */}
+      <div className="grid2" style={{gap:10,marginBottom:14,fontSize:12}}>
+        <div style={{background:'#1c2128',borderRadius:8,padding:10}}>
+          <div style={{color:'var(--muted)',marginBottom:3,fontSize:10,textTransform:'uppercase',letterSpacing:.4}}>📍 Location</div>
+          <div style={{fontWeight:500}}>{c.location||'—'}</div>
+        </div>
+        <div style={{background:'#1c2128',borderRadius:8,padding:10}}>
+          <div style={{color:'var(--muted)',marginBottom:3,fontSize:10,textTransform:'uppercase',letterSpacing:.4}}>🗺️ District</div>
+          <div style={{fontWeight:500}}>{c.district||'Uttarakhand'}</div>
+        </div>
+        <div style={{background:'#1c2128',borderRadius:8,padding:10}}>
+          <div style={{color:'var(--muted)',marginBottom:3,fontSize:10,textTransform:'uppercase',letterSpacing:.4}}>🏘️ Ward</div>
+          <div style={{fontWeight:500}}>{c.ward||'—'}</div>
+        </div>
+        <div style={{background:'#1c2128',borderRadius:8,padding:10}}>
+          <div style={{color:'var(--muted)',marginBottom:3,fontSize:10,textTransform:'uppercase',letterSpacing:.4}}>🤖 AI Score</div>
+          <div style={{fontWeight:500,color:c.aiScore>=70?'var(--green)':c.aiScore>=40?'var(--yellow)':'var(--red)'}}>{c.aiScore||0}/100</div>
+        </div>
+        {c.workerName&&<div style={{background:'#1c2128',borderRadius:8,padding:10}}>
+          <div style={{color:'var(--muted)',marginBottom:3,fontSize:10,textTransform:'uppercase',letterSpacing:.4}}>👷 Worker Assigned</div>
+          <div style={{fontWeight:500}}>{c.workerName}</div>
+        </div>}
+        <div style={{background:'#1c2128',borderRadius:8,padding:10}}>
+          <div style={{color:'var(--muted)',marginBottom:3,fontSize:10,textTransform:'uppercase',letterSpacing:.4}}>⏱️ SLA Status</div>
+          <div style={{fontWeight:500,color:slaBreached?'var(--red)':'var(--green)'}}>{slaBreached?'⚠️ Overdue by '+(hoursElapsed-slaHours)+'h':hoursElapsed+'h / '+slaHours+'h'}</div>
+        </div>
+      </div>
+
+      {/* Photos */}
       {(c.beforePhoto||c.afterPhoto)&&<div style={{marginBottom:14}}>
         <div style={{fontSize:11,fontWeight:700,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:8}}>📷 Photos</div>
         <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
@@ -332,22 +396,27 @@ function ComplaintModal({c,onClose,token,deptToken,addToast,onRefresh,isAdmin}){
           </div>}
         </div>
       </div>}
-      <div className="grid2" style={{gap:10,marginBottom:14,fontSize:12}}>
-        <div><div style={{color:'var(--muted)',marginBottom:2}}>LOCATION</div><div>📍 {c.location}</div></div>
-        <div><div style={{color:'var(--muted)',marginBottom:2}}>DISTRICT</div><div>{c.district}</div></div>
-        <div><div style={{color:'var(--muted)',marginBottom:2}}>WARD</div><div>{c.ward||'—'} (Ward #{c.wardNumber})</div></div>
-        <div><div style={{color:'var(--muted)',marginBottom:2}}>FILED BY</div><div>{c.submittedBy||'Anonymous'} {c.submittedByPhone?'· '+c.submittedByPhone:''}</div></div>
-        {c.workerName&&<div><div style={{color:'var(--muted)',marginBottom:2}}>WORKER</div><div>{c.workerName}</div></div>}
-        <div><div style={{color:'var(--muted)',marginBottom:2}}>AI SCORE</div><div>{c.aiScore||0}/100</div></div>
-      </div>
+
+      {/* Dept routing */}
       {dept&&<div style={{background:'rgba(255,153,51,.06)',border:'1px solid rgba(255,153,51,.2)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
         <div style={{fontWeight:600,marginBottom:3}}>{dept.icon} Routed → {dept.name}</div>
-        <div style={{color:'var(--muted)'}}>Helpline: {dept.helpline} · SLA: {dept.sla}h response</div>
+        <div style={{color:'var(--muted)'}}>Helpline: {dept.helpline} · SLA: {dept.sla}h response · Head: {dept.head}</div>
       </div>}
+
+      {/* Admin note */}
       {c.adminNote&&<div style={{background:'rgba(88,166,255,.08)',border:'1px solid rgba(88,166,255,.2)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
         <div style={{fontWeight:600,color:'var(--blue)',marginBottom:4}}>🔵 Admin Note</div>
         <div style={{lineHeight:1.6}}>{c.adminNote}</div>
       </div>}
+
+      {/* Quick actions for citizen */}
+      {!isAdmin&&!deptToken&&<div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'}}>
+        <a href={'tel:112'} className="btn btn-ghost btn-sm" style={{color:'var(--red)',borderColor:'var(--red)'}}>📞 Call 112</a>
+        <a href={'tel:'+(dept?.helpline||'1800180')} className="btn btn-ghost btn-sm" style={{color:'var(--orange)',borderColor:'var(--orange)'}}>☎️ Dept Helpline</a>
+        <button className="btn btn-ghost btn-sm" onClick={()=>{navigator.clipboard?.writeText(c.ticketId||'');addToast&&addToast('success','Ticket ID copied');}}>📋 Copy ID</button>
+      </div>}
+
+      {/* Admin/Dept update controls */}
       {(isAdmin||deptToken)&&<div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:4}}>
         <label>Update Status</label>
         <select className="select" style={{marginBottom:12}} value={status} onChange={e=>setStatus(e.target.value)}>
@@ -741,7 +810,13 @@ function SubmitComplaint({token,user,onDone,addToast}){
         </div>
         <div style={{marginBottom:14}}>
           <label>Location / Landmark <span style={{color:'var(--red)'}}>*</span></label>
-          <input className="input" placeholder="e.g. Near Clock Tower, Rajpur Road, Dehradun" value={loc} onChange={e=>setLoc(e.target.value)} required/>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <input className="input" style={{flex:1,marginBottom:0}} placeholder="e.g. Near Clock Tower, Rajpur Road, Dehradun" value={loc} onChange={e=>setLoc(e.target.value)} required/>
+            <button type="button" className="btn btn-ghost btn-sm" style={{flexShrink:0,whiteSpace:'nowrap',borderColor:'var(--green)',color:'var(--green)'}}
+              onClick={()=>{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(p=>{setLoc('GPS: '+p.coords.latitude.toFixed(5)+'°N, '+p.coords.longitude.toFixed(5)+'°E');},()=>{setLoc(user.district+', Uttarakhand');},{enableHighAccuracy:true,timeout:6000});}else{setLoc(user.district+', Uttarakhand');}}}>
+              📍 Detect
+            </button>
+          </div>
         </div>
         <div style={{marginBottom:20}}>
           <label>Priority</label>

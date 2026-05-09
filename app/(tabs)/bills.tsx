@@ -267,6 +267,33 @@ export default function BillsScreen() {
           </View>
         </LinearGradient>
 
+        {/* Department Live Alerts */}
+        {overdueCount > 0 && (
+          <View style={{ marginHorizontal: 16, marginBottom: 14, borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: "#EF444440" }}>
+            <LinearGradient colors={["#450A0A", "#7F1D1D"]} style={{ padding: 14 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: "#EF4444" }} />
+                <Text style={{ color: "#FCA5A5", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1 }}>LIVE DEPT ALERT</Text>
+                <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginLeft: "auto" as any }}>Just now</Text>
+              </View>
+              <Text style={{ color: "#fff", fontSize: 13, fontFamily: "Inter_600SemiBold", marginBottom: 4 }}>⚠️ Department Notice: Overdue Payment</Text>
+              <Text style={{ color: "#FCA5A5", fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 }}>
+                {overdueCount} bill{overdueCount > 1 ? "s are" : " is"} overdue. Departments have flagged your account. Continued non-payment may result in service disconnection and penalty interest.
+              </Text>
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#EF444422", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}>
+                  <Ionicons name="alert-circle" size={12} color="#EF4444" />
+                  <Text style={{ color: "#EF4444", fontSize: 10, fontFamily: "Inter_700Bold" }}>UJN Water Dept</Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#EF444422", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}>
+                  <Ionicons name="time" size={12} color="#F59E0B" />
+                  <Text style={{ color: "#F59E0B", fontSize: 10, fontFamily: "Inter_700Bold" }}>Penalty from 1 May</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
         {/* Overdue Notice */}
         {overdueCount > 0 && (
           <View style={styles.overdueNotice}>

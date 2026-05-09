@@ -22,9 +22,10 @@ class SOSErrorBoundary extends Component<{ children: React.ReactNode }, { hasErr
         <View style={{ flex: 1, backgroundColor: "#0A0A0A", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <Text style={{ fontSize: 48, marginBottom: 16 }}>🆘</Text>
           <Text style={{ color: "#EF4444", fontSize: 18, fontFamily: "Inter_700Bold", marginBottom: 8, textAlign: "center" }}>SOS Screen Error</Text>
-          <Text style={{ color: "#9CA3AF", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20, marginBottom: 24 }}>
+          <Text style={{ color: "#ffffff", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20, marginBottom: 24 }}>
             {this.state.error}{"\n\n"}For emergencies, call 112 directly.
           </Text>
+
           <Pressable onPress={() => this.setState({ hasError: false, error: "" })} style={{ backgroundColor: "#EF4444", borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 }}>
             <Text style={{ color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" }}>Retry</Text>
           </Pressable>
@@ -248,10 +249,44 @@ function SOSScreenInner() {
   // ── GPS ───────────────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
+    let webWatchId: number | null = null;
     let watchSub: Location.LocationSubscription | null = null;
+    const fallbackGeo: GeoPoint = { lat: 30.3165, lng: 78.0322 };
+    const useFallback = () => {
+      if (cancelled) return;
+      setGeo(fallbackGeo); currentGeoRef.current = fallbackGeo; setGeoStatus("found");
+      setNearestPS(policeStations.slice(0, 3).map(ps => ({ ...ps, distance: parseFloat(haversineKm(fallbackGeo, ps.geo).toFixed(2)) })));
+    };
     const init = async () => {
       setGeoStatus("locating");
       try {
+        if (Platform.OS === "web") {
+          if (typeof navigator !== "undefined" && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              pos => {
+                if (cancelled) return;
+                const g: GeoPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                setGeo(g); currentGeoRef.current = g; setGeoStatus("found");
+                setNearestPS(sortStations(policeStations, g));
+              },
+              () => useFallback(),
+              { enableHighAccuracy: true, timeout: 8000 }
+            );
+            webWatchId = navigator.geolocation.watchPosition(
+              pos => {
+                if (cancelled) return;
+                const u: GeoPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                setGeo(u); currentGeoRef.current = u;
+                setNearestPS(sortStations(policeStations, u));
+              },
+              () => {},
+              { enableHighAccuracy: true, maximumAge: 5000 }
+            );
+          } else {
+            useFallback();
+          }
+          return;
+        }
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") throw new Error("denied");
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -270,17 +305,15 @@ function SOSScreenInner() {
         );
         locationWatchRef.current = watchSub;
       } catch {
-        if (cancelled) return;
-        const g: GeoPoint = { lat: 30.3165, lng: 78.0322 };
-        setGeo(g); currentGeoRef.current = g; setGeoStatus("found");
-        setNearestPS(policeStations.slice(0, 3).map(ps => ({
-          ...ps, distance: parseFloat(haversineKm(g, ps.geo).toFixed(2))
-        })));
+        useFallback();
       }
     };
     init();
     return () => {
       cancelled = true;
+      if (webWatchId !== null && typeof navigator !== "undefined" && navigator.geolocation) {
+        try { navigator.geolocation.clearWatch(webWatchId); } catch {}
+      }
       try { watchSub?.remove(); } catch {}
     };
   }, [policeStations]);
@@ -718,12 +751,12 @@ function SOSScreenInner() {
       if (res.ok) {
         setCprSent(true);
         try {
-          Speech.speak("CPR help requested. Nearest patrol van is on its way. Stay calm.", { language: "en-IN", rate: 0.9 });
+          Speech.speak("PCR patrol requested. Nearest patrol van is on its way. Stay calm.", { language: "en-IN", rate: 0.9 });
         } catch {}
         try {
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: "🚔 CPR Help Requested",
+              title: "🚔 PCR Help Requested",
               body: "Nearest patrol van dispatched to your location.",
               sound: true,
             },
@@ -731,7 +764,7 @@ function SOSScreenInner() {
           });
         } catch {}
       } else {
-        Alert.alert("Request Failed", "Could not send CPR request. Please call 112.");
+        Alert.alert("Request Failed", "Could not send PCR request. Please call 112.");
       }
     } catch {
       Alert.alert("Request Failed", "Network error. Please call 112 directly.");
@@ -884,7 +917,7 @@ function SOSScreenInner() {
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🚔</Text></View>
               <View style={{ flex: 1 }}>
-                <Text style={s.sheetTitle}>Request CPR Patrol Help</Text>
+                <Text style={s.sheetTitle}>Request PCR Patrol Help</Text>
                 <Text style={s.sheetSub}>Nearest patrol van will be dispatched instantly</Text>
               </View>
             </LinearGradient>
@@ -892,7 +925,7 @@ function SOSScreenInner() {
               {cprSent ? (
                 <View style={{ alignItems: "center", gap: 12, paddingVertical: 10 }}>
                   <Text style={{ fontSize: 48 }}>✅</Text>
-                  <Text style={{ color: "#4ADE80", fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center" }}>CPR Help Requested!</Text>
+                  <Text style={{ color: "#4ADE80", fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center" }}>PCR Help Requested!</Text>
                   <Text style={{ color: "#9CA3AF", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" }}>Nearest patrol van has been dispatched to your GPS location.</Text>
                   <Pressable onPress={() => { setShowCPRForm(false); setCprSent(false); setCprReason(""); }} style={{ backgroundColor: "#1B3A6B", borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 }}>
                     <Text style={{ color: "#fff", fontFamily: "Inter_700Bold" }}>Close</Text>
@@ -1226,7 +1259,7 @@ function SOSScreenInner() {
               <View style={[s.cardHeadIcon, { backgroundColor: "#2563EB20" }]}>
                 <Text style={{ fontSize: 14 }}>🚔</Text>
               </View>
-              <Text style={s.cardTitle}>Active CPR Patrols Nearby</Text>
+              <Text style={s.cardTitle}>Active PCR Patrols Nearby</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginLeft: "auto" }}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#4ADE80" }} />
                 <Text style={{ color: "#4ADE80", fontSize: 9, fontFamily: "Inter_700Bold" }}>LIVE</Text>
@@ -1238,7 +1271,7 @@ function SOSScreenInner() {
                   <Ionicons name="shield-checkmark" size={12} color={van.status === "responding" ? "#EF4444" : "#2563EB"} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.psName}>{van.vanNumber || `CPR-${i + 1}`}  ·  {van.officerName || "On Patrol"}</Text>
+                  <Text style={s.psName}>{van.vanNumber || `PCR-${i + 1}`}  ·  {van.officerName || "On Patrol"}</Text>
                   <Text style={s.psAddr}>{van.zone || van.district || "Uttarakhand"}</Text>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
                     <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: van.status === "responding" ? "#EF4444" : "#4ADE80" }} />
@@ -1425,14 +1458,14 @@ function SOSScreenInner() {
                   <View style={{ backgroundColor: "rgba(0,0,0,0.25)", borderRadius: 12, padding: 10, gap: 6 }}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
                       <Text style={{ fontSize: 12 }}>🚔</Text>
-                      <Text style={{ color: "#C4B5FD", fontSize: 11, fontFamily: "Inter_700Bold" }}>CPR Patrols — Call Directly</Text>
+                      <Text style={{ color: "#C4B5FD", fontSize: 11, fontFamily: "Inter_700Bold" }}>PCR Patrols — Call Directly</Text>
                       <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: "#4ADE80", marginLeft: 2 }} />
                     </View>
                     {nearestCPR.map((van, i) => (
                       <View key={van.id || i} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                         <View style={{ flex: 1 }}>
                           <Text style={{ color: "#E9D5FF", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>
-                            {van.vanNumber || `CPR-${i + 1}`}  ·  {van.officerName || "Officer"}
+                            {van.vanNumber || `PCR-${i + 1}`}  ·  {van.officerName || "Officer"}
                           </Text>
                           {typeof van.distance === "number" && van.distance < 500 && (
                             <Text style={{ color: "#A78BFA", fontSize: 10, fontFamily: "Inter_400Regular" }}>{van.distance} km away</Text>
@@ -1517,7 +1550,7 @@ function SOSScreenInner() {
               <Text style={{ fontSize: 22 }}>🚔</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" }}>Request CPR Patrol Help</Text>
+              <Text style={{ color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" }}>Request PCR Patrol Help</Text>
               <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>12 patrol vans active across Uttarakhand</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.5)" />

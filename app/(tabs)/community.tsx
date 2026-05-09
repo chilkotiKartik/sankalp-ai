@@ -95,8 +95,15 @@ export default function CommunityScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem("@sankalp_token").then(t => { setToken(t); });
-  }, []);
+    if (user) {
+      AsyncStorage.getItem("@sankalp_token").then(t => {
+        if (t) setToken(t);
+        else setLoading(false);
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
   const loadData = useCallback(async (tok: string | null) => {
     if (!tok) return;

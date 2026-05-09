@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { useApp, type Complaint } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 
@@ -214,6 +215,7 @@ export default function ComplaintsScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [aiDetected, setAiDetected] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [detectingLoc, setDetectingLoc] = useState(false);
 
   const [showResolution, setShowResolution] = useState(false);
   const [rating, setRating] = useState(0);
@@ -253,6 +255,40 @@ export default function ComplaintsScreen() {
       (text) => { setNewDesc(prev => prev ? prev + " " + text : text); },
       () => setIsListening(false)
     );
+  }, []);
+
+  const handleDetectLocation = useCallback(async () => {
+    setDetectingLoc(true);
+    try {
+      if (Platform.OS === "web") {
+        if (typeof navigator !== "undefined" && navigator.geolocation) {
+          await new Promise<void>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                setNewLoc(`GPS: ${pos.coords.latitude.toFixed(5)}°N, ${pos.coords.longitude.toFixed(5)}°E`);
+                resolve();
+              },
+              () => {
+                setNewLoc("Dehradun, Uttarakhand");
+                resolve();
+              },
+              { enableHighAccuracy: true, timeout: 8000 }
+            );
+          });
+        } else {
+          setNewLoc("Dehradun, Uttarakhand");
+        }
+      } else {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") { setNewLoc("Location permission denied"); return; }
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setNewLoc(`GPS: ${loc.coords.latitude.toFixed(5)}°N, ${loc.coords.longitude.toFixed(5)}°E`);
+      }
+    } catch {
+      setNewLoc("Dehradun, Uttarakhand");
+    } finally {
+      setDetectingLoc(false);
+    }
   }, []);
 
   const handlePickPhoto = useCallback(async () => {
@@ -796,9 +832,20 @@ export default function ComplaintsScreen() {
 
                 {/* Location */}
                 <Text style={cs.fieldLabel}>LOCATION *</Text>
-                <View style={cs.inputWrap}>
-                  <Ionicons name="location" size={16} color="#9CA3AF" />
-                  <TextInput style={cs.inputField} placeholder="Street, area, landmark..." placeholderTextColor="#9CA3AF" value={newLoc} onChangeText={setNewLoc} />
+                <View style={{ flexDirection: "row", gap: 8, alignItems: "center", marginBottom: 16 }}>
+                  <View style={[cs.inputWrap, { flex: 1, marginBottom: 0 }]}>
+                    <Ionicons name="location" size={16} color={newLoc.startsWith("GPS:") ? "#00A651" : "#9CA3AF"} />
+                    <TextInput style={cs.inputField} placeholder="Street, area, landmark..." placeholderTextColor="#9CA3AF" value={newLoc} onChangeText={setNewLoc} />
+                  </View>
+                  <Pressable onPress={handleDetectLocation} disabled={detectingLoc}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: detectingLoc ? "#E5E7EB" : "#F0FFF4", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: detectingLoc ? "#E5E7EB" : "#A7F3D0" }}>
+                    {detectingLoc
+                      ? <ActivityIndicator size="small" color="#00A651" />
+                      : <Ionicons name="navigate" size={14} color="#00A651" />}
+                    <Text style={{ color: "#00A651", fontSize: 11, fontFamily: "Inter_700Bold" }}>
+                      {detectingLoc ? "..." : "Detect"}
+                    </Text>
+                  </Pressable>
                 </View>
 
                 {/* Priority */}
