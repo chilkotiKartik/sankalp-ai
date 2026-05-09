@@ -600,7 +600,7 @@ function CitizenDash({session,onLogout,addToast}){
       {page==='mine'&&<MyComplaints complaints={mine} token={token} addToast={addToast} onRefresh={load}/>}
       {page==='sos'&&<SOSPage token={token} user={user} activeSos={mySos} addToast={addToast} onDone={load}/>}
       {page==='rti'&&<RTIPage token={token} user={user} addToast={addToast}/>}
-      {page==='map'&&<LiveMapPage complaints={complaints} sos={sos} wards={wards}/>}
+      {page==='map'&&<LiveMapPage complaints={complaints} sos={sos} wards={wards} token={token} addToast={addToast}/>}
       </div>
     </div>
   </div>;
@@ -978,36 +978,105 @@ function RTIPage({token,user,addToast}){
   </div>;
 }
 
-function LiveMapPage({complaints,sos,wards}){
+function LiveMapPage({complaints,sos,wards,token,addToast}){
   const mapRef=useRef(null);
   const mapInstRef=useRef(null);
+  const layerRef=useRef(null);
+  const [filter,setFilter]=useState('all');
+  const [workers,setWorkers]=useState([]);
+  const [sel,setSel]=useState(null);
+
+  /* ── Init map once ─── */
   useEffect(()=>{
     if(!mapRef.current||mapInstRef.current)return;
-    const m=L.map(mapRef.current,{center:[30.3165,78.0322],zoom:10});
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© CartoDB',maxZoom:19}).addTo(m);
+    const m=L.map(mapRef.current,{center:[30.3165,78.0322],zoom:9,zoomControl:true});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+      attribution:'&copy; <a href="https://www.openstreetmap.org">OSM</a> &copy; <a href="https://carto.com">CARTO</a>',
+      subdomains:'abcd',maxZoom:19
+    }).addTo(m);
+    layerRef.current=L.layerGroup().addTo(m);
     mapInstRef.current=m;
-    complaints.slice(0,40).forEach(c=>{
-      if(!c.geo)return;
-      const col=c.status==='resolved'?'#3fb950':c.status==='in_progress'?'#58a6ff':'#FF9933';
-      const icon=L.divIcon({html:'<div style="background:'+col+';width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px '+col+'50"></div>',iconSize:[12,12],className:''});
-      L.marker([c.geo.lat,c.geo.lng],{icon}).bindPopup('<b>'+c.ticketId+'</b><br/>'+c.category+'<br/>'+c.status).addTo(m);
-    });
-    sos.filter(s=>s.status==='active').forEach(s=>{
-      if(!s.geo)return;
-      const icon=L.divIcon({html:'<div style="background:#f85149;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 10px #f85149"></div>',iconSize:[16,16],className:''});
-      L.marker([s.geo.lat,s.geo.lng],{icon}).bindPopup('<b>SOS: '+s.category+'</b><br/>'+s.location).addTo(m);
-    });
-    return()=>{if(mapInstRef.current){mapInstRef.current.remove();mapInstRef.current=null;}};
+    return()=>{if(mapInstRef.current){mapInstRef.current.remove();mapInstRef.current=null;layerRef.current=null;}};
   },[]);
 
-  return <div>
-    <div className="topbar">
+  /* ── Fetch workers ─── */
+  useEffect(()=>{
+    if(!token)return;
+    const fetchW=()=>api.get('/api/workers',token).then(d=>setWorkers(Array.isArray(d)?d:d.workers||[])).catch(()=>{});
+    fetchW();
+    const iv=setInterval(fetchW,15000);
+    return()=>clearInterval(iv);
+  },[token]);
+
+  /* ── Update markers when data or filter changes ─── */
+  useEffect(()=>{
+    if(!layerRef.current||!mapInstRef.current)return;
+    layerRef.current.clearLayers();
+
+    const dot=(c,sz,pulse)=>`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${c};border:2px solid rgba(255,255,255,0.9);box-shadow:0 0 ${pulse?12:6}px ${c}${pulse?'CC':'66'};${pulse?'animation:none':''}"></div>`;
+
+    /* Complaints */
+    if(filter==='all'||filter==='complaints'){
+      complaints.slice(0,150).forEach(c=>{
+        if(!c.geo?.lat)return;
+        const col=c.status==='resolved'?'#3fb950':c.status==='in_progress'?'#58a6ff':c.priority==='P1'?'#f85149':'#FF9933';
+        const icon=L.divIcon({html:dot(col,12,c.priority==='P1'),className:'',iconSize:[12,12],iconAnchor:[6,6]});
+        const m2=L.marker([c.geo.lat,c.geo.lng],{icon});
+        m2.bindTooltip(`<b>${c.ticketId}</b> — ${c.category}<br/>${c.status} · ${c.priority}`,{direction:'top',offset:[0,-6]});
+        m2.on('click',()=>setSel(c));
+        layerRef.current.addLayer(m2);
+      });
+    }
+
+    /* SOS */
+    if(filter==='all'||filter==='sos'){
+      sos.filter(s=>s.status!=='resolved').forEach(s=>{
+        if(!s.geo?.lat)return;
+        const col=s.category==='women_safety'?'#bc8cff':'#f85149';
+        const html=`<div style="width:18px;height:18px;border-radius:50%;background:${col};border:3px solid #fff;box-shadow:0 0 14px ${col}"></div>`;
+        const icon=L.divIcon({html,className:'',iconSize:[18,18],iconAnchor:[9,9]});
+        const m2=L.marker([s.geo.lat,s.geo.lng],{icon});
+        m2.bindTooltip(`<b>🆘 SOS: ${s.category?.replace('_',' ')}</b><br/>${s.location||''}`,{direction:'top',offset:[0,-9]});
+        layerRef.current.addLayer(m2);
+      });
+    }
+
+    /* Workers */
+    if(filter==='all'||filter==='workers'){
+      workers.filter(w=>w.geo&&w.status==='active').forEach(w=>{
+        if(!w.geo?.lat)return;
+        const icon=L.divIcon({html:dot('#06B6D4',10,false),className:'',iconSize:[10,10],iconAnchor:[5,5]});
+        const m2=L.marker([w.geo.lat,w.geo.lng],{icon});
+        m2.bindTooltip(`<b>${w.name}</b><br/>${w.department||''} — ${w.currentTask||'On duty'}`,{direction:'top',offset:[0,-5]});
+        layerRef.current.addLayer(m2);
+      });
+    }
+  },[complaints,sos,workers,filter]);
+
+  const FILTERS=[['all','🗺️ All'],['complaints','📋 Complaints'],['sos','🆘 SOS'],['workers','👷 Workers']];
+  const LEGEND=[['#f85149','P1/SOS Active'],['#FF9933','Pending'],['#58a6ff','In Progress'],['#3fb950','Resolved'],['#06B6D4','Worker'],['#bc8cff','Women SOS']];
+  const active=sos.filter(s=>s.status!=='resolved').length;
+  const activeW=workers.filter(w=>w.status==='active').length;
+
+  return <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 80px)'}}>
+    <div className="topbar" style={{flexShrink:0,paddingBottom:12,marginBottom:8}}>
       <div style={{fontSize:20,fontWeight:700}}>🗺️ Live Civic Map — Uttarakhand</div>
-      <div style={{display:'flex',gap:14,fontSize:12}}>
-        {[['var(--orange)','Pending'],['var(--blue)','In Progress'],['var(--green)','Resolved'],['var(--red)','SOS']].map(([c,l])=><span key={l}><span style={{color:c}}>●</span> {l}</span>)}
+      <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+        {FILTERS.map(([f,l])=><button key={f} className={'btn btn-sm '+(filter===f?'btn-orange':'btn-ghost')} onClick={()=>setFilter(f)}>{l}</button>)}
+        <div className="refresh-live" style={{marginLeft:8}}><div className="dot"></div> Live</div>
       </div>
     </div>
-    <div ref={mapRef} style={{height:'calc(100vh - 130px)',borderRadius:12,border:'1px solid var(--border)'}}></div>
+    <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginBottom:10,flexShrink:0}}>
+      {LEGEND.map(([c,l])=><span key={l} style={{fontSize:11,color:'var(--muted)',display:'flex',alignItems:'center',gap:4}}>
+        <span style={{width:9,height:9,borderRadius:'50%',background:c,display:'inline-block',flexShrink:0}}></span>{l}
+      </span>)}
+      <span style={{marginLeft:'auto',fontSize:11,color:'var(--muted)'}}>{complaints.length} complaints · {active} active SOS · {activeW} workers on duty</span>
+    </div>
+    <div ref={mapRef} style={{flex:1,borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',minHeight:400}}></div>
+    <div style={{display:'flex',gap:8,marginTop:10,flexShrink:0,fontSize:12,color:'var(--muted)'}}>
+      <span>💡 Click any complaint marker to view full details · SOS markers pulse in real time</span>
+    </div>
+    {sel&&<ComplaintModal c={sel} onClose={()=>setSel(null)} token={token} addToast={addToast||function(){}} isAdmin={false}/>}
   </div>;
 }
 

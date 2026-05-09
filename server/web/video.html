@@ -123,6 +123,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060d1a;font-family:
     <a href="/web/pcr">🚨 PCR</a>
     <a href="/web/public">📊 Public</a>
     <a href="/">← Home</a>
+    <button id="voiceBtn" onclick="toggleVoice()" style="background:rgba(255,153,51,.12);border:1px solid rgba(255,153,51,.35);border-radius:7px;color:var(--or);font-size:12px;padding:5px 12px;cursor:pointer;font-weight:700;transition:all .2s">🔊 Voice ON</button>
   </div>
 </div>
 
@@ -333,8 +334,42 @@ scenes.forEach((_,i)=>{
 
 function getDur(idx){return parseInt(scenes[idx].dataset.dur)||6000;}
 
+/* ── VOICE NARRATION (defined before goTo so it's available) ─── */
+const NARRATION=[
+  "Welcome to SANKALP AI — सरकार आपके द्वार. SANKALP AI is the unified civic governance platform for Uttarakhand. It connects all 13 districts, 8 government departments, citizens, administrators, and police — in real time, powered by artificial intelligence.",
+  "The problem is clear. Roads break and nobody fixes them. Water stops and nobody listens. Street lights fail and nobody cares. Citizens have no easy way to report, track, or hold departments accountable. SANKALP AI changes all of that — forever.",
+  "Here is how it works for citizens. You report a civic issue — a pothole, water outage, garbage — from your mobile phone in seconds. Our AI automatically routes it to the right department with a priority score. A field worker is dispatched within the SLA window. You track every update in real time, verify the fix, and close the complaint yourself.",
+  "The Police Command and Response portal gives law enforcement a real-time view of all Uttarakhand. Patrol vans are tracked live on the map. Every SOS alert is instantly dispatched to the nearest unit. Women safety triggers get highest priority with automatic audio recording and live monitoring.",
+  "SANKALP AI connects all 8 government departments on a single platform. PWD for roads, ULB for sanitation, Jal Sansthan for water, UPCL for power, Forest Department, Health Services, USDMA Disaster Management, and Uttarakhand Police — all receiving live complaint streams.",
+  "Citizens can now exercise their Right to Information with full AI assistance. Simply describe what information you need and our AI generates a legally correct RTI application in seconds. The 30-day response timer is tracked automatically. Every government department is held accountable.",
+  "SANKALP AI is built for everyone. Citizens file complaints, send SOS alerts, and file RTIs. Department staff receive live alerts and manage field workers. District administrators get a war room dashboard with full analytics. And PCR Command monitors safety across all 13 districts.",
+  "SANKALP AI is live now — across all 13 districts of Uttarakhand. Real-time civic governance. AI-powered complaint routing. 24-7 emergency response. Transparent RTI filing. This is the future of governance — transparent, fast, and citizen-first. Welcome to SANKALP AI.",
+];
+let voiceOn=true;
+function toggleVoice(){
+  voiceOn=!voiceOn;
+  const btn=document.getElementById('voiceBtn');
+  btn.textContent=voiceOn?'🔊 Voice ON':'🔇 Voice OFF';
+  btn.style.color=voiceOn?'var(--or)':'var(--muted)';
+  btn.style.borderColor=voiceOn?'rgba(255,153,51,.35)':'rgba(255,255,255,.15)';
+  if(!voiceOn&&window.speechSynthesis)window.speechSynthesis.cancel();
+  else speakScene(current);
+}
+function speakScene(idx){
+  if(!voiceOn||!window.speechSynthesis||!NARRATION[idx])return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(NARRATION[idx]);
+  u.rate=0.91;u.pitch=1.05;u.volume=0.93;
+  const voices=window.speechSynthesis.getVoices();
+  const pref=['Google UK English Female','Samantha','Karen','Microsoft Zira Desktop','Google US English'];
+  for(const p of pref){const v=voices.find(x=>x.name===p);if(v){u.voice=v;break;}}
+  window.speechSynthesis.speak(u);
+}
+if(window.speechSynthesis)window.speechSynthesis.onvoiceschanged=()=>{if(current===0&&voiceOn)speakScene(0);};
+
 function goTo(idx){
   if(idx<0||idx>=scenes.length)return;
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
   scenes[current].classList.remove('active');
   scenes[current].classList.add('exit');
   setTimeout(()=>scenes[current].classList.remove('exit'),700);
@@ -345,6 +380,7 @@ function goTo(idx){
   document.getElementById('nextBtn').textContent=current===scenes.length-1?'🚀 Explore →':'Next →';
   document.getElementById('nextBtn').onclick=current===scenes.length-1?()=>window.location.href='/web/portal':()=>changeScene(1);
   startProgress();
+  setTimeout(()=>speakScene(idx),600);
 }
 
 function changeScene(dir){
@@ -385,7 +421,10 @@ document.addEventListener('touchend',e=>{
   if(Math.abs(dx)>50)changeScene(dx>0?1:-1);
 },{passive:true});
 
-goTo(0);
+// Init: don't trigger exit animation on scene 0, just start progress and voice
+document.querySelectorAll('.dot')[0]&&document.querySelectorAll('.dot')[0].classList.add('active');
+startProgress();
+setTimeout(()=>speakScene(0),900);
 </script>
 </body>
 </html>

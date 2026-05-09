@@ -1,5 +1,5 @@
-import React, { useRef, useMemo } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import React, { useRef, useMemo, useState } from "react";
+import { View, StyleSheet, Pressable, Alert, Linking, Modal, Text, TouchableOpacity } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import type { Complaint, SOSAlert, Worker, PoliceStation, RiskZone, GeoPoint } from "@/context/AppContext";
@@ -38,6 +38,7 @@ interface MarkerData {
   subtitle: string;
   radius: number;
   ringRadius?: number;
+  phone?: string;
 }
 
 export interface EmergencyServiceMarker {
@@ -112,6 +113,17 @@ var typeLabels={
   complaint:'ISSUE',sos:'SOS',worker:'WORKER',police:'POLICE',risk:'RISK',hospital:'HOSPITAL',fire:'FIRE STN'
 };
 
+function postCall(phone,name){
+  var msg=JSON.stringify({type:'call',phone:phone,name:name});
+  if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(msg);
+  else window.parent.postMessage(msg,'*');
+}
+function postNotify(name){
+  var msg=JSON.stringify({type:'notify',name:name});
+  if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(msg);
+  else window.parent.postMessage(msg,'*');
+}
+
 var markersData=${markersJson};
 
 markersData.forEach(function(m){
@@ -159,9 +171,15 @@ markersData.forEach(function(m){
   var popupHTML='<div class="popup-box">'
     +'<span class="popup-type" style="background:'+m.color+'18;color:'+m.color+'">'+typeLabels[m.type]+'</span>'
     +'<div class="popup-title">'+m.title+'</div>'
-    +'<div class="popup-sub">'+m.subtitle+'</div>'
-    +'</div>';
-  marker.bindPopup(popupHTML,{maxWidth:240,closeButton:false});
+    +'<div class="popup-sub">'+m.subtitle+'</div>';
+  if(m.phone&&(m.type==='police'||m.type==='hospital'||m.type==='fire')){
+    popupHTML+='<div style="display:flex;gap:6px;margin-top:8px">'
+      +'<button onclick="postCall(\''+m.phone+'\',\''+m.title+'\')" style="background:'+m.color+';color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px">📞 Call</button>'
+      +'<button onclick="postNotify(\''+m.title+'\')" style="background:#1c2128;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer">🔔 Alert</button>'
+      +'</div>';
+  }
+  popupHTML+='</div>';
+  marker.bindPopup(popupHTML,{maxWidth:260,closeButton:false});
 });
 
 var userLoc=${userJson};
@@ -289,6 +307,7 @@ export default function UttarakhandMap({
             color: "#F59E0B", type: "police", radius: 9,
             title: ps.name,
             subtitle: ps.phone,
+            phone: ps.phone,
           });
         }
       });
@@ -316,6 +335,7 @@ export default function UttarakhandMap({
           color: "#EF4444", type: "hospital", radius: 10,
           title: s.name,
           subtitle: `${s.district}${s.beds ? ` · ${s.beds} beds` : ""} · ${s.phone}`,
+          phone: s.phone,
         });
       });
     }
@@ -327,6 +347,7 @@ export default function UttarakhandMap({
           color: "#F59E0B", type: "fire", radius: 10,
           title: s.name,
           subtitle: `${s.district} · ${s.phone}`,
+          phone: s.phone,
         });
       });
     }
@@ -358,6 +379,27 @@ export default function UttarakhandMap({
     webViewRef.current?.injectJavaScript(js);
   };
 
+  const handleMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === "call") {
+        Alert.alert(
+          data.name,
+          `Call ${data.phone}?`,
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "📞 Call Now",
+              onPress: () => Linking.openURL(`tel:${data.phone.replace(/\s/g, "")}`),
+            },
+          ]
+        );
+      } else if (data.type === "notify") {
+        Alert.alert("Nearby Station", `${data.name}\nNearest emergency point noted.`, [{ text: "OK" }]);
+      }
+    } catch {}
+  };
+
   return (
     <View style={[styles.container, style]}>
       <WebView
@@ -371,6 +413,7 @@ export default function UttarakhandMap({
         scrollEnabled={false}
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
+        onMessage={handleMessage}
         onError={e => console.warn("[Map] WebView error:", e.nativeEvent.description)}
         onHttpError={e => console.warn("[Map] HTTP error:", e.nativeEvent.statusCode)}
       />
