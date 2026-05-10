@@ -8,10 +8,18 @@ import { storage, DEPARTMENTS, getDeptIdForCategory, deptEmitter, cprEmitter } f
 import Expo, { type ExpoPushMessage } from "expo-server-sdk";
 import OpenAI from "openai";
 
-const openaiClient = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+let openaiClient: OpenAI | null = null;
+function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    if (!apiKey) throw new Error("No OpenAI API key configured");
+    openaiClient = new OpenAI({
+      apiKey,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+  }
+  return openaiClient;
+}
 
 // ── LIVE WORKER GPS STREAM ────────────────────────────────────────────────────
 const workerEmitter = new EventEmitter();
@@ -1264,7 +1272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Try Replit AI (OpenAI) first
     if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
       try {
-        const completion = await openaiClient.chat.completions.create({
+        const completion = await getOpenAIClient().chat.completions.create({
           model: "gpt-5-mini",
           messages: msgs as any,
           max_completion_tokens: 500,
@@ -1322,7 +1330,7 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
     // Try Replit AI (OpenAI GPT vision) first
     if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
       try {
-        const completion = await openaiClient.chat.completions.create({
+        const completion = await getOpenAIClient().chat.completions.create({
           model: "gpt-5-mini",
           messages: [{
             role: "user",
@@ -1414,7 +1422,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
 
     if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
       try {
-        const completion = await openaiClient.chat.completions.create({
+        const completion = await getOpenAIClient().chat.completions.create({
           model: "gpt-4o-mini",
           messages: [{
             role: "user",
