@@ -1,0 +1,238 @@
+Upgrade and refactor the complete application architecture into a production-grade, scalable, highly optimized emergency response platform with real-time geo-intelligent SOS detection, premium UI/UX, and stable cross-platform performance.
+
+CORE PRIORITY:
+The app must feel like a real government-grade emergency system, not a prototype. Focus heavily on:
+
+- Stability
+- Real-time response
+- Premium UI
+- Fast rendering
+- Zero blank screens
+- Optimized performance
+- Structured layouts
+- Smooth navigation
+- Low resource consumption
+- Better code architecture
+- Reduced unnecessary API usage and credit consumption
+
+━━━━━━━━━━━━━━━━━━━
+
+1. ADVANCED LIVE LOCATION SOS SYSTEM
+   ━━━━━━━━━━━━━━━━━━━
+
+Current issue:
+SOS is currently mapped only to the user’s registered district.
+
+Required Upgrade:
+Implement a fully dynamic real-time location-based emergency dispatch system.
+
+Example:
+
+- User registered in Champawat
+- User currently located in Dehradun
+- SOS must activate Dehradun emergency services instantly
+
+Required Features:
+
+- High accuracy GPS tracking
+- Real-time coordinate detection
+- Reverse geocoding
+- Dynamic district detection
+- Nearest police jurisdiction mapping
+- Nearest hospital detection
+- Smart emergency routing
+- Live movement tracking during SOS
+- Geo-fencing support
+- Low battery optimized location updates
+- Offline emergency cache system
+- Last known location fallback
+- Auto retry if network fails
+- Background live tracking support
+- Real-time map synchronization
+
+Emergency Escalation Logic:
+
+- If authority does not respond within defined time:
+  - escalate to district control room
+  - then state control room
+- Add emergency response timers
+- Add live status tracking
+
+━━━━━━━━━━━━━━━━━━━
+2. FULL WEB PORTAL REBUILD & UI FIXES
+━━━━━━━━━━━━━━━━━━━
+
+Current Problems:
+
+- Black/blank pages
+- Broken navigation
+- Slow rendering
+- UI inconsistency
+- Long stretched feature bars
+- Layout breaking on detail pages
+- Improper spacing
+- Overflow issues
+- Mobile responsiveness bugs
+- Unstructured components
+- Heavy unnecessary rendering
+
+Completely redesign the portal into a modern emergency dashboard.
+
+Critical UI Requirements:
+
+- No black pages under any condition
+- Proper fallback UI everywhere
+- Proper loading states
+- Structured feature bars
+- Feature bars should NEVER become overly long or stretched
+- Auto responsive component sizing
+- Dynamic layout balancing
+- Clean alignment and spacing
+- Uniform card structure
+- Stable responsive navbar/sidebar
+- Proper scroll handling
+- Better component hierarchy
+- No overlapping elements
+- Smooth animations
+- Better typography
+- Better visual hierarchy
+- Government-grade modern design
+
+Add:
+
+- Skeleton loaders
+- Error boundaries
+- Suspense fallback screens
+- Auto layout correction system
+- Smart overflow handling
+- Auto height balancing
+- Consistent component spacing system
+- Route protection system
+
+━━━━━━━━━━━━━━━━━━━
+3. PERFORMANCE & OPTIMIZATION
+━━━━━━━━━━━━━━━━━━━
+
+Optimize the app for:
+
+- Low RAM usage
+- Fast loading
+- Low API/credit consumption
+- Efficient rendering
+- Smooth animations
+- Better caching
+- Reduced re-renders
+- Better memory management
+
+Implement:
+
+- Lazy loading
+- Code splitting
+- Memoization
+- Smart caching
+- Optimized image loading
+- Background task optimization
+- Request debouncing
+- Efficient polling
+- API batching
+- Component virtualization
+- Minimized unnecessary database reads/writes
+
+Ensure:
+
+- Stable FPS
+- No UI lag
+- No screen freezing
+- No sudden re-renders
+- No white/black screens
+- Fast startup time
+- Stable navigation transitions
+
+━━━━━━━━━━━━━━━━━━━
+4. ADVANCED CONTROL ROOM DASHBOARD
+━━━━━━━━━━━━━━━━━━━
+
+Build a professional command-center style dashboard.
+
+Features:
+
+- Live SOS monitoring
+- Real-time tracking map
+- Emergency heatmaps
+- District-wise analytics
+- Live incident timeline
+- Officer activity tracking
+- Real-time notifications
+- SOS priority categorization
+- Emergency response metrics
+- Active incident management
+- Multi-authority coordination panel
+- Search/filter system
+- Real-time communication panel
+━━━━━━━━━━━━━━━━━━━
+5. ERROR HANDLING & STABILITY
+━━━━━━━━━━━━━━━━━━━
+
+Completely harden the app against crashes.
+
+Implement:
+
+- Global error handling
+- API retry logic
+- Smart reconnect system
+- Session persistence
+- Crash prevention system
+- Route fallback recovery
+- Auto state recovery
+- Logging and monitoring
+- Secure authentication handling
+- Better token refresh system
+
+Ensure:
+
+- App should NEVER show black screens
+- App should NEVER freeze during navigation
+- Broken pages must auto recover
+- Components must fail gracefully
+- UI must always remain responsive
+
+━━━━━━━━━━━━━━━━━━━
+6. PREMIUM USER EXPERIENCE
+━━━━━━━━━━━━━━━━━━━
+
+Add:
+
+- Smooth transitions
+- Modern animations
+- Dark/light mode
+- Glassmorphism effects where suitable
+- Better hover interactions
+- Better mobile gestures
+- Real-time feedback indicators
+- Modern cards and panels
+- Interactive live maps
+- Better accessibility
+- Multi-language support
+- Voice-trigger SOS
+- Push notifications
+- Haptic feedback support
+
+━━━━━━━━━━━━━━━━━━━
+7. CLEAN CODE ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━
+
+Refactor the complete codebase into a scalable structure.
+
+Requirements:
+
+- Modular architecture
+- Reusable components
+- Centralized state management
+- Proper folder structure
+- Scalable backend architecture
+- Better API abstraction
+- Cleaner hooks/services
+- Better type safety
+- Better environment handling
+- Proper config separation
+- Maintainable production-ready codebase

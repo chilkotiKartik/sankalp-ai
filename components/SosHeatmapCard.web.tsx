@@ -24,7 +24,8 @@ function buildEntries(sosAlerts: SOSAlert[]): SosHeatEntry[] {
 export default function SosHeatmapCard({ sosAlerts, height = 200 }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const entries = buildEntries(sosAlerts);
-  const html = buildSosHeatmapHTML(entries);
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://sankalp-ai.replit.app";
+  const html = buildSosHeatmapHTML(entries, origin);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -42,7 +43,6 @@ export default function SosHeatmapCard({ sosAlerts, height = 200 }: Props) {
       <iframe
         ref={iframeRef as any}
         style={{ width: "100%", height: "100%", border: "none", backgroundColor: "#0d1117", display: "block" }}
-        sandbox="allow-scripts allow-same-origin"
         title="SOS Heatmap"
       />
     </View>

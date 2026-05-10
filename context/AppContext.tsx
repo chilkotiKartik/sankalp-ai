@@ -312,7 +312,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (pollRef.current) clearInterval(pollRef.current);
     if (token) {
       loadData(false);
-      pollRef.current = setInterval(() => loadData(true), 30000);
+      pollRef.current = setInterval(() => loadData(true), 60000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [token, loadData]);

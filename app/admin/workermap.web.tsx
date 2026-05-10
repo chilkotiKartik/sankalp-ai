@@ -245,7 +245,8 @@ export default function WorkerMapScreen() {
   // Only rebuild HTML when filtered workers, heatData, or focus changes
   useEffect(() => {
     const hd = buildHeatData(workers);
-    setHtmlContent(buildWorkerMapHTML(toMapData(filtered), hd, mapFocusId, showHeat, true));
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://sankalp-ai.replit.app";
+    setHtmlContent(buildWorkerMapHTML(toMapData(filtered), hd, mapFocusId, showHeat, true, origin));
   }, [filtered.length, filterStatus, filterDistrict, searchQuery, mapFocusId, showHeat, workers.length]);
 
   const heatData = buildHeatData(workers);

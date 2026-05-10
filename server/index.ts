@@ -227,6 +227,11 @@ function configureExpoAndLanding(app: express.Application) {
     setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=86400"); }
   }));
 
+  // Serve self-hosted public assets (Leaflet, etc.) — avoids CDN blocking in production
+  app.use(express.static(path.resolve(process.cwd(), "public"), {
+    setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=604800"); }
+  }));
+
   // Serve the built web bundle first so hashed asset filenames are resolved correctly
   app.use(express.static(path.resolve(process.cwd(), "static-build", "web")));
   app.use(express.static(path.resolve(process.cwd(), "static-build")));

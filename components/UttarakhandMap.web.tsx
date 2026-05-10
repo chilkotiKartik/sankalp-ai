@@ -52,7 +52,8 @@ interface MarkerData {
 function buildLeafletHTML(
   markers: MarkerData[],
   center: { lat: number; lng: number; zoom: number },
-  userLoc: { lat: number; lng: number } | null
+  userLoc: { lat: number; lng: number } | null,
+  origin: string
 ): string {
   const markersJson = JSON.stringify(markers);
   const userJson = JSON.stringify(userLoc);
@@ -65,7 +66,7 @@ function buildLeafletHTML(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<link rel="stylesheet" href="${origin}/leaflet/leaflet.css"/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body,#map{width:100%;height:100%;background:#f8f9fa}
@@ -89,7 +90,7 @@ function buildLeafletHTML(
 </head>
 <body>
 <div id="map"></div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="${origin}/leaflet/leaflet.js"></script>
 <script>
 var map=L.map('map',{
   center:[${cLat},${cLng}],
@@ -160,7 +161,7 @@ if(userLoc){
     weight:2.5,
     fillOpacity:1
   }).addTo(map)
-    .bindPopup('<div class="popup-box"><span class="popup-type" style="background:#FF993318;color:#FF9933">YOU</span><div class="popup-title">Your Location</div><div class="popup-sub">'+userLoc.lat.toFixed(5)+'°N, '+userLoc.lng.toFixed(5)+'°E</div></div>',{maxWidth:200,closeButton:false});
+    .bindPopup('<div class="popup-box"><span class="popup-type" style="background:#FF993318;color:#FF9933">YOU</span><div class="popup-title">Your Location</div><div class="popup-sub">'+userLoc.lat.toFixed(5)+'\u00B0N, '+userLoc.lng.toFixed(5)+'\u00B0E</div></div>',{maxWidth:200,closeButton:false});
 }
 
 window.addEventListener('message',function(e){
@@ -317,13 +318,19 @@ export default function UttarakhandMap({
     return { lat: 30.0668, lng: 79.0193, zoom: 8 };
   }, [userLocation, userDistrict]);
 
+  const origin = useMemo(() => {
+    if (typeof window !== "undefined") return window.location.origin;
+    return "https://sankalp-ai.replit.app";
+  }, []);
+
   const html = useMemo(() =>
     buildLeafletHTML(
       markers,
       center,
-      userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : null
+      userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : null,
+      origin
     ),
-    [markers, center, userLocation]
+    [markers, center, userLocation, origin]
   );
 
   useEffect(() => {
@@ -333,7 +340,6 @@ export default function UttarakhandMap({
     const iframe = document.createElement("iframe");
     iframe.style.cssText = "width:100%;height:100%;border:none;display:block;";
     iframe.setAttribute("srcdoc", html);
-    iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
     iframe.setAttribute("title", "Uttarakhand District Map");
 
     while (el.firstChild) el.removeChild(el.firstChild);
