@@ -6,6 +6,12 @@ import { EventEmitter } from "node:events";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage, DEPARTMENTS, getDeptIdForCategory, deptEmitter, cprEmitter } from "./storage";
 import Expo, { type ExpoPushMessage } from "expo-server-sdk";
+import OpenAI from "openai";
+
+const openaiClient = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
 
 // ── LIVE WORKER GPS STREAM ────────────────────────────────────────────────────
 const workerEmitter = new EventEmitter();
@@ -1250,7 +1256,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       { role: "user", content: message },
     ];
 
-    // Try Groq first (fastest, OpenAI-compatible)
+    // Try Replit AI (OpenAI) first
+    if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+      try {
+        const completion = await openaiClient.chat.completions.create({
+          model: "gpt-5-mini",
+          messages: msgs as any,
+          max_completion_tokens: 500,
+        });
+        const aiReply = completion.choices[0]?.message?.content?.trim();
+        if (aiReply) {
+          return res.json({ reply: aiReply, timestamp: new Date().toISOString(), powered_by: "SANKALP AI" });
+        }
+      } catch (e: any) {
+        console.error("[AI Chat] Replit OpenAI failed, trying Groq:", e?.message?.slice(0, 100));
+      }
+    }
+
+    // Try Groq as secondary
     if (GROQ_API_KEY) {
       try {
         const groqReply = await callGroqChat(msgs, "llama-3.1-8b-instant", 500);
@@ -1262,7 +1285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
 
-    // Try NVIDIA as secondary
+    // Try NVIDIA as tertiary
     if (NVIDIA_API_KEY) {
       try {
         const nvidiaReply = await callNvidiaChat(msgs, "meta/llama-3.1-8b-instruct", 500);
@@ -1290,6 +1313,39 @@ Respond with ONLY a valid JSON object — no explanation, no markdown, just the 
 {"severity":"Low/Medium/High/Critical","issueType":"pothole/garbage/streetlight/water/drain/electricity/tree/other","description":"Clear, specific 1-2 sentence description of what you see and why it needs attention","priority":"P1/P2/P3/P4","department":"The exact Uttarakhand government department responsible","estimatedFixTime":"e.g. 1-2 days / 1 week / 2-4 weeks"}
 
 P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moderate inconvenience. P4 = minor issue.`;
+
+    // Try Replit AI (OpenAI GPT vision) first
+    if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+      try {
+        const completion = await openaiClient.chat.completions.create({
+          model: "gpt-5-mini",
+          messages: [{
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
+            ],
+          }] as any,
+          max_completion_tokens: 400,
+        });
+        const raw = completion.choices[0]?.message?.content?.trim();
+        if (raw) {
+          try {
+            const match = raw.match(/\{[\s\S]*?\}/);
+            if (match) {
+              const parsed = JSON.parse(match[0]);
+              return res.json({ analysis: parsed, powered_by: "SANKALP AI Vision" });
+            }
+          } catch {}
+          return res.json({
+            analysis: { severity: "Medium", issueType: category || "other", description: raw.slice(0, 200), priority: "P3", department: "Municipal Corporation", estimatedFixTime: "1 week" },
+            powered_by: "SANKALP AI Vision",
+          });
+        }
+      } catch (e: any) {
+        console.error("[AI Vision] Replit OpenAI vision failed, trying NVIDIA:", e?.message?.slice(0, 100));
+      }
+    }
 
     const raw = await callNvidiaVision(imageBase64, prompt);
     if (raw) {
