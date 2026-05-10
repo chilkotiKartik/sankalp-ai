@@ -245,7 +245,7 @@ export default function ComplaintsScreen() {
 
   const filtered = complaints
     .filter(c => {
-      if (search && !c.description.toLowerCase().includes(search.toLowerCase()) && !c.ticketId.includes(search) && !c.location.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !c.description.toLowerCase().includes(search.toLowerCase()) && !c.ticketId.toLowerCase().includes(search.toLowerCase()) && !c.location.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterStatus !== "all" && c.status !== filterStatus) return false;
       if (filterCat !== "all" && c.category !== filterCat) return false;
       return true;

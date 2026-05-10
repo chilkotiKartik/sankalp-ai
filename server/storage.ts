@@ -842,7 +842,26 @@ class AppStorage {
       let priority: Priority = pRoll < 0.08 ? "P1" : pRoll < 0.3 ? "P2" : pRoll < 0.65 ? "P3" : "P4";
       const isCluster = Math.random() < 0.15;
       const hasProof = status === "resolved" || status === "closed";
+      const hasBeforePhoto = hasProof || (!hasProof && Math.random() < 0.35);
       const isDemo = i === 0;
+
+      const photoIsRealVal = hasBeforePhoto ? Math.random() < 0.87 : undefined;
+      const photoAiConf = hasBeforePhoto ? rndInt(72, 97) : undefined;
+      const PHOTO_REASONS = [
+        "Clear civic infrastructure damage visible in photo",
+        "Image matches reported complaint category",
+        "Road surface damage consistent with pothole report",
+        "Garbage accumulation confirmed in submitted image",
+        "Street lighting damage clearly visible",
+        "Water leakage or pipe damage evident in photo",
+        "Drain blockage and debris visible",
+        "Electrical hazard or damaged wiring confirmed",
+        "Tree fallen or obstructing road confirmed",
+        "Construction debris and road damage visible",
+        "Waterlogging on road surface confirmed",
+        "Image shows structural damage to civic property",
+      ];
+      const photoAiReason = hasBeforePhoto ? rnd(PHOTO_REASONS) : undefined;
 
       this.complaints.push({
         id: genId(),
@@ -869,8 +888,11 @@ class AppStorage {
         aiScore: rndInt(62, 99),
         aiConfidence: rndInt(70, 98),
         hasProof,
-        beforePhoto: hasProof ? `https://picsum.photos/seed/${i}/400/300` : undefined,
-        afterPhoto: hasProof ? `https://picsum.photos/seed/${i + 300}/400/300` : undefined,
+        beforePhoto: hasBeforePhoto ? `https://picsum.photos/seed/${i + 10}/400/300` : undefined,
+        afterPhoto: hasProof ? `https://picsum.photos/seed/${i + 310}/400/300` : undefined,
+        photoIsReal: photoIsRealVal,
+        photoAiConfidence: photoAiConf,
+        photoAiReason,
         rating: hasProof ? rndInt(2, 5) : undefined,
         feedback: hasProof && Math.random() < 0.5 ? rnd(["Good work!", "Could be better", "Very satisfied", "Quick resolution"]) : undefined,
         reopened: Math.random() < 0.08,

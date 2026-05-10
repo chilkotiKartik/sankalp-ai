@@ -1705,6 +1705,9 @@ function AdminDash({session,onLogout,addToast}){
   const [sosAlerts,setSosAlerts]=useState([]);
   const [workers,setWorkers]=useState([]);
   const [districts,setDistricts]=useState([]);
+  const mountedRef=React.useRef(true);
+
+  useEffect(()=>{mountedRef.current=true;return()=>{mountedRef.current=false;};},[]);
 
   const load=useCallback(async()=>{
     try{
@@ -1713,10 +1716,11 @@ function AdminDash({session,onLogout,addToast}){
         api.get('/api/admin/complaints',token),
         api.get('/api/admin/alerts',token),
       ]);
+      if(!mountedRef.current)return;
       setStats(s);setComplaints(c);setSosAlerts(sos);
-      api.get('/api/admin/workers',token).then(setWorkers).catch(()=>{});
-      if(user.role==='super_admin'){api.get('/api/superadmin/districts',token).then(setDistricts).catch(()=>{});}
-    }catch(e){addToast('error',e.message);}
+      api.get('/api/admin/workers',token).then(w=>{if(mountedRef.current)setWorkers(w);}).catch(()=>{});
+      if(user.role==='super_admin'){api.get('/api/superadmin/districts',token).then(d=>{if(mountedRef.current)setDistricts(d);}).catch(()=>{});}
+    }catch(e){if(mountedRef.current)addToast('error',e.message);}
   },[token,user.role]);
 
   useEffect(()=>{load();const iv=setInterval(load,6000);return()=>clearInterval(iv);},[load]);
@@ -1870,33 +1874,76 @@ function AdminComplaints({complaints,token,addToast,onRefresh}){
   const [filter,setFilter]=useState('all');
   const [pf,setPf]=useState('all');
   const [df,setDf]=useState('all');
+  const [cf,setCf]=useState('all');
+  const [slaBreached,setSlaBreached]=useState(false);
+  const [photoOnly,setPhotoOnly]=useState(false);
   const [sel,setSel]=useState(null);
+  const [photoModal,setPhotoModal]=useState(null);
 
+  const now=Date.now();
   const filtered=complaints.filter(c=>{
     const s=filter==='all'||c.status===filter;
     const p=pf==='all'||c.priority===pf;
     const d=df==='all'||c.district===df;
-    const q=!search||[c.ticketId,c.description,c.location,c.district].some(x=>x?.toLowerCase().includes(search.toLowerCase()));
-    return s&&p&&d&&q;
+    const cat=cf==='all'||c.category===cf;
+    const dept=DEPTS[CAT_DEPT[c.category]];
+    const slaHrs=dept?.sla||{P1:24,P2:48,P3:72,P4:168}[c.priority]||72;
+    const hoursEl=c.submittedAt?Math.round((now-new Date(c.submittedAt).getTime())/3600000):0;
+    const slaBr=hoursEl>slaHrs&&(c.status==='pending'||c.status==='in_progress');
+    const sla=!slaBreached||slaBr;
+    const photo=!photoOnly||!!c.beforePhoto;
+    const q=!search||[c.ticketId,c.description,c.location,c.district,c.submittedBy,c.workerName].some(x=>x?.toLowerCase().includes(search.toLowerCase()));
+    return s&&p&&d&&cat&&sla&&photo&&q;
   }).sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
 
+  const slaBreachedCount=complaints.filter(c=>{
+    const dept=DEPTS[CAT_DEPT[c.category]];
+    const slaHrs=dept?.sla||{P1:24,P2:48,P3:72,P4:168}[c.priority]||72;
+    const hoursEl=c.submittedAt?Math.round((now-new Date(c.submittedAt).getTime())/3600000):0;
+    return hoursEl>slaHrs&&(c.status==='pending'||c.status==='in_progress');
+  }).length;
+
   return <div className="fade-in">
+    {photoModal&&<div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,.88)',display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setPhotoModal(null)}>
+      <div style={{position:'relative',maxWidth:'90vw',maxHeight:'90vh'}} onClick={e=>e.stopPropagation()}>
+        <img src={photoModal.url} alt="Complaint photo" style={{maxWidth:'90vw',maxHeight:'82vh',borderRadius:12,border:'2px solid var(--border)',display:'block'}}/>
+        <div style={{marginTop:10,display:'flex',gap:10,alignItems:'center',justifyContent:'space-between'}}>
+          <div>
+            {photoModal.isReal===true&&<span style={{fontSize:12,fontWeight:700,color:'var(--green)',background:'rgba(63,185,80,.15)',padding:'3px 10px',borderRadius:8,marginRight:8}}>✓ AI Verified Real ({photoModal.conf}%)</span>}
+            {photoModal.isReal===false&&<span style={{fontSize:12,fontWeight:700,color:'var(--red)',background:'rgba(248,81,73,.15)',padding:'3px 10px',borderRadius:8,marginRight:8}}>⚠ AI Flagged Fake ({photoModal.conf}%)</span>}
+            {photoModal.reason&&<span style={{fontSize:11,color:'var(--muted)'}}>{photoModal.reason}</span>}
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={()=>setPhotoModal(null)}>✕ Close</button>
+        </div>
+      </div>
+    </div>}
     <div className="topbar">
       <div style={{fontSize:20,fontWeight:700}}>📋 All Complaints ({filtered.length})</div>
       <div style={{fontSize:13,color:'var(--muted)'}}>Click any row to view details + add admin notes</div>
     </div>
-    <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
-      <input className="input" style={{width:220}} placeholder="Search across all fields…" value={search} onChange={e=>setSearch(e.target.value)}/>
+    <div style={{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap',alignItems:'center'}}>
+      <input className="input" style={{width:240,flexShrink:0}} placeholder="🔍 Search ticket, description, location…" value={search} onChange={e=>setSearch(e.target.value)}/>
+      <select className="select" style={{width:150,flexShrink:0}} value={cf} onChange={e=>setCf(e.target.value)}>
+        <option value="all">All Categories</option>
+        {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+      </select>
+      <select className="select" style={{width:160,flexShrink:0}} value={df} onChange={e=>setDf(e.target.value)}>
+        <option value="all">All Districts</option>
+        {DISTRICTS.map(d=><option key={d}>{d}</option>)}
+      </select>
+    </div>
+    <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
       <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
         {['all','pending','in_progress','resolved','closed'].map(s=><button key={s} className={'btn btn-sm '+(filter===s?'btn-orange':'btn-ghost')} onClick={()=>setFilter(s)}>{SL[s]||'All Status'}</button>)}
       </div>
       <div style={{display:'flex',gap:4}}>
         {['all','P1','P2','P3','P4'].map(p=><button key={p} className={'btn btn-sm '+(pf===p?'btn-orange':'btn-ghost')} onClick={()=>setPf(p)}>{p==='all'?'All P':p}</button>)}
       </div>
-      <select className="select" style={{width:160}} value={df} onChange={e=>setDf(e.target.value)}>
-        <option value="all">All Districts</option>
-        {DISTRICTS.map(d=><option key={d}>{d}</option>)}
-      </select>
+      <button className={'btn btn-sm '+(slaBreached?'btn-red':'btn-ghost')} onClick={()=>setSlaBreached(v=>!v)}
+        style={{borderColor:slaBreachedCount>0?'rgba(248,81,73,.5)':''}}>
+        ⚠ SLA Breached {slaBreachedCount>0?`(${slaBreachedCount})`:''}
+      </button>
+      <button className={'btn btn-sm '+(photoOnly?'btn-orange':'btn-ghost')} onClick={()=>setPhotoOnly(v=>!v)}>📷 Has Photo</button>
     </div>
     <div className="card" style={{overflow:'auto',padding:0}}>
       <table className="table">
@@ -1932,14 +1979,17 @@ function AdminComplaints({complaints,token,addToast,onRefresh}){
               </td>
               <td><span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span></td>
               <td><span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span></td>
-              <td style={{whiteSpace:'nowrap'}}>
-                {slaBrch?<span style={{fontSize:10,fontWeight:700,color:'var(--red)',background:'rgba(248,81,73,.1)',border:'1px solid rgba(248,81,73,.25)',padding:'2px 6px',borderRadius:5}}>⚠ +{hoursEl-slaHrs}h</span>
+              <td style={{whiteSpace:'nowrap',background:slaBrch?'rgba(248,81,73,.06)':''}}>
+                {slaBrch?<span style={{fontSize:10,fontWeight:700,color:'var(--red)',background:'rgba(248,81,73,.12)',border:'1px solid rgba(248,81,73,.3)',padding:'2px 6px',borderRadius:5}}>⚠ +{hoursEl-slaHrs}h</span>
                   :<span style={{fontSize:10,color:hoursEl/slaHrs>.7?'var(--yellow)':'var(--green)'}}>{hoursEl}h/{slaHrs}h</span>}
               </td>
-              <td style={{textAlign:'center'}}>
-                {c.beforePhoto?<span style={{fontSize:11,fontWeight:700,color:c.photoIsReal===false?'var(--red)':c.photoIsReal===true?'var(--green)':'var(--muted)',background:c.photoIsReal===false?'rgba(248,81,73,.1)':c.photoIsReal===true?'rgba(63,185,80,.1)':'rgba(139,148,158,.08)',border:'1px solid '+(c.photoIsReal===false?'rgba(248,81,73,.3)':c.photoIsReal===true?'rgba(63,185,80,.3)':'var(--border)'),padding:'2px 6px',borderRadius:5}}>
-                  {c.photoIsReal===true?'✓ Real':c.photoIsReal===false?'⚠ Fake':'📷'}
-                </span>:<span style={{color:'var(--dimmed)',fontSize:11}}>—</span>}
+              <td style={{textAlign:'center'}} onClick={e=>{if(c.beforePhoto){e.stopPropagation();setPhotoModal({url:c.beforePhoto,isReal:c.photoIsReal,conf:c.photoAiConfidence,reason:c.photoAiReason});}}}>
+                {c.beforePhoto?<div style={{position:'relative',display:'inline-block',cursor:'zoom-in'}}>
+                  <img src={c.beforePhoto} alt="" style={{width:38,height:28,objectFit:'cover',borderRadius:4,border:'1px solid '+(c.photoIsReal===false?'var(--red)':c.photoIsReal===true?'var(--green)':'var(--border)'),display:'block'}}/>
+                  <div style={{position:'absolute',bottom:-1,right:-1,fontSize:7,fontWeight:800,color:'#fff',background:c.photoIsReal===false?'var(--red)':c.photoIsReal===true?'var(--green)':'#555',padding:'1px 3px',borderRadius:'3px 0 3px 0',lineHeight:1.4}}>
+                    {c.photoIsReal===true?'✓':c.photoIsReal===false?'⚠':'?'}
+                  </div>
+                </div>:<span style={{color:'var(--dimmed)',fontSize:11}}>—</span>}
               </td>
               <td style={{whiteSpace:'nowrap',fontSize:11}}>{c.workerName&&c.workerName!=='—'?<span style={{color:'var(--blue)'}}>👷 {c.workerName?.split(' ')[0]}</span>:<span style={{color:'var(--dimmed)'}}>—</span>}</td>
               <td style={{fontSize:11,whiteSpace:'nowrap',color:'var(--muted)'}}>{timeAgo(c.submittedAt)}</td>
