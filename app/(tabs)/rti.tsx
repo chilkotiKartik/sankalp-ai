@@ -85,7 +85,7 @@ export default function RTIScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem("token").then(t => { setToken(t); });
+    AsyncStorage.getItem("@sankalp_token").then(t => { setToken(t); });
   }, []);
 
   const loadRTIs = useCallback(async (tok: string | null) => {

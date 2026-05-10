@@ -390,8 +390,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 : s));
             } else if (data.type === "sos_resolved") {
               setSosAlerts(prev => prev.map(s => s.id === data.id ? { ...s, status: "resolved" } : s));
-            } else if (data.type === "announcement") {
-              setAnnouncements(prev => [data.announcement, ...prev]);
+            } else if (data.type === "announcement" || data.type === "announcement_new") {
+              const ann = data.announcement || data.data;
+              if (ann) setAnnouncements(prev => [ann, ...prev.filter(a => a.id !== ann.id)]);
             } else if (data.type === "resolved" || data.type === "upvote") {
               loadData(true);
             }

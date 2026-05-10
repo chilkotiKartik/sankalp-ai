@@ -964,6 +964,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       targetDistrict: user.role === "super_admin" ? targetDistrict : user.district,
       postedBy: user.name,
     });
+    broadcast({ type: "announcement", announcement: ann, timestamp: new Date().toISOString() });
     res.status(201).json(ann);
   });
 
@@ -1739,7 +1740,7 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
     const locations = services.filter(s => s.type === "hospital" || s.type === "fire").map(s => ({
       id: s.id, type: s.type, name: s.name, district: s.district,
       address: s.address, phone: s.phone, beds: s.beds, available: s.available,
-      geo: s.geo,
+      lat: s.geo?.lat, lng: s.geo?.lng,
     }));
     res.json(locations);
   });

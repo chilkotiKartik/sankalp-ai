@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  ActivityIndicator, RefreshControl, Linking, Alert,
+  ActivityIndicator, RefreshControl, Linking, Alert, TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,6 +10,7 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
+import { useApp } from "@/context/AppContext";
 
 interface EmergencyService {
   id: string;
@@ -84,14 +85,34 @@ function ServiceCard({ service }: { service: EmergencyService }) {
 
 export default function EmergencyScreen() {
   const insets = useSafeAreaInsets();
+  const { broadcastEmergency } = useApp();
   const [services, setServices] = useState<EmergencyService[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterType, setFilterType] = useState("all");
   const [filterDistrict, setFilterDistrict] = useState("all");
+  const [broadcastMsg, setBroadcastMsg] = useState("");
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [lastBroadcast, setLastBroadcast] = useState<string | null>(null);
 
   const types = ["all", "police", "hospital", "fire", "ambulance", "disaster"];
   const districts = ["all", ...Array.from(new Set(services.map(s => s.district))).sort()];
+
+  const handleBroadcast = useCallback(async () => {
+    const msg = broadcastMsg.trim();
+    if (!msg) return;
+    setBroadcasting(true);
+    try {
+      await broadcastEmergency(msg);
+      setLastBroadcast(msg);
+      setBroadcastMsg("");
+      Alert.alert("✅ Broadcast Sent", "Emergency alert pushed to all active users via WebSocket.");
+    } catch {
+      Alert.alert("Error", "Failed to send emergency broadcast.");
+    } finally {
+      setBroadcasting(false);
+    }
+  }, [broadcastMsg, broadcastEmergency]);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -137,6 +158,45 @@ export default function EmergencyScreen() {
         <View style={cs.emergencyBadge}>
           <Ionicons name="medkit" size={18} color={Colors.red} />
         </View>
+      </View>
+
+      {/* Live Emergency Broadcast Panel */}
+      <View style={cs.broadcastPanel}>
+        <LinearGradient colors={["#FF000022", "#FF000011"]} style={StyleSheet.absoluteFill} />
+        <View style={cs.broadcastHeader}>
+          <View style={cs.broadcastIconBox}>
+            <Ionicons name="radio" size={16} color={Colors.red} />
+          </View>
+          <Text style={cs.broadcastTitle}>Live Emergency Broadcast</Text>
+          <View style={cs.liveDot} />
+        </View>
+        <View style={cs.broadcastRow}>
+          <TextInput
+            style={cs.broadcastInput}
+            value={broadcastMsg}
+            onChangeText={setBroadcastMsg}
+            placeholder="Type emergency message to broadcast..."
+            placeholderTextColor={Colors.textMuted}
+            multiline={false}
+            returnKeyType="send"
+            onSubmitEditing={handleBroadcast}
+          />
+          <Pressable
+            onPress={handleBroadcast}
+            disabled={broadcasting || !broadcastMsg.trim()}
+            style={[cs.broadcastBtn, (!broadcastMsg.trim() || broadcasting) && cs.broadcastBtnDisabled]}
+          >
+            {broadcasting
+              ? <ActivityIndicator size="small" color="#FFF" />
+              : <Ionicons name="send" size={16} color="#FFF" />}
+          </Pressable>
+        </View>
+        {lastBroadcast ? (
+          <View style={cs.lastBroadcastRow}>
+            <Ionicons name="checkmark-circle" size={12} color={Colors.green} />
+            <Text style={cs.lastBroadcastText} numberOfLines={1}>Last sent: {lastBroadcast}</Text>
+          </View>
+        ) : null}
       </View>
 
       {/* Quick Dial Numbers */}
@@ -228,6 +288,18 @@ const cs = StyleSheet.create({
   headerTitleText: { fontSize: 18, fontWeight: "700", color: Colors.textPrimary },
   headerSub: { fontSize: 12, color: Colors.textMuted, marginTop: 1 },
   emergencyBadge: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.red + "22", alignItems: "center", justifyContent: "center" },
+
+  broadcastPanel: { marginHorizontal: 16, marginBottom: 12, borderRadius: 14, padding: 14, overflow: "hidden", borderWidth: 1, borderColor: Colors.red + "44" },
+  broadcastHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
+  broadcastIconBox: { width: 28, height: 28, borderRadius: 8, backgroundColor: Colors.red + "22", alignItems: "center", justifyContent: "center" },
+  broadcastTitle: { flex: 1, fontSize: 13, fontWeight: "700", color: Colors.red },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.red },
+  broadcastRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+  broadcastInput: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, color: Colors.textPrimary, borderWidth: 1, borderColor: Colors.border },
+  broadcastBtn: { width: 42, height: 42, borderRadius: 10, backgroundColor: Colors.red, alignItems: "center", justifyContent: "center" },
+  broadcastBtnDisabled: { backgroundColor: Colors.red + "55" },
+  lastBroadcastRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
+  lastBroadcastText: { fontSize: 11, color: Colors.textMuted, flex: 1 },
 
   quickDial: { paddingHorizontal: 16, marginBottom: 12 },
   quickDialTitle: { fontSize: 12, fontWeight: "700", color: Colors.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 },

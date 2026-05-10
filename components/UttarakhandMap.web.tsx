@@ -42,7 +42,7 @@ interface MarkerData {
   lat: number;
   lng: number;
   color: string;
-  type: "complaint" | "sos" | "worker" | "police" | "risk";
+  type: "complaint" | "sos" | "worker" | "police" | "risk" | "hospital" | "fire";
   title: string;
   subtitle: string;
   radius: number;
@@ -278,8 +278,34 @@ export default function UttarakhandMap({
       });
     }
 
+    if (show("hospitals")) {
+      (emergencyServices || []).filter(s => s.type === "hospital").forEach(s => {
+        if (s.lat && s.lng) {
+          result.push({
+            lat: s.lat, lng: s.lng,
+            color: "#EF4444", type: "hospital", radius: 9,
+            title: `🏥 ${s.name}`,
+            subtitle: s.address || s.district || "Hospital",
+          });
+        }
+      });
+    }
+
+    if (show("fire")) {
+      (emergencyServices || []).filter(s => s.type === "fire").forEach(s => {
+        if (s.lat && s.lng) {
+          result.push({
+            lat: s.lat, lng: s.lng,
+            color: "#F59E0B", type: "fire", radius: 9,
+            title: `🔥 ${s.name}`,
+            subtitle: s.address || s.district || "Fire Station",
+          });
+        }
+      });
+    }
+
     return result;
-  }, [complaints, sosAlerts, workers, policeStations, riskZones, filter]);
+  }, [complaints, sosAlerts, workers, policeStations, riskZones, emergencyServices, filter]);
 
   const center = useMemo(() => {
     if (userLocation?.lat && userLocation?.lng) {

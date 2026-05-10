@@ -372,7 +372,7 @@ export default function ComplaintsScreen() {
     try {
       const { getApiUrl } = await import("@/lib/query-client");
       const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
-      const tok = await AsyncStorage.getItem("token");
+      const tok = await AsyncStorage.getItem("@sankalp_token");
       const res = await fetch(`${getApiUrl()}api/complaints/${selectedC.id}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },

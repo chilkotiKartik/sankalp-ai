@@ -116,7 +116,7 @@ export default function AnalyticsScreen() {
 
   const loadPredictions = useCallback(async () => {
     try {
-      const tok = await AsyncStorage.getItem("token");
+      const tok = await AsyncStorage.getItem("@sankalp_token");
       const res = await fetch(`${getApiUrl()}api/predictive`, {
         headers: { Authorization: `Bearer ${tok}` },
       });

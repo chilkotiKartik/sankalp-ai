@@ -103,7 +103,7 @@ export default function SuperAdminScreen() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const tok = await AsyncStorage.getItem("token");
+      const tok = await AsyncStorage.getItem("@sankalp_token");
       const [wardsRes, workersRes, sosRes] = await Promise.all([
         fetch(`${getApiUrl()}api/wards?all=true`, { headers: { Authorization: `Bearer ${tok}` } }),
         fetch(`${getApiUrl()}api/workers`, { headers: { Authorization: `Bearer ${tok}` } }),
