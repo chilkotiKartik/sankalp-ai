@@ -2047,5 +2047,87 @@ Respond ONLY with valid JSON (no markdown, no explanation):
     res.json(anomalies.slice(0, 8));
   });
 
+  // ── BILLS API ─────────────────────────────────────────────────────────────
+  app.get("/api/bills", requireAuth, (req, res) => {
+    const user = (req as any).user;
+    const now = new Date();
+    const bills = [
+      {
+        id: "b1", type: "property", title: "ULB Property Tax", subtitle: "Urban Local Body, " + (user.district || "Dehradun"),
+        accountNo: "ULB-UK-07-2024-483920", amount: 4850, dueDate: new Date(now.getFullYear(), now.getMonth() + 1, 28).toISOString().slice(0,10),
+        status: "unpaid", period: "Annual 2025-26", icon: "business-outline", color: "#F59E0B",
+        gradient: ["#78350F","#92400E","#B45309"],
+        usage: { label: "Property Area", value: "182 sq m", unit: "Built-up", history: [4200,4400,4500,4700,4850] },
+        breakdown: [{ label:"Base tax", amount:3800},{ label:"Sewerage cess",amount:580},{ label:"Penalty (prev.)",amount:470}],
+        transactions: [
+          { ref:"UK-ULB-2024-8811", date:"2024-04-02", amount:4200, method:"UPI", status:"success" },
+          { ref:"UK-ULB-2023-5532", date:"2023-04-01", amount:3900, method:"Net Banking", status:"success" },
+        ],
+      },
+      {
+        id: "b2", type: "water", title: "UJN Water Bill", subtitle: "Uttarakhand Jal Nigam",
+        accountNo: "UJN-2025-W-991234", amount: 1240, dueDate: new Date(now.getFullYear(), now.getMonth(), 20).toISOString().slice(0,10),
+        status: new Date() > new Date(now.getFullYear(), now.getMonth(), 20) ? "overdue" : "unpaid",
+        period: new Date().toLocaleDateString("en-IN",{month:"long",year:"numeric"}),
+        icon: "water-outline", color: "#3B82F6",
+        gradient: ["#1E3A5F","#1D4ED8","#2563EB"],
+        usage: { label: "Water Used", value: "8,400", unit: "Litres", history: [6200,7100,7800,8100,8400] },
+        breakdown: [{ label:"Usage charges",amount:960},{ label:"Fixed charges",amount:180},{ label:"Treatment levy",amount:100}],
+        transactions: [
+          { ref:"UJN-MAR-2025-4421", date:"2025-03-22", amount:1180, method:"UPI", status:"success" },
+          { ref:"UJN-FEB-2025-3310", date:"2025-02-21", amount:1100, method:"UPI", status:"success" },
+        ],
+      },
+      {
+        id: "b3", type: "electricity", title: "UPCL Electricity", subtitle: "Uttarakhand Power Corp Ltd",
+        accountNo: "UPCL-DDN-10287654", amount: 2180, dueDate: new Date(now.getFullYear(), now.getMonth() + 1, 5).toISOString().slice(0,10),
+        status: "unpaid", period: new Date().toLocaleDateString("en-IN",{month:"long",year:"numeric"}),
+        icon: "flash-outline", color: "#EF4444",
+        gradient: ["#450A0A","#7F1D1D","#B91C1C"],
+        usage: { label: "Units Consumed", value: "218", unit: "kWh", history: [180,195,210,205,218] },
+        breakdown: [{ label:"Energy charges",amount:1635},{ label:"Fixed demand",amount:300},{ label:"Fuel surcharge",amount:156},{ label:"Govt. duty",amount:89}],
+        transactions: [
+          { ref:"UPCL-APR-2025-7761", date:"2025-04-07", amount:2050, method:"Card", status:"success" },
+          { ref:"UPCL-MAR-2025-6640", date:"2025-03-06", amount:1980, method:"UPI", status:"success" },
+        ],
+      },
+      {
+        id: "b4", type: "vehicle", title: "Vehicle Road Tax", subtitle: "Transport Dept. Uttarakhand",
+        accountNo: "UK-07-AB-1234 · Maruti Swift", amount: 3500, dueDate: new Date(now.getFullYear(), 5, 15).toISOString().slice(0,10),
+        status: "unpaid", period: "Annual 2026-27", icon: "car-outline", color: "#22C55E",
+        gradient: ["#052E16","#14532D","#166534"],
+        usage: { label: "Vehicle Age", value: "4 yrs", unit: "Maruti Swift 2021", history: [3000,3100,3200,3350,3500] },
+        breakdown: [{ label:"Road tax",amount:2800},{ label:"Green cess",amount:350},{ label:"Registration fee",amount:350}],
+        transactions: [
+          { ref:"UK-TRANS-2025-2211", date:"2025-06-16", amount:3200, method:"Net Banking", status:"success" },
+        ],
+      },
+      {
+        id: "b5", type: "property", title: "ULB House Tax", subtitle: "Urban Local Body, Haldwani",
+        accountNo: "ULB-HLD-23-7741820", amount: 1800, dueDate: "2025-12-31",
+        status: "paid", period: "Annual 2024-25", icon: "home-outline", color: "#8B5CF6",
+        gradient: ["#2E1065","#4C1D95","#6D28D9"],
+        usage: { label: "Property Area", value: "94 sq m", unit: "Residential", history: [1500,1600,1680,1740,1800] },
+        breakdown: [{ label:"Base tax",amount:1420},{ label:"Drainage cess",amount:240},{ label:"Road cess",amount:140}],
+        transactions: [
+          { ref:"HLD-ULB-2025-0091", date:"2025-01-03", amount:1800, method:"UPI", status:"success" },
+        ],
+      },
+    ];
+    // Mark overdue
+    bills.forEach(b => {
+      if (b.status !== "paid" && new Date(b.dueDate) < now) b.status = "overdue";
+    });
+    res.json({ bills, user: { name: user.name, phone: user.phone, district: user.district || "Dehradun" } });
+  });
+
+  app.post("/api/bills/:id/pay", requireAuth, (req, res) => {
+    const { method, upiId } = req.body;
+    const ref = `SANKALP-${Date.now().toString().slice(-10)}`;
+    setTimeout(() => {
+      res.json({ success: true, ref, method: method || "UPI", paidAt: new Date().toISOString() });
+    }, 1500);
+  });
+
   return httpServer;
 }

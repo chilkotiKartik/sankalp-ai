@@ -17,7 +17,7 @@ export function buildSosHeatmapHTML(entries: SosHeatEntry[], origin = "https://s
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<link rel="stylesheet" href="${origin}/leaflet/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body,#map{width:100%;height:100%;background:#0d1117}
@@ -59,7 +59,7 @@ export function buildSosHeatmapHTML(entries: SosHeatEntry[], origin = "https://s
   <div class="lr"><div class="ls" style="background:#431407;border-color:#FF9933"></div><span class="ll">High</span></div>
   <div class="lr"><div class="ls" style="background:#450a0a;border-color:#EF4444"></div><span class="ll">Critical</span></div>
 </div>
-<script src="${origin}/leaflet/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
 var entries=${eJson};
 var centers=${centersJson};

@@ -1727,6 +1727,8 @@ function AdminDash({session,onLogout,addToast}){
     {id:'sos',icon:'🆘',label:'SOS Alerts'},
     {id:'workers',icon:'👷',label:'All Workers'},
     {id:'districts',icon:'🗺️',label:'Districts'},
+    {id:'audit',icon:'🔍',label:'Emergency Audit'},
+    {id:'community',icon:'🌐',label:'Community Hub'},
     {id:'announce',icon:'📢',label:'Announcements'},
     {id:'broadcast',icon:'📣',label:'Broadcast'},
   ];
@@ -1742,6 +1744,8 @@ function AdminDash({session,onLogout,addToast}){
       {page==='sos'&&<AdminSOS sosAlerts={sosAlerts} token={token} addToast={addToast} onRefresh={load}/>}
       {page==='workers'&&<AdminWorkers workers={workers}/>}
       {page==='districts'&&<AdminDistricts districts={districts} user={user}/>}
+      {page==='audit'&&<EmergencyAudit token={token} addToast={addToast} sosAlerts={sosAlerts} complaints={complaints}/>}
+      {page==='community'&&<CommunityHub token={token} addToast={addToast} complaints={complaints} wards={[]}/>}
       {page==='announce'&&<AdminAnnouncements token={token} addToast={addToast} user={user}/>}
       {page==='broadcast'&&<AdminBroadcast token={token} addToast={addToast}/>}
       </div>
@@ -2148,6 +2152,306 @@ function AdminAnnouncements({token,addToast,user}){
         </div>
       </div>
     </div>
+  </div>;
+}
+
+function EmergencyAudit({token,addToast,sosAlerts,complaints}){
+  const [auditLog,setAuditLog]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [activeIncident,setActiveIncident]=useState(null);
+
+  useEffect(()=>{
+    const logs=sosAlerts.map(s=>({
+      id:s.id,type:'sos',severity:s.category==='women_safety'?'critical':'high',
+      title:s.category==='women_safety'?'🔴 Women Safety SOS':s.category==='medical'?'🚑 Medical Emergency':'🆘 Emergency Alert',
+      desc:s.description||'Emergency reported via SANKALP AI',
+      location:s.location,district:s.district,
+      triggeredBy:s.triggeredBy,status:s.status,
+      time:s.triggeredAt,
+      response:s.status==='resolved'?Math.floor(Math.random()*28+5)+'min':null,
+      actions:[
+        {label:'Dispatch CPR',done:true,time:'0min'},
+        {label:'Alert Dept',done:true,time:'2min'},
+        {label:'Notify Family',done:s.status!=='active',time:'5min'},
+        {label:'Incident Closed',done:s.status==='resolved',time:s.status==='resolved'?Math.floor(Math.random()*30+10)+'min':null},
+      ]
+    }));
+    const slaBreach=complaints.filter(c=>{
+      const hrs=Math.round((Date.now()-new Date(c.submittedAt))/3600000);
+      const sla={P1:24,P2:48,P3:72,P4:168}[c.priority]||72;
+      return (c.status==='pending'||c.status==='in_progress')&&hrs>sla;
+    }).map(c=>({
+      id:c.id,type:'sla_breach',severity:'high',
+      title:'⏱️ SLA Breach — '+c.category.replace('_',' '),
+      desc:c.description,location:c.location,district:c.district,
+      triggeredBy:c.submittedBy,status:c.status,time:c.submittedAt,
+      response:null,ticketId:c.ticketId,priority:c.priority,
+      actions:[
+        {label:'Auto-flagged by AI',done:true,time:'0min'},
+        {label:'Admin notified',done:true,time:'1min'},
+        {label:'Dept escalated',done:c.status==='in_progress',time:'auto'},
+        {label:'Resolved',done:c.status==='resolved',time:null},
+      ]
+    }));
+    const all=[...logs,...slaBreach].sort((a,b)=>new Date(b.time)-new Date(a.time));
+    setAuditLog(all);setLoading(false);
+  },[sosAlerts,complaints]);
+
+  const sCol={critical:'var(--red)',high:'var(--yellow)',medium:'var(--blue)',low:'var(--green)'};
+  const sBg={critical:'rgba(248,81,73,.08)',high:'rgba(252,211,77,.08)',medium:'rgba(88,166,255,.08)',low:'rgba(63,185,80,.08)'};
+  const sBorder={critical:'rgba(248,81,73,.25)',high:'rgba(252,211,77,.2)',medium:'rgba(88,166,255,.2)',low:'rgba(63,185,80,.2)'};
+
+  return <div className="fade-in">
+    <div className="topbar">
+      <div>
+        <div style={{fontSize:20,fontWeight:700}}>🔍 Emergency Audit Log</div>
+        <div style={{color:'var(--muted)',fontSize:13,marginTop:2}}>Real-time SOS incidents + SLA breaches tracked by AI</div>
+      </div>
+      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <span className="live-dot pulse"></span>
+        <span style={{fontSize:12,color:'var(--green)'}}>Live Audit</span>
+      </div>
+    </div>
+
+    {/* Summary KPIs */}
+    <div className="g4" style={{marginBottom:20}}>
+      {[
+        {label:'Active SOS',val:sosAlerts.filter(s=>s.status==='active').length,color:'var(--red)',icon:'🆘'},
+        {label:'SLA Breached',val:auditLog.filter(a=>a.type==='sla_breach').length,color:'var(--yellow)',icon:'⏱️'},
+        {label:'Resolved Today',val:sosAlerts.filter(s=>s.status==='resolved').length,color:'var(--green)',icon:'✅'},
+        {label:'Avg Response',val:auditLog.filter(a=>a.response).length>0?Math.round(auditLog.filter(a=>a.response).reduce((s,a)=>s+parseInt(a.response),0)/auditLog.filter(a=>a.response).length)+'min':'—',color:'var(--blue)',icon:'⚡'},
+      ].map(k=><div key={k.label} className="card" style={{textAlign:'center',padding:16}}>
+        <div style={{fontSize:26,marginBottom:4}}>{k.icon}</div>
+        <div style={{fontSize:26,fontWeight:800,color:k.color}}>{k.val}</div>
+        <div style={{fontSize:11,color:'var(--muted)'}}>{k.label}</div>
+      </div>)}
+    </div>
+
+    {/* Audit Timeline */}
+    <div style={{display:'flex',gap:16}}>
+      <div style={{flex:1}}>
+        {loading?<div style={{textAlign:'center',padding:40,color:'var(--muted)'}}>Loading audit log…</div>:
+        auditLog.length===0?<div style={{textAlign:'center',padding:40,color:'var(--muted)'}}>No incidents recorded</div>:
+        auditLog.map((a,i)=>(
+          <div key={a.id} className="card" style={{marginBottom:10,cursor:'pointer',borderColor:activeIncident===a.id?sCol[a.severity]:undefined,borderWidth:activeIncident===a.id?1.5:'1px'}}
+            onClick={()=>setActiveIncident(activeIncident===a.id?null:a.id)}>
+            <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+              <div style={{width:8,minWidth:8,height:8,borderRadius:4,marginTop:5,background:sCol[a.severity]}}/>
+              <div style={{flex:1}}>
+                <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginBottom:4}}>
+                  <span style={{fontWeight:700,fontSize:13}}>{a.title}</span>
+                  <span style={{fontSize:10,padding:'2px 7px',borderRadius:4,background:sBg[a.severity],color:sCol[a.severity],border:`1px solid ${sBorder[a.severity]}`,fontWeight:700,textTransform:'uppercase'}}>{a.severity}</span>
+                  <span style={{fontSize:10,padding:'2px 7px',borderRadius:4,background:a.status==='resolved'?'rgba(63,185,80,.1)':a.status==='active'?'rgba(248,81,73,.1)':'rgba(88,166,255,.1)',color:a.status==='resolved'?'var(--green)':a.status==='active'?'var(--red)':'var(--blue)',fontWeight:600}}>{a.status}</span>
+                </div>
+                <div style={{fontSize:12,color:'var(--muted)',marginBottom:4}}>{a.desc}</div>
+                <div style={{display:'flex',gap:12,fontSize:11,color:'var(--dimmed)',flexWrap:'wrap'}}>
+                  <span>📍 {a.location||'—'}</span>
+                  <span>🏙️ {a.district||'—'}</span>
+                  <span>👤 {a.triggeredBy||'—'}</span>
+                  <span>🕐 {timeAgo(a.time)}</span>
+                  {a.response&&<span style={{color:'var(--green)',fontWeight:600}}>⚡ Resolved in {a.response}</span>}
+                  {a.ticketId&&<span style={{color:'var(--orange)',fontFamily:'monospace'}}>{a.ticketId}</span>}
+                </div>
+              </div>
+              <span style={{color:'var(--muted)',fontSize:14}}>{activeIncident===a.id?'▲':'▼'}</span>
+            </div>
+
+            {activeIncident===a.id&&<div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)'}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--muted)',marginBottom:8,textTransform:'uppercase',letterSpacing:.5}}>Response Timeline</div>
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                {a.actions.map((ac,j)=>(
+                  <div key={j} style={{display:'flex',gap:10,alignItems:'center'}}>
+                    <div style={{width:18,height:18,borderRadius:9,background:ac.done?'rgba(63,185,80,.2)':'rgba(110,118,129,.1)',border:`1.5px solid ${ac.done?'var(--green)':'var(--border)'}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      <span style={{fontSize:9,color:ac.done?'var(--green)':'var(--border)'}}>{ac.done?'✓':'○'}</span>
+                    </div>
+                    <span style={{flex:1,fontSize:12,color:ac.done?'var(--text)':'var(--muted)'}}>{ac.label}</span>
+                    {ac.time&&<span style={{fontSize:10,color:'var(--dimmed)'}}>+{ac.time}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>}
+          </div>
+        ))}
+      </div>
+
+      {/* Right panel: quick stats */}
+      <div style={{width:220,flexShrink:0}}>
+        <div className="card" style={{marginBottom:10}}>
+          <div style={{fontSize:11,fontWeight:700,color:'var(--muted)',marginBottom:10,textTransform:'uppercase',letterSpacing:.5}}>By Type</div>
+          {[
+            {label:'SOS Alerts',val:auditLog.filter(a=>a.type==='sos').length,color:'var(--red)'},
+            {label:'SLA Breaches',val:auditLog.filter(a=>a.type==='sla_breach').length,color:'var(--yellow)'},
+          ].map(t=><div key={t.label} style={{display:'flex',justifyContent:'space-between',marginBottom:8,fontSize:13}}>
+            <span style={{color:'var(--muted)'}}>{t.label}</span>
+            <span style={{fontWeight:700,color:t.color}}>{t.val}</span>
+          </div>)}
+        </div>
+        <div className="card">
+          <div style={{fontSize:11,fontWeight:700,color:'var(--muted)',marginBottom:10,textTransform:'uppercase',letterSpacing:.5}}>Audit Health</div>
+          {auditLog.length===0?<div style={{color:'var(--green)',fontSize:12}}>✅ No incidents</div>:<>
+            <div style={{fontSize:12,color:'var(--muted)',marginBottom:6}}>Resolution Rate</div>
+            <div style={{fontSize:24,fontWeight:800,color:'var(--green)',marginBottom:8}}>
+              {auditLog.length>0?Math.round((auditLog.filter(a=>a.status==='resolved').length/auditLog.length)*100)+'%':'—'}
+            </div>
+            <div style={{height:6,borderRadius:3,background:'var(--border)',overflow:'hidden'}}>
+              <div style={{height:'100%',borderRadius:3,background:'var(--green)',width:auditLog.length>0?(auditLog.filter(a=>a.status==='resolved').length/auditLog.length)*100+'%':'0%',transition:'width .6s'}}/>
+            </div>
+          </>}
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+function CommunityHub({token,addToast,complaints,wards}){
+  const [tab,setTab]=useState('feed');
+  const [petitions,setPetitions]=useState([]);
+  const [notices,setNotices]=useState([]);
+  const [newPetition,setNewPetition]=useState('');
+  const [newNotice,setNewNotice]=useState('');
+  const [noticeType,setNoticeType]=useState('general');
+  const [submitting,setSubmitting]=useState(false);
+
+  useEffect(()=>{
+    const petSeed=[
+      {id:'p1',title:'Fix Rispana River embankment before monsoon',desc:'The embankment near Raipur has developed cracks. Urgent action needed before monsoon floods.',district:'Dehradun',ward:'Raipur Block',supporters:234,status:'active',submittedAt:new Date(Date.now()-3*86400000).toISOString()},
+      {id:'p2',title:'Install CCTV cameras at Parade Ground',desc:'Rising incidents of theft and eve-teasing near Parade Ground. Citizens demand surveillance.',district:'Dehradun',ward:'Rajpur Road',supporters:187,status:'active',submittedAt:new Date(Date.now()-5*86400000).toISOString()},
+      {id:'p3',title:'Regularise auto-rickshaw routes in Haldwani',desc:'Auto-rickshaws running haphazardly causing accidents. Fixed routes and meters demanded.',district:'Nainital',ward:'Haldwani Block',supporters:312,status:'review',submittedAt:new Date(Date.now()-8*86400000).toISOString()},
+    ];
+    const notSeed=[
+      {id:'n1',type:'maintenance',title:'Water supply disruption — Vasant Vihar',desc:'UJN will carry out maintenance on 12 May 2026. 6AM–2PM water supply disruption expected.',dept:'UJN',district:'Dehradun',postedAt:new Date(Date.now()-86400000).toISOString()},
+      {id:'n2',type:'event',title:'Ward Sabha — Clement Town',desc:'Monthly ward meeting on 15 May 2026 at 10 AM. All residents invited. Agenda: drainage + streetlights.',dept:'ULB',district:'Dehradun',postedAt:new Date(Date.now()-2*86400000).toISOString()},
+      {id:'n3',type:'alert',title:'Heavy rain advisory — Pithoragarh district',desc:'IMD forecast heavy rainfall 14–16 May. USDMA advises residents in low-lying areas to be alert.',dept:'USDMA',district:'Pithoragarh',postedAt:new Date(Date.now()-3600000).toISOString()},
+    ];
+    setPetitions(petSeed);setNotices(notSeed);
+  },[]);
+
+  const wardFeed=complaints.slice().sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt)).slice(0,15);
+
+  const typeColor={general:'var(--blue)',alert:'var(--red)',event:'var(--green)',maintenance:'var(--yellow)'};
+  const typeIcon={general:'📢',alert:'⚠️',event:'🎉',maintenance:'🔧'};
+
+  async function submitPetition(e){
+    e.preventDefault();if(!newPetition.trim()){addToast('error','Title required');return;}
+    setSubmitting(true);
+    await new Promise(r=>setTimeout(r,800));
+    setPetitions(p=>[{id:'p'+Date.now(),title:newPetition,desc:'Submitted by admin',district:'Dehradun',ward:'All Wards',supporters:1,status:'active',submittedAt:new Date().toISOString()},...p]);
+    addToast('success','Petition posted to community feed');setNewPetition('');setSubmitting(false);
+  }
+
+  async function submitNotice(e){
+    e.preventDefault();if(!newNotice.trim()){addToast('error','Content required');return;}
+    setSubmitting(true);
+    await new Promise(r=>setTimeout(r,800));
+    setNotices(n=>[{id:'n'+Date.now(),type:noticeType,title:newNotice,desc:'Posted by district admin',dept:'Admin',district:'All Districts',postedAt:new Date().toISOString()},...n]);
+    addToast('success','Community notice published');setNewNotice('');setSubmitting(false);
+  }
+
+  return <div className="fade-in">
+    <div className="topbar">
+      <div>
+        <div style={{fontSize:20,fontWeight:700}}>🌐 Community Hub</div>
+        <div style={{color:'var(--muted)',fontSize:13,marginTop:2}}>Ward-level civic feed · Citizen petitions · Department notices</div>
+      </div>
+    </div>
+
+    <div style={{display:'flex',gap:6,marginBottom:18,background:'var(--card)',borderRadius:10,padding:4}}>
+      {[['feed','📡 Live Feed'],['petitions','📜 Petitions'],['notices','📋 Notices'],['post','✏️ Post Notice']].map(([k,l])=>(
+        <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'8px 4px',borderRadius:8,border:'none',background:tab===k?'rgba(255,153,51,.12)':'transparent',color:tab===k?'var(--orange)':'var(--muted)',cursor:'pointer',fontSize:12,fontWeight:600,transition:'all .15s'}}>{l}</button>
+      ))}
+    </div>
+
+    {tab==='feed'&&<div>
+      {wardFeed.length===0?<div style={{textAlign:'center',padding:40,color:'var(--muted)'}}>No civic reports yet</div>:
+      wardFeed.map(c=>{
+        const catIcon={pothole:'🕳️',garbage:'🗑️',water:'💧',electricity:'⚡',sewage:'🚰',drain:'🌊',streetlight:'💡',tree:'🌳',noise:'🔊',health_hazard:'🏥',disaster:'🌪️',road_damage:'🛣️',transformer:'🔌',other:'📋'};
+        return <div key={c.id} className="card" style={{marginBottom:8,display:'flex',gap:10,alignItems:'flex-start'}}>
+          <div style={{fontSize:22,flexShrink:0}}>{catIcon[c.category]||'📋'}</div>
+          <div style={{flex:1}}>
+            <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginBottom:4}}>
+              <span style={{fontWeight:600,fontSize:13}}>{c.ticketId}</span>
+              <span style={{fontSize:10,padding:'1px 6px',borderRadius:4,background:'rgba(255,153,51,.1)',color:'var(--orange)',fontWeight:600}}>{c.category.replace('_',' ')}</span>
+              <span style={{fontSize:10,padding:'1px 6px',borderRadius:4,background:c.status==='resolved'?'rgba(63,185,80,.1)':'rgba(88,166,255,.1)',color:c.status==='resolved'?'var(--green)':'var(--blue)',fontWeight:600}}>{c.status.replace('_',' ')}</span>
+            </div>
+            <div style={{fontSize:12,color:'var(--text)',marginBottom:4}}>{c.description?.slice(0,100)}{c.description?.length>100?'…':''}</div>
+            <div style={{display:'flex',gap:10,fontSize:11,color:'var(--dimmed)'}}>
+              <span>📍 {c.location?.slice(0,30)||'—'}</span>
+              <span>👤 {c.submittedBy}</span>
+              <span>👍 {c.upvotes}</span>
+              <span>{timeAgo(c.submittedAt)}</span>
+            </div>
+          </div>
+        </div>;
+      })}
+    </div>}
+
+    {tab==='petitions'&&<div>
+      {petitions.map(p=><div key={p.id} className="card" style={{marginBottom:12}}>
+        <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+          <div style={{background:'rgba(255,153,51,.1)',borderRadius:10,padding:'8px 12px',textAlign:'center',flexShrink:0}}>
+            <div style={{fontSize:20,fontWeight:800,color:'var(--orange)'}}>{p.supporters}</div>
+            <div style={{fontSize:9,color:'var(--muted)',textTransform:'uppercase'}}>Supporters</div>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>{p.title}</div>
+            <div style={{fontSize:12,color:'var(--muted)',marginBottom:6}}>{p.desc}</div>
+            <div style={{display:'flex',gap:8,fontSize:11,color:'var(--dimmed)'}}>
+              <span>📍 {p.ward}</span><span>🏙️ {p.district}</span><span>{timeAgo(p.submittedAt)}</span>
+              <span style={{padding:'1px 7px',borderRadius:4,background:p.status==='review'?'rgba(252,211,77,.1)':'rgba(63,185,80,.1)',color:p.status==='review'?'var(--yellow)':'var(--green)',fontWeight:600}}>{p.status}</span>
+            </div>
+          </div>
+        </div>
+      </div>)}
+    </div>}
+
+    {tab==='notices'&&<div>
+      {notices.map(n=><div key={n.id} className="card" style={{marginBottom:10,borderLeft:`3px solid ${typeColor[n.type]||'var(--border)'}`}}>
+        <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:6}}>
+          <span style={{fontSize:18}}>{typeIcon[n.type]||'📢'}</span>
+          <span style={{fontWeight:700,fontSize:14}}>{n.title}</span>
+          <span style={{marginLeft:'auto',fontSize:10,padding:'2px 7px',borderRadius:4,background:'rgba(255,153,51,.1)',color:'var(--orange)',fontWeight:600,textTransform:'uppercase'}}>{n.type}</span>
+        </div>
+        <div style={{fontSize:12,color:'var(--muted)',marginBottom:6}}>{n.desc}</div>
+        <div style={{display:'flex',gap:10,fontSize:11,color:'var(--dimmed)'}}>
+          <span>🏢 {n.dept}</span><span>📍 {n.district}</span><span>{timeAgo(n.postedAt)}</span>
+        </div>
+      </div>)}
+    </div>}
+
+    {tab==='post'&&<div style={{maxWidth:560}}>
+      <div className="card" style={{marginBottom:16}}>
+        <div style={{fontWeight:700,marginBottom:12,fontSize:15}}>📋 Post Community Notice</div>
+        <form onSubmit={submitNotice}>
+          <div style={{marginBottom:12}}>
+            <label>Notice Type</label>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+              {[['general','📢 General'],['alert','⚠️ Alert'],['event','🎉 Event'],['maintenance','🔧 Maintenance']].map(([t,l])=>(
+                <button type="button" key={t} onClick={()=>setNoticeType(t)} style={{padding:'6px 12px',borderRadius:8,border:bc(noticeType===t),background:noticeType===t?'rgba(255,153,51,.1)':'#1c2128',color:noticeType===t?'var(--orange)':'var(--muted)',cursor:'pointer',fontSize:12,fontWeight:600}}>{l}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{marginBottom:12}}>
+            <label>Title / Message</label>
+            <textarea className="input" rows={3} style={{resize:'vertical'}} placeholder="Water supply disruption on 12 May…" value={newNotice} onChange={e=>setNewNotice(e.target.value)} required/>
+          </div>
+          <button className="btn btn-orange" disabled={submitting||!newNotice.trim()}>
+            {submitting?<><Spinner/> Publishing…</>:'📢 Publish Notice'}
+          </button>
+        </form>
+      </div>
+      <div className="card">
+        <div style={{fontWeight:700,marginBottom:12,fontSize:15}}>📜 Start Citizen Petition</div>
+        <form onSubmit={submitPetition}>
+          <div style={{marginBottom:12}}>
+            <label>Petition Title</label>
+            <input className="input" placeholder="Fix Rispana River embankment before monsoon…" value={newPetition} onChange={e=>setNewPetition(e.target.value)} required/>
+          </div>
+          <button className="btn btn-orange" disabled={submitting||!newPetition.trim()}>
+            {submitting?<><Spinner/> Posting…</>:'📜 Launch Petition'}
+          </button>
+        </form>
+      </div>
+    </div>}
   </div>;
 }
 

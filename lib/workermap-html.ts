@@ -62,7 +62,7 @@ export function buildWorkerMapHTML(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<link rel="stylesheet" href="${origin}/leaflet/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body,#map{width:100%;height:100%;background:#0d1117;overflow:hidden}
@@ -128,7 +128,7 @@ export function buildWorkerMapHTML(
   <div class="hl-row"><div class="hl-swatch" style="background:#FF9933"></div><span class="hl-label">High</span></div>
   <div class="hl-row"><div class="hl-swatch" style="background:#EF4444"></div><span class="hl-label">Critical</span></div>
 </div>
-<script src="${origin}/leaflet/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
 var workers=${wJson};
 var heatData=${hJson};
