@@ -66,11 +66,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="ai"
+        name="map"
         options={{
-          title: "AI Chat",
+          title: "District Map",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "sparkles" : "sparkles-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "map" : "map-outline"} size={22} color={color} />
           ),
         }}
       />
@@ -83,8 +83,8 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Hidden from tab bar — still accessible via navigation */}
-      <Tabs.Screen name="map" options={{ href: null }} />
+      {/* Hidden from tab bar */}
+      <Tabs.Screen name="ai" options={{ href: null }} />
       <Tabs.Screen name="announcements" options={{ href: null }} />
       <Tabs.Screen name="community" options={{ href: null }} />
       <Tabs.Screen name="bills" options={{ href: null }} />

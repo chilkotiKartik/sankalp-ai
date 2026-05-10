@@ -314,19 +314,13 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
           </View>
           <Text style={sas.sub}>Super Admin · {user?.name} · All 13 Districts</Text>
         </View>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <Pressable onPress={() => setShowBroadcast(true)} style={sas.broadcastBtn}>
-            <Ionicons name="radio-outline" size={16} color="#EF4444" />
-            <Text style={sas.broadcastBtnText}>Alert</Text>
-          </Pressable>
-          <Pressable onPress={logout} style={sas.logoutBtn}>
-            <Feather name="log-out" size={14} color="#EF4444" />
-            <Text style={sas.logoutText}>Logout</Text>
-          </Pressable>
-        </View>
+        <Pressable onPress={() => setShowBroadcast(true)} style={sas.broadcastBtn}>
+          <Ionicons name="radio-outline" size={16} color="#EF4444" />
+          <Text style={sas.broadcastBtnText}>Alert</Text>
+        </Pressable>
       </Animated.View>
 
-      {/* Navigation Tabs */}
+      {/* Navigation Tabs + Logout */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[{ flexShrink: 0 }, sas.navWrap]} contentContainerStyle={sas.navRow}>
         {ADMIN_TABS.map(tab => {
           const isActive = tab.key === "command";
@@ -345,6 +339,13 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
             </Pressable>
           );
         })}
+        {/* Logout — always visible at end of nav */}
+        <Pressable onPress={logout} style={sas.navLogoutBtn}>
+          <View style={[sas.navTabIcon, { backgroundColor: "#EF444420" }]}>
+            <Feather name="log-out" size={16} color="#EF4444" />
+          </View>
+          <Text style={sas.navLogoutText}>Logout</Text>
+        </Pressable>
       </ScrollView>
 
       <ScrollView
@@ -841,10 +842,6 @@ function DistrictAdminDashboard() {
                   {emergencyMode ? "EMERGENCY" : "Emergency"}
                 </Text>
               </Pressable>
-              <Pressable onPress={logout} style={styles.logoutBtn}>
-                <Feather name="log-out" size={14} color="#EF4444" />
-                <Text style={styles.logoutText}>Logout</Text>
-              </Pressable>
             </View>
           </View>
 
@@ -874,6 +871,13 @@ function DistrictAdminDashboard() {
             </Pressable>
           );
         })}
+        {/* Logout — always visible at end of nav */}
+        <Pressable onPress={logout} style={styles.navLogoutBtn}>
+          <View style={[styles.navTabIcon, { backgroundColor: "#EF444420" }]}>
+            <Feather name="log-out" size={16} color="#EF4444" />
+          </View>
+          <Text style={styles.navLogoutText}>Logout</Text>
+        </Pressable>
       </ScrollView>
 
       <ScrollView
@@ -1521,6 +1525,13 @@ const sas = StyleSheet.create({
   navTabIcon: { width: 32, height: 32, borderRadius: 9, backgroundColor: Colors.bgCardAlt, alignItems: "center", justifyContent: "center" },
   navTabText: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_600SemiBold", textAlign: "center" },
   navTabDot: { position: "absolute", bottom: 5, width: 4, height: 4, borderRadius: 2, backgroundColor: "#F59E0B" },
+  navLogoutBtn: {
+    flexDirection: "column", alignItems: "center", gap: 4,
+    paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12,
+    backgroundColor: "#EF444410", borderWidth: 1, borderColor: "#EF444440",
+    minWidth: 66,
+  },
+  navLogoutText: { color: "#EF4444", fontSize: 10, fontFamily: "Inter_700Bold" },
   badge: { backgroundColor: "#EF4444", borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 },
   badgeText: { color: "#fff", fontSize: 9, fontFamily: "Inter_700Bold" },
   kpiRow: { flexDirection: "row", paddingHorizontal: 16, gap: 8, marginBottom: 12 },
@@ -1563,6 +1574,13 @@ const styles = StyleSheet.create({
   navTabIcon: { width: 32, height: 32, borderRadius: 9, backgroundColor: Colors.bgCardAlt, alignItems: "center", justifyContent: "center" },
   navTabText: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_600SemiBold", textAlign: "center" },
   navTabDot: { position: "absolute", bottom: 5, width: 4, height: 4, borderRadius: 2, backgroundColor: Colors.saffron },
+  navLogoutBtn: {
+    flexDirection: "column", alignItems: "center", gap: 4,
+    paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12,
+    backgroundColor: "#EF444410", borderWidth: 1, borderColor: "#EF444440",
+    minWidth: 66,
+  },
+  navLogoutText: { color: "#EF4444", fontSize: 10, fontFamily: "Inter_700Bold" },
   kpiGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 16, gap: 8, marginBottom: 12 },
   kpiCard: { width: "22%", backgroundColor: Colors.bgCard, borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
   kpiValue: { fontSize: 18, fontFamily: "Inter_700Bold", marginTop: 4 },
