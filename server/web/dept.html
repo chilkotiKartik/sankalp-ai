@@ -216,7 +216,8 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
     setAssigning(false);
   }
 
-  return <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+  return ReactDOM.createPortal(
+    <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
     <div className="modal fade-in">
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}}>
         <div>
@@ -318,7 +319,9 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
         </div>
       </div>
     </div>
-  </div>;
+    </div>,
+    document.body
+  );
 }
 
 /* ── COMPLAINT CARD ──────────────────────────────────────────────────────── */
@@ -478,7 +481,8 @@ function WorkerModal({w,onClose}){
   const bg=w.status==='active'?'rgba(63,185,80,.1)':w.status==='on_leave'?'rgba(210,153,34,.1)':'rgba(139,148,158,.1)';
   const taskHistory=w.taskHistory||[];
   const rateColor=w.avgRating>=4.5?'var(--green)':w.avgRating>=3.5?'var(--yellow)':'var(--red)';
-  return <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+  return ReactDOM.createPortal(
+    <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
     <div className="modal fade-in" style={{maxWidth:560}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}}>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -558,7 +562,9 @@ function WorkerModal({w,onClose}){
         <button className="btn btn-ghost" onClick={onClose} style={{flex:1,justifyContent:'center'}}>Close</button>
       </div>
     </div>
-  </div>;
+    </div>,
+    document.body
+  );
 }
 
 /* ── WORKERS PAGE ────────────────────────────────────────────────────────── */

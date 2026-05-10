@@ -2,7 +2,18 @@ import React, { useEffect, useRef, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import type { Complaint, SOSAlert, Worker, PoliceStation, RiskZone, GeoPoint } from "@/context/AppContext";
 
-export type MapFilter = "all" | "complaints" | "sos" | "workers" | "police" | "risks";
+export type MapFilter = "all" | "complaints" | "sos" | "workers" | "police" | "risks" | "hospitals" | "fire";
+
+export interface EmergencyServiceMarker {
+  id: string;
+  name: string;
+  type: string;
+  lat: number;
+  lng: number;
+  phone?: string;
+  address?: string;
+  district?: string;
+}
 
 const DISTRICT_CENTERS: Record<string, { lat: number; lng: number; zoom: number }> = {
   "Dehradun":          { lat: 30.3165, lng: 78.0322, zoom: 11 },
@@ -171,6 +182,7 @@ interface Props {
   workers?: Worker[];
   policeStations?: PoliceStation[];
   riskZones?: RiskZone[];
+  emergencyServices?: EmergencyServiceMarker[];
   filter?: MapFilter;
   userLocation?: GeoPoint | null;
   userDistrict?: string;
@@ -183,6 +195,7 @@ export default function UttarakhandMap({
   workers = [],
   policeStations = [],
   riskZones = [],
+  emergencyServices = [],
   filter = "all",
   userLocation,
   userDistrict,
@@ -190,7 +203,7 @@ export default function UttarakhandMap({
 }: Props) {
   const containerRef = useRef<any>(null);
 
-  const show = (type: "complaints" | "sos" | "workers" | "police" | "risks") =>
+  const show = (type: "complaints" | "sos" | "workers" | "police" | "risks" | "hospitals" | "fire") =>
     filter === "all" || filter === type;
 
   const markers = useMemo<MarkerData[]>(() => {
@@ -269,11 +282,14 @@ export default function UttarakhandMap({
   }, [complaints, sosAlerts, workers, policeStations, riskZones, filter]);
 
   const center = useMemo(() => {
+    if (userLocation?.lat && userLocation?.lng) {
+      return { lat: userLocation.lat, lng: userLocation.lng, zoom: 13 };
+    }
     if (userDistrict && userDistrict !== "Uttarakhand" && DISTRICT_CENTERS[userDistrict]) {
       return DISTRICT_CENTERS[userDistrict];
     }
     return { lat: 30.0668, lng: 79.0193, zoom: 8 };
-  }, [userDistrict]);
+  }, [userLocation, userDistrict]);
 
   const html = useMemo(() =>
     buildLeafletHTML(

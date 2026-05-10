@@ -133,7 +133,7 @@ export default function BudgetScreen() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const tok = await AsyncStorage.getItem("token");
+      const tok = await AsyncStorage.getItem("@sankalp_token");
       const res = await fetch(`${getApiUrl()}api/budget`, {
         headers: { Authorization: `Bearer ${tok}` },
       });
