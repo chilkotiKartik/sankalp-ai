@@ -412,13 +412,23 @@ function ComplaintModal({c,onClose,token,deptToken,addToast,onRefresh,isAdmin}){
         {(c.beforePhoto||c.afterPhoto)&&<div style={{marginBottom:14}}>
           <div style={{fontSize:11,fontWeight:700,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:8}}>📷 Evidence Photos</div>
           <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
-            {c.beforePhoto&&<div>
-              <div style={{fontSize:10,color:'var(--orange)',marginBottom:5,fontWeight:700}}>BEFORE</div>
-              <img src={c.beforePhoto} alt="Before" style={{width:160,height:118,objectFit:'cover',borderRadius:10,border:'2px solid var(--border)',cursor:'pointer',transition:'transform .18s'}} onMouseEnter={e=>{e.target.style.transform='scale(1.03)'}} onMouseLeave={e=>{e.target.style.transform='scale(1)'}} onClick={()=>window.open(c.beforePhoto,'_blank')} onError={e=>{e.target.style.display='none'}}/>
+            {c.beforePhoto&&<div style={{position:'relative'}}>
+              <div style={{fontSize:10,color:'var(--orange)',marginBottom:5,fontWeight:700,display:'flex',alignItems:'center',gap:6}}>
+                BEFORE
+                {c.photoIsReal===true&&<span style={{background:'rgba(63,185,80,.15)',color:'#3fb950',border:'1px solid rgba(63,185,80,.35)',borderRadius:4,padding:'1px 6px',fontSize:9,fontWeight:700}}>✓ REAL PHOTO{c.photoAiConfidence?` · ${c.photoAiConfidence}%`:''}</span>}
+                {c.photoIsReal===false&&<span style={{background:'rgba(248,81,73,.12)',color:'#f85149',border:'1px solid rgba(248,81,73,.35)',borderRadius:4,padding:'1px 6px',fontSize:9,fontWeight:700}}>⚠ AI-GENERATED{c.photoAiConfidence?` · ${c.photoAiConfidence}%`:''}</span>}
+                {c.photoIsReal===undefined&&isAdmin&&<span style={{background:'rgba(139,92,246,.1)',color:'#8b5cf6',border:'1px solid rgba(139,92,246,.25)',borderRadius:4,padding:'1px 6px',fontSize:9,fontWeight:700}}>◈ UNVERIFIED</span>}
+              </div>
+              <div style={{position:'relative',display:'inline-block'}}>
+                <img src={c.beforePhoto} alt="Before" style={{width:180,height:130,objectFit:'cover',borderRadius:10,border:c.photoIsReal===false?'2px solid rgba(248,81,73,.6)':c.photoIsReal===true?'2px solid rgba(63,185,80,.5)':'2px solid var(--border)',cursor:'pointer',transition:'transform .18s',display:'block'}} onMouseEnter={e=>{e.target.style.transform='scale(1.03)'}} onMouseLeave={e=>{e.target.style.transform='scale(1)'}} onClick={()=>window.open(c.beforePhoto,'_blank')} onError={e=>{e.target.style.display='none'}}/>
+                {c.photoIsReal===false&&<div style={{position:'absolute',top:6,right:6,background:'rgba(200,0,0,.85)',color:'#fff',borderRadius:4,padding:'2px 6px',fontSize:9,fontWeight:700}}>⚠ FAKE</div>}
+                {c.photoIsReal===true&&<div style={{position:'absolute',top:6,right:6,background:'rgba(0,120,50,.85)',color:'#fff',borderRadius:4,padding:'2px 6px',fontSize:9,fontWeight:700}}>✓ REAL</div>}
+              </div>
+              {c.photoAiReason&&<div style={{maxWidth:180,marginTop:5,fontSize:10,color:'var(--muted)',lineHeight:1.4,fontStyle:'italic'}}>{c.photoAiReason}</div>}
             </div>}
             {c.afterPhoto&&<div>
               <div style={{fontSize:10,color:'var(--green)',marginBottom:5,fontWeight:700}}>AFTER</div>
-              <img src={c.afterPhoto} alt="After" style={{width:160,height:118,objectFit:'cover',borderRadius:10,border:'2px solid var(--border)',cursor:'pointer',transition:'transform .18s'}} onMouseEnter={e=>{e.target.style.transform='scale(1.03)'}} onMouseLeave={e=>{e.target.style.transform='scale(1)'}} onClick={()=>window.open(c.afterPhoto,'_blank')} onError={e=>{e.target.style.display='none'}}/>
+              <img src={c.afterPhoto} alt="After" style={{width:180,height:130,objectFit:'cover',borderRadius:10,border:'2px solid var(--border)',cursor:'pointer',transition:'transform .18s'}} onMouseEnter={e=>{e.target.style.transform='scale(1.03)'}} onMouseLeave={e=>{e.target.style.transform='scale(1)'}} onClick={()=>window.open(c.afterPhoto,'_blank')} onError={e=>{e.target.style.display='none'}}/>
             </div>}
           </div>
         </div>}

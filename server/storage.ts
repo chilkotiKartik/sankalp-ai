@@ -9,14 +9,14 @@ export interface DeptConfig {
 }
 
 export const DEPARTMENTS: Record<string, DeptConfig> = {
-  pwd:    { id:"pwd",    name:"PWD — Public Works Dept.",       nameHindi:"लोक निर्माण विभाग",          icon:"🏗️", color:"#F59E0B", helpline:"1800-180-4244", slaHours:24, categories:["pothole","other"] },
-  ulb:    { id:"ulb",    name:"ULB — Municipal Corporation",    nameHindi:"नगर पालिका / नगर निगम",       icon:"🗑️", color:"#10B981", helpline:"1533",          slaHours:48, categories:["garbage","drain"] },
+  pwd:    { id:"pwd",    name:"PWD — Public Works Dept.",       nameHindi:"लोक निर्माण विभाग",          icon:"🏗️", color:"#F59E0B", helpline:"1800-180-4244", slaHours:24, categories:["pothole","road_damage","other"] },
+  ulb:    { id:"ulb",    name:"ULB — Municipal Corporation",    nameHindi:"नगर पालिका / नगर निगम",       icon:"🗑️", color:"#10B981", helpline:"1533",          slaHours:48, categories:["garbage","drain","sewage"] },
   jal:    { id:"jal",    name:"Jal Sansthan",                   nameHindi:"उत्तराखण्ड जल संस्थान",       icon:"💧", color:"#3B82F6", helpline:"1916",          slaHours:12, categories:["water"] },
-  upcl:   { id:"upcl",  name:"UPCL — Power Corporation",       nameHindi:"उत्तराखण्ड पावर कॉर्पोरेशन", icon:"⚡", color:"#8B5CF6", helpline:"1912",          slaHours:6,  categories:["electricity","streetlight"] },
+  upcl:   { id:"upcl",  name:"UPCL — Power Corporation",       nameHindi:"उत्तराखण्ड पावर कॉर्पोरेशन", icon:"⚡", color:"#8B5CF6", helpline:"1912",          slaHours:6,  categories:["electricity","streetlight","transformer"] },
   forest: { id:"forest", name:"Forest Department",             nameHindi:"वन विभाग",                    icon:"🌳", color:"#166534", helpline:"1800-180-4288", slaHours:96, categories:["tree"] },
-  health: { id:"health", name:"Health & Family Welfare",       nameHindi:"स्वास्थ्य विभाग",             icon:"🏥", color:"#EF4444", helpline:"104",           slaHours:24, categories:[] },
-  usdma:  { id:"usdma",  name:"USDMA — Disaster Management",   nameHindi:"आपदा प्रबंधन प्राधिकरण",     icon:"🆘", color:"#DC2626", helpline:"1070",          slaHours:2,  categories:[] },
-  police: { id:"police", name:"Uttarakhand Police",            nameHindi:"उत्तराखण्ड पुलिस",            icon:"🚔", color:"#1E3A5F", helpline:"100",           slaHours:1,  categories:[] },
+  health: { id:"health", name:"Health & Family Welfare",       nameHindi:"स्वास्थ्य विभाग",             icon:"🏥", color:"#EF4444", helpline:"104",           slaHours:24, categories:["health_hazard"] },
+  usdma:  { id:"usdma",  name:"USDMA — Disaster Management",   nameHindi:"आपदा प्रबंधन प्राधिकरण",     icon:"🆘", color:"#DC2626", helpline:"1070",          slaHours:2,  categories:["disaster"] },
+  police: { id:"police", name:"Uttarakhand Police",            nameHindi:"उत्तराखण्ड पुलिस",            icon:"🚔", color:"#1E3A5F", helpline:"100",           slaHours:1,  categories:["noise"] },
 };
 
 export function getDeptIdForCategory(category: string): string {
@@ -38,8 +38,9 @@ export type UserRole = "citizen" | "worker" | "admin" | "super_admin";
 export type Priority = "P1" | "P2" | "P3" | "P4";
 export type ComplaintStatus = "pending" | "in_progress" | "resolved" | "closed";
 export type ComplaintCategory =
-  | "pothole" | "garbage" | "streetlight" | "water"
-  | "drain" | "electricity" | "tree" | "other";
+  | "pothole" | "road_damage" | "garbage" | "drain" | "sewage"
+  | "streetlight" | "water" | "electricity" | "transformer"
+  | "tree" | "noise" | "health_hazard" | "disaster" | "other";
 export type SOSCategory =
   | "gas_leak" | "water_burst" | "electric_hazard"
   | "fire_risk" | "road_accident" | "infrastructure" | "women_safety" | "medical"
@@ -86,6 +87,9 @@ export interface Complaint {
   hasProof?: boolean;
   beforePhoto?: string;
   afterPhoto?: string;
+  photoIsReal?: boolean;
+  photoAiConfidence?: number;
+  photoAiReason?: string;
   rating?: number;
   feedback?: string;
   rejectedBy?: string[];
@@ -103,16 +107,22 @@ export interface Complaint {
 // Department routing: AI maps complaint category → responsible government dept
 export function assignDepartment(category: string): string {
   const map: Record<string, string> = {
-    electricity: "UPCL (Uttarakhand Power Corporation Ltd)",
-    water:       "Jal Sansthan (Uttarakhand Jal Sansthan)",
-    drain:       "ULB (Urban Local Bodies / Nagar Palika)",
-    garbage:     "ULB (Urban Local Bodies / Nagar Palika)",
-    streetlight: "UPCL (Uttarakhand Power Corporation Ltd)",
-    pothole:     "PWD (Public Works Department)",
-    tree:        "Forest Department / DM Office",
-    other:       "DM Office (District Magistrate)",
+    electricity:   "UPCL (Uttarakhand Power Corporation Ltd)",
+    transformer:   "UPCL (Uttarakhand Power Corporation Ltd)",
+    streetlight:   "UPCL (Uttarakhand Power Corporation Ltd)",
+    water:         "Jal Sansthan (Uttarakhand Jal Sansthan)",
+    drain:         "ULB (Urban Local Bodies / Nagar Palika)",
+    sewage:        "ULB (Urban Local Bodies / Nagar Palika)",
+    garbage:       "ULB (Urban Local Bodies / Nagar Palika)",
+    pothole:       "PWD (Public Works Department)",
+    road_damage:   "PWD (Public Works Department)",
+    tree:          "Forest Department",
+    noise:         "Uttarakhand Police",
+    health_hazard: "Health & Family Welfare Department",
+    disaster:      "USDMA (Disaster Management Authority)",
+    other:         "PWD (Public Works Department)",
   };
-  return map[category] || "DM Office (District Magistrate)";
+  return map[category] || "PWD (Public Works Department)";
 }
 
 export interface SOSAlert {
@@ -551,6 +561,54 @@ const COMPLAINT_DESCS: Record<ComplaintCategory, string[]> = {
     "Hanging branch over school compound wall, child safety risk",
     "Tree fell on parked vehicles during storm, no response from authorities",
     "Uprooted tree blocking only access footpath in hilly area",
+  ],
+  road_damage: [
+    "Entire road surface broken after monsoon flooding, vehicles cannot pass",
+    "Bridge road damaged with cracks, heavy vehicles advised to avoid",
+    "Mountain highway shoulder has collapsed, one-lane road extremely dangerous",
+    "Storm washed away road surface near village, ambulance route cut",
+    "Road sinkhole appeared overnight, 3-feet deep near bus stop",
+    "Landslide debris still blocking half of NH-58, traffic jams 5km",
+  ],
+  sewage: [
+    "Sewage line overflowing onto footpath for 4 days, unbearable smell",
+    "Manhole cover missing on main road, open sewage exposing residents",
+    "Sewage leaking into drinking water supply, disease risk in colony",
+    "Underground sewage pipe burst near market, flooding footpaths",
+    "Old sewage drain collapsed, contents spilling on residential street",
+    "Sewage treatment plant overflow entering river, environmental hazard",
+  ],
+  transformer: [
+    "Transformer burnt last night, 400 homes without power for 2 days",
+    "Oil leaking from transformer near school, fire hazard",
+    "Transformer sparking loudly, entire neighborhood afraid to sleep",
+    "Old transformer overloaded — trips 6-7 times daily, appliances damaged",
+    "Transformer pole tilted after rain, could fall on road",
+    "No transformer installed in new colony despite 6 months of payment",
+  ],
+  noise: [
+    "Illegal loudspeakers running till 3 AM near residential area daily",
+    "Construction drilling from 5 AM disrupting sleep and exams",
+    "Commercial generator running 24/7 next to homes — 85 decibels",
+    "Pub playing loud music till midnight in residential zone",
+    "Temple festival loudspeaker causing noise beyond 10 PM limit",
+    "Factory noise and vibration cracking walls of nearby houses",
+  ],
+  health_hazard: [
+    "Dead animals on main road for 3 days, disease outbreak risk",
+    "Illegal slaughterhouse waste dumped in river causing contamination",
+    "Stagnant water breeding dengue mosquitoes near primary school",
+    "Food stall operating without hygiene — students falling ill",
+    "Chemical waste dumped near water body, strong toxic smell",
+    "Mass rat infestation in market area destroying food stocks",
+  ],
+  disaster: [
+    "Landslide has blocked the only road to our village for 2 days",
+    "Heavy flooding in low-lying area, 20 families need evacuation",
+    "Hill slope showing cracks after heavy rain — landslide imminent",
+    "Flash flood destroyed agricultural land, farmers need emergency help",
+    "Bridge cracked due to excessive water flow — unsafe to cross",
+    "Mountain stream overflowing due to cloudburst, road cut off",
   ],
   other: [
     "Stray dogs attacking residents at night regularly in colony",

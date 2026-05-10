@@ -551,7 +551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/complaints", requireAuth, (req, res) => {
     const user = (req as any).user;
-    const { category, description, location, geo, ward, wardNumber, priority } = req.body;
+    const { category, description, location, geo, ward, wardNumber, priority, hasProof, beforePhoto, photoIsReal, photoAiReason, photoAiConfidence } = req.body;
     if (!category || !description || !location) return res.status(400).json({ message: "category, description, location required" });
     const complaint = storage.createComplaint({
       category, description, location,
@@ -564,7 +564,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       submittedBy: user.name,
       submittedByPhone: user.phone,
       isCluster: false,
-    }, user.id);
+      hasProof: !!hasProof,
+      beforePhoto: beforePhoto || undefined,
+      photoIsReal: photoIsReal,
+      photoAiReason: photoAiReason,
+      photoAiConfidence: photoAiConfidence,
+    } as any, user.id);
 
     // Broadcast to department SSE stream so web portal gets real-time highlight
     const deptId = getDeptIdForCategory(category);
@@ -1375,6 +1380,81 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
       },
       powered_by: "fallback",
     });
+  });
+
+  // ── AI IMAGE AUTHENTICITY DETECTION ──────────────────────────────────────────
+  app.post("/api/ai/detect-image", requireAuth, async (req, res) => {
+    const { imageBase64 } = req.body;
+    if (!imageBase64) return res.status(400).json({ message: "imageBase64 required" });
+
+    const imageUrl = imageBase64.startsWith("data:")
+      ? imageBase64
+      : `data:image/jpeg;base64,${imageBase64}`;
+
+    const prompt = `You are an AI image authenticity detector for a government civic complaint system in India.
+Carefully analyze this image and determine: Is this a REAL photograph taken by a person's camera, or is it AI-generated/synthetic/digitally fabricated?
+
+Key signals for AI-generated images:
+- Unnaturally perfect lighting or textures
+- Distorted text, signs, or faces
+- Dreamlike or surreal quality
+- Pixel-level artifacts or inconsistencies
+- Backgrounds that look painted or rendered
+- Missing real-world imperfections
+
+Key signals for real photos:
+- Natural camera noise/grain
+- Real-world imperfections (dirt, wear, shadows)
+- Authentic civic issues (potholes, garbage, broken infrastructure)
+- Consistent lighting from a real source
+- Natural depth of field
+
+Respond ONLY with valid JSON (no markdown, no explanation):
+{"isReal":true,"confidence":87,"reason":"Shows natural photo grain and authentic road surface damage consistent with real photography"}`;
+
+    if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+      try {
+        const completion = await openaiClient.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: imageUrl } },
+            ],
+          }] as any,
+          max_completion_tokens: 150,
+        });
+        const raw = completion.choices[0]?.message?.content?.trim();
+        if (raw) {
+          try {
+            const match = raw.match(/\{[\s\S]*?\}/);
+            if (match) {
+              const parsed = JSON.parse(match[0]);
+              return res.json({ isReal: !!parsed.isReal, confidence: parsed.confidence || 75, reason: parsed.reason || "AI analysis complete" });
+            }
+          } catch {}
+        }
+      } catch (e: any) {
+        console.error("[AI Detect] OpenAI vision failed:", e?.message?.slice(0, 100));
+      }
+    }
+
+    // Try NVIDIA vision as fallback
+    const nvidiaPrompt = `Analyze this image. Is it real or AI-generated? Reply ONLY as JSON: {"isReal":true/false,"confidence":0-100,"reason":"brief reason"}`;
+    try {
+      const raw = await callNvidiaVision(imageBase64.replace(/^data:image\/\w+;base64,/, ""), nvidiaPrompt);
+      if (raw) {
+        const match = raw.match(/\{[\s\S]*?\}/);
+        if (match) {
+          const parsed = JSON.parse(match[0]);
+          return res.json({ isReal: !!parsed.isReal, confidence: parsed.confidence || 60, reason: parsed.reason || "Vision analysis complete" });
+        }
+      }
+    } catch {}
+
+    // Final fallback: assume real (give benefit of doubt to citizen)
+    return res.json({ isReal: true, confidence: 50, reason: "Unable to verify authenticity — treated as real photo pending review" });
   });
 
   // ── IMAGE UPLOAD ──────────────────────────────────────────────────────────────

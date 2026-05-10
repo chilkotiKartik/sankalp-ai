@@ -12,14 +12,20 @@ import { useApp, type Complaint } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 
 const CATS = [
-  { key: "pothole",     label: "Pothole",     icon: "alert-circle"        as const, color: "#F59E0B", bg: "#FFFBEB" },
-  { key: "garbage",     label: "Garbage",     icon: "trash"               as const, color: "#EF4444", bg: "#FEF2F2" },
-  { key: "streetlight", label: "Streetlight", icon: "bulb"                as const, color: "#F59E0B", bg: "#FFFBEB" },
-  { key: "water",       label: "Water",       icon: "water"               as const, color: "#3B82F6", bg: "#EFF6FF" },
-  { key: "drain",       label: "Drain",       icon: "git-network"         as const, color: "#06B6D4", bg: "#F0FDFF" },
-  { key: "electricity", label: "Electricity", icon: "flash"               as const, color: "#8B5CF6", bg: "#F5F3FF" },
-  { key: "tree",        label: "Tree",        icon: "leaf"                as const, color: "#00A651", bg: "#F0FFF4" },
-  { key: "other",       label: "Other",       icon: "ellipsis-horizontal" as const, color: "#6B7280", bg: "#F9FAFB" },
+  { key: "pothole",      label: "Pothole",       icon: "alert-circle"        as const, color: "#F59E0B", bg: "#FFFBEB", dept: "PWD",    deptFull: "Public Works Dept." },
+  { key: "road_damage",  label: "Road Damage",   icon: "construct"           as const, color: "#D97706", bg: "#FEF3C7", dept: "PWD",    deptFull: "Public Works Dept." },
+  { key: "garbage",      label: "Garbage",       icon: "trash"               as const, color: "#EF4444", bg: "#FEF2F2", dept: "ULB",    deptFull: "Municipal Corporation" },
+  { key: "drain",        label: "Drain Block",   icon: "git-network"         as const, color: "#06B6D4", bg: "#F0FDFF", dept: "ULB",    deptFull: "Municipal Corporation" },
+  { key: "sewage",       label: "Sewage",        icon: "water-outline"       as const, color: "#64748B", bg: "#F8FAFC", dept: "ULB",    deptFull: "Municipal Corporation" },
+  { key: "water",        label: "Water Supply",  icon: "water"               as const, color: "#3B82F6", bg: "#EFF6FF", dept: "JAL",    deptFull: "Jal Sansthan" },
+  { key: "electricity",  label: "Electricity",   icon: "flash"               as const, color: "#8B5CF6", bg: "#F5F3FF", dept: "UPCL",   deptFull: "Power Corporation" },
+  { key: "streetlight",  label: "Streetlight",   icon: "bulb"                as const, color: "#F59E0B", bg: "#FFFBEB", dept: "UPCL",   deptFull: "Power Corporation" },
+  { key: "transformer",  label: "Transformer",   icon: "hardware-chip"       as const, color: "#7C3AED", bg: "#F5F3FF", dept: "UPCL",   deptFull: "Power Corporation" },
+  { key: "tree",         label: "Tree / Park",   icon: "leaf"                as const, color: "#00A651", bg: "#F0FFF4", dept: "Forest", deptFull: "Forest Department" },
+  { key: "noise",        label: "Noise/Nuisance",icon: "volume-high"         as const, color: "#EC4899", bg: "#FDF2F8", dept: "Police", deptFull: "Uttarakhand Police" },
+  { key: "health_hazard",label: "Health Hazard", icon: "medkit"              as const, color: "#DC2626", bg: "#FEF2F2", dept: "Health", deptFull: "Health & Family Welfare" },
+  { key: "disaster",     label: "Flood/Disaster",icon: "rainy"               as const, color: "#7C3AED", bg: "#F5F3FF", dept: "USDMA", deptFull: "Disaster Management" },
+  { key: "other",        label: "Other Issue",   icon: "ellipsis-horizontal" as const, color: "#6B7280", bg: "#F9FAFB", dept: "PWD",    deptFull: "Public Works Dept." },
 ];
 
 const PRIORITIES = [
@@ -59,14 +65,20 @@ const AFTER_PHOTOS: Record<string, string> = {
 };
 
 function aiClassify(text: string): string {
-  const lower = text.toLowerCase();
-  if (/pothole|crack|road|broken|damage|bump/.test(lower)) return "pothole";
-  if (/garbage|trash|waste|bin|dump|smell|rat/.test(lower)) return "garbage";
-  if (/light|lamp|dark|streetlight|bulb/.test(lower)) return "streetlight";
-  if (/water|pipeline|supply|bore|tank|leak|pipe/.test(lower)) return "water";
-  if (/drain|sewer|flood|overflow|choke/.test(lower)) return "drain";
-  if (/electric|power|wire|transformer|voltage|shock/.test(lower)) return "electricity";
-  if (/tree|branch|fall|fell|uprooted/.test(lower)) return "tree";
+  const t = text.toLowerCase();
+  if (/pothole|crater|bump|bad road|road has crack/.test(t)) return "pothole";
+  if (/road.*damage|damage.*road|broken road|highway|street.*broken/.test(t)) return "road_damage";
+  if (/garbage|trash|waste|bin|dump|smell.*waste|rat|litter|dirty/.test(t)) return "garbage";
+  if (/sewage|sewer|manhole|overflow|septic/.test(t)) return "sewage";
+  if (/drain|choke|waterlog|flood|clogged/.test(t)) return "drain";
+  if (/water.*supply|no water|water.*cut|pipeline|borewell|tap|leak.*pipe/.test(t)) return "water";
+  if (/transformer|substation|tripping|voltage/.test(t)) return "transformer";
+  if (/electric|power cut|no power|wire.*down|shock|power.*off/.test(t)) return "electricity";
+  if (/streetlight|street light|lamp.*dark|dark.*night|no.*light/.test(t)) return "streetlight";
+  if (/tree|branch|fallen|uprooted|park|garden/.test(t)) return "tree";
+  if (/noise|loud|music|party|nuisance|disturb/.test(t)) return "noise";
+  if (/health|hospital|disease|toxic|contamina|plague|dead animal/.test(t)) return "health_hazard";
+  if (/flood|disaster|landslide|earthquake|emergency/.test(t)) return "disaster";
   return "";
 }
 
@@ -210,12 +222,16 @@ export default function ComplaintsScreen() {
   const [newCat, setNewCat] = useState("pothole");
   const [newDesc, setNewDesc] = useState("");
   const [newLoc, setNewLoc] = useState("");
+  const [newLandmark, setNewLandmark] = useState("");
   const [newPriority, setNewPriority] = useState("P3");
   const [newPhoto, setNewPhoto] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [aiDetected, setAiDetected] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [detectingLoc, setDetectingLoc] = useState(false);
+  const [photoAiResult, setPhotoAiResult] = useState<{ isReal: boolean; confidence: number; reason: string } | null>(null);
+  const [photoAiLoading, setPhotoAiLoading] = useState(false);
+  const webFileInputRef = useRef<any>(null);
 
   const [showResolution, setShowResolution] = useState(false);
   const [rating, setRating] = useState(0);
@@ -291,39 +307,78 @@ export default function ComplaintsScreen() {
     }
   }, []);
 
+  const runAiDetection = useCallback(async (photoUri: string) => {
+    setPhotoAiLoading(true);
+    setPhotoAiResult(null);
+    try {
+      const { getApiUrl } = await import("@/lib/query-client");
+      const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
+      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const base64 = Platform.OS === "web" ? photoUri : `data:image/jpeg;base64,${photoUri.split(",").pop() || ""}`;
+      const res = await fetch(`${getApiUrl()}api/ai/detect-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok || ""}` },
+        body: JSON.stringify({ imageBase64: photoUri }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPhotoAiResult(data);
+      }
+    } catch {}
+    setPhotoAiLoading(false);
+  }, []);
+
   const handlePickPhoto = useCallback(async () => {
     if (Platform.OS === "web") {
-      setNewPhoto("https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop");
+      if (webFileInputRef.current) webFileInputRef.current.click();
       return;
     }
     Alert.alert("Attach Photo", "Choose source", [
       { text: "Camera", onPress: async () => {
         const r = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.7 });
-        if (!r.canceled && r.assets[0]) setNewPhoto(r.assets[0].uri);
+        if (!r.canceled && r.assets[0]) { setNewPhoto(r.assets[0].uri); runAiDetection(r.assets[0].uri); }
       }},
       { text: "Gallery", onPress: async () => {
         const r = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.7 });
-        if (!r.canceled && r.assets[0]) setNewPhoto(r.assets[0].uri);
+        if (!r.canceled && r.assets[0]) { setNewPhoto(r.assets[0].uri); runAiDetection(r.assets[0].uri); }
       }},
       { text: "Cancel", style: "cancel" },
     ]);
+  }, [runAiDetection]);
+
+  const resetForm = useCallback(() => {
+    setNewDesc(""); setNewLoc(""); setNewLandmark(""); setNewCat("pothole");
+    setNewPriority("P3"); setAiDetected(""); setNewPhoto(null);
+    setPhotoAiResult(null); setPhotoAiLoading(false);
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!newDesc.trim() || !newLoc.trim()) { Alert.alert("Required fields", "Please fill in description and location"); return; }
+    if (!newDesc.trim()) { Alert.alert("Required", "Please describe the issue"); return; }
+    if (!newLoc.trim()) { Alert.alert("Required", "Please enter location or use GPS"); return; }
     setSubmitting(true);
     try {
+      const locStr = newLandmark.trim() ? `${newLoc.trim()} (near ${newLandmark.trim()})` : newLoc.trim();
       await submitComplaint({
-        category: newCat as any, description: newDesc.trim(), location: newLoc.trim(),
+        category: newCat as any,
+        description: newDesc.trim(),
+        location: locStr,
         geo: { lat: 30.0668 + (Math.random() - 0.5) * 2.8, lng: 79.0193 + (Math.random() - 0.5) * 3.8 },
-        ward: user?.district || "Dehradun", wardNumber: 1, priority: newPriority as any,
-        status: "pending", isCluster: false, hasProof: !!newPhoto,
-      });
+        ward: user?.district || "Dehradun",
+        wardNumber: 1,
+        priority: newPriority as any,
+        status: "pending",
+        isCluster: false,
+        hasProof: !!newPhoto,
+        beforePhoto: newPhoto || undefined,
+        photoIsReal: photoAiResult?.isReal,
+        photoAiReason: photoAiResult?.reason,
+        photoAiConfidence: photoAiResult?.confidence,
+      } as any);
       setShowSubmit(false);
-      setNewDesc(""); setNewLoc(""); setNewCat("pothole"); setNewPriority("P3"); setAiDetected(""); setNewPhoto(null);
+      resetForm();
     } catch (err: any) { Alert.alert("Error", err.message); }
     finally { setSubmitting(false); }
-  }, [newCat, newDesc, newLoc, newPriority, newPhoto, submitComplaint, user]);
+  }, [newCat, newDesc, newLoc, newLandmark, newPriority, newPhoto, photoAiResult, submitComplaint, user, resetForm]);
 
   const handleUpvote = useCallback(async (id: string) => { try { await upvoteComplaint(id); } catch {} }, [upvoteComplaint]);
 
@@ -777,124 +832,247 @@ export default function ComplaintsScreen() {
           <ScrollView>
             <View style={[cs.sheet, { borderRadius: 24, marginTop: 60, marginHorizontal: 0 }]}>
               <View style={cs.sheetHandle} />
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 16 }}>
-                <Text style={cs.modalTitle}>File a Complaint</Text>
-                <Pressable onPress={() => setShowSubmit(false)} style={cs.closeBtn}>
+              {/* Hidden web file input */}
+              {Platform.OS === "web" && (
+                <input
+                  ref={webFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e: any) => {
+                    const file = e.target?.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      const dataUrl = reader.result as string;
+                      setNewPhoto(dataUrl);
+                      runAiDetection(dataUrl);
+                    };
+                    reader.readAsDataURL(file);
+                    e.target.value = "";
+                  }}
+                />
+              )}
+
+              {/* Header */}
+              <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, marginBottom: 4 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[cs.modalTitle, { paddingHorizontal: 0 }]}>File Civic Report</Text>
+                  <Text style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular" }}>All reports are auto-routed to the correct department</Text>
+                </View>
+                <Pressable onPress={() => { setShowSubmit(false); resetForm(); }} style={cs.closeBtn}>
                   <Ionicons name="close" size={18} color="#6B7280" />
                 </Pressable>
               </View>
 
               <View style={{ paddingHorizontal: 20 }}>
-                {/* Description + Voice */}
-                <Text style={cs.fieldLabel}>WHAT'S THE PROBLEM? *</Text>
-                <View style={{ position: "relative" }}>
-                  <TextInput
-                    style={[cs.textArea, { paddingRight: 48 }]}
-                    placeholder="Describe the issue clearly..."
-                    placeholderTextColor="#9CA3AF"
-                    value={newDesc}
-                    onChangeText={setNewDesc}
-                    multiline
-                    numberOfLines={3}
-                  />
-                  <Pressable
-                    onPress={handleVoiceInput}
-                    style={{ position: "absolute", right: 10, bottom: 18, width: 34, height: 34, borderRadius: 17, backgroundColor: isListening ? "#E64A19" : "#F3F4F6", alignItems: "center", justifyContent: "center" }}
-                  >
-                    <Ionicons name={isListening ? "radio" : "mic"} size={16} color={isListening ? "#fff" : "#6B7280"} />
-                  </Pressable>
-                </View>
-                {isListening && (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF8E7", borderRadius: 8, padding: 8, marginTop: 4, marginBottom: 4 }}>
-                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#E64A19" }} />
-                    <Text style={{ color: "#E64A19", fontSize: 12, fontFamily: "Inter_600SemiBold" }}>Listening... speak now</Text>
-                  </View>
-                )}
-                {aiDetected && (
-                  <View style={cs.aiDetectRow}>
-                    <Text style={{ fontSize: 14 }}>🤖</Text>
-                    <Text style={cs.aiDetectText}>AI detected: <Text style={{ color: "#E64A19", fontFamily: "Inter_700Bold" }}>{CATS.find(c => c.key === aiDetected)?.label}</Text></Text>
-                  </View>
-                )}
 
-                {/* Category */}
-                <Text style={cs.fieldLabel}>CATEGORY *</Text>
-                <View style={cs.catGrid}>
-                  {CATS.map(c => (
-                    <Pressable key={c.key} onPress={() => setNewCat(c.key)}
-                      style={[cs.catCard, newCat === c.key && { backgroundColor: c.bg, borderColor: c.color, borderWidth: 2 }]}
+                {/* ── SECTION: DESCRIBE ── */}
+                <View style={cs.sectionCard}>
+                  <View style={cs.sectionHeader}>
+                    <View style={[cs.sectionDot, { backgroundColor: "#E64A19" }]} />
+                    <Text style={cs.sectionTitle}>DESCRIBE THE ISSUE</Text>
+                  </View>
+                  <View style={{ position: "relative" }}>
+                    <TextInput
+                      style={[cs.textArea, { paddingRight: 52, minHeight: 90 }]}
+                      placeholder="Describe the civic problem clearly — e.g. 'Large pothole near police chowk causing accidents'"
+                      placeholderTextColor="#9CA3AF"
+                      value={newDesc}
+                      onChangeText={setNewDesc}
+                      multiline
+                      numberOfLines={3}
+                    />
+                    <Pressable
+                      onPress={handleVoiceInput}
+                      style={{ position: "absolute", right: 10, top: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: isListening ? "#E64A19" : "#F3F4F6", alignItems: "center", justifyContent: "center" }}
                     >
-                      <Ionicons name={c.icon} size={20} color={newCat === c.key ? c.color : "#9CA3AF"} />
-                      <Text style={[cs.catCardText, newCat === c.key && { color: c.color }]}>{c.label}</Text>
+                      <Ionicons name={isListening ? "radio" : "mic"} size={16} color={isListening ? "#fff" : "#6B7280"} />
                     </Pressable>
-                  ))}
-                </View>
-
-                {/* Location */}
-                <Text style={cs.fieldLabel}>LOCATION *</Text>
-                <View style={{ flexDirection: "row", gap: 8, alignItems: "center", marginBottom: 16 }}>
-                  <View style={[cs.inputWrap, { flex: 1, marginBottom: 0 }]}>
-                    <Ionicons name="location" size={16} color={newLoc.startsWith("GPS:") ? "#00A651" : "#9CA3AF"} />
-                    <TextInput style={cs.inputField} placeholder="Street, area, landmark..." placeholderTextColor="#9CA3AF" value={newLoc} onChangeText={setNewLoc} />
                   </View>
-                  <Pressable onPress={handleDetectLocation} disabled={detectingLoc}
-                    style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: detectingLoc ? "#E5E7EB" : "#F0FFF4", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: detectingLoc ? "#E5E7EB" : "#A7F3D0" }}>
-                    {detectingLoc
-                      ? <ActivityIndicator size="small" color="#00A651" />
-                      : <Ionicons name="navigate" size={14} color="#00A651" />}
-                    <Text style={{ color: "#00A651", fontSize: 11, fontFamily: "Inter_700Bold" }}>
-                      {detectingLoc ? "..." : "Detect"}
-                    </Text>
-                  </Pressable>
-                </View>
-
-                {/* Priority */}
-                <Text style={cs.fieldLabel}>PRIORITY</Text>
-                <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
-                  {PRIORITIES.map(p => (
-                    <Pressable key={p.key} onPress={() => setNewPriority(p.key)}
-                      style={[cs.prBtn, newPriority === p.key && { backgroundColor: p.color + "18", borderColor: p.color }]}
-                    >
-                      <Text style={[cs.prBtnText, newPriority === p.key && { color: p.color }]}>{p.key}</Text>
-                      <Text style={cs.prBtnSub}>{p.label}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-
-                {/* Photo */}
-                <Text style={cs.fieldLabel}>PHOTO PROOF</Text>
-                {newPhoto ? (
-                  <View style={{ marginBottom: 16, position: "relative", borderRadius: 12, overflow: "hidden", height: 120, backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB" }}>
-                    <Image source={{ uri: newPhoto }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-                    <Pressable onPress={() => setNewPhoto(null)} style={{ position: "absolute", top: 6, right: 6, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 14, padding: 2 }}>
-                      <Ionicons name="close-circle" size={22} color="#fff" />
-                    </Pressable>
-                    <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "rgba(0,0,0,0.45)", paddingVertical: 4, paddingHorizontal: 10 }}>
-                      <Text style={{ color: "#fff", fontSize: 10, fontFamily: "Inter_600SemiBold" }}>📷 Photo attached · tap ✕ to remove</Text>
+                  {isListening && (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF8E7", borderRadius: 8, padding: 8, marginTop: 6 }}>
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#E64A19" }} />
+                      <Text style={{ color: "#E64A19", fontSize: 12, fontFamily: "Inter_600SemiBold" }}>Listening... speak now</Text>
                     </View>
+                  )}
+                  {aiDetected && (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF8E7", borderRadius: 10, padding: 10, marginTop: 8, borderWidth: 1, borderColor: "#FED7AA" }}>
+                      <Text style={{ fontSize: 14 }}>🤖</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: "#92400E", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>AI auto-classified</Text>
+                        <Text style={{ color: "#B45309", fontSize: 12, fontFamily: "Inter_700Bold" }}>
+                          {CATS.find(c => c.key === aiDetected)?.label} → {CATS.find(c => c.key === aiDetected)?.deptFull}
+                        </Text>
+                      </View>
+                      <Pressable onPress={() => setAiDetected("")} style={{ padding: 2 }}>
+                        <Ionicons name="close" size={14} color="#9CA3AF" />
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+
+                {/* ── SECTION: CATEGORY ── */}
+                <View style={cs.sectionCard}>
+                  <View style={cs.sectionHeader}>
+                    <View style={[cs.sectionDot, { backgroundColor: "#3B82F6" }]} />
+                    <Text style={cs.sectionTitle}>SELECT CATEGORY</Text>
                   </View>
-                ) : (
-                  <Pressable onPress={handlePickPhoto} style={cs.photoPicker}>
-                    <View style={cs.photoPickerIcon}>
-                      <Ionicons name="camera" size={22} color="#3B82F6" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={cs.photoPickerTitle}>Attach Photo</Text>
-                      <Text style={cs.photoPickerSub}>Camera or gallery · Boosts AI priority score</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
-                  </Pressable>
-                )}
+                  <View style={cs.catGrid}>
+                    {CATS.map(c => (
+                      <Pressable key={c.key} onPress={() => setNewCat(c.key)}
+                        style={[cs.catCard, newCat === c.key && { backgroundColor: c.bg, borderColor: c.color, borderWidth: 2 }]}
+                      >
+                        <Ionicons name={c.icon} size={20} color={newCat === c.key ? c.color : "#9CA3AF"} />
+                        <Text style={[cs.catCardText, newCat === c.key && { color: c.color, fontFamily: "Inter_700Bold" }]}>{c.label}</Text>
+                        {newCat === c.key && (
+                          <View style={{ backgroundColor: c.color + "22", borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 }}>
+                            <Text style={{ color: c.color, fontSize: 8, fontFamily: "Inter_700Bold" }}>{c.dept}</Text>
+                          </View>
+                        )}
+                      </Pressable>
+                    ))}
+                  </View>
+                  {/* Department preview */}
+                  {(() => {
+                    const selected = CATS.find(c => c.key === newCat);
+                    if (!selected) return null;
+                    return (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: selected.bg, borderRadius: 12, padding: 12, marginTop: 8, borderWidth: 1, borderColor: selected.color + "33" }}>
+                        <Ionicons name={selected.icon} size={20} color={selected.color} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: selected.color, fontSize: 12, fontFamily: "Inter_700Bold" }}>Routes to: {selected.deptFull}</Text>
+                          <Text style={{ color: "#6B7280", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 }}>Dept code: {selected.dept} · Auto-assigned based on category</Text>
+                        </View>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: selected.color }} />
+                      </View>
+                    );
+                  })()}
+                </View>
 
+                {/* ── SECTION: PHOTO ── */}
+                <View style={cs.sectionCard}>
+                  <View style={cs.sectionHeader}>
+                    <View style={[cs.sectionDot, { backgroundColor: "#8B5CF6" }]} />
+                    <Text style={cs.sectionTitle}>PHOTO EVIDENCE</Text>
+                    <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginLeft: 6 }}>AI will verify authenticity</Text>
+                  </View>
+                  {newPhoto ? (
+                    <View style={{ borderRadius: 14, overflow: "hidden", height: 150, borderWidth: 1, borderColor: "#E5E7EB" }}>
+                      <Image source={{ uri: newPhoto }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                      <Pressable onPress={() => { setNewPhoto(null); setPhotoAiResult(null); }} style={{ position: "absolute", top: 8, right: 8, backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 14, padding: 3 }}>
+                        <Ionicons name="close-circle" size={20} color="#fff" />
+                      </Pressable>
+                      {/* AI detection badge */}
+                      {photoAiLoading && (
+                        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "rgba(0,0,0,0.65)", paddingVertical: 8, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                          <ActivityIndicator size="small" color="#fff" />
+                          <Text style={{ color: "#fff", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>AI checking authenticity...</Text>
+                        </View>
+                      )}
+                      {!photoAiLoading && photoAiResult && (
+                        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: photoAiResult.isReal ? "rgba(0,100,50,0.85)" : "rgba(180,0,0,0.85)", paddingVertical: 8, paddingHorizontal: 12 }}>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                            <Ionicons name={photoAiResult.isReal ? "shield-checkmark" : "warning"} size={14} color="#fff" />
+                            <Text style={{ color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold" }}>
+                              {photoAiResult.isReal ? `✓ Real Photo (${photoAiResult.confidence}% confidence)` : `⚠ AI-Generated (${photoAiResult.confidence}% confidence)`}
+                            </Text>
+                          </View>
+                          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={1}>{photoAiResult.reason}</Text>
+                        </View>
+                      )}
+                    </View>
+                  ) : (
+                    <Pressable onPress={handlePickPhoto} style={[cs.photoPicker, { borderStyle: "dashed" }]}>
+                      <View style={[cs.photoPickerIcon, { backgroundColor: "#F5F3FF" }]}>
+                        <Ionicons name="camera" size={22} color="#8B5CF6" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[cs.photoPickerTitle, { color: "#7C3AED" }]}>
+                          {Platform.OS === "web" ? "Upload Photo from Device" : "Camera / Gallery"}
+                        </Text>
+                        <Text style={cs.photoPickerSub}>AI will verify if photo is real · Boosts priority score by 30%</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                    </Pressable>
+                  )}
+                  {!photoAiLoading && photoAiResult && !photoAiResult.isReal && (
+                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 10, marginTop: 8, borderWidth: 1, borderColor: "#FECACA" }}>
+                      <Ionicons name="warning" size={16} color="#DC2626" style={{ marginTop: 1 }} />
+                      <Text style={{ flex: 1, color: "#991B1B", fontSize: 12, fontFamily: "Inter_500Medium", lineHeight: 16 }}>
+                        This image appears AI-generated. Real photos from the location are required. You can still submit, but this complaint will be flagged for manual review.
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* ── SECTION: LOCATION ── */}
+                <View style={cs.sectionCard}>
+                  <View style={cs.sectionHeader}>
+                    <View style={[cs.sectionDot, { backgroundColor: "#00A651" }]} />
+                    <Text style={cs.sectionTitle}>LOCATION DETAILS</Text>
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 8, alignItems: "center", marginBottom: 10 }}>
+                    <View style={[cs.inputWrap, { flex: 1, marginBottom: 0 }]}>
+                      <Ionicons name="location" size={16} color={newLoc.startsWith("GPS:") ? "#00A651" : "#9CA3AF"} />
+                      <TextInput style={cs.inputField} placeholder="Area, street or colony..." placeholderTextColor="#9CA3AF" value={newLoc} onChangeText={setNewLoc} />
+                    </View>
+                    <Pressable onPress={handleDetectLocation} disabled={detectingLoc}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: detectingLoc ? "#E5E7EB" : "#F0FFF4", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, borderWidth: 1, borderColor: detectingLoc ? "#E5E7EB" : "#A7F3D0" }}>
+                      {detectingLoc ? <ActivityIndicator size="small" color="#00A651" /> : <Ionicons name="navigate" size={14} color="#00A651" />}
+                      <Text style={{ color: "#00A651", fontSize: 11, fontFamily: "Inter_700Bold" }}>
+                        {detectingLoc ? "..." : "GPS"}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <View style={cs.inputWrap}>
+                    <Ionicons name="flag" size={16} color="#9CA3AF" />
+                    <TextInput style={cs.inputField} placeholder="Landmark nearby (optional)" placeholderTextColor="#9CA3AF" value={newLandmark} onChangeText={setNewLandmark} />
+                  </View>
+                </View>
+
+                {/* ── SECTION: PRIORITY ── */}
+                <View style={cs.sectionCard}>
+                  <View style={cs.sectionHeader}>
+                    <View style={[cs.sectionDot, { backgroundColor: "#F59E0B" }]} />
+                    <Text style={cs.sectionTitle}>PRIORITY LEVEL</Text>
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    {PRIORITIES.map(p => (
+                      <Pressable key={p.key} onPress={() => setNewPriority(p.key)}
+                        style={[cs.prBtn, newPriority === p.key && { backgroundColor: p.color + "18", borderColor: p.color }]}
+                      >
+                        <Text style={[cs.prBtnText, newPriority === p.key && { color: p.color }]}>{p.key}</Text>
+                        <Text style={cs.prBtnSub}>{p.label}</Text>
+                        {newPriority === p.key && (
+                          <Text style={{ color: p.color, fontSize: 8, fontFamily: "Inter_500Medium", marginTop: 2 }}>
+                            {p.key === "P1" ? "SLA: 24h" : p.key === "P2" ? "SLA: 48h" : p.key === "P3" ? "SLA: 72h" : "SLA: 7d"}
+                          </Text>
+                        )}
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+
+                {/* ── SUBMIT ── */}
                 <Pressable onPress={handleSubmit} disabled={submitting} style={cs.submitBtn}>
                   {submitting ? <ActivityIndicator color="#fff" /> : (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      <Ionicons name="paper-plane" size={16} color="#fff" />
-                      <Text style={cs.submitBtnText}>Submit Complaint</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <Ionicons name="paper-plane" size={18} color="#fff" />
+                      <Text style={cs.submitBtnText}>Submit Report</Text>
+                      {photoAiResult && (
+                        <View style={{ backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
+                          <Text style={{ color: "#fff", fontSize: 10, fontFamily: "Inter_700Bold" }}>
+                            {photoAiResult.isReal ? "✓ Verified" : "⚠ Flagged"}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   )}
                 </Pressable>
-                <View style={{ height: 20 }} />
+                <Text style={{ textAlign: "center", color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 8, marginBottom: 20 }}>
+                  Auto-routed to {CATS.find(c => c.key === newCat)?.deptFull} · Ticket generated instantly
+                </Text>
               </View>
             </View>
           </ScrollView>
@@ -1008,4 +1186,8 @@ const cs = StyleSheet.create({
   submitBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
   aiDetectRow: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF8E7", borderRadius: 10, padding: 10, marginBottom: 8 },
   aiDetectText: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_500Medium" },
+  sectionCard: { backgroundColor: "#FAFAFA", borderRadius: 16, padding: 14, marginTop: 12, borderWidth: 1, borderColor: "#F0F0F0" },
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  sectionDot: { width: 8, height: 8, borderRadius: 4 },
+  sectionTitle: { color: "#374151", fontSize: 10, fontFamily: "Inter_700Bold", textTransform: "uppercase", letterSpacing: 1 },
 });
