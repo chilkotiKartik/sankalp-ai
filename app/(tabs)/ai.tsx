@@ -1,59 +1,36 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, TextInput, Pressable, ScrollView,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Animated,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Animated, FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getApiUrl } from "@/lib/query-client";
 import { useAuth } from "@/context/AuthContext";
+import Colors from "@/constants/colors";
 
-interface Msg { id: string; role: "user" | "ai"; text: string; ts: Date }
+interface Msg { id: string; role: "user" | "ai"; text: string; ts: Date; model?: string }
 
 const QUICK_PROMPTS = [
-  { label: "Report pothole 🕳️", text: "How do I report a pothole near my house?" },
-  { label: "SOS Help 🆘", text: "What do I do in case of a women safety emergency?" },
-  { label: "Govt Schemes 📋", text: "What government schemes am I eligible for in Uttarakhand?" },
-  { label: "Track complaint 📍", text: "How do I track my complaint status?" },
-  { label: "Water issue 💧", text: "There is no water supply in my area. What can I do?" },
-  { label: "Air quality 🌫️", text: "What is the current AQI in Dehradun?" },
+  { label: "🕳️ Report Pothole", text: "How do I report a pothole near my house?" },
+  { label: "🆘 SOS Help", text: "What do I do in case of a women safety emergency?" },
+  { label: "📋 Govt Schemes", text: "What government schemes am I eligible for in Uttarakhand?" },
+  { label: "📍 Track Complaint", text: "How do I track my complaint status?" },
+  { label: "💧 Water Issue", text: "There is no water supply in my area. What can I do?" },
+  { label: "🌫️ Air Quality", text: "What is the current AQI in Dehradun?" },
+  { label: "🏥 Nearest Hospital", text: "What are the nearest hospitals to me in Uttarakhand?" },
+  { label: "⚡ Power Cut", text: "There is a power cut in my area. How to file complaint?" },
 ];
 
-function TypingDots() {
-  const dot1 = useRef(new Animated.Value(0)).current;
-  const dot2 = useRef(new Animated.Value(0)).current;
-  const dot3 = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const bounce = (v: Animated.Value, delay: number) =>
-      Animated.loop(Animated.sequence([
-        Animated.delay(delay),
-        Animated.timing(v, { toValue: -6, duration: 300, useNativeDriver: false }),
-        Animated.timing(v, { toValue: 0, duration: 300, useNativeDriver: false }),
-        Animated.delay(400),
-      ]));
-    bounce(dot1, 0).start();
-    bounce(dot2, 160).start();
-    bounce(dot3, 320).start();
-  }, []);
-  return (
-    <View style={t.dots}>
-      {[dot1, dot2, dot3].map((d, i) => (
-        <Animated.View key={i} style={[t.dot, { transform: [{ translateY: d }] }]} />
-      ))}
-    </View>
-  );
-}
-
 const FOLLOW_UP_MAP: { keywords: string[]; suggestions: string[] }[] = [
-  { keywords: ["pothole", "road", "repair", "pavement"], suggestions: ["Track pothole complaint", "Report another pothole", "PWD department contact"] },
+  { keywords: ["pothole", "road", "repair", "pavement"], suggestions: ["Track pothole complaint", "PWD department contact", "Road damage helpline"] },
   { keywords: ["water", "supply", "pipeline", "tap", "bore"], suggestions: ["File water complaint", "Jal Sansthan helpline", "Check water quality"] },
   { keywords: ["emergency", "sos", "safety", "women", "danger"], suggestions: ["Trigger SOS now", "Police helpline 100", "USDMA helpline 1070"] },
   { keywords: ["scheme", "yojana", "government", "eligible", "subsidy"], suggestions: ["PM Awas eligibility", "Kisan scheme details", "Student scholarships"] },
   { keywords: ["hospital", "health", "medical", "doctor", "ambulance"], suggestions: ["Nearest hospital", "Dial 108 ambulance", "Health card scheme"] },
   { keywords: ["garbage", "waste", "trash", "sanitation", "clean"], suggestions: ["Report garbage issue", "Nagar Nigam contact", "Cleanliness helpline"] },
   { keywords: ["electricity", "power", "light", "streetlight", "blackout"], suggestions: ["File electricity complaint", "UPCL helpline", "Streetlight issue"] },
-  { keywords: ["bus", "transport", "road", "traffic"], suggestions: ["UTSRTC schedule", "Report traffic issue", "Road condition map"] },
 ];
 
 function getFollowUps(text: string): string[] {
@@ -64,6 +41,94 @@ function getFollowUps(text: string): string[] {
   return ["Track complaint status", "File a new complaint", "Emergency helplines"];
 }
 
+function TypingDots() {
+  const d1 = useRef(new Animated.Value(0)).current;
+  const d2 = useRef(new Animated.Value(0)).current;
+  const d3 = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const bounce = (v: Animated.Value, delay: number) =>
+      Animated.loop(Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(v, { toValue: -5, duration: 280, useNativeDriver: false }),
+        Animated.timing(v, { toValue: 0, duration: 280, useNativeDriver: false }),
+        Animated.delay(350),
+      ]));
+    bounce(d1, 0).start();
+    bounce(d2, 140).start();
+    bounce(d3, 280).start();
+  }, []);
+  return (
+    <View style={s.dots}>
+      {[d1, d2, d3].map((d, i) => (
+        <Animated.View key={i} style={[s.dot, { transform: [{ translateY: d }] }]} />
+      ))}
+    </View>
+  );
+}
+
+function AIBubble({ msg, isLast, onFollowUp }: { msg: Msg; isLast: boolean; onFollowUp: (t: string) => void }) {
+  const slideY = useRef(new Animated.Value(12)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(slideY, { toValue: 0, duration: 280, useNativeDriver: false }),
+      Animated.timing(opacity, { toValue: 1, duration: 280, useNativeDriver: false }),
+    ]).start();
+  }, []);
+  const followUps = getFollowUps(msg.text);
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY: slideY }] }}>
+      <View style={s.msgRow}>
+        <LinearGradient colors={["#FF9933", "#E07000"]} style={s.aiAvatar}>
+          <Text style={{ fontSize: 13 }}>🤖</Text>
+        </LinearGradient>
+        <View style={s.aiMsgWrap}>
+          <View style={s.bubbleAI}>
+            <Text style={s.bubbleTextAI}>{msg.text}</Text>
+            <View style={s.bubbleMeta}>
+              {msg.model && (
+                <View style={s.modelBadge}>
+                  <Ionicons name="hardware-chip" size={9} color={Colors.saffron} />
+                  <Text style={s.modelText}>{msg.model}</Text>
+                </View>
+              )}
+              <Text style={s.bubbleTime}>{msg.ts.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</Text>
+            </View>
+          </View>
+          {isLast && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }} contentContainerStyle={{ gap: 6, paddingRight: 16 }}>
+              {followUps.map((f, i) => (
+                <Pressable key={i} onPress={() => onFollowUp(f)} style={s.followChip}>
+                  <Text style={s.followChipText}>{f}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+function UserBubble({ msg }: { msg: Msg }) {
+  const slideY = useRef(new Animated.Value(10)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(slideY, { toValue: 0, duration: 200, useNativeDriver: false }),
+      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: false }),
+    ]).start();
+  }, []);
+  return (
+    <Animated.View style={[s.msgRowUser, { opacity, transform: [{ translateY: slideY }] }]}>
+      <View style={s.bubbleUser}>
+        <Text style={s.bubbleTextUser}>{msg.text}</Text>
+        <Text style={s.bubbleTimeUser}>{msg.ts.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
 export default function AIChatScreen() {
   const insets = useSafeAreaInsets();
   const { user, token } = useAuth();
@@ -71,168 +136,176 @@ export default function AIChatScreen() {
     {
       id: "welcome",
       role: "ai",
-      text: `Namaste ${user?.name?.split(" ")[0] || "Citizen"}! 🙏\n\nI am SANKALP AI, your Uttarakhand civic assistant. I can help you:\n\n• File and track civic complaints\n• Access government schemes & helplines\n• Find hospitals, bus stations & services\n• Get real-time district and pollution data\n\nHow can I assist you today?`,
+      text: `Namaste ${user?.name?.split(" ")[0] || "Citizen"}! 🙏\n\nMain SANKALP AI hoon — aapka Uttarakhand civic assistant.\n\nMain aapki help kar sakta hoon:\n• Civic complaints file aur track karna\n• Government schemes & helplines dhundna\n• Hospitals, buses & local services locate karna\n• Real-time district data aur pollution info\n\nAaj main aapki kya seva kar sakta hoon?`,
       ts: new Date(),
+      model: "SANKALP AI",
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const inputRef = useRef<TextInput>(null);
 
-  const send = async (text: string) => {
+  const scrollToEnd = useCallback(() => {
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+  }, []);
+
+  const send = useCallback(async (text: string) => {
     const txt = text.trim();
     if (!txt || loading) return;
     setInput("");
     const userMsg: Msg = { id: Date.now().toString(), role: "user", text: txt, ts: new Date() };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    scrollToEnd();
     try {
       const url = new URL("/api/ai/chat", getApiUrl());
       const res = await fetch(url.toString(), {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ message: txt, userId: user?.id }),
       });
       const data = await res.json();
       setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(), role: "ai",
-        text: data.reply || "I could not process that. Please try again.", ts: new Date(),
+        id: (Date.now() + 1).toString(),
+        role: "ai",
+        text: data.reply || "Mujhe samajh nahi aaya. Kripaya dobara try karein.",
+        ts: new Date(),
+        model: data.powered_by || "SANKALP AI",
       }]);
     } catch {
       setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(), role: "ai",
-        text: "Connection error. Please check your internet and try again.", ts: new Date(),
+        id: (Date.now() + 1).toString(),
+        role: "ai",
+        text: "Connection error. Kripaya internet check karein aur dobara try karein.",
+        ts: new Date(),
       }]);
     } finally {
       setLoading(false);
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      scrollToEnd();
     }
-  };
+  }, [loading, token, user, scrollToEnd]);
 
-  const fmt = (d: Date) => d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  const topPad = Platform.OS === "web" ? 72 : insets.top;
+  const botPad = Platform.OS === "web" ? 24 : insets.bottom;
 
   return (
-    <View style={t.container}>
+    <View style={s.container}>
       {/* Header */}
-      <LinearGradient
-        colors={["#FF6B00", "#FF9933", "#FFBA5C"]}
-        style={[t.header, { paddingTop: Platform.OS === "web" ? 80 : insets.top + 16 }]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      >
-        <View style={t.headerBg1} />
-        <View style={t.headerBg2} />
-        <View style={t.headerContent}>
-          <View style={t.aiAvatarWrap}>
-            <Text style={{ fontSize: 28 }}>🤖</Text>
+      <View style={[s.header, { paddingTop: topPad + 10 }]}>
+        <LinearGradient
+          colors={["#FF9933", "#E07000"]}
+          style={s.headerAccent}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        />
+        <View style={s.headerContent}>
+          <View style={s.botIconWrap}>
+            <Text style={{ fontSize: 24 }}>🤖</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={t.headerTitle}>SANKALP AI</Text>
-            <View style={t.onlineRow}>
-              <View style={t.onlineDot} />
-              <Text style={t.onlineText}>Online · Uttarakhand Civic Intelligence</Text>
+            <Text style={s.headerTitle}>SANKALP AI</Text>
+            <View style={s.onlineRow}>
+              <View style={s.onlineDot} />
+              <Text style={s.onlineText}>Online · Uttarakhand Civic Intelligence</Text>
             </View>
           </View>
-          <View style={t.govVerified}>
-            <Ionicons name="shield-checkmark" size={11} color="#FF9933" />
-            <Text style={t.govVerifiedText}>GOV VERIFIED</Text>
+          <View style={s.govBadge}>
+            <Ionicons name="shield-checkmark" size={10} color={Colors.saffron} />
+            <Text style={s.govBadgeText}>GOV</Text>
           </View>
         </View>
-        <View style={t.tricolor}>
-          <View style={{ flex: 1, backgroundColor: "#fff", opacity: 0.9 }} />
-          <View style={{ flex: 1, backgroundColor: "rgba(255,255,255,0.4)" }} />
-          <View style={{ flex: 1, backgroundColor: "#138808" }} />
+        <View style={s.tricolor}>
+          <View style={[s.triSlice, { backgroundColor: "#FF9933" }]} />
+          <View style={[s.triSlice, { backgroundColor: "#fff", opacity: 0.15 }]} />
+          <View style={[s.triSlice, { backgroundColor: "#138808" }]} />
         </View>
-      </LinearGradient>
+      </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <ScrollView
           ref={scrollRef}
-          style={t.msgList}
-          contentContainerStyle={t.msgContent}
+          style={s.msgList}
+          contentContainerStyle={[s.msgContent, { paddingBottom: botPad + 16 }]}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
         >
+          {/* Welcome quick prompts */}
           {messages.length === 1 && (
-            <View style={t.quickSection}>
-              <Text style={t.quickLabel}>QUICK QUESTIONS</Text>
-              <View style={t.quickRow}>
+            <View style={s.quickSection}>
+              <Text style={s.quickLabel}>● QUICK QUESTIONS</Text>
+              <View style={s.quickGrid}>
                 {QUICK_PROMPTS.map(q => (
-                  <Pressable key={q.label} onPress={() => send(q.text)} style={t.quickChip}>
-                    <Text style={t.quickChipText}>{q.label}</Text>
+                  <Pressable key={q.label} onPress={() => send(q.text)} style={s.quickCard}>
+                    <Text style={s.quickCardText}>{q.label}</Text>
                   </Pressable>
                 ))}
               </View>
             </View>
           )}
 
-          {messages.map((msg, idx) => (
-            <React.Fragment key={msg.id}>
-              <View style={[t.msgRow, msg.role === "user" && t.msgRowUser]}>
-                {msg.role === "ai" && (
-                  <View style={t.aiAvatar}><Text style={{ fontSize: 14 }}>🤖</Text></View>
-                )}
-                <View style={[t.bubble, msg.role === "user" ? t.bubbleUser : t.bubbleAI]}>
-                  <Text style={[t.bubbleText, msg.role === "user" ? t.bubbleTextUser : t.bubbleTextAI]}>
-                    {msg.text}
-                  </Text>
-                  <Text style={[t.bubbleTime, msg.role === "user" ? t.bubbleTimeUser : t.bubbleTimeAI]}>
-                    {fmt(msg.ts)}
-                  </Text>
-                </View>
-              </View>
-              {msg.role === "ai" && idx === messages.length - 1 && !loading && idx > 0 && (
-                <View style={{ marginLeft: 44, marginTop: 6, marginBottom: 2, flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                  {getFollowUps(msg.text).map((s, i) => (
-                    <Pressable key={i} onPress={() => send(s)} style={{ backgroundColor: "#FFF8E7", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#FFD0A0" }}>
-                      <Text style={{ color: "#FF9933", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>{s}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-            </React.Fragment>
-          ))}
+          {/* Messages */}
+          {messages.map((msg, idx) =>
+            msg.role === "ai" ? (
+              <AIBubble
+                key={msg.id}
+                msg={msg}
+                isLast={idx === messages.length - 1 && !loading}
+                onFollowUp={send}
+              />
+            ) : (
+              <UserBubble key={msg.id} msg={msg} />
+            )
+          )}
 
           {loading && (
-            <View style={t.msgRow}>
-              <View style={t.aiAvatar}><Text style={{ fontSize: 14 }}>🤖</Text></View>
-              <View style={t.bubbleAI}><TypingDots /></View>
+            <View style={s.msgRow}>
+              <LinearGradient colors={["#FF9933", "#E07000"]} style={s.aiAvatar}>
+                <Text style={{ fontSize: 13 }}>🤖</Text>
+              </LinearGradient>
+              <View style={s.bubbleAI}><TypingDots /></View>
             </View>
           )}
         </ScrollView>
 
+        {/* Persistent chip bar (after first message) */}
         {messages.length > 1 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={t.chipBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.chipBar}
+            style={s.chipBarWrap}
+          >
             {QUICK_PROMPTS.map(q => (
-              <Pressable key={q.label} onPress={() => send(q.text)} style={t.chipBarChip}>
-                <Text style={t.chipBarText}>{q.label}</Text>
+              <Pressable key={q.label} onPress={() => send(q.text)} style={s.chipBarChip}>
+                <Text style={s.chipBarText}>{q.label}</Text>
               </Pressable>
             ))}
           </ScrollView>
         )}
 
-        <View style={[t.inputBar, { paddingBottom: Platform.OS === "web" ? 20 : insets.bottom + 8 }]}>
+        {/* Input Bar */}
+        <View style={[s.inputBar, { paddingBottom: Platform.OS === "ios" ? botPad + 8 : 12 }]}>
           <TextInput
-            style={t.input}
-            placeholder="Ask me anything about Uttarakhand..."
-            placeholderTextColor="#9CA3AF"
+            ref={inputRef}
+            style={s.input}
+            placeholder="Kuch bhi poochein Uttarakhand ke baare mein..."
+            placeholderTextColor={Colors.textMuted}
             value={input}
             onChangeText={setInput}
             multiline
             maxLength={500}
-            onSubmitEditing={() => send(input)}
             returnKeyType="send"
+            onSubmitEditing={() => { if (Platform.OS !== "web") send(input); }}
           />
           <Pressable
             onPress={() => send(input)}
             disabled={!input.trim() || loading}
-            style={[t.sendBtn, (!input.trim() || loading) && t.sendBtnDisabled]}
+            style={[s.sendBtn, (!input.trim() || loading) && s.sendBtnOff]}
           >
-            {loading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="send" size={18} color="#fff" />
-            )}
+            {loading
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Ionicons name="send" size={17} color="#fff" />
+            }
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -240,78 +313,136 @@ export default function AIChatScreen() {
   );
 }
 
-const t = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8F9FA" },
-  header: { paddingHorizontal: 20, paddingBottom: 16, overflow: "hidden" },
-  headerBg1: { position: "absolute", width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(255,255,255,0.08)", top: -40, right: -30 },
-  headerBg2: { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(255,255,255,0.06)", bottom: 0, left: 20 },
-  headerContent: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
-  aiAvatarWrap: {
-    width: 50, height: 50, borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.3)",
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.bg },
+
+  header: {
+    backgroundColor: Colors.bgCard,
+    paddingHorizontal: 18,
+    paddingBottom: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    overflow: "hidden",
   },
-  headerTitle: { color: "#fff", fontSize: 20, fontFamily: "Inter_700Bold" },
-  onlineRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 },
+  headerAccent: {
+    position: "absolute", top: 0, right: 0,
+    width: 180, height: 180, borderRadius: 90,
+    opacity: 0.07,
+  },
+  headerContent: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
+  botIconWrap: {
+    width: 46, height: 46, borderRadius: 14,
+    backgroundColor: Colors.saffronBg,
+    borderWidth: 1, borderColor: Colors.saffron + "40",
+    alignItems: "center", justifyContent: "center",
+  },
+  headerTitle: { color: Colors.textPrimary, fontSize: 19, fontFamily: "Inter_700Bold" },
+  onlineRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
   onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#4ADE80" },
-  onlineText: { color: "rgba(255,255,255,0.85)", fontSize: 11, fontFamily: "Inter_400Regular" },
-  govVerified: {
+  onlineText: { color: Colors.textSecondary, fontSize: 11, fontFamily: "Inter_400Regular" },
+  govBadge: {
     flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: "rgba(255,255,255,0.95)", borderRadius: 10,
-    paddingHorizontal: 8, paddingVertical: 5,
+    backgroundColor: Colors.saffronBg,
+    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5,
+    borderWidth: 1, borderColor: Colors.saffron + "30",
   },
-  govVerifiedText: { color: "#FF9933", fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
-  tricolor: { height: 3, flexDirection: "row", gap: 2, borderRadius: 1 },
+  govBadgeText: { color: Colors.saffron, fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.8 },
+  tricolor: { height: 3, flexDirection: "row", gap: 1, borderRadius: 1, marginBottom: 0, opacity: 0.7 },
+  triSlice: { flex: 1 },
+
   msgList: { flex: 1 },
-  msgContent: { paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
-  msgRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
-  msgRowUser: { flexDirection: "row-reverse" },
+  msgContent: { paddingHorizontal: 14, paddingTop: 14, gap: 14 },
+
+  msgRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  msgRowUser: { flexDirection: "row", justifyContent: "flex-end" },
+
   aiAvatar: {
     width: 32, height: 32, borderRadius: 10,
-    backgroundColor: "#FFF8E7", alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: "#FFD0A0",
+    alignItems: "center", justifyContent: "center",
+    flexShrink: 0, marginTop: 2,
   },
-  bubble: { maxWidth: "80%", borderRadius: 16, padding: 12, gap: 4 },
-  bubbleAI: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#E5E7EB", borderBottomLeftRadius: 4 },
-  bubbleUser: { backgroundColor: "#FF9933", borderBottomRightRadius: 4 },
-  bubbleText: { fontSize: 14, lineHeight: 21 },
-  bubbleTextAI: { color: "#111827", fontFamily: "Inter_400Regular" },
-  bubbleTextUser: { color: "#fff", fontFamily: "Inter_400Regular" },
-  bubbleTime: { fontSize: 9, fontFamily: "Inter_400Regular", alignSelf: "flex-end" },
-  bubbleTimeAI: { color: "#9CA3AF" },
-  bubbleTimeUser: { color: "rgba(255,255,255,0.75)" },
-  dots: { flexDirection: "row", gap: 5, alignItems: "center", paddingVertical: 4, paddingHorizontal: 4 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#FF9933" },
-  quickSection: { marginBottom: 8 },
-  quickLabel: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1, marginBottom: 8 },
-  quickRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  quickChip: {
-    backgroundColor: "#fff", borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderWidth: 1.5, borderColor: "#FFD0A0",
+  aiMsgWrap: { flex: 1, gap: 0 },
+
+  bubbleAI: {
+    backgroundColor: Colors.bgCard,
+    borderWidth: 1, borderColor: Colors.border,
+    borderRadius: 16, borderTopLeftRadius: 4,
+    padding: 12, maxWidth: "90%",
+    gap: 6,
   },
-  quickChipText: { color: "#FF9933", fontSize: 12, fontFamily: "Inter_600SemiBold" },
-  chipBar: { paddingHorizontal: 16, paddingVertical: 8, gap: 8, backgroundColor: "#F8F9FA" },
+  bubbleTextAI: { color: Colors.textPrimary, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 21 },
+  bubbleMeta: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  modelBadge: {
+    flexDirection: "row", alignItems: "center", gap: 3,
+    backgroundColor: Colors.saffronBg, borderRadius: 6,
+    paddingHorizontal: 5, paddingVertical: 2,
+  },
+  modelText: { color: Colors.saffron, fontSize: 9, fontFamily: "Inter_600SemiBold" },
+  bubbleTime: { color: Colors.textMuted, fontSize: 9, fontFamily: "Inter_400Regular" },
+
+  bubbleUser: {
+    backgroundColor: Colors.saffron,
+    borderRadius: 16, borderBottomRightRadius: 4,
+    padding: 12, maxWidth: "80%", gap: 4,
+  },
+  bubbleTextUser: { color: "#fff", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 21 },
+  bubbleTimeUser: { color: "rgba(255,255,255,0.6)", fontSize: 9, fontFamily: "Inter_400Regular", textAlign: "right" },
+
+  followChip: {
+    backgroundColor: Colors.bgCardAlt,
+    borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
+    paddingHorizontal: 10, paddingVertical: 5,
+  },
+  followChipText: { color: Colors.saffron, fontSize: 11, fontFamily: "Inter_500Medium" },
+
+  dots: { flexDirection: "row", gap: 5, alignItems: "center", paddingVertical: 6, paddingHorizontal: 2 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.saffron },
+
+  quickSection: { marginBottom: 4 },
+  quickLabel: {
+    color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_700Bold",
+    letterSpacing: 1, marginBottom: 10,
+  },
+  quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  quickCard: {
+    backgroundColor: Colors.bgCard,
+    borderRadius: 14, borderWidth: 1, borderColor: Colors.border,
+    paddingHorizontal: 12, paddingVertical: 9,
+  },
+  quickCardText: { color: Colors.textSecondary, fontSize: 12, fontFamily: "Inter_500Medium" },
+
+  chipBarWrap: {
+    backgroundColor: Colors.bgCard,
+    borderTopWidth: 1, borderTopColor: Colors.border,
+  },
+  chipBar: {
+    paddingHorizontal: 12, paddingVertical: 8, gap: 6,
+  },
   chipBarChip: {
-    backgroundColor: "#fff", borderRadius: 20,
-    paddingHorizontal: 12, paddingVertical: 7,
-    borderWidth: 1, borderColor: "#E5E7EB",
+    backgroundColor: Colors.bgCardAlt,
+    borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
+    paddingHorizontal: 11, paddingVertical: 6,
   },
-  chipBarText: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_500Medium" },
+  chipBarText: { color: Colors.textSecondary, fontSize: 11, fontFamily: "Inter_500Medium" },
+
   inputBar: {
-    flexDirection: "row", alignItems: "flex-end", gap: 10,
-    backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#E5E7EB",
-    paddingHorizontal: 16, paddingTop: 12,
+    flexDirection: "row", alignItems: "flex-end", gap: 8,
+    backgroundColor: Colors.bgCard,
+    borderTopWidth: 1, borderTopColor: Colors.border,
+    paddingHorizontal: 14, paddingTop: 10,
   },
   input: {
-    flex: 1, backgroundColor: "#F9FAFB",
-    borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12,
-    borderWidth: 1.5, borderColor: "#E5E7EB",
-    color: "#111827", fontSize: 14, fontFamily: "Inter_400Regular", maxHeight: 100,
+    flex: 1, backgroundColor: Colors.bg,
+    borderRadius: 16, paddingHorizontal: 14, paddingVertical: 11,
+    borderWidth: 1, borderColor: Colors.border,
+    color: Colors.textPrimary, fontSize: 14, fontFamily: "Inter_400Regular",
+    maxHeight: 100,
   },
   sendBtn: {
-    width: 46, height: 46, borderRadius: 14,
-    backgroundColor: "#FF9933", alignItems: "center", justifyContent: "center",
+    width: 44, height: 44, borderRadius: 13,
+    backgroundColor: Colors.saffron,
+    alignItems: "center", justifyContent: "center",
+    shadowColor: Colors.saffron, shadowRadius: 8, shadowOpacity: 0.4, elevation: 4,
   },
-  sendBtnDisabled: { opacity: 0.4 },
+  sendBtnOff: { opacity: 0.35, shadowOpacity: 0 },
 });

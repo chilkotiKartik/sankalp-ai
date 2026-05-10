@@ -506,16 +506,18 @@ export default function ComplaintsScreen() {
         {/* Status Filter */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={cs.pillRow}>
           {[
-            { key: "all", label: "All Status", color: "#6B7280" },
-            { key: "pending", label: "Pending", color: "#F59E0B" },
-            { key: "in_progress", label: "In Progress", color: "#3B82F6" },
-            { key: "resolved", label: "Resolved", color: "#00A651" },
-          ].map(s => {
-            const active = filterStatus === s.key;
+            { key: "all",         label: "All",         icon: "list",              color: "#6B7280" },
+            { key: "pending",     label: "Pending",     icon: "time",              color: "#F59E0B" },
+            { key: "in_progress", label: "In Progress", icon: "refresh-circle",    color: "#3B82F6" },
+            { key: "resolved",    label: "Resolved",    icon: "checkmark-circle",  color: "#00A651" },
+            { key: "closed",      label: "Closed",      icon: "lock-closed",       color: "#9CA3AF" },
+          ].map(st => {
+            const active = filterStatus === st.key;
             return (
-              <Pressable key={s.key} onPress={() => setFilterStatus(s.key)} style={[cs.pill, active && { backgroundColor: s.color + "20", borderColor: s.color }]}>
-                {active && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: s.color }} />}
-                <Text style={[cs.pillText, active && { color: s.color, fontFamily: "Inter_700Bold" }]}>{s.label}</Text>
+              <Pressable key={st.key} onPress={() => setFilterStatus(st.key)}
+                style={[cs.pill, active && { backgroundColor: st.color + "20", borderColor: st.color }]}>
+                <Ionicons name={st.icon as any} size={11} color={active ? st.color : "#9CA3AF"} />
+                <Text style={[cs.pillText, active && { color: st.color, fontFamily: "Inter_700Bold" }]}>{st.label}</Text>
               </Pressable>
             );
           })}

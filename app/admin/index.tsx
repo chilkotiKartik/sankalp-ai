@@ -326,17 +326,24 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
       </Animated.View>
 
       {/* Navigation Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexShrink: 0 }} contentContainerStyle={sas.navRow}>
-        {ADMIN_TABS.map(tab => (
-          <Pressable key={tab.key} onPress={() => tab.route && router.push(tab.route)}
-            style={[sas.navTab, tab.key === "command" && sas.navTabActive]}>
-            <Ionicons name={tab.icon} size={14} color={tab.key === "command" ? "#F59E0B" : Colors.textMuted} />
-            <Text style={[sas.navTabText, tab.key === "command" && { color: "#F59E0B" }]}>{tab.label}</Text>
-            {tab.key === "alerts" && activeSos.length > 0 && (
-              <View style={sas.badge}><Text style={sas.badgeText}>{activeSos.length}</Text></View>
-            )}
-          </Pressable>
-        ))}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[{ flexShrink: 0 }, sas.navWrap]} contentContainerStyle={sas.navRow}>
+        {ADMIN_TABS.map(tab => {
+          const isActive = tab.key === "command";
+          const tabColor = isActive ? "#F59E0B" : Colors.textMuted;
+          return (
+            <Pressable key={tab.key} onPress={() => tab.route && router.push(tab.route)}
+              style={[sas.navTab, isActive && sas.navTabActive]}>
+              <View style={[sas.navTabIcon, isActive && { backgroundColor: "#F59E0B22" }]}>
+                <Ionicons name={tab.icon} size={16} color={tabColor} />
+              </View>
+              <Text style={[sas.navTabText, isActive && { color: "#F59E0B" }]}>{tab.label}</Text>
+              {tab.key === "alerts" && activeSos.length > 0 && (
+                <View style={sas.badge}><Text style={sas.badgeText}>{activeSos.length}</Text></View>
+              )}
+              {isActive && <View style={sas.navTabDot} />}
+            </Pressable>
+          );
+        })}
       </ScrollView>
 
       <ScrollView
@@ -849,14 +856,22 @@ function DistrictAdminDashboard() {
       </Animated.View>
 
       {/* Nav */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexShrink: 0 }} contentContainerStyle={styles.navRow}>
-        {ADMIN_TABS.map(tab => (
-          <Pressable key={tab.key} onPress={() => tab.route && router.push(tab.route)} style={[styles.navTab, tab.key === "command" && styles.navTabActive]}>
-            <Ionicons name={tab.icon} size={15} color={tab.key === "command" ? Colors.green : Colors.textMuted} />
-            <Text style={[styles.navTabText, tab.key === "command" && { color: Colors.green }]}>{tab.label}</Text>
-            {tab.key === "alerts" && <FlashBadge count={activeAlerts.length} />}
-          </Pressable>
-        ))}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[{ flexShrink: 0 }, styles.navWrap]} contentContainerStyle={styles.navRow}>
+        {ADMIN_TABS.map(tab => {
+          const isActive = tab.key === "command";
+          const tabColor = isActive ? Colors.saffron : Colors.textMuted;
+          return (
+            <Pressable key={tab.key} onPress={() => tab.route && router.push(tab.route)}
+              style={[styles.navTab, isActive && styles.navTabActive]}>
+              <View style={[styles.navTabIcon, isActive && { backgroundColor: Colors.saffronBg }]}>
+                <Ionicons name={tab.icon} size={16} color={tabColor} />
+              </View>
+              <Text style={[styles.navTabText, isActive && { color: Colors.saffron }]}>{tab.label}</Text>
+              {tab.key === "alerts" && <FlashBadge count={activeAlerts.length} />}
+              {isActive && <View style={styles.navTabDot} />}
+            </Pressable>
+          );
+        })}
       </ScrollView>
 
       <ScrollView
@@ -1491,10 +1506,18 @@ const sas = StyleSheet.create({
   broadcastBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#EF444444", backgroundColor: "#EF444411" },
   broadcastBtnText: { color: "#EF4444", fontSize: 11, fontFamily: "Inter_700Bold" },
   logoutBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, alignItems: "center", justifyContent: "center" },
-  navRow: { paddingHorizontal: 16, paddingBottom: 12, gap: 6 },
-  navTab: { flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
-  navTabActive: { backgroundColor: "#F59E0B11", borderColor: "#F59E0B44" },
-  navTabText: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  navWrap: { backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  navRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
+  navTab: {
+    flexDirection: "column", alignItems: "center", gap: 4,
+    paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12,
+    backgroundColor: Colors.bg, borderWidth: 1, borderColor: Colors.border,
+    minWidth: 66, position: "relative",
+  },
+  navTabActive: { backgroundColor: "#F59E0B0D", borderColor: "#F59E0B55" },
+  navTabIcon: { width: 32, height: 32, borderRadius: 9, backgroundColor: Colors.bgCardAlt, alignItems: "center", justifyContent: "center" },
+  navTabText: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  navTabDot: { position: "absolute", bottom: 5, width: 4, height: 4, borderRadius: 2, backgroundColor: "#F59E0B" },
   badge: { backgroundColor: "#EF4444", borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 },
   badgeText: { color: "#fff", fontSize: 9, fontFamily: "Inter_700Bold" },
   kpiRow: { flexDirection: "row", paddingHorizontal: 16, gap: 8, marginBottom: 12 },
@@ -1524,10 +1547,18 @@ const styles = StyleSheet.create({
   emergencyBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#EF444444", backgroundColor: "#EF444411" },
   emergencyText: { color: "#EF4444", fontSize: 11, fontFamily: "Inter_700Bold" },
   logoutBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, alignItems: "center", justifyContent: "center" },
-  navRow: { paddingHorizontal: 16, paddingBottom: 12, gap: 6 },
-  navTab: { flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
-  navTabActive: { backgroundColor: Colors.green + "11", borderColor: Colors.green + "44" },
-  navTabText: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  navWrap: { backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  navRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
+  navTab: {
+    flexDirection: "column", alignItems: "center", gap: 4,
+    paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12,
+    backgroundColor: Colors.bg, borderWidth: 1, borderColor: Colors.border,
+    minWidth: 66, position: "relative",
+  },
+  navTabActive: { backgroundColor: Colors.saffronBg, borderColor: Colors.saffron + "55" },
+  navTabIcon: { width: 32, height: 32, borderRadius: 9, backgroundColor: Colors.bgCardAlt, alignItems: "center", justifyContent: "center" },
+  navTabText: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  navTabDot: { position: "absolute", bottom: 5, width: 4, height: 4, borderRadius: 2, backgroundColor: Colors.saffron },
   kpiGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 16, gap: 8, marginBottom: 12 },
   kpiCard: { width: "22%", backgroundColor: Colors.bgCard, borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
   kpiValue: { fontSize: 18, fontFamily: "Inter_700Bold", marginTop: 4 },
