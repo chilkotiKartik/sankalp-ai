@@ -55,15 +55,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="map"
-        options={{
-          title: "District Map",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "map" : "map-outline"} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="sos"
         options={{
           title: "SOS",
@@ -71,24 +62,6 @@ export default function TabLayout() {
           tabBarBadgeStyle: { backgroundColor: "#EF4444", fontSize: 9 },
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "shield-checkmark" : "shield-checkmark-outline"} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "person-circle" : "person-circle-outline"} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="announcements"
-        options={{
-          title: "Notices",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "megaphone" : "megaphone-outline"} size={22} color={color} />
           ),
         }}
       />
@@ -101,6 +74,18 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "person-circle" : "person-circle-outline"} size={22} color={color} />
+          ),
+        }}
+      />
+      {/* Hidden from tab bar — still accessible via navigation */}
+      <Tabs.Screen name="map" options={{ href: null }} />
+      <Tabs.Screen name="announcements" options={{ href: null }} />
       <Tabs.Screen name="community" options={{ href: null }} />
       <Tabs.Screen name="bills" options={{ href: null }} />
       <Tabs.Screen name="analytics" options={{ href: null }} />

@@ -320,7 +320,8 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
             <Text style={sas.broadcastBtnText}>Alert</Text>
           </Pressable>
           <Pressable onPress={logout} style={sas.logoutBtn}>
-            <Feather name="log-out" size={17} color={Colors.textMuted} />
+            <Feather name="log-out" size={14} color="#EF4444" />
+            <Text style={sas.logoutText}>Logout</Text>
           </Pressable>
         </View>
       </Animated.View>
@@ -841,7 +842,8 @@ function DistrictAdminDashboard() {
                 </Text>
               </Pressable>
               <Pressable onPress={logout} style={styles.logoutBtn}>
-                <Feather name="log-out" size={18} color={Colors.textMuted} />
+                <Feather name="log-out" size={14} color="#EF4444" />
+                <Text style={styles.logoutText}>Logout</Text>
               </Pressable>
             </View>
           </View>
@@ -1505,7 +1507,8 @@ const sas = StyleSheet.create({
   sub: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   broadcastBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#EF444444", backgroundColor: "#EF444411" },
   broadcastBtnText: { color: "#EF4444", fontSize: 11, fontFamily: "Inter_700Bold" },
-  logoutBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, alignItems: "center", justifyContent: "center" },
+  logoutBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#EF444440", backgroundColor: "#EF444412" },
+  logoutText: { color: "#EF4444", fontSize: 11, fontFamily: "Inter_700Bold" },
   navWrap: { backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: Colors.border },
   navRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
   navTab: {
@@ -1546,7 +1549,8 @@ const styles = StyleSheet.create({
   headerSub: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   emergencyBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#EF444444", backgroundColor: "#EF444411" },
   emergencyText: { color: "#EF4444", fontSize: 11, fontFamily: "Inter_700Bold" },
-  logoutBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, alignItems: "center", justifyContent: "center" },
+  logoutBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#EF444440", backgroundColor: "#EF444412" },
+  logoutText: { color: "#EF4444", fontSize: 11, fontFamily: "Inter_700Bold" },
   navWrap: { backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: Colors.border },
   navRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
   navTab: {
