@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -6,9 +6,12 @@ import {
   ScrollView,
   Animated,
   Platform,
+  TextInput,
+  Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useApp } from "@/context/AppContext";
 import Colors from "@/constants/colors";
 
@@ -198,14 +201,18 @@ function CivicMap({ wards }: { wards: any[] }) {
   );
 }
 
+type HealthFilter = "all" | "healthy" | "moderate" | "critical";
+type SortKey = "score" | "total" | "pending" | "resolution";
+
 export default function WardsScreen() {
   const insets = useSafeAreaInsets();
   const { wards } = useApp();
+  const [search, setSearch] = useState("");
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("score");
 
   const topInset = Platform.OS === "web" ? 67 : insets.top;
   const bottomInset = Platform.OS === "web" ? 34 : 0;
-
-  const sortedWards = [...wards].sort((a, b) => b.healthScore - a.healthScore);
 
   const healthy = wards.filter((w) => w.healthScore >= 70).length;
   const moderate = wards.filter((w) => w.healthScore >= 45 && w.healthScore < 70).length;
@@ -215,18 +222,108 @@ export default function WardsScreen() {
       ? Math.round(wards.reduce((s, w) => s + w.healthScore, 0) / wards.length)
       : 0;
 
+  const filteredWards = useMemo(() => {
+    let list = [...wards];
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(w => w.name.toLowerCase().includes(q) || (w.area || "").toLowerCase().includes(q));
+    }
+    if (healthFilter === "healthy") list = list.filter(w => w.healthScore >= 70);
+    else if (healthFilter === "moderate") list = list.filter(w => w.healthScore >= 45 && w.healthScore < 70);
+    else if (healthFilter === "critical") list = list.filter(w => w.healthScore < 45);
+
+    if (sortKey === "score") list.sort((a, b) => b.healthScore - a.healthScore);
+    else if (sortKey === "total") list.sort((a, b) => b.totalComplaints - a.totalComplaints);
+    else if (sortKey === "pending") list.sort((a, b) => b.pendingComplaints - a.pendingComplaints);
+    else if (sortKey === "resolution") list.sort((a, b) => b.resolvedComplaints - a.resolvedComplaints);
+    return list;
+  }, [wards, search, healthFilter, sortKey]);
+
+  const HEALTH_FILTERS: { key: HealthFilter; label: string; color: string; count: number }[] = [
+    { key: "all", label: "All Wards", color: Colors.textMuted, count: wards.length },
+    { key: "healthy", label: "Healthy 70+", color: Colors.green, count: healthy },
+    { key: "moderate", label: "Moderate", color: Colors.amber, count: moderate },
+    { key: "critical", label: "Critical", color: Colors.red, count: critical },
+  ];
+
+  const SORT_OPTIONS: { key: SortKey; label: string; icon: string }[] = [
+    { key: "score", label: "Health Score", icon: "activity" },
+    { key: "pending", label: "Most Pending", icon: "clock" },
+    { key: "total", label: "Total Issues", icon: "inbox" },
+    { key: "resolution", label: "Most Resolved", icon: "check-circle" },
+  ];
+
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ward Health</Text>
-        <Text style={styles.headerSub}>Uttarakhand Block Performance Board</Text>
+        <View>
+          <Text style={styles.headerTitle}>Ward Health</Text>
+          <Text style={styles.headerSub}>Uttarakhand Block Performance Board</Text>
+        </View>
+        <View style={styles.avgBadge}>
+          <Text style={styles.avgLabel}>Avg</Text>
+          <Text style={[styles.avgScore, { color: avgScore >= 70 ? Colors.green : avgScore >= 45 ? Colors.amber : Colors.red }]}>{avgScore}</Text>
+        </View>
       </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchRow}>
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={15} color={Colors.textMuted} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search wards, areas…"
+            placeholderTextColor={Colors.textMuted}
+            value={search}
+            onChangeText={setSearch}
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch("")}>
+              <Ionicons name="close-circle" size={15} color={Colors.textMuted} />
+            </Pressable>
+          )}
+        </View>
+      </View>
+
+      {/* Health Filter Chips */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
+        {HEALTH_FILTERS.map(f => {
+          const active = healthFilter === f.key;
+          return (
+            <Pressable key={f.key} onPress={() => setHealthFilter(f.key)}
+              style={[styles.filterChip, active && { backgroundColor: f.color + "20", borderColor: f.color }]}>
+              {f.key !== "all" && <View style={[styles.filterDot, { backgroundColor: active ? f.color : Colors.textMuted }]} />}
+              <Text style={[styles.filterChipText, active && { color: f.color, fontFamily: "Inter_700Bold" }]}>{f.label}</Text>
+              <View style={[styles.filterCount, active && { backgroundColor: f.color + "30" }]}>
+                <Text style={[styles.filterCountText, active && { color: f.color }]}>{f.count}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {/* Sort Options */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sortScroll} contentContainerStyle={styles.sortContent}>
+        <Text style={styles.sortLabel}>Sort:</Text>
+        {SORT_OPTIONS.map(s => {
+          const active = sortKey === s.key;
+          return (
+            <Pressable key={s.key} onPress={() => setSortKey(s.key)}
+              style={[styles.sortChip, active && { backgroundColor: Colors.saffron + "18", borderColor: Colors.saffron }]}>
+              <Feather name={s.icon as any} size={10} color={active ? Colors.saffron : Colors.textMuted} />
+              <Text style={[styles.sortChipText, active && { color: Colors.saffron }]}>{s.label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset + 120 }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Summary Stats */}
         <View style={styles.summaryRow}>
           {[
             { label: "Avg Score", value: avgScore, icon: "activity", color: Colors.cyan },
@@ -242,16 +339,24 @@ export default function WardsScreen() {
           ))}
         </View>
 
-        <CivicMap wards={sortedWards} />
+        <CivicMap wards={filteredWards.slice(0, 10)} />
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Leaderboard</Text>
-          <Text style={styles.sectionSub}>{wards.length} wards</Text>
+          <Text style={styles.sectionTitle}>Rankings</Text>
+          <Text style={styles.sectionSub}>{filteredWards.length} wards</Text>
         </View>
 
-        {sortedWards.map((ward, i) => (
-          <WardCard key={ward.id} ward={ward} rank={i + 1} />
-        ))}
+        {filteredWards.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="search-outline" size={40} color={Colors.textMuted} />
+            <Text style={styles.emptyText}>No wards found</Text>
+            <Text style={styles.emptySubText}>Try adjusting your search or filter</Text>
+          </View>
+        ) : (
+          filteredWards.map((ward, i) => (
+            <WardCard key={ward.id} ward={ward} rank={i + 1} />
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -264,8 +369,11 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 8,
     paddingTop: 8,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
   },
   headerTitle: {
     fontSize: 26,
@@ -278,6 +386,130 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: Colors.textMuted,
     marginTop: 2,
+  },
+  avgBadge: {
+    alignItems: "center",
+    backgroundColor: Colors.bgCard,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  avgLabel: {
+    fontSize: 9,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  avgScore: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.5,
+  },
+  searchRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 6,
+  },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Colors.bgCard,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textPrimary,
+  },
+  filterScroll: { flexShrink: 0, maxHeight: 44 },
+  filterContent: {
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    gap: 6,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    flexShrink: 0,
+  },
+  filterDot: { width: 7, height: 7, borderRadius: 3.5 },
+  filterChipText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textMuted,
+  },
+  filterCount: {
+    backgroundColor: Colors.bgCardAlt,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  filterCountText: {
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    color: Colors.textMuted,
+  },
+  sortScroll: { flexShrink: 0, maxHeight: 36 },
+  sortContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 6,
+    gap: 6,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sortLabel: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  sortChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    flexShrink: 0,
+  },
+  sortChipText: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textMuted,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 48,
+    gap: 10,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    color: Colors.textSecondary,
+  },
+  emptySubText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textMuted,
   },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16 },

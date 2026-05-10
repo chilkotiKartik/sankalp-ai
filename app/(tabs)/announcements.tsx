@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View, Text, StyleSheet, FlatList, Pressable, RefreshControl,
-  ActivityIndicator, Linking, Modal, ScrollView, Platform,
+  ActivityIndicator, Linking, Modal, ScrollView, Platform, TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -42,6 +42,8 @@ const PRIORITY_META: Record<string, { color: string; label: string; icon: string
 };
 
 const FILTER_TYPES = ["all", "emergency", "scheme", "welfare", "general", "holiday", "tender"] as const;
+const PRIORITY_FILTERS = ["all", "urgent", "important", "normal"] as const;
+const PRIORITY_COLORS: Record<string, string> = { all: "#9CA3AF", urgent: "#EF4444", important: "#F59E0B", normal: "#6B7280" };
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -153,6 +155,8 @@ export default function AnnouncementsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Announcement | null>(null);
   const intervalRef = useRef<any>(null);
 
@@ -182,9 +186,15 @@ export default function AnnouncementsScreen() {
     setRefreshing(false);
   }, [load]);
 
-  const filtered = announcements.filter(a =>
-    filter === "all" || a.type === filter
-  );
+  const filtered = announcements.filter(a => {
+    if (filter !== "all" && a.type !== filter) return false;
+    if (priorityFilter !== "all" && a.priority !== priorityFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      if (!a.title.toLowerCase().includes(q) && !a.body.toLowerCase().includes(q) && !a.department.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
 
   const urgentCount = announcements.filter(a => a.priority === "urgent").length;
 
@@ -256,7 +266,7 @@ export default function AnnouncementsScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Announcements</Text>
-          <Text style={styles.headerSub}>Government notices & schemes</Text>
+          <Text style={styles.headerSub}>{filtered.length} notices · Government updates</Text>
         </View>
         {urgentCount > 0 && (
           <View style={styles.urgentBadge}>
@@ -266,7 +276,41 @@ export default function AnnouncementsScreen() {
         )}
       </View>
 
-      {/* Filter bar */}
+      {/* Search Bar */}
+      <View style={styles.searchBarWrap}>
+        <Ionicons name="search" size={14} color="#4B5563" />
+        <TextInput
+          style={styles.searchBarInput}
+          placeholder="Search notices, schemes, departments…"
+          placeholderTextColor="#374151"
+          value={search}
+          onChangeText={setSearch}
+        />
+        {search.length > 0 && (
+          <Pressable onPress={() => setSearch("")}>
+            <Ionicons name="close-circle" size={14} color="#4B5563" />
+          </Pressable>
+        )}
+      </View>
+
+      {/* Priority Filter */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexShrink: 0, maxHeight: 40 }} contentContainerStyle={{ paddingHorizontal: 14, paddingVertical: 4, gap: 6, flexDirection: "row", alignItems: "center" }}>
+        {PRIORITY_FILTERS.map(p => {
+          const col = PRIORITY_COLORS[p];
+          const active = priorityFilter === p;
+          const cnt = p === "all" ? announcements.length : announcements.filter(a => a.priority === p).length;
+          return (
+            <Pressable key={p} onPress={() => setPriorityFilter(p)} style={[styles.priorityChipBtn, active && { borderColor: col, backgroundColor: col + "18" }]}>
+              {p !== "all" && <View style={[styles.priorityDot, { backgroundColor: active ? col : "#374151" }]} />}
+              <Text style={[styles.priorityChipTxtBtn, active && { color: col }]}>
+                {p.charAt(0).toUpperCase() + p.slice(1)} {p !== "all" ? `(${cnt})` : ""}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {/* Type Filter bar */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -345,8 +389,24 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0A0F1C" },
   header: {
     flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between",
-    paddingHorizontal: 20, paddingVertical: 14,
+    paddingHorizontal: 20, paddingTop: 14, paddingBottom: 8,
   },
+  searchBarWrap: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    marginHorizontal: 14, marginBottom: 6,
+    backgroundColor: "#0F172A", borderWidth: 1, borderColor: "#1E293B",
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8,
+  },
+  searchBarInput: {
+    flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", color: "#CBD5E1",
+  },
+  priorityChipBtn: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16,
+    borderWidth: 1, borderColor: "#1E293B", flexShrink: 0,
+  },
+  priorityDot: { width: 6, height: 6, borderRadius: 3 },
+  priorityChipTxtBtn: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#4B5563" },
   headerTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#F1F5F9" },
   headerSub: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#4B5563", marginTop: 2 },
   urgentBadge: {

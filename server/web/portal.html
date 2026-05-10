@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>SANKALP AI — Unified Governance Portal</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>"/>
-<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <link rel="stylesheet" href="/leaflet/leaflet.css"/>
 <script src="/leaflet/leaflet.js"></script>
@@ -1323,7 +1323,7 @@ function DeptDash({session,onLogout,addToast}){
     <div className="main" style={{display:'flex',flexDirection:'column',padding:0}}>
       <LiveTicker token={deptToken}/>
       <div style={{padding:26,flex:1}}>
-      {page==='overview'&&stats&&<DeptOverview dept={dept} stats={stats} complaints={complaints} setPage={setPage}/>}
+      {page==='overview'&&(stats?<DeptOverview dept={dept} stats={stats} complaints={complaints} setPage={setPage}/>:<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:300,gap:16}}><div className="spin" style={{width:40,height:40,borderRadius:20,border:'3px solid var(--border)',borderTopColor:'var(--orange)'}}></div><div style={{color:'var(--muted)',fontSize:13}}>Loading department data…</div></div>)}
       {page==='live'&&<DeptLiveFeed liveNew={liveNew} complaints={complaints} deptToken={deptToken} addToast={addToast} onRefresh={load}/>}
       {page==='complaints'&&<DeptAllComplaints complaints={complaints} deptToken={deptToken} addToast={addToast} onRefresh={load}/>}
       {page==='workers'&&<DeptWorkers workers={workers} deptId={deptId}/>}
@@ -1681,7 +1681,7 @@ function AdminDash({session,onLogout,addToast}){
     <div className="main" style={{display:'flex',flexDirection:'column',padding:0}}>
       <LiveTicker token={token}/>
       <div style={{padding:26,flex:1}}>
-      {page==='overview'&&stats&&<AdminOverview stats={stats} complaints={complaints} sosAlerts={sosAlerts} token={token} addToast={addToast} onRefresh={load}/>}
+      {page==='overview'&&(stats?<AdminOverview stats={stats} complaints={complaints} sosAlerts={sosAlerts} token={token} addToast={addToast} onRefresh={load}/>:<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:300,gap:16}}><div className="spin" style={{width:40,height:40,borderRadius:20,border:'3px solid var(--border)',borderTopColor:'var(--orange)'}}></div><div style={{color:'var(--muted)',fontSize:13}}>Loading admin data…</div></div>)}
       {page==='complaints'&&<AdminComplaints complaints={complaints} token={token} addToast={addToast} onRefresh={load}/>}
       {page==='sos'&&<AdminSOS sosAlerts={sosAlerts} token={token} addToast={addToast} onRefresh={load}/>}
       {page==='workers'&&<AdminWorkers workers={workers}/>}

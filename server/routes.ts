@@ -1855,6 +1855,11 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
     res.json(storage.getAdminStats());
   });
 
+  app.get("/api/public/announcements", (_req, res) => {
+    const anns = storage.getAnnouncements();
+    res.json(anns.filter((a: any) => a.priority === "urgent" || a.priority === "important").slice(0, 10));
+  });
+
   // ── AI ANOMALY DETECTION ──────────────────────────────────────────────────────
   app.get("/api/public/anomalies", (_req, res) => {
     const complaints = storage.getComplaints();

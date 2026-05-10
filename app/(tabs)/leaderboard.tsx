@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   Animated, RefreshControl, ActivityIndicator,
@@ -142,6 +142,7 @@ export default function LeaderboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<"all" | "district">("all");
+  const [sortKey, setSortKey] = useState<"points" | "badges" | "level">("points");
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -160,9 +161,15 @@ export default function LeaderboardScreen() {
 
   useEffect(() => { load(); }, []);
 
-  const filtered = tab === "district"
-    ? leaders.filter(l => l.district === user?.district).map((l, i) => ({ ...l, rank: i + 1 }))
-    : leaders;
+  const filtered = useMemo(() => {
+    let list = tab === "district"
+      ? leaders.filter(l => l.district === user?.district)
+      : [...leaders];
+    if (sortKey === "badges") list.sort((a, b) => b.badges.length - a.badges.length);
+    else if (sortKey === "level") list.sort((a, b) => b.level - a.level);
+    else list.sort((a, b) => b.points - a.points);
+    return list.map((l, i) => ({ ...l, rank: i + 1 }));
+  }, [leaders, tab, sortKey, user?.district]);
 
   const myRank = filtered.findIndex(l => l.phone === user?.phone);
   const myEntry = myRank >= 0 ? filtered[myRank] : null;
@@ -211,6 +218,25 @@ export default function LeaderboardScreen() {
             </Text>
           </Pressable>
         ))}
+      </View>
+
+      {/* Sort Options */}
+      <View style={cs.sortRow}>
+        <Text style={cs.sortLabel}>Sort by:</Text>
+        {([
+          { key: "points", label: "Points", icon: "star" },
+          { key: "badges", label: "Badges", icon: "ribbon" },
+          { key: "level", label: "Level", icon: "trending-up" },
+        ] as const).map(s => {
+          const active = sortKey === s.key;
+          return (
+            <Pressable key={s.key} onPress={() => setSortKey(s.key)}
+              style={[cs.sortChip, active && { backgroundColor: Colors.turmeric + "22", borderColor: Colors.turmeric }]}>
+              <Ionicons name={s.icon as any} size={11} color={active ? Colors.turmeric : Colors.textMuted} />
+              <Text style={[cs.sortChipText, active && { color: Colors.turmeric }]}>{s.label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {loading ? (
@@ -312,11 +338,15 @@ const cs = StyleSheet.create({
   myRankLevelBox: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   myRankLevel: { fontSize: 12, fontWeight: "700" },
 
-  tabRow: { flexDirection: "row", marginHorizontal: 16, gap: 8, marginBottom: 12 },
+  tabRow: { flexDirection: "row", marginHorizontal: 16, gap: 8, marginBottom: 8 },
   tabBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 9, borderRadius: 10, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
   tabBtnActive: { backgroundColor: Colors.saffron + "22", borderColor: Colors.saffron },
   tabText: { fontSize: 13, color: Colors.textMuted, fontWeight: "500" },
   tabTextActive: { color: Colors.saffron, fontWeight: "700" },
+  sortRow: { flexDirection: "row", alignItems: "center", marginHorizontal: 16, gap: 6, marginBottom: 10 },
+  sortLabel: { fontSize: 11, color: Colors.textMuted, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginRight: 4 },
+  sortChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgCard },
+  sortChipText: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
 
   scroll: { padding: 16, gap: 0 },
 
