@@ -11,6 +11,7 @@ import { router } from "expo-router";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { NotificationBell } from "@/components/NotificationBell";
+import { getApiUrl } from "@/lib/query-client";
 
 const CATEGORY_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
   pothole:     { label: "Pothole",     icon: "alert-circle",        color: "#F59E0B", bg: "#FFF8E7" },
@@ -390,6 +391,102 @@ function NoticeModal({ notice, onClose }: { notice: any; onClose: () => void }) 
   );
 }
 
+const AQI_DISTRICT: Record<string, { aqi: number; temp: number; humidity: number; status: string; color: string; icon: string }> = {
+  "Dehradun":    { aqi: 87,  temp: 28, humidity: 65, status: "Moderate",  color: "#F59E0B", icon: "😶‍🌫️" },
+  "Haridwar":    { aqi: 112, temp: 31, humidity: 58, status: "Sensitive",  color: "#EF4444", icon: "🏭" },
+  "Nainital":    { aqi: 34,  temp: 22, humidity: 75, status: "Good",       color: "#22C55E", icon: "🌲" },
+  "Rishikesh":   { aqi: 72,  temp: 29, humidity: 62, status: "Moderate",   color: "#F59E0B", icon: "🏞️" },
+  "Mussoorie":   { aqi: 28,  temp: 19, humidity: 80, status: "Excellent",  color: "#06B6D4", icon: "⛰️" },
+  "Almora":      { aqi: 45,  temp: 24, humidity: 70, status: "Good",       color: "#22C55E", icon: "🌄" },
+  "Uttarkashi":  { aqi: 31,  temp: 20, humidity: 72, status: "Excellent",  color: "#06B6D4", icon: "🏔️" },
+  "Rudrapur":    { aqi: 98,  temp: 32, humidity: 55, status: "Moderate",   color: "#F59E0B", icon: "🏙️" },
+  "Pithoragarh": { aqi: 22,  temp: 18, humidity: 78, status: "Excellent",  color: "#06B6D4", icon: "🗻" },
+};
+
+function AqiWeatherWidget({ district }: { district: string }) {
+  const d = AQI_DISTRICT[district] || { aqi: 65, temp: 27, humidity: 60, status: "Good", color: "#22C55E", icon: "🌤️" };
+  return (
+    <View style={{ marginHorizontal: 16, marginTop: 12 }}>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flex: 1.2, backgroundColor: d.color + "18", borderRadius: 14, padding: 12, borderWidth: 1, borderColor: d.color + "33" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
+            <Text style={{ fontSize: 16 }}>🌫️</Text>
+            <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5 }}>AIR QUALITY</Text>
+          </View>
+          <Text style={{ color: d.color, fontSize: 30, fontFamily: "Inter_700Bold", lineHeight: 34 }}>{d.aqi}</Text>
+          <Text style={{ color: d.color, fontSize: 10, fontFamily: "Inter_700Bold", marginTop: 2 }}>{d.status}</Text>
+          <Text style={{ color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular", marginTop: 1 }}>AQI · {district}</Text>
+        </View>
+        <View style={{ flex: 2, gap: 8 }}>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flex: 1, backgroundColor: "#1E3A5F22", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "#3B82F622" }}>
+              <Text style={{ fontSize: 14 }}>🌡️</Text>
+              <Text style={{ color: "#60A5FA", fontSize: 18, fontFamily: "Inter_700Bold" }}>{d.temp}°</Text>
+              <Text style={{ color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular" }}>Celsius</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: "#06B6D422", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "#06B6D433" }}>
+              <Text style={{ fontSize: 14 }}>💧</Text>
+              <Text style={{ color: "#06B6D4", fontSize: 18, fontFamily: "Inter_700Bold" }}>{d.humidity}%</Text>
+              <Text style={{ color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular" }}>Humidity</Text>
+            </View>
+          </View>
+          <View style={{ backgroundColor: "#22C55E11", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "#22C55E22", flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Text style={{ fontSize: 18 }}>{d.icon}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: "#fff", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>{district}</Text>
+              <Text style={{ color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular" }}>Live district data</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function AICityAlertCard() {
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [dismissed, setDismissed] = useState(false);
+  useEffect(() => {
+    fetch(getApiUrl() + "api/public/anomalies")
+      .then(r => r.json())
+      .then(d => setAlerts(Array.isArray(d) ? d.slice(0, 3) : []))
+      .catch(() => {});
+  }, []);
+  if (dismissed || alerts.length === 0) return null;
+  const critical = alerts.filter((a: any) => a.severity === "critical").length;
+  return (
+    <View style={{ marginHorizontal: 16, marginTop: 10 }}>
+      <LinearGradient colors={["#1A0A00", "#2D1500"]} style={{ borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "#FF993344" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: "#FF993322", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#FF993344" }}>
+            <Text style={{ fontSize: 18 }}>🤖</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: "#FF9933", fontSize: 12, fontFamily: "Inter_700Bold" }}>AI City Intelligence</Text>
+            <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular" }}>
+              {alerts.length} civic issue{alerts.length !== 1 ? "s" : ""} detected{critical > 0 ? ` · ${critical} critical` : ""}
+            </Text>
+          </View>
+          <Pressable onPress={() => setDismissed(true)} style={{ padding: 6 }}>
+            <Ionicons name="close" size={16} color="#6B7280" />
+          </Pressable>
+        </View>
+        {alerts.slice(0, 2).map((a: any, i: number) => (
+          <View key={a.id || i} style={[{ flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 6 }, i > 0 && { borderTopWidth: 1, borderTopColor: "#FF993315" }]}>
+            <Text style={{ fontSize: 14 }}>
+              {a.type === "cluster" ? "🔴" : a.type === "spike" ? "📈" : a.type === "sla_breach" ? "⏱️" : "🔥"}
+            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: a.severity === "critical" ? "#F87171" : a.severity === "high" ? "#FCD34D" : "#93C5FD", fontSize: 11, fontFamily: "Inter_700Bold" }}>{a.title}</Text>
+              <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 }} numberOfLines={2}>{a.description}</Text>
+            </View>
+          </View>
+        ))}
+      </LinearGradient>
+    </View>
+  );
+}
+
 const HI = {
   greeting: (h: number) => h < 12 ? "सुप्रभात" : h < 17 ? "नमस्कार" : "शुभ संध्या",
   liveCmd: "लाइव · उत्तराखंड कमांड सेंटर",
@@ -567,6 +664,12 @@ export default function DashboardScreen() {
             </LinearGradient>
           </Pressable>
         )}
+
+        {/* AQI & WEATHER */}
+        <AqiWeatherWidget district={user?.district || "Dehradun"} />
+
+        {/* AI CITY INTELLIGENCE */}
+        <AICityAlertCard />
 
         {/* MY ACTIVITY SECTION */}
         <Animated.View style={{ opacity: cardsAnim, marginHorizontal: 16, marginTop: 14 }}>

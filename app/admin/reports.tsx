@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useApp, type Complaint } from "@/context/AppContext";
 import Colors from "@/constants/colors";
@@ -195,15 +196,30 @@ export default function AdminReports() {
 
   return (
     <View style={[styles.container, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={20} color={Colors.textMuted} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Reports</Text>
-        <View style={styles.countBadge}>
-          <Text style={styles.countText}>{sorted.length}</Text>
+      <LinearGradient colors={["#0d1117", "#111827", "#0d1117"]} style={styles.header}>
+        {/* SANKALP AI Brand */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+          <View style={{ width: 26, height: 26, borderRadius: 8, backgroundColor: Colors.saffron + "22", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.saffron + "44" }}>
+            <Text style={{ fontSize: 14 }}>⚡</Text>
+          </View>
+          <Text style={{ color: Colors.saffron, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.8, flex: 1 }}>SANKALP AI · REPORTS</Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>{sorted.length}</Text>
+          </View>
         </View>
-      </View>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={20} color={Colors.textMuted} />
+          </Pressable>
+          <Text style={[styles.headerTitle, { flex: 1 }]}>Reports</Text>
+        </View>
+        {/* Tricolor Bar */}
+        <View style={{ height: 3, flexDirection: "row", gap: 2, marginTop: 10, borderRadius: 1 }}>
+          <View style={{ flex: 1, backgroundColor: Colors.saffron, borderRadius: 1 }} />
+          <View style={{ flex: 1, backgroundColor: "#fff", opacity: 0.75, borderRadius: 1 }} />
+          <View style={{ flex: 1, backgroundColor: "#138808", borderRadius: 1 }} />
+        </View>
+      </LinearGradient>
 
       {/* Sort */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 8, alignItems: "center" }}>

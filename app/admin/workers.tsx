@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useApp, type Worker, type Complaint } from "@/context/AppContext";
 import Colors from "@/constants/colors";
@@ -267,15 +268,34 @@ export default function AdminWorkers() {
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={20} color={Colors.textMuted} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Worker Dashboard</Text>
-          <Text style={styles.headerSub}>{workers.length} field workers · Tap for details</Text>
+      <LinearGradient colors={["#0d1117", "#111827", "#0d1117"]} style={styles.header}>
+        {/* SANKALP AI Brand */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+          <View style={{ width: 26, height: 26, borderRadius: 8, backgroundColor: Colors.cyan + "22", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.cyan + "44" }}>
+            <Text style={{ fontSize: 14 }}>⚡</Text>
+          </View>
+          <Text style={{ color: Colors.cyan, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.8, flex: 1 }}>SANKALP AI · FIELD WORKERS</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.cyan + "18", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1, borderColor: Colors.cyan + "33" }}>
+            <Ionicons name="navigate" size={10} color={Colors.cyan} />
+            <Text style={{ color: Colors.cyan, fontSize: 9, fontFamily: "Inter_700Bold" }}>GPS LIVE</Text>
+          </View>
         </View>
-      </View>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={20} color={Colors.textMuted} />
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Worker Dashboard</Text>
+            <Text style={styles.headerSub}>{workers.length} field workers · Tap for details</Text>
+          </View>
+        </View>
+        {/* Tricolor Bar */}
+        <View style={{ height: 3, flexDirection: "row", gap: 2, marginTop: 10, borderRadius: 1 }}>
+          <View style={{ flex: 1, backgroundColor: Colors.saffron, borderRadius: 1 }} />
+          <View style={{ flex: 1, backgroundColor: "#fff", opacity: 0.75, borderRadius: 1 }} />
+          <View style={{ flex: 1, backgroundColor: "#138808", borderRadius: 1 }} />
+        </View>
+      </LinearGradient>
 
       {/* Stats */}
       <View style={styles.statsRow}>

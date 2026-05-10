@@ -802,27 +802,50 @@ function DistrictAdminDashboard() {
       )}
 
       {/* Header */}
-      <Animated.View style={[styles.header, { transform: [{ scale: headerScale }] }]}>
-        <View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Text style={styles.headerTitle}>War Room</Text>
-            <Animated.View style={{ opacity: liveAnim, backgroundColor: "#EF444422", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-              <Text style={{ color: "#EF4444", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1 }}>LIVE</Text>
-            </Animated.View>
+      <Animated.View style={{ transform: [{ scale: headerScale }] }}>
+        <LinearGradient colors={["#0d1117", "#131b2e", "#0d1117"]} style={styles.header}>
+          {/* SANKALP AI Brand Row */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <View style={{ width: 26, height: 26, borderRadius: 8, backgroundColor: Colors.saffron + "22", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.saffron + "44" }}>
+              <Text style={{ fontSize: 14 }}>⚡</Text>
+            </View>
+            <Text style={{ color: Colors.saffron, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.8, flex: 1 }}>SANKALP AI · ADMIN COMMAND</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.green + "18", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1, borderColor: Colors.green + "33" }}>
+              <Ionicons name="shield-checkmark" size={10} color={Colors.green} />
+              <Text style={{ color: Colors.green, fontSize: 9, fontFamily: "Inter_700Bold" }}>ADMIN</Text>
+            </View>
           </View>
-          <Text style={styles.headerSub}>SANKALP Admin · {user?.name} · {user?.district}</Text>
-        </View>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <Pressable onPress={() => setShowEmergencyModal(true)} style={[styles.emergencyBtn, emergencyMode && { backgroundColor: "#EF4444" }]}>
-            <Ionicons name="warning" size={16} color={emergencyMode ? "#fff" : "#EF4444"} />
-            <Text style={[styles.emergencyText, emergencyMode && { color: "#fff" }]}>
-              {emergencyMode ? "EMERGENCY" : "Emergency"}
-            </Text>
-          </Pressable>
-          <Pressable onPress={logout} style={styles.logoutBtn}>
-            <Feather name="log-out" size={18} color={Colors.textMuted} />
-          </Pressable>
-        </View>
+
+          <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={styles.headerTitle}>War Room</Text>
+                <Animated.View style={{ opacity: liveAnim, backgroundColor: "#EF444422", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ color: "#EF4444", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1 }}>LIVE</Text>
+                </Animated.View>
+              </View>
+              <Text style={styles.headerSub}>{user?.name} · {user?.district}</Text>
+            </View>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Pressable onPress={() => setShowEmergencyModal(true)} style={[styles.emergencyBtn, emergencyMode && { backgroundColor: "#EF4444" }]}>
+                <Ionicons name="warning" size={16} color={emergencyMode ? "#fff" : "#EF4444"} />
+                <Text style={[styles.emergencyText, emergencyMode && { color: "#fff" }]}>
+                  {emergencyMode ? "EMERGENCY" : "Emergency"}
+                </Text>
+              </Pressable>
+              <Pressable onPress={logout} style={styles.logoutBtn}>
+                <Feather name="log-out" size={18} color={Colors.textMuted} />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Tricolor Bar */}
+          <View style={{ height: 3, flexDirection: "row", gap: 2, marginTop: 10, borderRadius: 1 }}>
+            <View style={{ flex: 1, backgroundColor: Colors.saffron, borderRadius: 1 }} />
+            <View style={{ flex: 1, backgroundColor: "#fff", opacity: 0.75, borderRadius: 1 }} />
+            <View style={{ flex: 1, backgroundColor: "#138808", borderRadius: 1 }} />
+          </View>
+        </LinearGradient>
       </Animated.View>
 
       {/* Nav */}

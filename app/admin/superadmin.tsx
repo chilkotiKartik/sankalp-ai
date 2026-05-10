@@ -193,18 +193,34 @@ export default function SuperAdminScreen() {
     <View style={[cs.root, { paddingTop: insets.top }]}>
       <LinearGradient colors={["#0A0A1A", Colors.bg]} style={StyleSheet.absoluteFill} />
 
-      <View style={cs.header}>
-        <Pressable onPress={() => router.back()} style={cs.backBtn}>
-          <Ionicons name="chevron-back" size={22} color={Colors.textPrimary} />
-        </Pressable>
-        <View style={cs.headerTitle}>
-          <Text style={cs.headerTitleText}>Super Admin View</Text>
-          <Text style={cs.headerSub}>All 13 Districts · Uttarakhand</Text>
+      <LinearGradient colors={["#0d1117", "#0A0820", "#0d1117"]} style={cs.header}>
+        {/* SANKALP AI Brand */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+          <View style={{ width: 26, height: 26, borderRadius: 8, backgroundColor: Colors.saffron + "22", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.saffron + "44" }}>
+            <Text style={{ fontSize: 14 }}>⚡</Text>
+          </View>
+          <Text style={{ color: Colors.saffron, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.8, flex: 1 }}>SANKALP AI · SUPER ADMIN</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.saffron + "18", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1, borderColor: Colors.saffron + "33" }}>
+            <Ionicons name="star" size={10} color={Colors.saffron} />
+            <Text style={{ color: Colors.saffron, fontSize: 9, fontFamily: "Inter_700Bold" }}>SUPER ADMIN</Text>
+          </View>
         </View>
-        <View style={cs.superBadge}>
-          <Ionicons name="star" size={18} color={Colors.saffron} />
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Pressable onPress={() => router.back()} style={cs.backBtn}>
+            <Ionicons name="chevron-back" size={22} color={Colors.textPrimary} />
+          </Pressable>
+          <View style={cs.headerTitle}>
+            <Text style={cs.headerTitleText}>Super Admin View</Text>
+            <Text style={cs.headerSub}>All 13 Districts · Uttarakhand</Text>
+          </View>
         </View>
-      </View>
+        {/* Tricolor Bar */}
+        <View style={{ height: 3, flexDirection: "row", gap: 2, marginTop: 10, borderRadius: 1 }}>
+          <View style={{ flex: 1, backgroundColor: Colors.saffron, borderRadius: 1 }} />
+          <View style={{ flex: 1, backgroundColor: "#fff", opacity: 0.75, borderRadius: 1 }} />
+          <View style={{ flex: 1, backgroundColor: "#138808", borderRadius: 1 }} />
+        </View>
+      </LinearGradient>
 
       {/* State Overview */}
       <LinearGradient colors={[Colors.saffron + "22", Colors.saffron + "08"]} style={cs.overviewCard}>

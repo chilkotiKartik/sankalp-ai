@@ -45,6 +45,25 @@ function TypingDots() {
   );
 }
 
+const FOLLOW_UP_MAP: { keywords: string[]; suggestions: string[] }[] = [
+  { keywords: ["pothole", "road", "repair", "pavement"], suggestions: ["Track pothole complaint", "Report another pothole", "PWD department contact"] },
+  { keywords: ["water", "supply", "pipeline", "tap", "bore"], suggestions: ["File water complaint", "Jal Sansthan helpline", "Check water quality"] },
+  { keywords: ["emergency", "sos", "safety", "women", "danger"], suggestions: ["Trigger SOS now", "Police helpline 100", "USDMA helpline 1070"] },
+  { keywords: ["scheme", "yojana", "government", "eligible", "subsidy"], suggestions: ["PM Awas eligibility", "Kisan scheme details", "Student scholarships"] },
+  { keywords: ["hospital", "health", "medical", "doctor", "ambulance"], suggestions: ["Nearest hospital", "Dial 108 ambulance", "Health card scheme"] },
+  { keywords: ["garbage", "waste", "trash", "sanitation", "clean"], suggestions: ["Report garbage issue", "Nagar Nigam contact", "Cleanliness helpline"] },
+  { keywords: ["electricity", "power", "light", "streetlight", "blackout"], suggestions: ["File electricity complaint", "UPCL helpline", "Streetlight issue"] },
+  { keywords: ["bus", "transport", "road", "traffic"], suggestions: ["UTSRTC schedule", "Report traffic issue", "Road condition map"] },
+];
+
+function getFollowUps(text: string): string[] {
+  const lower = text.toLowerCase();
+  for (const item of FOLLOW_UP_MAP) {
+    if (item.keywords.some(k => lower.includes(k))) return item.suggestions;
+  }
+  return ["Track complaint status", "File a new complaint", "Emergency helplines"];
+}
+
 export default function AIChatScreen() {
   const insets = useSafeAreaInsets();
   const { user, token } = useAuth();
@@ -147,20 +166,31 @@ export default function AIChatScreen() {
             </View>
           )}
 
-          {messages.map(msg => (
-            <View key={msg.id} style={[t.msgRow, msg.role === "user" && t.msgRowUser]}>
-              {msg.role === "ai" && (
-                <View style={t.aiAvatar}><Text style={{ fontSize: 14 }}>🤖</Text></View>
-              )}
-              <View style={[t.bubble, msg.role === "user" ? t.bubbleUser : t.bubbleAI]}>
-                <Text style={[t.bubbleText, msg.role === "user" ? t.bubbleTextUser : t.bubbleTextAI]}>
-                  {msg.text}
-                </Text>
-                <Text style={[t.bubbleTime, msg.role === "user" ? t.bubbleTimeUser : t.bubbleTimeAI]}>
-                  {fmt(msg.ts)}
-                </Text>
+          {messages.map((msg, idx) => (
+            <React.Fragment key={msg.id}>
+              <View style={[t.msgRow, msg.role === "user" && t.msgRowUser]}>
+                {msg.role === "ai" && (
+                  <View style={t.aiAvatar}><Text style={{ fontSize: 14 }}>🤖</Text></View>
+                )}
+                <View style={[t.bubble, msg.role === "user" ? t.bubbleUser : t.bubbleAI]}>
+                  <Text style={[t.bubbleText, msg.role === "user" ? t.bubbleTextUser : t.bubbleTextAI]}>
+                    {msg.text}
+                  </Text>
+                  <Text style={[t.bubbleTime, msg.role === "user" ? t.bubbleTimeUser : t.bubbleTimeAI]}>
+                    {fmt(msg.ts)}
+                  </Text>
+                </View>
               </View>
-            </View>
+              {msg.role === "ai" && idx === messages.length - 1 && !loading && idx > 0 && (
+                <View style={{ marginLeft: 44, marginTop: 6, marginBottom: 2, flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                  {getFollowUps(msg.text).map((s, i) => (
+                    <Pressable key={i} onPress={() => send(s)} style={{ backgroundColor: "#FFF8E7", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#FFD0A0" }}>
+                      <Text style={{ color: "#FF9933", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>{s}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </React.Fragment>
           ))}
 
           {loading && (
