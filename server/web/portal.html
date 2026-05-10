@@ -13,7 +13,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh}
-:root{--orange:#FF9933;--orange-dim:#cc7a29;--bg:#0d1117;--sidebar:#080d18;--card:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--yellow:#d29922;--purple:#bc8cff}
+:root{--orange:#FF9933;--orange-dim:#cc7a29;--bg:#0d1117;--sidebar:#080d18;--card:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--dimmed:#6e7681;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--yellow:#d29922;--purple:#bc8cff}
 @keyframes fadeIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideLeft{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}
 @keyframes bounceIn{0%{opacity:0;transform:scale(.88)}60%{transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}
@@ -61,9 +61,10 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bot
 .kpi-val{font-size:32px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
 .kpi-label{font-size:12px;color:var(--muted);margin-top:5px}
 .table{width:100%;border-collapse:collapse;font-size:13px}
-.table th{padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;background:rgba(0,0,0,.15)}
-.table td{padding:11px 14px;border-bottom:1px solid #21262d;vertical-align:middle}
-.table tr:hover td{background:rgba(255,153,51,.03)}
+.table th{padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;background:rgba(0,0,0,.2)}
+.table td{padding:11px 14px;border-bottom:1px solid #21262d;vertical-align:middle;color:var(--text)}
+.table tbody tr:nth-child(even) td{background:rgba(255,255,255,.018)}
+.table tr:hover td{background:rgba(255,153,51,.06)!important;cursor:pointer}
 .sidebar{width:230px;min-height:100vh;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:10}
 .sidebar-logo{padding:18px 16px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
 .sidebar-nav{flex:1;padding:10px 8px;overflow-y:auto}
@@ -131,15 +132,21 @@ const DEPTS={
   usdma:{id:'usdma',name:'USDMA — Disaster Mgmt',nameHindi:'आपदा प्रबंधन प्राधिकरण',icon:'🆘',color:'#DC2626',categories:[],helpline:'1070',helpline2:'0135-2710334',sla:2,head:'CEO, USDMA (IAS Officer)',address:'USDMA Bhawan, Rajpur Road, Dehradun — 248001'},
   police:{id:'police',name:'Uttarakhand Police',nameHindi:'उत्तराखण्ड पुलिस',icon:'🚔',color:'#60a5fa',categories:[],helpline:'100',helpline2:'112',sla:1,head:'Director General of Police, Uttarakhand',address:'Police Headquarters, Subhash Road, Dehradun — 248001'},
 };
-const CAT_DEPT={pothole:'pwd',garbage:'ulb',drain:'ulb',water:'jal',electricity:'upcl',streetlight:'upcl',tree:'forest',other:'pwd'};
+const CAT_DEPT={pothole:'pwd',road_damage:'pwd',garbage:'ulb',drain:'ulb',sewage:'ulb',water:'jal',electricity:'upcl',streetlight:'upcl',transformer:'upcl',tree:'forest',noise:'police',health_hazard:'health',disaster:'usdma',other:'pwd'};
 const CATEGORIES=[
-  {id:'pothole',label:'Pothole / Road Damage',icon:'🕳️'},
+  {id:'pothole',label:'Pothole',icon:'🕳️'},
+  {id:'road_damage',label:'Road Damage',icon:'🛣️'},
   {id:'garbage',label:'Garbage / Waste',icon:'🗑️'},
+  {id:'drain',label:'Drain Block',icon:'🌊'},
+  {id:'sewage',label:'Sewage Overflow',icon:'💩'},
   {id:'water',label:'Water Supply',icon:'💧'},
   {id:'electricity',label:'Electricity / Power Cut',icon:'⚡'},
   {id:'streetlight',label:'Street Light Fault',icon:'💡'},
-  {id:'drain',label:'Drain / Sewage',icon:'🌊'},
-  {id:'tree',label:'Tree / Forest Issue',icon:'🌳'},
+  {id:'transformer',label:'Transformer Issue',icon:'🔌'},
+  {id:'tree',label:'Tree / Park Issue',icon:'🌳'},
+  {id:'noise',label:'Noise / Nuisance',icon:'📢'},
+  {id:'health_hazard',label:'Health Hazard',icon:'🏥'},
+  {id:'disaster',label:'Flood / Disaster',icon:'🆘'},
   {id:'other',label:'Other / General',icon:'📋'},
 ];
 const SOS_CATS=[
@@ -1477,28 +1484,67 @@ function DeptAllComplaints({complaints,deptToken,addToast,onRefresh}){
         {['all','P1','P2','P3','P4'].map(p=><button key={p} className={'btn btn-sm '+(pf===p?'btn-orange':'btn-ghost')} onClick={()=>setPf(p)}>{p==='all'?'All P':p}</button>)}
       </div>
     </div>
-    <div className="card" style={{overflow:'auto'}}>
+    <div className="card" style={{overflow:'auto',padding:0}}>
       <table className="table">
-        <thead><tr><th>Ticket</th><th>Category</th><th>Description</th><th>Location</th><th>Priority</th><th>Status</th><th>Filed</th><th>Actions</th></tr></thead>
+        <thead><tr>
+          <th>Ticket</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Location · District</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>SLA</th>
+          <th>Photo</th>
+          <th>Worker</th>
+          <th>Filed</th>
+          <th>Actions</th>
+        </tr></thead>
         <tbody>
-          {filtered.slice(0,80).map(c=><tr key={c.id} style={{cursor:'pointer'}} onClick={()=>setSel(c)}>
-            <td style={{fontWeight:700,color:'var(--orange)',whiteSpace:'nowrap'}}>{c.ticketId}</td>
-            <td>{CATEGORIES.find(x=>x.id===c.category)?.icon} {c.category}</td>
-            <td style={{maxWidth:180}}><span style={{fontSize:12}}>{c.description?.slice(0,80)}</span></td>
-            <td style={{maxWidth:140,fontSize:12}}>{c.location?.slice(0,50)}</td>
-            <td><span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span></td>
-            <td><span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span></td>
-            <td style={{fontSize:11,whiteSpace:'nowrap'}}>{timeAgo(c.submittedAt)}</td>
-            <td onClick={e=>e.stopPropagation()}>
-              <div style={{display:'flex',gap:4,flexWrap:'nowrap'}}>
-                {c.status==='pending'&&<button className="btn btn-blue btn-sm" onClick={()=>updateStatus(c.id,'in_progress')} disabled={upd[c.id]}>Start</button>}
-                {(c.status==='pending'||c.status==='in_progress')&&<button className="btn btn-green btn-sm" onClick={()=>updateStatus(c.id,'resolved')} disabled={upd[c.id]}>Resolve</button>}
-              </div>
-            </td>
-          </tr>)}
+          {filtered.slice(0,100).map(c=>{
+            const catInfo=CATEGORIES.find(x=>x.id===c.category);
+            const hoursEl=c.submittedAt?Math.round((Date.now()-new Date(c.submittedAt).getTime())/3600000):0;
+            const slaHrs=DEPTS[CAT_DEPT[c.category]]?.sla||{P1:24,P2:48,P3:72,P4:168}[c.priority]||72;
+            const slaBrch=hoursEl>slaHrs&&(c.status==='pending'||c.status==='in_progress');
+            return <tr key={c.id} onClick={()=>setSel(c)}>
+              <td style={{fontWeight:800,color:'var(--orange)',whiteSpace:'nowrap',fontSize:12}}>{c.ticketId}</td>
+              <td style={{whiteSpace:'nowrap'}}><span style={{fontSize:14}}>{catInfo?.icon||'📋'}</span> <span style={{fontSize:11,color:'var(--muted)'}}>{catInfo?.label||c.category}</span></td>
+              <td style={{maxWidth:200}}>
+                <div style={{fontSize:12,lineHeight:1.4}}>{c.description?.slice(0,80)}{c.description?.length>80?'…':''}</div>
+                {c.adminNote&&<div style={{fontSize:10,color:'var(--blue)',marginTop:2}}>💬 {c.adminNote.slice(0,40)}{c.adminNote.length>40?'…':''}</div>}
+              </td>
+              <td style={{maxWidth:150}}>
+                <div style={{fontSize:11}}>{c.location?.slice(0,40)}{c.location?.length>40?'…':''}</div>
+                {c.district&&<div style={{fontSize:10,color:'var(--dimmed)',marginTop:1}}>🗺️ {c.district}</div>}
+              </td>
+              <td><span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span></td>
+              <td><span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span></td>
+              <td style={{whiteSpace:'nowrap'}}>
+                {slaBrch
+                  ?<span style={{fontSize:10,fontWeight:700,color:'var(--red)',background:'rgba(248,81,73,.1)',border:'1px solid rgba(248,81,73,.3)',padding:'2px 6px',borderRadius:5}}>⚠ +{hoursEl-slaHrs}h</span>
+                  :<span style={{fontSize:10,color:hoursEl/slaHrs>.7?'var(--yellow)':'var(--green)'}}>{hoursEl}h/{slaHrs}h</span>}
+              </td>
+              <td style={{textAlign:'center'}}>
+                {c.beforePhoto
+                  ?<span style={{fontSize:10,fontWeight:700,color:c.photoIsReal===false?'var(--red)':c.photoIsReal===true?'var(--green)':'var(--muted)',padding:'2px 6px',borderRadius:5,background:c.photoIsReal===false?'rgba(248,81,73,.1)':c.photoIsReal===true?'rgba(63,185,80,.1)':'rgba(139,148,158,.07)',border:'1px solid '+(c.photoIsReal===false?'rgba(248,81,73,.3)':c.photoIsReal===true?'rgba(63,185,80,.3)':'var(--border)')}}>
+                    {c.photoIsReal===true?'✓ Real':c.photoIsReal===false?'⚠ Fake':'📷'}
+                  </span>
+                  :<span style={{color:'var(--dimmed)',fontSize:11}}>—</span>}
+              </td>
+              <td style={{fontSize:11,whiteSpace:'nowrap'}}>{c.workerName&&c.workerName!=='—'?<span style={{color:'var(--blue)'}}>👷 {c.workerName?.split(' ')[0]}</span>:<span style={{color:'var(--dimmed)'}}>—</span>}</td>
+              <td style={{fontSize:11,whiteSpace:'nowrap',color:'var(--muted)'}}>{timeAgo(c.submittedAt)}</td>
+              <td onClick={e=>e.stopPropagation()}>
+                <div style={{display:'flex',gap:4,flexWrap:'nowrap'}}>
+                  {c.status==='pending'&&<button className="btn btn-blue btn-sm" onClick={()=>updateStatus(c.id,'in_progress')} disabled={upd[c.id]}>▶ Start</button>}
+                  {(c.status==='pending'||c.status==='in_progress')&&<button className="btn btn-green btn-sm" onClick={()=>updateStatus(c.id,'resolved')} disabled={upd[c.id]}>✓ Done</button>}
+                  {c.status==='resolved'&&<span style={{fontSize:10,color:'var(--green)'}}>✓ Resolved</span>}
+                </div>
+              </td>
+            </tr>;
+          })}
         </tbody>
       </table>
-      {filtered.length===0&&<div style={{textAlign:'center',padding:30,color:'var(--muted)'}}>No complaints match filters</div>}
+      {filtered.length===0&&<div style={{textAlign:'center',padding:36,color:'var(--muted)'}}>No complaints match filters</div>}
+      {filtered.length>100&&<div style={{textAlign:'center',padding:10,fontSize:11,color:'var(--muted)',borderTop:'1px solid var(--border)'}}>Showing 100 of {filtered.length} · Use filters to narrow results</div>}
     </div>
     {sel&&<ComplaintModal c={sel} onClose={()=>setSel(null)} deptToken={deptToken} addToast={addToast} onRefresh={onRefresh} isAdmin={false}/>}
   </div>;
@@ -1848,27 +1894,58 @@ function AdminComplaints({complaints,token,addToast,onRefresh}){
         {DISTRICTS.map(d=><option key={d}>{d}</option>)}
       </select>
     </div>
-    <div className="card" style={{overflow:'auto'}}>
+    <div className="card" style={{overflow:'auto',padding:0}}>
       <table className="table">
-        <thead><tr><th>Ticket</th><th>Category / Dept</th><th>Description</th><th>Location</th><th>District</th><th>Priority</th><th>Status</th><th>Filed</th><th>Admin Note</th></tr></thead>
+        <thead><tr>
+          <th>Ticket</th>
+          <th>Category</th>
+          <th>Department</th>
+          <th>Description</th>
+          <th>Location · District</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>SLA</th>
+          <th>Photo</th>
+          <th>Worker</th>
+          <th>Filed</th>
+          <th>Note</th>
+        </tr></thead>
         <tbody>
-          {filtered.slice(0,100).map(c=>{
+          {filtered.slice(0,120).map(c=>{
             const dept=DEPTS[CAT_DEPT[c.category]];
-            return <tr key={c.id} style={{cursor:'pointer'}} onClick={()=>setSel(c)}>
-              <td style={{fontWeight:700,color:'var(--orange)',whiteSpace:'nowrap'}}>{c.ticketId}</td>
-              <td><div>{CATEGORIES.find(x=>x.id===c.category)?.icon} {c.category}</div>{dept&&<div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>{dept.icon} {dept.name.split('—')[0].trim()}</div>}</td>
-              <td style={{maxWidth:180}}><span style={{fontSize:12}}>{c.description?.slice(0,70)}</span></td>
-              <td style={{maxWidth:130,fontSize:12}}>{c.location?.slice(0,45)}</td>
-              <td style={{fontSize:12,whiteSpace:'nowrap'}}>{c.district}</td>
+            const catInfo=CATEGORIES.find(x=>x.id===c.category);
+            const hoursEl=c.submittedAt?Math.round((Date.now()-new Date(c.submittedAt).getTime())/3600000):0;
+            const slaHrs=dept?.sla||{P1:24,P2:48,P3:72,P4:168}[c.priority]||72;
+            const slaBrch=hoursEl>slaHrs&&(c.status==='pending'||c.status==='in_progress');
+            return <tr key={c.id} onClick={()=>setSel(c)}>
+              <td style={{fontWeight:800,color:'var(--orange)',whiteSpace:'nowrap',fontSize:12,letterSpacing:.02}}>{c.ticketId}</td>
+              <td style={{whiteSpace:'nowrap'}}><span style={{fontSize:15}}>{catInfo?.icon||'📋'}</span> <span style={{fontSize:11,color:'var(--muted)'}}>{catInfo?.label||c.category}</span></td>
+              <td style={{whiteSpace:'nowrap'}}>{dept?<span style={{fontSize:11,background:(dept.color||'#FF9933')+'18',color:dept.color||'var(--orange)',border:'1px solid '+(dept.color||'#FF9933')+'30',padding:'2px 7px',borderRadius:6,fontWeight:600}}>{dept.icon} {dept.name.split('—')[0].trim()}</span>:<span style={{color:'var(--dimmed)',fontSize:11}}>—</span>}</td>
+              <td style={{maxWidth:200}}><span style={{fontSize:12,color:'var(--text)',lineHeight:1.4}}>{c.description?.slice(0,80)}{c.description?.length>80?'…':''}</span></td>
+              <td style={{maxWidth:160}}>
+                <div style={{fontSize:11,color:'var(--text)'}}>{c.location?.slice(0,40)}{c.location?.length>40?'…':''}</div>
+                {c.district&&<div style={{fontSize:10,color:'var(--dimmed)',marginTop:1}}>🗺️ {c.district}</div>}
+              </td>
               <td><span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span></td>
               <td><span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span></td>
-              <td style={{fontSize:11,whiteSpace:'nowrap'}}>{timeAgo(c.submittedAt)}</td>
-              <td style={{maxWidth:120}}>{c.adminNote?<span style={{fontSize:11,color:'var(--blue)'}}>🔵 {c.adminNote.slice(0,30)}…</span>:<span style={{fontSize:11,color:'var(--border)'}}>—</span>}</td>
+              <td style={{whiteSpace:'nowrap'}}>
+                {slaBrch?<span style={{fontSize:10,fontWeight:700,color:'var(--red)',background:'rgba(248,81,73,.1)',border:'1px solid rgba(248,81,73,.25)',padding:'2px 6px',borderRadius:5}}>⚠ +{hoursEl-slaHrs}h</span>
+                  :<span style={{fontSize:10,color:hoursEl/slaHrs>.7?'var(--yellow)':'var(--green)'}}>{hoursEl}h/{slaHrs}h</span>}
+              </td>
+              <td style={{textAlign:'center'}}>
+                {c.beforePhoto?<span style={{fontSize:11,fontWeight:700,color:c.photoIsReal===false?'var(--red)':c.photoIsReal===true?'var(--green)':'var(--muted)',background:c.photoIsReal===false?'rgba(248,81,73,.1)':c.photoIsReal===true?'rgba(63,185,80,.1)':'rgba(139,148,158,.08)',border:'1px solid '+(c.photoIsReal===false?'rgba(248,81,73,.3)':c.photoIsReal===true?'rgba(63,185,80,.3)':'var(--border)'),padding:'2px 6px',borderRadius:5}}>
+                  {c.photoIsReal===true?'✓ Real':c.photoIsReal===false?'⚠ Fake':'📷'}
+                </span>:<span style={{color:'var(--dimmed)',fontSize:11}}>—</span>}
+              </td>
+              <td style={{whiteSpace:'nowrap',fontSize:11}}>{c.workerName&&c.workerName!=='—'?<span style={{color:'var(--blue)'}}>👷 {c.workerName?.split(' ')[0]}</span>:<span style={{color:'var(--dimmed)'}}>—</span>}</td>
+              <td style={{fontSize:11,whiteSpace:'nowrap',color:'var(--muted)'}}>{timeAgo(c.submittedAt)}</td>
+              <td style={{maxWidth:100}}>{c.adminNote?<span style={{fontSize:10,color:'var(--blue)',lineHeight:1.3,display:'block'}}>💬 {c.adminNote.slice(0,25)}…</span>:<span style={{fontSize:11,color:'var(--dimmed)'}}>—</span>}</td>
             </tr>;
           })}
         </tbody>
       </table>
       {filtered.length===0&&<div style={{textAlign:'center',padding:40,color:'var(--muted)'}}>No complaints match filters</div>}
+      {filtered.length>120&&<div style={{textAlign:'center',padding:12,fontSize:12,color:'var(--muted)',borderTop:'1px solid var(--border)'}}>Showing 120 of {filtered.length} · Use filters to narrow down</div>}
     </div>
     {sel&&<ComplaintModal c={sel} onClose={()=>setSel(null)} token={token} addToast={addToast} onRefresh={onRefresh} isAdmin={true}/>}
   </div>;

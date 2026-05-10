@@ -8,7 +8,7 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
-:root{--orange:#FF9933;--bg:#0d1117;--sidebar:#080d18;--card:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--yellow:#d29922;--purple:#bc8cff}
+:root{--orange:#FF9933;--bg:#0d1117;--sidebar:#080d18;--card:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--dimmed:#6e7681;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--yellow:#d29922;--purple:#bc8cff}
 body{background:var(--bg);color:var(--text);min-height:100vh}
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
@@ -75,7 +75,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh}
 .select:focus{border-color:var(--orange)}
 label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
 /* Complaint cards */
-.complaint-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all .2s}
+.complaint-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
 .complaint-card:hover{border-color:#484f58;transform:translateX(2px)}
 .complaint-card.new-card{border-color:var(--orange);box-shadow:0 0 16px rgba(255,153,51,.15);animation:glow 2.5s infinite}
 .ticket{font-size:10px;color:var(--muted);font-family:monospace;letter-spacing:.06em}
@@ -128,9 +128,10 @@ label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bot
 .bar-num{font-size:11px;color:var(--muted);width:24px;text-align:right}
 /* Table */
 .table{width:100%;border-collapse:collapse;font-size:13px}
-.table th{padding:9px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border);background:rgba(0,0,0,.15)}
-.table td{padding:10px 12px;border-bottom:1px solid #21262d;vertical-align:middle}
-.table tr:hover td{background:rgba(255,153,51,.03)}
+.table th{padding:9px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
+.table td{padding:10px 12px;border-bottom:1px solid #21262d;vertical-align:middle;color:var(--text)}
+.table tbody tr:nth-child(even) td{background:rgba(255,255,255,.018)}
+.table tr:hover td{background:rgba(255,153,51,.06)!important;cursor:pointer}
 /* Responsive */
 @media(max-width:768px){.sidebar{width:52px}.main{margin-left:52px;padding:14px}.sidebar .nav-lbl,.sidebar .logo-txt,.sidebar .logo-sub,.sidebar .nav-badge,.sidebar .dept-info{display:none}}
 </style>
@@ -238,13 +239,24 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
       </div>
 
       {(c.beforePhoto||c.afterPhoto)&&<div style={{marginBottom:14}}>
-        <div style={{fontSize:11,fontWeight:700,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:8}}>📷 Photos</div>
-        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          {c.beforePhoto&&<div><div style={{fontSize:10,color:'var(--muted)',marginBottom:3}}>BEFORE</div>
-            <img src={c.beforePhoto} alt="Before" style={{width:140,height:105,objectFit:'cover',borderRadius:8,border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(c.beforePhoto,'_blank')} onError={e=>e.target.style.display='none'}/>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:8}}>📷 Evidence Photos</div>
+        <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+          {c.beforePhoto&&<div>
+            <div style={{fontSize:10,color:'var(--orange)',marginBottom:5,fontWeight:700,display:'flex',alignItems:'center',gap:6}}>
+              BEFORE
+              {c.photoIsReal===true&&<span style={{background:'rgba(63,185,80,.15)',color:'#3fb950',border:'1px solid rgba(63,185,80,.35)',borderRadius:4,padding:'1px 6px',fontSize:9,fontWeight:700}}>✓ REAL PHOTO{c.photoAiConfidence?` · ${c.photoAiConfidence}%`:''}</span>}
+              {c.photoIsReal===false&&<span style={{background:'rgba(248,81,73,.12)',color:'#f85149',border:'1px solid rgba(248,81,73,.35)',borderRadius:4,padding:'1px 6px',fontSize:9,fontWeight:700}}>⚠ AI-GENERATED{c.photoAiConfidence?` · ${c.photoAiConfidence}%`:''}</span>}
+            </div>
+            <div style={{position:'relative',display:'inline-block'}}>
+              <img src={c.beforePhoto} alt="Before" style={{width:160,height:120,objectFit:'cover',borderRadius:10,border:c.photoIsReal===false?'2px solid rgba(248,81,73,.6)':c.photoIsReal===true?'2px solid rgba(63,185,80,.5)':'2px solid var(--border)',cursor:'pointer',display:'block'}} onClick={()=>window.open(c.beforePhoto,'_blank')} onError={e=>e.target.style.display='none'}/>
+              {c.photoIsReal===false&&<div style={{position:'absolute',top:5,right:5,background:'rgba(200,0,0,.85)',color:'#fff',borderRadius:4,padding:'2px 6px',fontSize:9,fontWeight:700}}>⚠ FAKE</div>}
+              {c.photoIsReal===true&&<div style={{position:'absolute',top:5,right:5,background:'rgba(0,120,50,.85)',color:'#fff',borderRadius:4,padding:'2px 6px',fontSize:9,fontWeight:700}}>✓ REAL</div>}
+            </div>
+            {c.photoAiReason&&<div style={{maxWidth:160,marginTop:4,fontSize:10,color:'var(--muted)',lineHeight:1.4,fontStyle:'italic'}}>{c.photoAiReason}</div>}
           </div>}
-          {c.afterPhoto&&<div><div style={{fontSize:10,color:'var(--muted)',marginBottom:3}}>AFTER</div>
-            <img src={c.afterPhoto} alt="After" style={{width:140,height:105,objectFit:'cover',borderRadius:8,border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(c.afterPhoto,'_blank')} onError={e=>e.target.style.display='none'}/>
+          {c.afterPhoto&&<div>
+            <div style={{fontSize:10,color:'var(--green)',marginBottom:5,fontWeight:700}}>AFTER (Proof)</div>
+            <img src={c.afterPhoto} alt="After" style={{width:160,height:120,objectFit:'cover',borderRadius:10,border:'2px solid rgba(63,185,80,.4)',cursor:'pointer'}} onClick={()=>window.open(c.afterPhoto,'_blank')} onError={e=>e.target.style.display='none'}/>
           </div>}
         </div>
       </div>}
@@ -335,20 +347,36 @@ function ComplaintCard({c,isNew,token,onRefresh,addToast}){
   return <>
     {open&&<ComplaintModal c={c} onClose={()=>setOpen(false)} token={token} onRefresh={onRefresh} addToast={addToast}/>}
     <div className={'complaint-card'+(isNew?' new-card':'')} onClick={()=>setOpen(true)}>
-      <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:6,flexWrap:'wrap'}}>
-        <span className="ticket">{c.ticketId||`UK-${(c.id||'').slice(0,6).toUpperCase()}`}</span>
-        {isNew&&<span style={{fontSize:9,fontWeight:800,background:'var(--orange)',color:'#000',padding:'1px 5px',borderRadius:8}}>NEW</span>}
-        <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
-        <span className={'badge '+(SC[c.status]||'badge-muted')}>{(c.status||'pending').replace('_',' ')}</span>
-        <span style={{fontSize:11,color:'var(--muted)',marginLeft:'auto'}}>{timeAgo(c.submittedAt)}</span>
+      {/* Priority stripe */}
+      <div style={{position:'absolute',top:0,left:0,right:0,height:3,background:c.priority==='P1'?'var(--red)':c.priority==='P2'?'var(--orange)':c.priority==='P3'?'var(--blue)':'var(--border)',borderRadius:'12px 12px 0 0'}}/>
+      <div style={{paddingTop:4}}>
+        {/* Header row */}
+        <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:7,flexWrap:'wrap'}}>
+          <span className="ticket">{c.ticketId||`UK-${(c.id||'').slice(0,6).toUpperCase()}`}</span>
+          {isNew&&<span style={{fontSize:9,fontWeight:800,background:'var(--orange)',color:'#000',padding:'1px 5px',borderRadius:8,animation:'pulse 1.5s infinite'}}>🔔 NEW</span>}
+          <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
+          <span className={'badge '+(SC[c.status]||'badge-muted')}>{(c.status||'pending').replace('_',' ')}</span>
+          <span style={{fontSize:10,color:'var(--muted)',marginLeft:'auto'}}>{CAT_ICONS[c.category]||'📋'} {c.category}</span>
+        </div>
+        {/* Description */}
+        <div style={{fontSize:13,color:'var(--text)',lineHeight:1.55,marginBottom:8}}>{(c.description||'').slice(0,140)}{(c.description||'').length>140?'…':''}</div>
+        {/* Meta row */}
+        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',fontSize:11,marginBottom:7}}>
+          <span style={{color:'var(--muted)'}}>📍 {(c.location||c.ward||'Unknown').slice(0,40)}</span>
+          {c.district&&<span style={{color:'var(--dimmed)',borderLeft:'1px solid var(--border)',paddingLeft:8}}>🗺️ {c.district}</span>}
+        </div>
+        {/* Tags row */}
+        <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+          {c.beforePhoto&&<span style={{fontSize:10,fontWeight:700,color:c.photoIsReal===false?'var(--red)':c.photoIsReal===true?'var(--green)':'var(--muted)',background:c.photoIsReal===false?'rgba(248,81,73,.1)':c.photoIsReal===true?'rgba(63,185,80,.1)':'rgba(139,148,158,.08)',border:'1px solid '+(c.photoIsReal===false?'rgba(248,81,73,.3)':c.photoIsReal===true?'rgba(63,185,80,.3)':'var(--border)'),padding:'2px 7px',borderRadius:5}}>
+            {c.photoIsReal===true?'✓ Real Photo':c.photoIsReal===false?'⚠ AI-Generated':'📷 Photo'}
+          </span>}
+          {c.workerName&&c.workerName!=='—'&&<span style={{fontSize:10,color:'var(--blue)',background:'rgba(88,166,255,.08)',border:'1px solid rgba(88,166,255,.2)',padding:'2px 7px',borderRadius:5}}>👷 {c.workerName}</span>}
+          {c.adminNote&&<span style={{fontSize:10,color:'var(--blue)',fontStyle:'italic'}}>💬 Note</span>}
+          <span style={{fontSize:10,color:'var(--dimmed)',marginLeft:'auto'}}>{timeAgo(c.submittedAt)}</span>
+        </div>
+        {(c.status==='pending'||c.status==='assigned')&&
+          <button className="btn btn-sm btn-orange" style={{marginTop:10}} onClick={ack}>✓ Acknowledge &amp; Start</button>}
       </div>
-      <div style={{fontSize:13,color:'#e6edf3',lineHeight:1.5,marginBottom:5}}>{(c.description||'').slice(0,140)}{(c.description||'').length>140?'…':''}</div>
-      <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-        <span style={{fontSize:11,color:'var(--muted)'}}>📍 {c.ward||c.location||'Unknown'} · {c.district}</span>
-        {c.beforePhoto&&<span style={{fontSize:10,color:'var(--blue)'}}>📷 Photo</span>}
-      </div>
-      {(c.status==='pending'||c.status==='assigned')&&
-        <button className="btn btn-sm btn-orange" style={{marginTop:9}} onClick={ack}>✓ Acknowledge &amp; Start</button>}
     </div>
   </>;
 }
