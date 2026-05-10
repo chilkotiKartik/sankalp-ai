@@ -171,7 +171,7 @@ export default function LeaderboardScreen() {
     return list.map((l, i) => ({ ...l, rank: i + 1 }));
   }, [leaders, tab, sortKey, user?.district]);
 
-  const myRank = filtered.findIndex(l => l.phone === user?.phone);
+  const myRank = filtered.findIndex(l => l.phone?.slice(0, 5) === user?.phone?.slice(0, 5));
   const myEntry = myRank >= 0 ? filtered[myRank] : null;
 
   const top3 = filtered.slice(0, 3);

@@ -7,6 +7,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -95,14 +97,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     listenerRef.current = Notifications.addNotificationReceivedListener((notification) => {
       const { title, body } = notification.request.content;
       if (title) {
-        setNotifications(prev => [{
+        const newNotif: AppNotification = {
           id: genId(),
-          type: "system",
+          type: "system" as NotificationType,
           title: title as string,
           body: (body as string) || "",
           timestamp: new Date().toISOString(),
           read: false,
-        }, ...prev].slice(0, 50));
+        };
+        setNotifications(prev => [newNotif, ...prev].slice(0, 50));
       }
     });
 

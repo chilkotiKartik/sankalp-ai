@@ -1703,7 +1703,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
     const ann = all.find(a => a.id === req.params.annId);
     if (!ann) return res.status(404).json({ message: "Announcement not found" });
     if (ann.department !== deptId) return res.status(403).json({ message: "Cannot delete another department's announcement" });
-    const deleted = storage.deleteAnnouncement(req.params.annId);
+    const deleted = storage.deleteAnnouncement(sp(req.params.annId));
     res.json({ success: deleted });
   });
 
@@ -1842,7 +1842,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
 
   // ── SOS AUDIO CHUNKS — GET for admin/super_admin ──────────────────────────────
   app.get("/api/sos/:id/audio-chunks", requireAdmin, (req, res) => {
-    const { id } = req.params;
+    const id = sp(req.params.id);
     const alert = storage.getSOSAlert(id);
     if (!alert) return res.status(404).json({ error: "SOS alert not found" });
     res.json({
@@ -1857,7 +1857,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
 
   // ── SOS AUDIO CHUNK ───────────────────────────────────────────────────────────
   app.put("/api/sos/:id/audio-chunk", requireAuth, (req, res) => {
-    const { id } = req.params;
+    const id = sp(req.params.id);
     const { chunkUrl, chunkIndex, duration } = req.body;
     if (!chunkUrl || chunkIndex === undefined) return res.status(400).json({ error: "chunkUrl and chunkIndex required" });
     const alert = storage.addSOSAudioChunk(id, { url: chunkUrl, chunkIndex, duration: duration || 10 });

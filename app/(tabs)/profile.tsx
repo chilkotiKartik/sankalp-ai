@@ -73,7 +73,7 @@ export default function ProfileScreen() {
   const nextLevelPoints = 100;
   const progress = Math.min((points % 100) / 100, 1);
   const levelTitle = LEVEL_TITLES[Math.min(level, LEVEL_TITLES.length - 1)] || "Civic Legend";
-  const myRank = leaderboard.findIndex(e => e.phone?.startsWith?.(user?.phone?.slice(0, 6) || "000000"));
+  const myRank = leaderboard.findIndex(e => e.phone?.slice(0, 5) === user?.phone?.slice(0, 5));
 
   useEffect(() => {
     Animated.parallel([
