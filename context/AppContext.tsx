@@ -184,6 +184,7 @@ export interface LeaderboardEntry {
   rank: number;
   name: string;
   phone: string;
+  district: string;
   points: number;
   level: number;
   badges: string[];

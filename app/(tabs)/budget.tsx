@@ -128,7 +128,7 @@ export default function BudgetScreen() {
   const [selectedItem, setSelectedItem] = useState<BudgetItem | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  const districts = ["all", "Dehradun", "Haridwar", "Nainital"];
+  const districts = ["all", "Dehradun", "Haridwar", "Nainital", "Udham Singh Nagar", "Almora", "Pithoragarh", "Champawat", "Bageshwar", "Tehri Garhwal", "Pauri Garhwal", "Rudraprayag", "Chamoli", "Uttarkashi"];
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);

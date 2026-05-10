@@ -595,7 +595,7 @@ const s = StyleSheet.create({
   infoText:{flex:1,color:Colors.textMuted,fontSize:11,fontFamily:"Inter_400Regular"},
   overlay:{flex:1,backgroundColor:"rgba(0,0,0,0.7)",justifyContent:"flex-end"},
   modalCard:{backgroundColor:"#0d1117",borderTopLeftRadius:24,borderTopRightRadius:24,padding:20,maxHeight:"92%",borderTopWidth:1,borderColor:"#30363d"},
-  infoRow:{padding:12,backgroundColor:Colors.bgCard,borderRadius:0,flexDirection:"row",justifyContent:"space-between",padding:12},
+  infoRow:{backgroundColor:Colors.bgCard,borderRadius:0,flexDirection:"row",justifyContent:"space-between",padding:12},
   infoRowLabel:{color:Colors.textMuted,fontSize:12,fontFamily:"Inter_400Regular"},
   cancelBtn:{flex:1,backgroundColor:Colors.bgCard,borderRadius:14,padding:14,alignItems:"center",borderWidth:1,borderColor:Colors.border},
   cancelText:{color:Colors.textPrimary,fontSize:13,fontFamily:"Inter_600SemiBold"},

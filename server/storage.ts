@@ -784,20 +784,26 @@ class AppStorage {
 
     // More Uttarakhand citizens across districts
     const citizenSeeds: Omit<AppUser, "id" | "createdAt">[] = [
-      { name: "Ramesh Kumar Rawat",    phone: "9811234567", pin: "112233", role: "citizen", district: "Dehradun",         points: 520, badges: ["first_report", "active_citizen", "civic_hero"], level: 6 },
-      { name: "Priya Bisht",           phone: "9711234568", pin: "223344", role: "citizen", district: "Haridwar",         points: 280, badges: ["first_report", "active_citizen"], level: 3 },
-      { name: "Amit Negi",             phone: "9911234569", pin: "334455", role: "citizen", district: "Nainital",         points: 680, badges: ["first_report", "active_citizen", "civic_hero"], level: 7 },
-      { name: "Sunita Mahar",          phone: "9611234570", pin: "445566", role: "citizen", district: "Almora",           points: 120, badges: ["first_report"], level: 2 },
-      { name: "Ravi Panwar",           phone: "9511234571", pin: "556677", role: "citizen", district: "Champawat",        points: 890, badges: ["first_report", "active_citizen", "civic_hero", "city_champion"], level: 9 },
-      { name: "Deepa Adhikari",        phone: "9411234572", pin: "667788", role: "citizen", district: "Pithoragarh",      points: 310, badges: ["first_report", "active_citizen"], level: 4 },
-      { name: "Suresh Tamta",          phone: "9311234573", pin: "778899", role: "citizen", district: "Udham Singh Nagar",points: 45,  badges: ["new_citizen"], level: 1 },
-      { name: "Kavita Bora",           phone: "9211234574", pin: "889900", role: "citizen", district: "Dehradun",         points: 750, badges: ["first_report", "active_citizen", "civic_hero"], level: 8 },
-      { name: "Vikas Rana",            phone: "8811234575", pin: "990011", role: "citizen", district: "Tehri Garhwal",    points: 195, badges: ["first_report"], level: 2 },
-      { name: "Asha Devi",             phone: "8711234576", pin: "001122", role: "citizen", district: "Rudraprayag",      points: 430, badges: ["first_report", "active_citizen"], level: 5 },
-      { name: "Mohan Joshi",           phone: "8611234577", pin: "112244", role: "citizen", district: "Uttarkashi",       points: 220, badges: ["first_report"], level: 3 },
-      { name: "Lalita Semwal",         phone: "8511234578", pin: "223355", role: "citizen", district: "Chamoli",          points: 380, badges: ["first_report", "active_citizen"], level: 4 },
-      { name: "Naresh Singh",          phone: "8411234579", pin: "334466", role: "citizen", district: "Bageshwar",        points: 90,  badges: ["new_citizen"], level: 1 },
-      { name: "Kamla Pant",            phone: "8311234580", pin: "445577", role: "citizen", district: "Pauri Garhwal",    points: 560, badges: ["first_report", "active_citizen", "civic_hero"], level: 6 },
+      { name: "Ramesh Kumar Rawat",    phone: "9811234567", pin: "112233", role: "citizen", district: "Dehradun",          points: 1420, badges: ["first_report", "active_citizen", "civic_hero", "city_champion"], level: 10 },
+      { name: "Priya Bisht",           phone: "9711234568", pin: "223344", role: "citizen", district: "Haridwar",          points: 1180, badges: ["first_report", "active_citizen", "civic_hero", "city_champion"], level: 10 },
+      { name: "Amit Negi",             phone: "9911234569", pin: "334455", role: "citizen", district: "Nainital",          points:  980, badges: ["first_report", "active_citizen", "civic_hero"], level: 9 },
+      { name: "Sunita Mahar",          phone: "9611234570", pin: "445566", role: "citizen", district: "Almora",            points:  760, badges: ["first_report", "active_citizen", "civic_hero"], level: 8 },
+      { name: "Ravi Panwar",           phone: "9511234571", pin: "556677", role: "citizen", district: "Champawat",         points:  890, badges: ["first_report", "active_citizen", "civic_hero", "city_champion"], level: 9 },
+      { name: "Deepa Adhikari",        phone: "9411234572", pin: "667788", role: "citizen", district: "Pithoragarh",       points:  610, badges: ["first_report", "active_citizen", "civic_hero"], level: 7 },
+      { name: "Suresh Tamta",          phone: "9311234573", pin: "778899", role: "citizen", district: "Udham Singh Nagar", points:  455, badges: ["first_report", "active_citizen"], level: 5 },
+      { name: "Kavita Bora",           phone: "9211234574", pin: "889900", role: "citizen", district: "Dehradun",          points: 1050, badges: ["first_report", "active_citizen", "civic_hero", "city_champion"], level: 10 },
+      { name: "Vikas Rana",            phone: "8811234575", pin: "990011", role: "citizen", district: "Tehri Garhwal",     points:  395, badges: ["first_report", "active_citizen"], level: 4 },
+      { name: "Asha Devi",             phone: "8711234576", pin: "001122", role: "citizen", district: "Rudraprayag",       points:  530, badges: ["first_report", "active_citizen"], level: 6 },
+      { name: "Mohan Joshi",           phone: "8611234577", pin: "112244", role: "citizen", district: "Uttarkashi",        points:  320, badges: ["first_report", "active_citizen"], level: 4 },
+      { name: "Lalita Semwal",         phone: "8511234578", pin: "223355", role: "citizen", district: "Chamoli",           points:  480, badges: ["first_report", "active_citizen"], level: 5 },
+      { name: "Naresh Singh",          phone: "8411234579", pin: "334466", role: "citizen", district: "Bageshwar",         points:  210, badges: ["first_report"], level: 3 },
+      { name: "Kamla Pant",            phone: "8311234580", pin: "445577", role: "citizen", district: "Pauri Garhwal",     points:  860, badges: ["first_report", "active_citizen", "civic_hero", "city_champion"], level: 9 },
+      { name: "Dinesh Bisht",          phone: "8211234581", pin: "556688", role: "citizen", district: "Dehradun",          points:  720, badges: ["first_report", "active_citizen", "civic_hero"], level: 8 },
+      { name: "Geeta Rawat",           phone: "8111234582", pin: "667799", role: "citizen", district: "Haridwar",          points:  640, badges: ["first_report", "active_citizen"], level: 7 },
+      { name: "Prakash Pant",          phone: "7911234583", pin: "778800", role: "citizen", district: "Nainital",          points:  580, badges: ["first_report", "active_citizen", "civic_hero"], level: 6 },
+      { name: "Savita Arya",           phone: "7811234584", pin: "889911", role: "citizen", district: "Almora",            points:  290, badges: ["first_report"], level: 3 },
+      { name: "Harish Chandra",        phone: "7711234585", pin: "990022", role: "citizen", district: "Pithoragarh",       points:  415, badges: ["first_report", "active_citizen"], level: 5 },
+      { name: "Meena Devi Tamang",     phone: "7611234586", pin: "001233", role: "citizen", district: "Chamoli",           points:  175, badges: ["new_citizen", "first_report"], level: 2 },
     ];
     citizenSeeds.forEach(c => {
       const id = genId();
@@ -1057,14 +1063,29 @@ class AppStorage {
       { department: "UPCL", category: "Power Infrastructure", allocated: 6100, spent: 5400, description: "Transformer upgrades, last-mile connectivity, smart metering" },
       { department: "Disaster Management", category: "Emergency Preparedness", allocated: 2800, spent: 1400, description: "Landslide barriers, flood early warning, rescue equipment" },
     ];
+    const DISTRICT_SCALE: Record<string, { alloc: number; spent: number }> = {
+      "Dehradun":         { alloc: 1.40, spent: 1.30 },
+      "Haridwar":         { alloc: 1.20, spent: 1.08 },
+      "Nainital":         { alloc: 1.00, spent: 0.88 },
+      "Udham Singh Nagar":{ alloc: 1.10, spent: 0.96 },
+      "Almora":           { alloc: 0.75, spent: 0.62 },
+      "Pithoragarh":      { alloc: 0.70, spent: 0.55 },
+      "Champawat":        { alloc: 0.55, spent: 0.42 },
+      "Bageshwar":        { alloc: 0.50, spent: 0.36 },
+      "Tehri Garhwal":    { alloc: 0.80, spent: 0.65 },
+      "Pauri Garhwal":    { alloc: 0.72, spent: 0.58 },
+      "Rudraprayag":      { alloc: 0.60, spent: 0.44 },
+      "Chamoli":          { alloc: 0.65, spent: 0.50 },
+      "Uttarkashi":       { alloc: 0.62, spent: 0.47 },
+    };
     DEPARTMENTS_BUDGET.forEach(b => {
-      ["Dehradun", "Haridwar", "Nainital"].forEach(district => {
+      Object.entries(DISTRICT_SCALE).forEach(([district, scale]) => {
         this.budgetItems.push({
           id: genId(), ...b,
           district,
           year: 2025,
-          allocated: b.allocated * (district === "Dehradun" ? 1.3 : district === "Haridwar" ? 1.1 : 0.9),
-          spent: b.spent * (district === "Dehradun" ? 1.2 : district === "Haridwar" ? 1.0 : 0.8),
+          allocated: Math.round(b.allocated * scale.alloc),
+          spent: Math.round(b.spent * scale.spent),
         });
       });
     });

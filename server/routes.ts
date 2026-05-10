@@ -673,10 +673,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(storage.getWorkers(district));
   });
 
-  app.get("/api/police-stations", requireAuth, (req, res) => {
-    const user = (req as any).user;
-    const district = user.role === "super_admin" ? undefined : user.district;
-    res.json(storage.getPoliceStations(district));
+  app.get("/api/police-stations", requireAuth, (_req, res) => {
+    res.json(storage.getPoliceStations());
   });
 
   app.get("/api/risk-zones", requireAuth, (req, res) => {
@@ -1121,8 +1119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── BUDGET TRACKER ────────────────────────────────────────────────────
   app.get("/api/budget", requireAuth, (req, res) => {
-    const user = (req as any).user;
-    const district = (req.query.district as string) || (user.role === "super_admin" ? undefined : user.district);
+    const district = req.query.district as string | undefined;
     res.json(storage.getBudgetItems(district));
   });
 
@@ -1273,7 +1270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
       try {
         const completion = await getOpenAIClient().chat.completions.create({
-          model: "gpt-5-mini",
+          model: "gpt-4o-mini",
           messages: msgs as any,
           max_completion_tokens: 500,
         });
@@ -1331,7 +1328,7 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
     if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
       try {
         const completion = await getOpenAIClient().chat.completions.create({
-          model: "gpt-5-mini",
+          model: "gpt-4o-mini",
           messages: [{
             role: "user",
             content: [
