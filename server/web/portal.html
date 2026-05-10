@@ -900,33 +900,76 @@ function MyComplaints({complaints,token,addToast,onRefresh}){
   const filtered=(filter==='all'?complaints:complaints.filter(c=>c.status===filter))
     .sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
 
+  const slaMap={P1:24,P2:48,P3:72,P4:168};
+  function slaInfo(c){
+    if(c.status==='resolved'||c.status==='closed')return{breached:false,label:'✅ Resolved',color:'var(--green)'};
+    const sla=slaMap[c.priority]||72;
+    const hours=Math.round((Date.now()-new Date(c.submittedAt))/3600000);
+    if(hours>sla)return{breached:true,label:`⚠️ ${hours-sla}h overdue`,color:'var(--red)'};
+    return{breached:false,label:`⏱️ ${sla-hours}h left`,color:'var(--yellow)'};
+  }
+
   return <div className="fade-in">
     <div className="topbar">
-      <div style={{fontSize:20,fontWeight:700}}>📋 My Complaints ({filtered.length})</div>
+      <div>
+        <div style={{fontSize:20,fontWeight:700}}>📋 My Complaints</div>
+        <div style={{fontSize:12,color:'var(--muted)',marginTop:2}}>{filtered.length} complaint{filtered.length!==1?'s':''} · {complaints.filter(c=>c.status==='pending').length} pending</div>
+      </div>
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         {['all','pending','in_progress','resolved'].map(s=><button key={s} className={'btn btn-sm '+(filter===s?'btn-orange':'btn-ghost')} onClick={()=>setFilter(s)}>{SL[s]||'All'}</button>)}
       </div>
     </div>
     {filtered.length===0?<div className="card" style={{textAlign:'center',padding:50,color:'var(--muted)'}}>
-      <div style={{fontSize:40,marginBottom:10}}>📭</div>No complaints in this status
+      <div style={{fontSize:40,marginBottom:10}}>📭</div>
+      <div style={{fontWeight:600,marginBottom:6}}>No complaints {filter!=='all'?`with status "${SL[filter]||filter}"`:''}</div>
+      <div style={{fontSize:12}}>File a new complaint using the button above</div>
     </div>:
     <div style={{display:'flex',flexDirection:'column',gap:10}}>
       {filtered.map((c,i)=>{
         const dept=DEPTS[CAT_DEPT[c.category]];
-        return <div key={c.id} className="card fade-in" style={{animationDelay:(i*.04)+'s',cursor:'pointer',border:bc(false)}} onClick={()=>setSel(c)}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-            <div style={{flex:1}}>
-              <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginBottom:6}}>
-                <span style={{fontWeight:700,color:'var(--orange)',fontSize:14}}>{c.ticketId}</span>
-                <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
-                <span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span>
-                {dept&&<span style={{fontSize:11,color:'var(--muted)'}}>{dept.icon} {dept.name.split('—')[0].trim()}</span>}
+        const catIcon=CATEGORIES.find(x=>x.id===c.category)?.icon||'📋';
+        const sla=slaInfo(c);
+        const workerAssigned=c.workerName&&c.workerName!=='—';
+        return <div key={c.id} className="card fade-in" style={{animationDelay:(i*.04)+'s',cursor:'pointer',border:bc(false),padding:0,overflow:'hidden'}} onClick={()=>setSel(c)}>
+          {/* Priority stripe */}
+          <div style={{height:3,background:c.priority==='P1'?'var(--red)':c.priority==='P2'?'var(--yellow)':c.priority==='P3'?'var(--blue)':'var(--border)'}}/>
+          <div style={{padding:'14px 16px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
+              <div style={{flex:1}}>
+                <div style={{display:'flex',gap:7,alignItems:'center',flexWrap:'wrap',marginBottom:7}}>
+                  <span style={{fontWeight:800,color:'var(--orange)',fontSize:14,letterSpacing:.02}}>{c.ticketId}</span>
+                  <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
+                  <span className={'badge '+(SC[c.status]||'badge-muted')}>{SL[c.status]||c.status}</span>
+                </div>
+                <div style={{fontSize:13,marginBottom:6,lineHeight:1.5,color:'var(--text)'}}>{c.description?.slice(0,130)}{c.description?.length>130?'…':''}</div>
               </div>
-              <div style={{fontSize:13,marginBottom:4,lineHeight:1.5}}>{c.description?.slice(0,120)}</div>
-              <div style={{fontSize:12,color:'var(--muted)'}}>📍 {c.location} · {timeAgo(c.submittedAt)}</div>
-              {c.adminNote&&<div style={{fontSize:11,color:'var(--blue)',marginTop:4}}>🔵 Admin: {c.adminNote?.slice(0,80)}</div>}
+              <div style={{fontSize:28,marginLeft:14,opacity:.8,flexShrink:0}}>{catIcon}</div>
             </div>
-            <div style={{fontSize:26,marginLeft:12,opacity:.7}}>{CATEGORIES.find(x=>x.id===c.category)?.icon||'📋'}</div>
+
+            {/* Location + time row */}
+            <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginBottom:8}}>
+              <span style={{fontSize:12,color:'var(--muted)',display:'flex',alignItems:'center',gap:4}}>
+                📍 {c.location?.slice(0,40)}{c.location?.length>40?'…':''}
+              </span>
+              <span style={{fontSize:11,color:'var(--dimmed)'}}>·</span>
+              <span style={{fontSize:11,color:'var(--dimmed)'}}>{timeAgo(c.submittedAt)}</span>
+            </div>
+
+            {/* Dept + SLA row */}
+            <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+              {dept&&<span style={{fontSize:11,background:'rgba(255,153,51,.08)',border:'1px solid rgba(255,153,51,.2)',color:'var(--orange)',padding:'2px 8px',borderRadius:8}}>
+                {dept.icon} {dept.name.split('—')[0].trim()}
+              </span>}
+              <span style={{fontSize:11,color:sla.color,fontWeight:600}}>{sla.label}</span>
+              {workerAssigned&&<span style={{fontSize:11,color:'var(--blue)',display:'flex',alignItems:'center',gap:3}}>
+                👷 {c.workerName}
+              </span>}
+              {c.adminNote&&<span style={{fontSize:11,color:'var(--blue)',marginLeft:'auto'}}>💬 Admin note</span>}
+            </div>
+
+            {c.adminNote&&<div style={{marginTop:8,padding:'7px 10px',background:'rgba(88,166,255,.07)',border:'1px solid rgba(88,166,255,.15)',borderRadius:8,fontSize:12,color:'var(--blue)',lineHeight:1.5}}>
+              🔵 "{c.adminNote?.slice(0,100)}{c.adminNote?.length>100?'…':''}"
+            </div>}
           </div>
         </div>;
       })}
@@ -1653,6 +1696,19 @@ function AdminDash({session,onLogout,addToast}){
 function AdminOverview({stats,complaints,sosAlerts,token,addToast,onRefresh}){
   const activeSos=sosAlerts.filter(s=>s.status==='active').length;
   const rate=stats.totalComplaints?Math.round(((stats.resolvedComplaints||0)/stats.totalComplaints)*100):0;
+  const [anomalies,setAnomalies]=useState([]);
+  const [anomalyExpanded,setAnomalyExpanded]=useState(true);
+
+  useEffect(()=>{
+    fetch('/api/public/anomalies').then(r=>r.json()).then(d=>setAnomalies(Array.isArray(d)?d:[])).catch(()=>{});
+    const iv=setInterval(()=>fetch('/api/public/anomalies').then(r=>r.json()).then(d=>setAnomalies(Array.isArray(d)?d:[])).catch(()=>{}),30000);
+    return()=>clearInterval(iv);
+  },[]);
+
+  const sevColor={critical:'var(--red)',high:'var(--yellow)',medium:'var(--blue)',low:'var(--green)'};
+  const sevBg={critical:'rgba(248,81,73,.1)',high:'rgba(252,211,77,.08)',medium:'rgba(88,166,255,.08)',low:'rgba(63,185,80,.08)'};
+  const sevBorder={critical:'rgba(248,81,73,.3)',high:'rgba(252,211,77,.25)',medium:'rgba(88,166,255,.25)',low:'rgba(63,185,80,.25)'};
+  const typeIcon={cluster:'🔴',spike:'📈',sla_breach:'⏱️',hotspot:'🔥'};
 
   return <div className="fade-in">
     <div className="topbar">
@@ -1672,6 +1728,39 @@ function AdminOverview({stats,complaints,sosAlerts,token,addToast,onRefresh}){
       <KpiCard label="Resolved" value={stats.resolvedComplaints} color="var(--green)" icon="✅"/>
       <KpiCard label="Active SOS" value={activeSos} color="var(--red)" icon="🆘"/>
     </div>
+
+    {/* AI Anomaly Detection Panel */}
+    {anomalies.length>0&&<div style={{marginBottom:20,border:'1px solid rgba(248,81,73,.25)',borderRadius:12,overflow:'hidden'}}>
+      <div onClick={()=>setAnomalyExpanded(v=>!v)} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 16px',background:'rgba(248,81,73,.07)',cursor:'pointer',userSelect:'none'}}>
+        <span style={{fontSize:18}}>🤖</span>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:700,fontSize:14,color:'#F87171'}}>AI Anomaly Detection — {anomalies.length} Alert{anomalies.length!==1?'s':''}</div>
+          <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>AI-powered civic intelligence · auto-refreshes every 30s</div>
+        </div>
+        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+          {anomalies.filter(a=>a.severity==='critical').length>0&&<span style={{fontSize:10,fontWeight:800,color:'var(--red)',background:'rgba(248,81,73,.15)',border:'1px solid rgba(248,81,73,.35)',padding:'2px 8px',borderRadius:10}}>
+            🔴 {anomalies.filter(a=>a.severity==='critical').length} CRITICAL
+          </span>}
+          <span style={{color:'var(--muted)',fontSize:16}}>{anomalyExpanded?'▲':'▼'}</span>
+        </div>
+      </div>
+      {anomalyExpanded&&<div style={{padding:'12px 16px',display:'flex',flexDirection:'column',gap:8}}>
+        {anomalies.map(a=><div key={a.id} style={{display:'flex',gap:12,alignItems:'flex-start',padding:'10px 14px',borderRadius:10,background:sevBg[a.severity]||'rgba(255,255,255,.04)',border:`1px solid ${sevBorder[a.severity]||'var(--border)'}`}}>
+          <span style={{fontSize:20,flexShrink:0}}>{typeIcon[a.type]||'⚠️'}</span>
+          <div style={{flex:1}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}>
+              <span style={{fontWeight:700,fontSize:13,color:sevColor[a.severity]||'var(--text)'}}>{a.title}</span>
+              <span style={{fontSize:9,fontWeight:800,textTransform:'uppercase',padding:'2px 7px',borderRadius:10,background:`${sevColor[a.severity]||'var(--text)'}22`,border:`1px solid ${sevColor[a.severity]||'var(--text)'}44`,color:sevColor[a.severity]||'var(--text)',letterSpacing:.05}}>{a.severity}</span>
+              {a.count&&<span style={{fontSize:10,color:'var(--muted)'}}>×{a.count}</span>}
+            </div>
+            <div style={{fontSize:12,color:'var(--muted)',lineHeight:1.5}}>{a.description}</div>
+            {(a.ward||a.district)&&<div style={{fontSize:11,color:'var(--dimmed)',marginTop:4}}>
+              {a.ward?`📍 ${a.ward}`:''}{a.ward&&a.district?' · ':''}{a.district?`🗺️ ${a.district}`:''}
+            </div>}
+          </div>
+        </div>)}
+      </div>}
+    </div>}
     <div className="grid2" style={{marginBottom:20}}>
       <div className="kpi">
         <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}>

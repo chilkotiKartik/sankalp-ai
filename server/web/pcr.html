@@ -20,6 +20,23 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;displa
 @keyframes glow{0%,100%{box-shadow:0 0 8px rgba(239,68,68,.3)}50%{box-shadow:0 0 22px rgba(239,68,68,.7)}}
 @keyframes womenBlink{0%,100%{box-shadow:0 0 10px 3px rgba(139,92,246,.5),0 0 0 0 rgba(139,92,246,.3)}50%{box-shadow:0 0 28px 10px rgba(139,92,246,.9),0 0 0 6px rgba(139,92,246,.15)}}
 @keyframes pulseRed{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.35);opacity:.7}}
+@keyframes sosPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.7),0 8px 40px rgba(239,68,68,.4)}50%{box-shadow:0 0 0 18px rgba(239,68,68,0),0 8px 60px rgba(239,68,68,.7)}}
+@keyframes womenSosPulse{0%,100%{box-shadow:0 0 0 0 rgba(139,92,246,.7),0 8px 40px rgba(139,92,246,.4)}50%{box-shadow:0 0 0 18px rgba(139,92,246,0),0 8px 60px rgba(139,92,246,.7)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.sos-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:999998;background:#0B1120;border-radius:20px;padding:28px 32px;max-width:440px;width:calc(100% - 40px);text-align:center;animation:shake .5s ease}
+.sos-popup.women{border:3px solid #8B5CF6;animation:womenSosPulse 1s infinite,shake .5s ease}
+.sos-popup.regular{border:3px solid #EF4444;animation:sosPulse 1s infinite,shake .5s ease}
+.sos-popup-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999997;backdrop-filter:blur(6px)}
+.sos-popup-icon{font-size:60px;margin-bottom:12px;display:block;animation:pulseRed 0.8s infinite}
+.sos-popup-title{font-size:22px;font-weight:900;letter-spacing:.05em;margin-bottom:6px}
+.sos-popup-body{font-size:13px;color:#94A3B8;margin-bottom:20px;line-height:1.6}
+.sos-popup-btns{display:flex;gap:10px;justify-content:center}
+.anomaly-strip{background:rgba(239,68,68,.08);border-bottom:1px solid rgba(239,68,68,.2);padding:6px 16px;display:flex;gap:10px;overflow-x:auto;align-items:center;flex-shrink:0;min-height:36px}
+.anomaly-chip{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;white-space:nowrap;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;transition:all .15s}
+.anomaly-chip.critical{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#F87171}
+.anomaly-chip.high{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);color:#FCD34D}
+.anomaly-chip.medium{background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:#93C5FD}
+.anomaly-chip:hover{opacity:.8}
 .budget-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px}
 .budget-fill{height:100%;border-radius:3px;transition:width .6s ease}
 .audio-live-panel{background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.25);border-radius:10px;padding:10px;margin-bottom:10px}
@@ -472,6 +489,32 @@ function LeaderboardTab({distFilter}){
   </div>;
 }
 
+function SOSPopup({popup,onDismiss,onView}){
+  if(!popup)return null;
+  const isWomen=popup.isWomen;
+  return <>
+    <div className="sos-popup-bg" onClick={onDismiss}/>
+    <div className={`sos-popup ${isWomen?"women":"regular"}`}>
+      <span className="sos-popup-icon">{isWomen?"🛡️":"🆘"}</span>
+      <div className="sos-popup-title" style={{color:isWomen?"#C4B5FD":"#F87171"}}>
+        {isWomen?"WOMEN SAFETY SOS!":"SOS EMERGENCY ALERT!"}
+      </div>
+      <div className="sos-popup-body">
+        <b style={{color:"#F1F5F9",fontSize:15}}>{popup.citizenName||popup.triggeredBy||"Unknown"}</b><br/>
+        📍 {popup.location||popup.district||"Location being traced"}<br/>
+        {popup.district&&<span>🗺️ {popup.district} &nbsp;·&nbsp; </span>}
+        <span style={{color:"#FCD34D"}}>⏱️ Just now</span>
+        {popup.assignedPatrolVan&&<><br/><span style={{color:"#86EFAC"}}>🚔 {popup.assignedPatrolVan} dispatched</span></>}
+      </div>
+      <div className="sos-popup-btns">
+        <button className="abtn abtn-orange" style={{padding:"10px 20px",fontSize:13}} onClick={onView}>🔍 View Incident</button>
+        <button className="abtn" style={{padding:"10px 20px",fontSize:13,background:"rgba(255,255,255,.08)",border:"1px solid var(--border)",color:"var(--muted)"}} onClick={onDismiss}>Dismiss</button>
+      </div>
+      {isWomen&&<div style={{marginTop:14,fontSize:11,color:"#8B5CF6",fontStyle:"italic"}}>PCR Auto-activated · Women Safety Protocol</div>}
+    </div>
+  </>;
+}
+
 function PCRPortal(){
   const [tab,setTab]=useState("incidents");
   const [incidents,setIncidents]=useState([]);
@@ -490,6 +533,8 @@ function PCRPortal(){
   const [toasts,setToasts]=useState([]);
   const [districtStats,setDistrictStats]=useState([]);
   const [showHeatmap,setShowHeatmap]=useState(true);
+  const [sosPopup,setSosPopup]=useState(null);
+  const [anomalies,setAnomalies]=useState([]);
   const mapRef=useRef(null);
   const mapObj=useRef(null);
   const markers=useRef({incidents:{},patrols:{},user:null,night:{},hospitals:[],fire:[],heatmap:[]});
@@ -532,6 +577,7 @@ function PCRPortal(){
     fetch(`${API}/api/cpr/emergency-services`).then(r=>r.json()).then(d=>setEmergencyServices(Array.isArray(d)?d:[])).catch(()=>{});
     fetch(`${API}/api/cpr/emergency-locations`).then(r=>r.json()).then(d=>setEmergencyLocations(Array.isArray(d)?d:[])).catch(()=>{});
     fetch(`${API}/api/public/district-stats`).then(r=>r.json()).then(d=>setDistrictStats(Array.isArray(d)?d:[])).catch(()=>{});
+    fetch(`${API}/api/public/anomalies`).then(r=>r.json()).then(d=>setAnomalies(Array.isArray(d)?d:[])).catch(()=>{});
   },[distFilter]);
 
   useEffect(()=>{loadAll();},[loadAll]);
@@ -547,11 +593,17 @@ function PCRPortal(){
           setIncidents(prev=>[d.incident,...prev.filter(i=>i.id!==d.incident.id)]);
           const isWomen=d.category==="women_safety"||d.autoCreated;
           addToast({title:isWomen?"🛡️ WOMEN SAFETY SOS! PCR Auto-Activated":"🆘 NEW SOS INCIDENT",body:`${d.incident.citizenName} — ${d.incident.district} · ${d.incident.location}`},isWomen?"warn":"error");
+          setSosPopup({isWomen,citizenName:d.incident.citizenName,location:d.incident.location,district:d.incident.district,assignedPatrolVan:d.incident.assignedPatrolVan,incidentRef:d.incident,time:new Date()});
+          setTab("incidents");
         }
         if(d.type==="incident_updated") setIncidents(prev=>prev.map(i=>i.id===d.incident.id?d.incident:i));
         if(d.type==="incident_escalated"){setIncidents(prev=>prev.map(i=>i.id===d.incident.id?d.incident:i));addToast({title:"⚠️ INCIDENT ESCALATED",body:`Level ${d.level} — ${d.incident.district}`},"warn");}
         if(d.type==="night_safety_new"){setNightZones(prev=>[d.zone,...prev]);addToast({title:"🌙 Night Safety Report",body:d.zone.location},"info");}
-        if(d.type==="sos_new"){addToast({title:"🆘 SOS ALERT — Women Safety",body:`${d.triggeredBy||"Unknown"} · ${d.district}`},"error");}
+        if(d.type==="sos_new"){
+          addToast({title:"🆘 SOS ALERT — Women Safety",body:`${d.triggeredBy||"Unknown"} · ${d.district}`},"error");
+          setSosPopup({isWomen:true,triggeredBy:d.triggeredBy,district:d.district,location:d.location,time:new Date()});
+          setTab("incidents");
+        }
         if(d.type==="audio_chunk"){
           setAudioChunks(prev=>{
             const existing=prev[d.sosId]||[];
@@ -568,10 +620,26 @@ function PCRPortal(){
   // Map init
   useEffect(()=>{
     if(!mapRef.current||mapObj.current)return;
-    const map=L.map(mapRef.current,{center:[30.0668,79.0193],zoom:7,zoomControl:true});
+    const map=L.map(mapRef.current,{center:[30.3165,78.0322],zoom:10,zoomControl:true});
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{attribution:"© OpenStreetMap © CARTO",maxZoom:19}).addTo(map);
     mapObj.current=map;
-    if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{setUserGeo({lat:p.coords.latitude,lng:p.coords.longitude});map.setView([p.coords.latitude,p.coords.longitude],10);},()=>{});
+    // Initial geolocation — center on user if available, otherwise stay on Dehradun
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        p=>{setUserGeo({lat:p.coords.latitude,lng:p.coords.longitude});map.setView([p.coords.latitude,p.coords.longitude],11);},
+        ()=>{/* Keep Dehradun center */},{enableHighAccuracy:true,timeout:8000}
+      );
+    }
+    // 10-second geolocation refresh
+    const geoInterval=setInterval(()=>{
+      if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(
+          p=>{setUserGeo({lat:p.coords.latitude,lng:p.coords.longitude});},
+          ()=>{},{enableHighAccuracy:true,timeout:6000,maximumAge:8000}
+        );
+      }
+    },10000);
+    return()=>clearInterval(geoInterval);
   },[]);
 
   // Draw incident markers
@@ -687,6 +755,11 @@ function PCRPortal(){
 
   return(
     <>
+    {sosPopup&&<SOSPopup popup={sosPopup}
+      onDismiss={()=>setSosPopup(null)}
+      onView={()=>{setSosPopup(null);if(sosPopup.incidentRef){setIncModal(sosPopup.incidentRef);flyTo(sosPopup.incidentRef.geo);}}}
+    />}
+
     <div className="topbar">
       <div className="logo">SANKALP AI</div>
       <div className="pcr-badge">PCR COMMAND</div>
@@ -702,6 +775,21 @@ function PCRPortal(){
         <a className="topbar-link" href="/">← Home</a>
       </div>
     </div>
+
+    {/* AI Anomaly Strip */}
+    {anomalies.length>0&&(
+      <div className="anomaly-strip">
+        <span style={{fontSize:10,fontWeight:800,color:"#94A3B8",flexShrink:0,marginRight:2}}>🤖 AI ALERTS</span>
+        {anomalies.map(a=>(
+          <div key={a.id} className={`anomaly-chip ${a.severity}`} title={a.description}>
+            <span>{a.type==="cluster"?"🔴":a.type==="spike"?"📈":a.type==="sla_breach"?"⏱️":"🔥"}</span>
+            <span>{a.title}</span>
+            {a.count&&<span style={{opacity:.7}}>×{a.count}</span>}
+          </div>
+        ))}
+        <span style={{marginLeft:"auto",fontSize:10,color:"#475569",flexShrink:0}}>Hover for details</span>
+      </div>
+    )}
 
     <div className="main-grid">
       {/* MAP */}

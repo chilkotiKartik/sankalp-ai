@@ -1798,5 +1798,112 @@ P1 = immediate danger to life/safety. P2 = significant public impact. P3 = moder
     res.json(storage.getAdminStats());
   });
 
+  // ── AI ANOMALY DETECTION ──────────────────────────────────────────────────────
+  app.get("/api/public/anomalies", (_req, res) => {
+    const complaints = storage.getComplaints();
+    const now = Date.now();
+    const anomalies: any[] = [];
+
+    // 1. Complaint clusters: same ward + same category with 3+ complaints in 72h
+    const recent72 = complaints.filter(c => now - new Date(c.submittedAt).getTime() < 72 * 3600000);
+    const wardCatGroups: Record<string, any[]> = {};
+    recent72.forEach((c: any) => {
+      const key = `${c.ward}::${c.category}`;
+      if (!wardCatGroups[key]) wardCatGroups[key] = [];
+      wardCatGroups[key].push(c);
+    });
+    Object.entries(wardCatGroups).forEach(([key, items]) => {
+      if (items.length >= 3) {
+        const [ward, category] = key.split("::");
+        anomalies.push({
+          id: `cluster_${ward}_${category}`.replace(/\s/g, "_"),
+          type: "cluster",
+          severity: items.length >= 6 ? "critical" : items.length >= 4 ? "high" : "medium",
+          title: `Complaint Cluster Detected`,
+          description: `${items.length} ${category} complaints concentrated in ${ward} within 72h — possible infrastructure failure`,
+          ward, category, count: items.length,
+          district: items[0]?.district || "",
+          detectedAt: new Date().toISOString(),
+        });
+      }
+    });
+
+    // 2. District spike: 10+ complaints in last 24h in one district
+    const recent24 = complaints.filter(c => now - new Date(c.submittedAt).getTime() < 24 * 3600000);
+    const distRecent: Record<string, any[]> = {};
+    recent24.forEach((c: any) => {
+      if (!distRecent[c.district]) distRecent[c.district] = [];
+      distRecent[c.district].push(c);
+    });
+    Object.entries(distRecent).forEach(([district, items]) => {
+      if (items.length >= 10) {
+        anomalies.push({
+          id: `spike_${district}`.replace(/\s/g, "_"),
+          type: "spike",
+          severity: items.length >= 20 ? "critical" : "high",
+          title: `Unusual Activity Spike`,
+          description: `${items.length} complaints in ${district} in the last 24h — ${Math.round(items.length / 24 * 10) / 10}x above average`,
+          district, count: items.length,
+          detectedAt: new Date().toISOString(),
+        });
+      }
+    });
+
+    // 3. Mass SLA breach: unresolved complaints past their SLA
+    const slaMap: Record<string, number> = { P1: 24, P2: 48, P3: 72, P4: 168 };
+    const breached = complaints.filter((c: any) => {
+      if (c.status === "resolved" || c.status === "closed") return false;
+      const slaHours = slaMap[c.priority] || 72;
+      const hoursElapsed = (now - new Date(c.submittedAt).getTime()) / 3600000;
+      return hoursElapsed > slaHours;
+    });
+    if (breached.length >= 5) {
+      const p1Breached = breached.filter((c: any) => c.priority === "P1").length;
+      anomalies.push({
+        id: "sla_breach_mass",
+        type: "sla_breach",
+        severity: p1Breached > 0 ? "critical" : breached.length >= 15 ? "high" : "medium",
+        title: `Mass SLA Breach Alert`,
+        description: `${breached.length} complaints have exceeded their SLA deadlines — ${p1Breached > 0 ? `including ${p1Breached} critical P1 issues` : "immediate escalation required"}`,
+        count: breached.length,
+        p1Count: p1Breached,
+        detectedAt: new Date().toISOString(),
+      });
+    }
+
+    // 4. Repeated location: same GPS area with 3+ unresolved complaints
+    const unresolved = complaints.filter((c: any) => c.status !== "resolved" && c.status !== "closed" && c.geo);
+    const locationGroups: Record<string, any[]> = {};
+    unresolved.forEach((c: any) => {
+      const latKey = Math.round((c.geo?.lat || 0) * 20) / 20;
+      const lngKey = Math.round((c.geo?.lng || 0) * 20) / 20;
+      const key = `${latKey},${lngKey}`;
+      if (!locationGroups[key]) locationGroups[key] = [];
+      locationGroups[key].push(c);
+    });
+    Object.entries(locationGroups).forEach(([, items]) => {
+      if (items.length >= 4) {
+        const categories = [...new Set(items.map((c: any) => c.category))].join(", ");
+        anomalies.push({
+          id: `hotspot_${items[0]?.ward}`.replace(/\s/g, "_"),
+          type: "hotspot",
+          severity: items.length >= 7 ? "critical" : "high",
+          title: `Civic Hotspot Identified`,
+          description: `${items.length} unresolved complaints (${categories}) clustered at ${items[0]?.location || "same location"} — needs immediate multi-dept response`,
+          location: items[0]?.location,
+          ward: items[0]?.ward,
+          count: items.length,
+          detectedAt: new Date().toISOString(),
+        });
+      }
+    });
+
+    // Sort by severity
+    const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    anomalies.sort((a, b) => (severityOrder[a.severity] ?? 9) - (severityOrder[b.severity] ?? 9));
+
+    res.json(anomalies.slice(0, 8));
+  });
+
   return httpServer;
 }

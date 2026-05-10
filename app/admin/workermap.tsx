@@ -492,10 +492,10 @@ const s = StyleSheet.create({
   iconBtn:    { width: 34, height: 34, borderRadius: 11, backgroundColor: Colors.bgCard, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   iconBtnActive: { backgroundColor: Colors.saffronBg, borderColor: Colors.saffron },
 
-  statsRow:  { flexDirection: "row", gap: 6, paddingHorizontal: 14, marginBottom: 10 },
-  statBox:   { flex: 1, borderRadius: 12, padding: 9, alignItems: "center", gap: 2, borderWidth: 1 },
-  statCount: { fontSize: 20, fontWeight: "800" },
-  statLabel: { fontSize: 10, color: Colors.textMuted, fontWeight: "500" },
+  statsRow:  { flexDirection: "row", gap: 5, paddingHorizontal: 14, marginBottom: 8 },
+  statBox:   { flex: 1, borderRadius: 10, paddingVertical: 6, paddingHorizontal: 4, alignItems: "center", gap: 1, borderWidth: 1 },
+  statCount: { fontSize: 15, fontWeight: "800" },
+  statLabel: { fontSize: 9, color: Colors.textMuted, fontWeight: "500" },
 
   searchRow:     { flexDirection: "row", gap: 8, paddingHorizontal: 14, marginBottom: 8 },
   searchBox:     { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: Colors.bgCard, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, gap: 7, borderWidth: 1, borderColor: Colors.border },

@@ -864,11 +864,14 @@ export default function ComplaintsScreen() {
                 {/* Photo */}
                 <Text style={cs.fieldLabel}>PHOTO PROOF</Text>
                 {newPhoto ? (
-                  <View style={{ marginBottom: 16 }}>
-                    <Image source={{ uri: newPhoto }} style={cs.photoPreview} />
-                    <Pressable onPress={() => setNewPhoto(null)} style={cs.removePhoto}>
-                      <Ionicons name="close-circle" size={24} color="#EF4444" />
+                  <View style={{ marginBottom: 16, position: "relative", borderRadius: 12, overflow: "hidden", height: 120, backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB" }}>
+                    <Image source={{ uri: newPhoto }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                    <Pressable onPress={() => setNewPhoto(null)} style={{ position: "absolute", top: 6, right: 6, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 14, padding: 2 }}>
+                      <Ionicons name="close-circle" size={22} color="#fff" />
                     </Pressable>
+                    <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "rgba(0,0,0,0.45)", paddingVertical: 4, paddingHorizontal: 10 }}>
+                      <Text style={{ color: "#fff", fontSize: 10, fontFamily: "Inter_600SemiBold" }}>📷 Photo attached · tap ✕ to remove</Text>
+                    </View>
                   </View>
                 ) : (
                   <Pressable onPress={handlePickPhoto} style={cs.photoPicker}>

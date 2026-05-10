@@ -226,6 +226,50 @@ export default function BudgetScreen() {
           <ActivityIndicator color={Colors.saffron} style={{ marginTop: 40 }} />
         ) : (
           <>
+            {/* Leaderboard */}
+            {filtered.length > 0 && (() => {
+              const deptRank = Object.entries(byDept).map(([dept, deptItems]) => {
+                const dAllo = deptItems.reduce((s, i) => s + i.allocated, 0);
+                const dSpent = deptItems.reduce((s, i) => s + i.spent, 0);
+                const pct = getUtilPct(dAllo, dSpent);
+                return { dept, pct, dAllo, dSpent, color: DEPT_COLORS[dept] || Colors.saffron, icon: DEPT_ICONS[dept] || "briefcase" as const };
+              }).sort((a, b) => b.pct - a.pct);
+              return (
+                <View style={cs.leaderSection}>
+                  <Text style={cs.leaderTitle}>🏆 Budget Utilisation Rankings</Text>
+                  {deptRank.map((item, idx) => {
+                    const medalEmoji = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : null;
+                    const barColor = getUtilColor(item.pct);
+                    return (
+                      <View key={item.dept} style={[cs.leaderRow, idx < 3 && { borderColor: item.color + "44", backgroundColor: item.color + "0A" }]}>
+                        <View style={cs.leaderRankBox}>
+                          {medalEmoji
+                            ? <Text style={{ fontSize: 18 }}>{medalEmoji}</Text>
+                            : <Text style={cs.leaderRankNum}>#{idx + 1}</Text>}
+                        </View>
+                        <View style={[cs.leaderIconBox, { backgroundColor: item.color + "22" }]}>
+                          <Ionicons name={item.icon} size={14} color={item.color} />
+                        </View>
+                        <View style={cs.leaderInfo}>
+                          <Text style={cs.leaderDept} numberOfLines={1}>{item.dept.split(" ").slice(0, 2).join(" ")}</Text>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 }}>
+                            <View style={cs.leaderBar}>
+                              <View style={[cs.leaderBarFill, { width: `${item.pct}%` as any, backgroundColor: barColor }]} />
+                            </View>
+                            <Text style={[cs.leaderPct, { color: barColor }]}>{item.pct}%</Text>
+                          </View>
+                        </View>
+                        <View style={cs.leaderAmts}>
+                          <Text style={cs.leaderSpent}>{formatCr(item.dSpent)}</Text>
+                          <Text style={cs.leaderAlloc}>/ {formatCr(item.dAllo)}</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              );
+            })()}
+
             {/* Department breakdown */}
             {Object.entries(byDept).map(([dept, deptItems]) => {
               const dAllo = deptItems.reduce((s, i) => s + i.allocated, 0);
@@ -359,6 +403,21 @@ const cs = StyleSheet.create({
   filterChipActive: { backgroundColor: Colors.saffron + "22", borderColor: Colors.saffron },
   filterChipText: { fontSize: 13, color: Colors.textMuted, fontWeight: "500" },
   filterChipTextActive: { color: Colors.saffron, fontWeight: "700" },
+
+  leaderSection: { marginBottom: 20, backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border },
+  leaderTitle: { fontSize: 14, fontWeight: "800", color: Colors.textPrimary, marginBottom: 12, letterSpacing: -0.3 },
+  leaderRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 9, paddingHorizontal: 10, borderRadius: 10, marginBottom: 6, borderWidth: 1, borderColor: Colors.border },
+  leaderRankBox: { width: 28, alignItems: "center" },
+  leaderRankNum: { fontSize: 12, fontWeight: "700", color: Colors.textMuted },
+  leaderIconBox: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  leaderInfo: { flex: 1 },
+  leaderDept: { fontSize: 12, fontWeight: "700", color: Colors.textPrimary },
+  leaderBar: { flex: 1, height: 5, backgroundColor: Colors.border, borderRadius: 3, overflow: "hidden" },
+  leaderBarFill: { height: "100%", borderRadius: 3 },
+  leaderPct: { fontSize: 11, fontWeight: "800", minWidth: 34, textAlign: "right" },
+  leaderAmts: { alignItems: "flex-end", minWidth: 60 },
+  leaderSpent: { fontSize: 11, fontWeight: "700", color: Colors.textPrimary },
+  leaderAlloc: { fontSize: 9, color: Colors.textMuted },
 
   deptSection: { marginBottom: 20 },
   deptHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
