@@ -48,8 +48,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;displa
 .fab-sos:hover{background:#DC2626;box-shadow:0 6px 28px rgba(239,68,68,.7)}
 .fab-loc{top:14px;right:14px;background:var(--panel);color:#93C5FD;border:1px solid #1E3A5F;border-radius:10px;padding:8px 13px;font-size:12px}
 .fab-loc.on{background:#1E3A5F;border-color:var(--blue);color:#60A5FA}
-.fab-night{bottom:70px;left:14px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);color:#C4B5FD;border-radius:10px;padding:8px 13px;font-size:11px}
+.fab-night{bottom:110px;left:14px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);color:#C4B5FD;border-radius:10px;padding:8px 13px;font-size:11px}
 .fab-night:hover{background:rgba(139,92,246,.3)}
+.fab-heat{bottom:70px;left:14px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);color:#FCD34D;border-radius:10px;padding:8px 13px;font-size:11px}
+.fab-heat:hover{background:rgba(245,158,11,.25)}
+.fab-heat.on{background:rgba(245,158,11,.25);border-color:var(--yellow)}
+.heat-legend{position:absolute;bottom:14px;right:14px;background:rgba(11,17,32,.95);border:1px solid var(--border);border-radius:10px;padding:10px 12px;z-index:1000;font-size:10px;display:flex;flex-direction:column;gap:4px;min-width:130px}
+.heat-leg-row{display:flex;align-items:center;gap:6px;color:var(--muted)}
 .map-legend{position:absolute;bottom:14px;left:14px;background:rgba(11,17,32,.95);border:1px solid var(--border);border-radius:10px;padding:10px 12px;z-index:1000;font-size:11px;display:flex;flex-direction:column;gap:5px}
 .leg-row{display:flex;align-items:center;gap:7px;color:var(--muted)}
 .leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
@@ -483,11 +488,39 @@ function PCRPortal(){
   const [tracking,setTracking]=useState(false);
   const [userGeo,setUserGeo]=useState(null);
   const [toasts,setToasts]=useState([]);
+  const [districtStats,setDistrictStats]=useState([]);
+  const [showHeatmap,setShowHeatmap]=useState(true);
   const mapRef=useRef(null);
   const mapObj=useRef(null);
-  const markers=useRef({incidents:{},patrols:{},user:null,night:{},hospitals:[],fire:[]});
+  const markers=useRef({incidents:{},patrols:{},user:null,night:{},hospitals:[],fire:[],heatmap:[]});
   const watchId=useRef(null);
   const esRef=useRef(null);
+
+  // Approximate bounding polygons for all 13 Uttarakhand districts
+  const DISTRICT_POLYGONS=useMemo(()=>({
+    "Dehradun":         [[30.55,77.45],[30.55,78.55],[29.75,78.55],[29.75,77.45]],
+    "Haridwar":         [[30.18,77.68],[30.18,78.52],[29.68,78.52],[29.68,77.68]],
+    "Tehri Garhwal":    [[31.05,77.88],[31.05,79.08],[30.02,79.08],[30.02,77.88]],
+    "Pauri Garhwal":    [[30.38,78.32],[30.38,79.65],[29.42,79.65],[29.42,78.32]],
+    "Rudraprayag":      [[30.88,78.72],[30.88,79.58],[30.02,79.58],[30.02,78.72]],
+    "Chamoli":          [[31.28,78.88],[31.28,80.58],[29.98,80.58],[29.98,78.88]],
+    "Uttarkashi":       [[31.58,77.38],[31.58,79.12],[30.52,79.12],[30.52,77.38]],
+    "Pithoragarh":      [[30.58,79.88],[30.58,81.08],[29.32,81.08],[29.32,79.88]],
+    "Bageshwar":        [[30.38,79.58],[30.38,80.38],[29.62,80.38],[29.62,79.58]],
+    "Almora":           [[30.08,78.98],[30.08,80.12],[29.32,80.12],[29.32,78.98]],
+    "Champawat":        [[29.68,79.72],[29.68,80.68],[28.82,80.68],[28.82,79.72]],
+    "Nainital":         [[29.98,78.98],[29.98,79.88],[29.12,79.88],[29.12,78.98]],
+    "Udham Singh Nagar":[[29.38,78.62],[29.38,79.68],[28.82,79.68],[28.82,78.62]],
+  }),[]);
+
+  function heatStyle(riskScore,total){
+    if(total===0)return{color:"#22C55E",fillColor:"#22C55E",fillOpacity:.08,weight:1,opacity:.3};
+    if(riskScore<15)return{color:"#22C55E",fillColor:"#22C55E",fillOpacity:.18,weight:1.5,opacity:.6};
+    if(riskScore<30)return{color:"#84CC16",fillColor:"#84CC16",fillOpacity:.22,weight:1.5,opacity:.65};
+    if(riskScore<50)return{color:"#F59E0B",fillColor:"#F59E0B",fillOpacity:.28,weight:2,opacity:.7};
+    if(riskScore<70)return{color:"#F97316",fillColor:"#F97316",fillOpacity:.33,weight:2,opacity:.75};
+    return{color:"#EF4444",fillColor:"#EF4444",fillOpacity:.38,weight:2.5,opacity:.8};
+  }
 
   const addToast=useCallback((msg,type="info")=>{const id=Date.now();setToasts(p=>[...p,{id,msg,type}]);setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),6000);},[]);
 
@@ -498,6 +531,7 @@ function PCRPortal(){
     fetch(`${API}/api/cpr/night-safety`).then(r=>r.json()).then(d=>setNightZones(Array.isArray(d)?d:[])).catch(()=>{});
     fetch(`${API}/api/cpr/emergency-services`).then(r=>r.json()).then(d=>setEmergencyServices(Array.isArray(d)?d:[])).catch(()=>{});
     fetch(`${API}/api/cpr/emergency-locations`).then(r=>r.json()).then(d=>setEmergencyLocations(Array.isArray(d)?d:[])).catch(()=>{});
+    fetch(`${API}/api/public/district-stats`).then(r=>r.json()).then(d=>setDistrictStats(Array.isArray(d)?d:[])).catch(()=>{});
   },[distFilter]);
 
   useEffect(()=>{loadAll();},[loadAll]);
@@ -591,6 +625,31 @@ function PCRPortal(){
     });
   },[patrols]);
 
+  // Draw / clear district heatmap polygons
+  useEffect(()=>{
+    const map=mapObj.current;if(!map)return;
+    // Remove existing heatmap layers
+    (markers.current.heatmap||[]).forEach(l=>{try{map.removeLayer(l);}catch{}});
+    markers.current.heatmap=[];
+    if(!showHeatmap||districtStats.length===0)return;
+    const statsToShow=distFilter==="all"?districtStats:districtStats.filter(s=>s.district===distFilter);
+    statsToShow.forEach(stat=>{
+      const poly=DISTRICT_POLYGONS[stat.district];
+      if(!poly)return;
+      const style=heatStyle(stat.riskScore,stat.total);
+      const layer=L.polygon(poly,{...style,interactive:true,bubblingMouseEvents:false})
+        .bindTooltip(`<div style="font-size:12px;font-family:sans-serif;min-width:180px;padding:2px">
+          <b style="color:${style.fillColor}">${stat.district}</b><br/>
+          📋 ${stat.total} complaints · 🔴 ${stat.pending} pending<br/>
+          ⚙️ ${stat.inProgress} in progress · ✅ ${stat.resolved} resolved<br/>
+          🆘 ${stat.activeSos} active SOS · ⭐ P1: ${stat.p1Count}<br/>
+          <b style="color:${style.fillColor}">Risk Score: ${stat.riskScore}/100</b>
+        </div>`,{sticky:true,className:'leaflet-tooltip',opacity:1})
+        .addTo(map);
+      markers.current.heatmap.push(layer);
+    });
+  },[districtStats,showHeatmap,distFilter,DISTRICT_POLYGONS]);
+
   const startTracking=()=>{
     if(!navigator.geolocation){addToast("Geolocation not supported","warn");return;}
     setTracking(true);addToast({title:"📍 Live tracking started",body:"Your location is being tracked"},"info");
@@ -653,6 +712,9 @@ function PCRPortal(){
           {tracking?"⏹ Stop Tracking":"📍 My Location"}
         </button>
         <button className="map-fab fab-night" onClick={()=>setShowNight(true)}>🌙 Report Unsafe Area</button>
+        <button className={`map-fab fab-heat ${showHeatmap?"on":""}`} onClick={()=>setShowHeatmap(v=>!v)}>
+          {showHeatmap?"🗺️ Hide Heatmap":"🗺️ Show Heatmap"}
+        </button>
         <div className="map-legend">
           <div className="leg-row"><div className="leg-dot" style={{background:"#EF4444"}}/><span>Active SOS</span></div>
           <div className="leg-row"><div className="leg-dot" style={{background:"#8B5CF6",animation:"womenBlink 1s infinite"}}/><span>Women Safety (live)</span></div>
@@ -663,6 +725,16 @@ function PCRPortal(){
           <div className="leg-row"><div style={{fontSize:12,lineHeight:1}}>🏥</div><span>Hospital</span></div>
           <div className="leg-row"><div style={{fontSize:12,lineHeight:1}}>🔥</div><span>Fire Station</span></div>
         </div>
+        {showHeatmap&&districtStats.length>0&&<div className="heat-legend">
+          <div style={{fontSize:10,fontWeight:800,color:"#F1F5F9",marginBottom:4,letterSpacing:.05}}>🗺️ DISTRICT RISK</div>
+          {[["#22C55E","Low / No Data"],["#84CC16","Moderate"],["#F59E0B","High"],["#F97316","Critical"],["#EF4444","Severe"]].map(([c,l])=>(
+            <div key={l} className="heat-leg-row">
+              <div style={{width:12,height:12,borderRadius:2,background:c,border:"1px solid rgba(255,255,255,.15)",flexShrink:0}}/>
+              <span>{l}</span>
+            </div>
+          ))}
+          <div style={{borderTop:"1px solid var(--border)",marginTop:4,paddingTop:4,fontSize:9,color:"var(--dimmed)"}}>Hover district for details</div>
+        </div>}
       </div>
 
       {/* SIDE PANEL */}

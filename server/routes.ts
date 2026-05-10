@@ -1112,6 +1112,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(storage.getBudgetItems(district));
   });
 
+  // Public district stats (no auth — for PCR heatmap)
+  app.get("/api/public/district-stats", (_req, res) => {
+    const DISTRICTS = ["Dehradun","Haridwar","Tehri Garhwal","Pauri Garhwal","Rudraprayag","Chamoli","Uttarkashi","Pithoragarh","Bageshwar","Almora","Champawat","Nainital","Udham Singh Nagar"];
+    const allComplaints = storage.getComplaints();
+    const allSos = (storage as any).sosAlerts || [];
+    const stats = DISTRICTS.map(district => {
+      const dc = allComplaints.filter((c: any) => c.district === district);
+      const ds = allSos.filter((s: any) => s.district === district);
+      const pending = dc.filter((c: any) => c.status === "pending").length;
+      const inProgress = dc.filter((c: any) => c.status === "in_progress").length;
+      const resolved = dc.filter((c: any) => c.status === "resolved" || c.status === "closed").length;
+      const activeSos = ds.filter((s: any) => s.status === "active").length;
+      const p1Count = dc.filter((c: any) => c.priority === "P1").length;
+      const riskScore = Math.min(100, Math.round((pending * 3) + (inProgress * 1) + (activeSos * 15) + (p1Count * 5)));
+      return { district, total: dc.length, pending, inProgress, resolved, activeSos, p1Count, riskScore };
+    });
+    res.json(stats);
+  });
+
   // ── AUDIT LOGS ────────────────────────────────────────────────────────
   app.get("/api/audit", requireAdmin, (req, res) => {
     const { complaintId } = req.query;
