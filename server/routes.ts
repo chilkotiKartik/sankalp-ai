@@ -563,8 +563,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!category || !description || !location) return res.status(400).json({ message: "category, description, location required" });
     const complaint = storage.createComplaint({
       category, description, location,
-      geo: geo || { lat: 30.3165, lng: 78.0322 },
-      ward: ward || "Dehradun Block",
+      geo: geo || storage.getDistrictCenter(user.district || "Dehradun"),
+      ward: ward || `${user.district || "Dehradun"} Block`,
       wardNumber: wardNumber || 1,
       district: user.district || "Dehradun",
       priority: priority || "P3",
@@ -624,11 +624,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const user = (req as any).user;
     const { category, description, location, geo, ward, wardNumber } = req.body;
     if (!category) return res.status(400).json({ message: "category required" });
-    const geoPoint = geo || { lat: 30.3165, lng: 78.0322 };
+    const geoPoint = geo || storage.getDistrictCenter(user.district || "Dehradun");
     const alert = storage.createSos({
       category, description: description || "Emergency reported via SANKALP AI",
       location: location || "Location via GPS",
-      geo: geoPoint, ward: ward || "Dehradun Block", wardNumber: wardNumber || 1,
+      geo: geoPoint, ward: ward || `${user.district || "Dehradun"} Block`, wardNumber: wardNumber || 1,
       district: user.district || "Dehradun",
       status: "active", triggeredBy: user.name,
     }, user.id);
@@ -811,7 +811,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sos/women-safety", requireAuth, (req, res) => {
     const user = (req as any).user;
     const { geo, location, audioUrl } = req.body;
-    const geoPoint = geo || { lat: 30.3165, lng: 78.0322 };
+    const geoPoint = geo || storage.getDistrictCenter(user.district || "Dehradun");
     const nearestStations = storage.getNearestPoliceStations(geoPoint, 2, user.district);
     const alert = storage.createSos({
       category: "women_safety",
@@ -873,7 +873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sos/forest-fire", requireAuth, async (req, res) => {
     const user = (req as any).user;
     const { geo, location, description } = req.body;
-    const geoPoint = geo || { lat: 30.3165, lng: 78.0322 };
+    const geoPoint = geo || storage.getDistrictCenter(user.district || "Dehradun");
     const alert = storage.createSos({
       category: "forest_fire",
       description: description || "FOREST FIRE EMERGENCY — Reported via SANKALP AI citizen app",
@@ -1556,12 +1556,13 @@ Respond ONLY with valid JSON (no markdown, no explanation):
     const user = (req as any).user;
     const { location, lat, lng, reason } = req.body;
     if (!location) return res.status(400).json({ message: "location required" });
+    const dc = storage.getDistrictCenter(user.district || "Dehradun");
     const incident = storage.createSafetyIncident({
       citizenName: user.name,
       district: user.district || "Dehradun",
       location: location,
-      lat: lat ?? 30.3165,
-      lng: lng ?? 78.0322,
+      lat: lat ?? dc.lat,
+      lng: lng ?? dc.lng,
     });
     // Also broadcast to WebSocket (admin sees it)
     broadcast({ type: "cpr_user_request", incident, citizenName: user.name, phone: user.phone, reason: reason || "", timestamp: new Date().toISOString() });
@@ -1807,7 +1808,8 @@ Respond ONLY with valid JSON (no markdown, no explanation):
   app.post("/api/cpr/incidents", (req, res) => {
     const { citizenName, district, location, lat, lng } = req.body;
     if (!citizenName || !district || !location) return res.status(400).json({ message: "citizenName, district, location required" });
-    const incident = storage.createSafetyIncident({ citizenName, district, location, lat: lat ?? 30.3165, lng: lng ?? 78.0322 });
+    const dc2 = storage.getDistrictCenter(district || "Dehradun");
+    const incident = storage.createSafetyIncident({ citizenName, district, location, lat: lat ?? dc2.lat, lng: lng ?? dc2.lng });
     res.status(201).json(incident);
   });
 

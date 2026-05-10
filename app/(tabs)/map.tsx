@@ -13,6 +13,7 @@ import UttarakhandMap, { type MapFilter, type EmergencyServiceMarker } from "@/c
 import type { GeoPoint } from "@/context/AppContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiUrl } from "@/lib/query-client";
+import { getDistrictCenter } from "@/constants/districts";
 
 const FILTERS: { key: MapFilter; label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }[] = [
   { key: "all",        label: "All",       icon: "apps-outline",    color: "#6B7280", bg: "#F3F4F6" },
@@ -63,45 +64,77 @@ export default function MapScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    const getLocation = async () => {
+    let watchSub: Location.LocationSubscription | null = null;
+    let webWatchId: number | null = null;
+
+    const sortPS = (geo: GeoPoint) =>
+      policeStations
+        .map(ps => ({ ...ps, distance: parseFloat((Math.sqrt((ps.geo.lat - geo.lat) ** 2 + (ps.geo.lng - geo.lng) ** 2) * 111).toFixed(2)) }))
+        .sort((a, b) => a.distance - b.distance).slice(0, 3);
+
+    const useFallback = () => {
+      if (cancelled) return;
+      // Use user's own district center — never hardcode Delhi/Dehradun
+      const fallback = getDistrictCenter(user?.district);
+      setUserGeo(null); // keep pill showing "Location off" instead of wrong coords
+      setNearestPolice(sortPS(fallback));
+      setGeoLoading(false);
+    };
+
+    const init = async () => {
       setGeoLoading(true);
       try {
+        if (Platform.OS === "web") {
+          if (typeof navigator !== "undefined" && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              pos => {
+                if (cancelled) return;
+                const geo: GeoPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                setUserGeo(geo); setNearestPolice(sortPS(geo)); setGeoLoading(false);
+              },
+              () => useFallback(),
+              { enableHighAccuracy: true, timeout: 8000 }
+            );
+            webWatchId = navigator.geolocation.watchPosition(
+              pos => {
+                if (cancelled) return;
+                const geo: GeoPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                setUserGeo(geo); setNearestPolice(sortPS(geo));
+              },
+              () => {},
+              { enableHighAccuracy: true, maximumAge: 10000 }
+            );
+          } else { useFallback(); }
+          return;
+        }
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") throw new Error("denied");
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         if (cancelled) return;
         const geo: GeoPoint = { lat: loc.coords.latitude, lng: loc.coords.longitude };
-        setUserGeo(geo);
-        const withDist = policeStations
-          .map(ps => ({ ...ps, distance: parseFloat((Math.sqrt((ps.geo.lat - geo.lat) ** 2 + (ps.geo.lng - geo.lng) ** 2) * 111).toFixed(2)) }))
-          .sort((a, b) => a.distance - b.distance).slice(0, 3);
-        setNearestPolice(withDist);
+        setUserGeo(geo); setNearestPolice(sortPS(geo)); setGeoLoading(false);
+        // Live GPS watch — update marker as user moves
+        watchSub = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.Balanced, timeInterval: 8000, distanceInterval: 15 },
+          pos => {
+            if (cancelled) return;
+            const u: GeoPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setUserGeo(u); setNearestPolice(sortPS(u));
+          }
+        );
       } catch {
-        if (cancelled) return;
-        if (typeof navigator !== "undefined" && navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            pos => {
-              if (cancelled) return;
-              const geo: GeoPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-              setUserGeo(geo);
-              const withDist = policeStations
-                .map(ps => ({ ...ps, distance: parseFloat((Math.sqrt((ps.geo.lat - geo.lat) ** 2 + (ps.geo.lng - geo.lng) ** 2) * 111).toFixed(2)) }))
-                .sort((a, b) => a.distance - b.distance).slice(0, 3);
-              setNearestPolice(withDist);
-            },
-            () => setNearestPolice(policeStations.slice(0, 3)),
-            { timeout: 5000 }
-          );
-        } else {
-          setNearestPolice(policeStations.slice(0, 3));
-        }
-      } finally {
-        if (!cancelled) setGeoLoading(false);
+        useFallback();
       }
     };
-    getLocation();
-    return () => { cancelled = true; };
-  }, [policeStations]);
+    init();
+    return () => {
+      cancelled = true;
+      try { watchSub?.remove(); } catch {}
+      if (webWatchId !== null && typeof navigator !== "undefined" && navigator.geolocation) {
+        try { navigator.geolocation.clearWatch(webWatchId); } catch {}
+      }
+    };
+  }, [policeStations, user?.district]);
 
   const topInset = Platform.OS === "web" ? 67 : insets.top;
   const botInset = Platform.OS === "web" ? 34 : insets.bottom;

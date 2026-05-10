@@ -1,362 +1,221 @@
-# SANKALP AI — Comprehensive Feature Documentation
+# SANKALP AI — Best Features Guide
 
-**Version:** SDK 54 / RN 0.81.5  
-**Backend:** Express on Railway (https://fiinalszip-production.up.railway.app)  
-**Platform:** Android APK via EAS Build (`@sportifykartik/sankalp-ai`)
+**SANKALP AI** is a production-grade civic governance platform for all 13 districts of Uttarakhand.
 
 ---
 
-## Table of Contents
+## 1. Real-Time SOS & Emergency System
 
-1. [Authentication & User Roles](#1-authentication--user-roles)
-2. [Home Dashboard](#2-home-dashboard)
-3. [Complaint Management](#3-complaint-management)
-4. [Announcements](#4-announcements)
-5. [Emergency Services Directory](#5-emergency-services-directory)
-6. [SOS Emergency System](#6-sos-emergency-system)
-7. [Admin Panel](#7-admin-panel)
-8. [Push Notifications](#8-push-notifications)
+### Women Safety — 5 Panic Trigger Methods
+The app's most critical feature — one touch away from help, even without typing:
 
----
+| Method | How to activate |
+|--------|----------------|
+| 6-Tap | Tap the shield card 6 times within 3 seconds |
+| Long-Hold | Press and hold the shield for 2 seconds (ring fills as progress) |
+| Volume Button | On-screen hardware-style button — 6 presses within 4 seconds |
+| Shake | Shake phone 5× rapidly (native only, accelerometer-based) |
+| Voice | Say "help me" or "bachao" (Speech Recognition, native only) |
 
-## 1. Authentication & User Roles
+**On trigger:** voice alert plays, phone vibrates in SOS pattern, 2 nearest police stations auto-notified with live GPS, 18-second audio recording captured and uploaded as evidence, CPR Safety Command incident auto-created, real-time WebSocket broadcast to all connected admin portals.
 
-### Login Flow
-- Phone number + 6-digit PIN authentication
-- JWT tokens (7-day expiry) stored in SecureStore
-- Auto-login on next launch if token valid
+### General SOS Categories
+Gas Leak · Water Burst · Electric Hazard · Fire Risk · Road Accident · Women Safety · Medical Emergency · Infrastructure · Natural Disaster · Forest Fire
 
-### Roles
-| Role | Phone Example | Description |
-|------|--------------|-------------|
-| `citizen` | 9876543210 | Standard user, can file complaints and trigger SOS |
-| `admin` | 9999000001 | District admin, manages complaints and sees all SOS alerts |
-| `super_admin` | 9000000001 | State-level, sees all districts |
+### Forest Fire SOS
+Direct escalation to Forest Department (1800-180-4191) and USDMA (1070), with live GPS coordinates and voice evacuation guidance.
 
-### Demo Accounts (Development)
-- Citizen: `9876543210` / PIN `123456` (Arjun Rawat, Dehradun)
-- Admin: `9999000001` / PIN `111111` (Dehradun Admin)
-- Super Admin: `9000000001` / PIN `000000`
+### PCR Patrol Request
+Browse nearest active patrol vans, send an immediate help request with one tap. Shows van number, officer name, and distance.
 
 ---
 
-## 2. Home Dashboard
+## 2. Live GPS — No Hardcoded Coordinates
 
-### Category Grid
-Nine quick-access tiles:
-- Roads, Water, Electricity, Waste, Health, Education, Forest, Safety, Other
+Every location-sensitive action uses **real GPS**, not a hardcoded city:
 
-### Stats Strip
-Live counters: Total Complaints · Resolved · Active SOS
-
-### Announcements Preview
-Latest 2 announcements from the user's district.
-
-### Quick SOS Button
-Floating red button — one tap opens the full SOS screen.
+- **Native**: `expo-location` → `requestForegroundPermissionsAsync` → `watchPositionAsync` (5-second interval, 10-metre threshold)
+- **Web**: `navigator.geolocation.watchPosition` with high-accuracy mode
+- **Fallback chain**: Real GPS → User's own district centre (from profile) — if you are from Champawat, fallback goes to Champawat, not Delhi or Dehradun
+- **SOS live tracking**: location pushed every 5 seconds to admin portals while an active alert exists
+- **Map live tracking**: GPS marker updates as you move — recenter button snaps to your actual position
 
 ---
 
-## 3. Complaint Management
+## 3. Interactive Uttarakhand Map
 
-### Filing a Complaint
-1. Select category (9 categories mapped to departments)
-2. Enter description
-3. Set location (auto or manual text)
-4. Select priority: Low / Medium / High / Critical
-5. Optionally attach a photo (camera or gallery)
-6. Submit → AI priority score computed server-side
+A full Leaflet.js map (CartoDB light tiles) with 7 filterable data layers:
 
-### AI Priority Scoring
-- Severity keywords boost score (e.g. "hospital", "fire", "flood")
-- Photo attachment adds +10 to score
-- Multiple upvotes from other citizens add to cluster score
-- Score 0–100 displayed as a purple badge on each complaint
+| Filter | Shows |
+|--------|-------|
+| All | Everything at once |
+| Issues | Complaints coloured by priority (P1 red → P4 grey) |
+| SOS | Active emergencies |
+| Workers | Active field workers on duty |
+| Police | All 28 police stations across 13 districts — tap to call |
+| Risks | Flood / crime / infrastructure risk zones with radius circles |
+| Hospitals | District hospitals with bed count, tap to call |
+| Fire Stns | Fire stations, tap to call |
 
-### Filter Bar (compact design)
-- **Status pills**: All / Pending / In Progress / Resolved
-- **Sort pills**: Newest / Oldest / Priority / Upvotes
-- **Category pills**: All + 9 category icons (tap to filter)
-- Design: `paddingVertical: 3`, `paddingHorizontal: 8`, `fontSize: 10` — intentionally compact
-
-### Complaint Card
-- Left colored bar = category color
-- Ticket number (e.g. `#CMP-001`)
-- Description preview (2 lines)
-- Location, AI score badge, upvote count
-- Tap → full detail sheet with photo, timeline, status history
-
-### Upvoting
-Citizens can upvote complaints in their area to elevate priority.
+**Your Location**: Orange GPS dot — map auto-centres on your real position. Recenter button snaps back to GPS (not district centre) when location is available. Works on Android, iOS (WebView + Leaflet), and web.
 
 ---
 
-## 4. Announcements
+## 4. AI Civic Assistant (OpenAI GPT-4o-mini)
 
-### Types
-- `general` · `emergency` · `health` · `infrastructure` · `event`
+Three-tier AI chain, zero downtime:
 
-### Priority Levels
-- `normal` · `important` · `urgent`
+1. **OpenAI GPT-4o-mini** (primary) — context-aware, conversational, bilingual
+2. **Groq LLaMA 3.1 8B** (secondary fallback)
+3. **NVIDIA LLaMA 3.1** (tertiary fallback)
+4. **Local rule-based engine** (always-on final fallback)
 
-### Filter Chips (compact)
-Type filter chips: paddingHorizontal 9, paddingVertical 4, fontSize 10.
+**Live data injected into every conversation:**
+- Your district's complaint count, resolution rate, active SOS count
+- Best and worst ward health scores
+- All government helplines: UPCL (1912), Jal Sansthan (1916), PWD (1800-180-4244)
+- Government schemes: CM Swarojgar, Gaura Devi Kanya Dhan (₹51,000 for girls), Ayushman Bharat
+- Char Dham pilgrimage routes, road conditions, disaster management contacts
 
-### Urgent Banner
-Red pulsing banner at top when urgent announcements exist in district.
+**AI Image Analysis**: Photograph any civic issue → AI identifies severity, issue type, responsible department, estimated fix time, and priority (P1–P4).
 
----
-
-## 5. Emergency Services Directory
-
-### Service Types
-- Hospital · Police Station · Fire Station · Ambulance
-
-### Search & Filter
-- Real-time text search across name, address, district
-- Type filter chips (compact design: 9px H-padding, 4px V-padding, 11px font)
-- District filter row (compact: 9px H-padding, 3px V-padding, 10px font)
-
-### Quick Dials
-Prominent row with 100 (Police), 108 (Ambulance), 101 (Fire), 1800-180-4191 (Forest).
-
-### Service Card
-- Icon, name, address, availability badge
-- Direct call button (opens dialer)
-- Tap → detail modal with map, alternate contacts
+**Personality**: Warm and conversational, not robotic. Mixes Hindi naturally — Namaste, ji, Devbhoomi, dhanyavaad. Replies in under 250 words. Emergency numbers always come first when safety is at risk.
 
 ---
 
-## 6. SOS Emergency System
+## 5. Complaint Management
 
-### 6.1 General SOS (9 Categories)
-Categories: Police · Medical · Fire · Flood · Earthquake · Landslide · **Forest Fire** · Women Safety · Other
-
-1. Tap category card
-2. Confirm modal shows GPS coordinates + description field
-3. Submit → alert created, nearest police stations found (haversine), live GPS streaming starts
-
-**Voice confirmation** on trigger (TTS):  
-`"[Category] SOS sent. Emergency services notified. Stay safe."`
-
-**System notification** fires on device with MAX priority.
+- **8 categories**: Pothole, Garbage, Streetlight, Water Issue, Drain/Sewer, Electricity, Tree/Park, Other
+- **AI photo analysis**: Upload a photo → AI auto-fills severity, category, priority
+- **Unique ticket IDs**: Every complaint gets a trackable ticket (e.g. `CMP-A3F2E1`)
+- **Real-time status**: pending → in_progress → resolved, with admin notes at each step
+- **Upvote system**: Citizens can upvote to escalate high-priority complaints
+- **Resolution flow**: Citizen rates resolution 1–5 stars and uploads "after" photo
+- **Department SSE**: Complaint instantly appears in the relevant department portal
 
 ---
 
-### 6.2 Women Safety SOS (Silent Panic)
+## 6. Gamification & Leaderboard
 
-Four trigger methods — all silent, police cannot detect from phone:
-
-#### PRIMARY — Volume Up Button (×6)
-Physical hardware button. Press 6× fast → panic fires.  
-- Real hardware-style button rendered on card + floating edge shortcut
-- 6-pip progress bar shows count in real-time
-
-#### Alternative 1 — Tap 6×
-Large tap zone card. Count shown in circular display with pip dots.
-
-#### Alternative 2 — Hold 2 Seconds
-Hold zone card. Circular fill animation + progress bar on card bottom edge.
-
-#### Alternative 3 — Shake 3×
-Accelerometer detects 3 threshold shakes → panic fires.
-
-#### On Panic Trigger:
-- `POST /api/sos/women-safety` fires
-- Police SSE channel receives `women_safety_sos` event
-- Push notification sent to admin(s) in district
-- **Audio recording starts automatically** (18-second evidence capture)
-- GPS live-streaming begins (updates every 5 seconds)
-- Audio upload after recording → stored on server, accessible to admin
-- TTS announces: *"Women safety alert sent. Police notified. Stay calm."*
-
-#### Active CPR Patrols Display (live)
-When Women Safety SOS is active (panic triggered):
-- Nearest 3 CPR patrol vans shown inside the panel
-- Each van: van number, officer name, distance, status (ON PATROL / RESPONDING)
-- **Live call button** per van → opens phone dialer directly (`tel:` URI)
-- Auto-polled every 30 seconds
+- 20-citizen leaderboard spanning all 13 districts
+- Points for filing complaints, getting them resolved, upvoting, community engagement
+- Levels 1–10 with badges: First Report, Active Citizen, Civic Hero, City Champion
+- Your own entry highlighted with saffron border and "You" badge
+- District column shows where each citizen is from
 
 ---
 
-### 6.3 Forest Fire SOS (NEW)
+## 7. Four Web Portals (React 18 CDN, zero build step)
 
-**Panel Location:** Between Women Safety panel and CPR Request button
+### Unified Governance Portal (`/web/portal`)
+Complete admin dashboard — complaints, SOS alerts, workers, analytics, emergency broadcast.
 
-#### UI Elements
-- 🔥 Header card with dark orange gradient (`#1A0800 → #2D1000`)
-- Quick-call buttons: Forest Helpline `1800-180-4191` and USDMA `1070`
-- Primary button: **REPORT FOREST FIRE — HIGH PRIORITY** (opens confirm modal)
+### Department Portal (`/web/dept`)
+Real-time SSE stream — new complaints flash as they arrive. KPIs, worker management, live SOS tab. Access code: `{deptId}_2026` (e.g. `pwd_2026`).
 
-#### Confirm Modal
-- GPS badge (live coordinates)
-- Description field: describe forest area, nearest village
-- Two helpline quick-call buttons inside modal
-- **SEND FOREST FIRE ALERT** button (red-orange gradient)
+### CPR Safety Command (`/web/cpr`)
+Interactive Leaflet map with all 15 patrol vans streaming live GPS. Women safety incidents auto-created and streamed. Officer leaderboard ranked by resolved incidents and response rate.
 
-#### Server Flow (`POST /api/sos/forest-fire`)
-1. Creates SOS alert with category `forest_fire`
-2. Broadcasts via WebSocket to all connected admin clients
-3. SSE event emitted to **Forest Department** (`departmentId: "forest"`) — HIGH PRIORITY
-4. SSE event emitted to **USDMA** Disaster Management (`departmentId: "usdma"`) — HIGH PRIORITY
-5. Expo push notifications sent to district admin(s) + all super admins:
-   - Title: `🔥 FOREST FIRE SOS — [DISTRICT]`
-   - Body: citizen name + GPS location
-6. Response: `{ alert }` with the created alert object
+### Public Civic Dashboard (`/web/public`)
+Live stats with no login — total complaints, resolved, pending, active SOS. Useful for press and transparency.
 
-#### On Success (Client)
-- `forestSent = true` → panel shows green confirmation card
-- Live GPS streaming starts (`startLive(alertId)`)
-- Device vibrates: 300ms on, 100ms off, 300ms on, 100ms off, 300ms on
-- TTS: *"Forest fire alert sent. Forest Department and Disaster Management notified. Move to safety immediately."*
-- System notification: `🔥 Forest Fire SOS Sent`
+### RTI Filing Portal (`/web/rti`)
+AI-generated RTI draft → submission → 30-day deadline tracking → status progression (filed → acknowledged → replied → closed).
 
 ---
 
-### 6.4 Active CPR Patrols Card (Standalone)
+## 8. Ward Health Score System
 
-**Panel Location:** Between Nearest Police Stations card and Women Safety panel
+Every block/ward gets a health score (0–100) based on:
+- Open complaint density
+- Resolution rate
+- Active SOS count
+- Population weighting
 
-- Shown only when at least 1 patrol van has status `active_patrol` or `responding`
-- Sorted by proximity (haversine distance from user's GPS)
-- Shows nearest 3 vans
-- Live polled every 30 seconds (background interval, cleaned up on unmount)
-- Each van row: shield icon (blue=patrol, red=responding), van number, officer name, zone/district, distance, **CALL button**
-- LIVE green dot badge in card header
-
----
-
-### 6.5 Triggered State
-After any SOS is sent:
-- Green live banner: `🟢 LIVE — GPS Streaming Active`
-- Triggered card: alert ID, location, departments notified, GPS map button
-- "Notified Departments" block lists all responders
+Shown on the home screen and map as coloured score pills. Worst and best ward surfaced in AI prompt live.
 
 ---
 
-### 6.6 CPR Patrol Request
-Separate card at bottom: **Request CPR Patrol Help**  
-Tap → modal with GPS badge + reason field → `POST /api/cpr/user-request`  
-Nearest patrol van is dispatched; confirmation TTS fires.
+## 9. Real-Time Infrastructure
+
+| Channel | Purpose |
+|---------|---------|
+| WebSocket Server | Live SOS broadcast to all portals + app simultaneously |
+| SSE `deptEmitter` | Complaints → Department Portal in real time |
+| SSE `cprEmitter` | SOS + patrol GPS → CPR Command in real time |
+| Worker GPS Stream | Simulated field worker movement at `/api/workers/stream` |
+| Expo Push Notifications | Complaint status updates sent to citizen's phone |
 
 ---
 
-## 7. Admin Panel
+## 10. Emergency Directory
 
-### 7.1 Reports (Complaints)
-- View all complaints district-wide (super admin: all districts)
-- Filter pills (compact: 8px H-padding, 3px V-padding, fontSize 11): Status · Category
-- Resolve / Reject with feedback note
-- View photo evidence, upvote count, AI score, timeline
-
-### 7.2 Workers Leaderboard
-- All field workers ranked by performance score
-- Filter chips (compact: 9px H-padding, 3px V-padding, fontSize 11): All / Active / On-Leave
-- Sort by: Score / Tasks / Rating
-- Tap → worker detail modal with task list, performance graph
-
-### 7.3 Audit Log
-- Blockchain-style hash chain of all admin actions
-- Filter chips (compact: 9px H-padding, 4px V-padding, fontSize 11): All / Create / Update / Resolve / Reject / Delete
-- Expand any log entry to see full details + integrity hash
-
-### 7.4 Emergency Services (Admin)
-- View + manage all emergency services in district
-- Type filter chips (compact: 9px H-padding, 4px V-padding, fontSize 11)
-- District filter row (compact: 9px H-padding, 3px V-padding, fontSize 10)
-- Add/edit service (name, type, district, address, phone, availability)
-
-### 7.5 SOS Alerts Modal (Admin)
-When admin receives a Women Safety or Forest Fire alert:
-- Full report modal opens
-- Alert category, location, timestamp, citizen details
-- Notified departments list
-- **Audio Evidence Section**: plays the 18-second recording captured during Women Safety SOS
-  - `GET /api/sos/:id/audio-chunks` fetches binary audio data
-  - Audio player with play/pause, duration, live badge
-  - Evidence chain hash for integrity
+- Quick-dial grid: 112, 100, 108, 1090, 1070, 1905 — one tap to call
+- Tabbed service list: Police, Medical, Fire, Disaster, Helplines
+- District hospitals, ambulances, fire stations with call button
+- Map tab shows all nearest services
 
 ---
 
-## 8. Push Notifications
+## 11. Bilingual Support
 
-### Setup
-- `expo-notifications` with Android notification channel `sos-alerts`
-- After login, device registers Expo push token → `POST /api/push-token`
-- Token stored server-side with: userId, role, district, platform
-
-### Triggers
-
-| Event | Recipients | Title |
-|-------|-----------|-------|
-| Women Safety SOS | District admin(s) + all super admins | `🚨 WOMEN SAFETY SOS — [DISTRICT]` |
-| Forest Fire SOS | District admin(s) + all super admins | `🔥 FOREST FIRE SOS — [DISTRICT]` |
-
-### Android Channel
-- Channel ID: `sos-alerts`
-- Importance: MAX
-- Sound: default
-- Vibration pattern: [0, 250, 250, 250]
-
-### Helpline Numbers in App
-| Service | Number |
-|---------|--------|
-| Police | 100 |
-| Ambulance | 108 |
-| Fire | 101 |
-| Forest Helpline | 1800-180-4191 |
-| USDMA Disaster | 1070 |
-| Women Helpline | 1091 |
-| Child Helpline | 1098 |
+- AI mixes Hindi naturally in every reply
+- Voice alerts use `en-IN` Indian English
+- Hindi keywords trigger correct responses: नमस्ते, पानी, बिजली, महिला
+- All district names, ward names, helplines in local Uttarakhand context
 
 ---
 
-## Filter Bar Design Reference
+## 12. RTI Module
 
-All filter pills/chips across the app use a compact design:
-
-| File | Style Name | H-padding | V-padding | Font size |
-|------|-----------|-----------|-----------|-----------|
-| complaints.tsx | `pill` | 8 | 3 | 10 |
-| complaints.tsx | `sortPill` | 7 | 3 | 10 |
-| complaints.tsx | `catPill` | 7 | 3 | 10 |
-| announcements.tsx | `filterChip` | 9 | 4 | 10 |
-| emergency.tsx | `filterChip` | 9 | 4 | 11 |
-| admin/reports.tsx | `pill` | 8 | 3 | 11 |
-| admin/workers.tsx | `filterChip` | 9 | 3 | 11 |
-| admin/audit.tsx | `filterChip` | 9 | 4 | 11 |
-| admin/emergency.tsx | `filterChip` | 9 | 4 | 11 |
-| admin/emergency.tsx | `districtChip` | 9 | 3 | 10 |
+- AI drafts RTI application from a plain-language description
+- Covers all Uttarakhand departments
+- 30-day statutory deadline auto-tracked
+- Status: filed → acknowledged → replied → closed
 
 ---
 
-## Backend API Reference (Key Endpoints)
+## 13. Budget Transparency
 
-### SOS
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/sos/women-safety` | Trigger Women Safety SOS |
-| POST | `/api/sos/forest-fire` | Trigger Forest Fire SOS (NEW) |
-| GET | `/api/sos/alerts` | List all SOS alerts (admin) |
-| GET | `/api/sos/:id/audio-chunks` | Get audio evidence (admin) |
-| PUT | `/api/sos/:id/audio-url` | Update audio URL after upload |
+- 104 budget line items across all 13 districts
+- Allocated vs. spent with percentage bars
+- Filterable by district and department
 
-### CPR
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/cpr/patrols` | Active patrol vans (live-polled) |
-| POST | `/api/cpr/user-request` | Request CPR patrol dispatch |
+---
 
-### Complaints
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/complaints` | List complaints (district-filtered) |
-| POST | `/api/complaints` | File new complaint |
-| PUT | `/api/complaints/:id/status` | Update status (admin) |
-| POST | `/api/complaints/:id/upvote` | Upvote complaint |
+## 14. Security
 
-### Push
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/push-token` | Register device push token |
-| DELETE | `/api/push-token` | Deregister on logout |
+- Phone + 6-digit PIN login
+- JWT tokens (24-hour expiry)
+- Roles: citizen / district_admin / super_admin
+- Rate limiting: AI (30 req/min), SOS (10 req/min)
+- All routes protected by auth middleware
+
+---
+
+## Demo Credentials
+
+| Role | Phone | PIN |
+|------|-------|-----|
+| Citizen — Champawat, Rank #17 | `9876543210` | `123456` |
+| Super Admin | `9999999999` | `000000` |
+| Dept Portal (PWD) | Code: `pwd_2026` | — |
+| Dept Portal (Police) | Code: `police_2026` | — |
+| CPR Portal | Code: `cpr_2026` | — |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Mobile App | Expo ~54 + React Native 0.81.5 + Expo Router |
+| Web Portals | React 18 CDN + Babel Standalone (no build) |
+| Backend | Express.js + TypeScript |
+| Database | In-memory (prototype/demo) |
+| Maps | Leaflet.js 1.9.4 + CartoDB Light tiles |
+| AI | OpenAI GPT-4o-mini → Groq LLaMA → NVIDIA LLaMA → Local |
+| Real-time | WebSocket (ws) + SSE (Node.js EventEmitter) |
+| Push | Expo Push Notifications Server SDK |
+| Voice | expo-speech (TTS) + expo-av (recording) |
+| GPS | expo-location (native) + navigator.geolocation (web) |

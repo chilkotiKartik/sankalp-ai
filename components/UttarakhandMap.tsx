@@ -372,10 +372,11 @@ export default function UttarakhandMap({
   );
 
   const recenter = () => {
-    const js = `
-      map.setView([${center.lat}, ${center.lng}], ${center.zoom}, {animate: true});
-      true;
-    `;
+    // Prefer GPS location if available, otherwise fall back to district center
+    const target = userLocation
+      ? `[${userLocation.lat}, ${userLocation.lng}], ${center.zoom + 2}`
+      : `[${center.lat}, ${center.lng}], ${center.zoom}`;
+    const js = `map.setView(${target}, {animate: true}); true;`;
     webViewRef.current?.injectJavaScript(js);
   };
 

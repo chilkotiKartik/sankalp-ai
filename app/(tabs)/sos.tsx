@@ -4,6 +4,7 @@ import {
   Modal, TextInput, Platform, ActivityIndicator, Alert, Vibration, Linking, AppState,
 } from "react-native";
 import * as FileSystem from "expo-file-system";
+import { getDistrictCenter } from "@/constants/districts";
 
 class SOSErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: string }> {
   constructor(props: any) {
@@ -232,22 +233,8 @@ function SOSScreenInner() {
   const intervalRef = useRef<any>(null);
   const currentGeoRef = useRef<GeoPoint | null>(null);
 
-  // District-center coordinates for GPS fallback when location is denied
-  const DISTRICT_CENTERS: Record<string, GeoPoint> = {
-    "Dehradun":           { lat: 30.3165, lng: 78.0322 },
-    "Haridwar":           { lat: 29.9457, lng: 78.1642 },
-    "Tehri Garhwal":      { lat: 30.3783, lng: 78.4801 },
-    "Pauri Garhwal":      { lat: 30.1546, lng: 78.7747 },
-    "Rudraprayag":        { lat: 30.2846, lng: 78.9820 },
-    "Chamoli":            { lat: 30.4019, lng: 79.3210 },
-    "Uttarkashi":         { lat: 30.7268, lng: 78.4354 },
-    "Pithoragarh":        { lat: 29.5829, lng: 80.2178 },
-    "Bageshwar":          { lat: 29.8374, lng: 79.7712 },
-    "Almora":             { lat: 29.5971, lng: 79.6591 },
-    "Champawat":          { lat: 29.3336, lng: 80.0909 },
-    "Nainital":           { lat: 29.3919, lng: 79.4542 },
-    "Udham Singh Nagar":  { lat: 28.9945, lng: 79.5224 },
-  };
+  // Get user's district center as GPS fallback — never use hardcoded Delhi/Dehradun
+  const userDistrictGeo: GeoPoint = getDistrictCenter((user as any)?.district);
 
   function sortStations(pts: typeof policeStations, from: GeoPoint) {
     return pts
@@ -268,9 +255,8 @@ function SOSScreenInner() {
     let cancelled = false;
     let webWatchId: number | null = null;
     let watchSub: Location.LocationSubscription | null = null;
-    // Use user's district center as fallback (far more accurate than always defaulting to Dehradun)
-    const userDistrict: string = (user as any)?.district || "Dehradun";
-    const fallbackGeo: GeoPoint = DISTRICT_CENTERS[userDistrict] || { lat: 30.3165, lng: 78.0322 };
+    // Use user's district center as fallback — never hardcode Delhi or Dehradun
+    const fallbackGeo: GeoPoint = getDistrictCenter((user as any)?.district);
     const useFallback = () => {
       if (cancelled) return;
       setGeo(fallbackGeo); currentGeoRef.current = fallbackGeo; setGeoStatus("found");
@@ -560,7 +546,7 @@ function SOSScreenInner() {
       });
     } catch {}
     try {
-      const g = currentGeoRef.current || { lat: 28.6139, lng: 77.209 };
+      const g = currentGeoRef.current || userDistrictGeo;
       // Send SOS alert immediately (no audio URL yet — will be patched after 18s)
       const result = await triggerWomenSafetySOS(g, `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}`);
       if (result?.alert) {
@@ -674,7 +660,7 @@ function SOSScreenInner() {
         if (!res.ok || cancelled) return;
         const data: any[] = await res.json();
         const active = data.filter(v => v.status === "active_patrol" || v.status === "responding");
-        const from = currentGeoRef.current || { lat: 30.3165, lng: 78.0322 };
+        const from = currentGeoRef.current || userDistrictGeo;
         const sorted = active
           .map(v => ({
             ...v,
@@ -707,7 +693,7 @@ function SOSScreenInner() {
     try {
       const { getApiUrl } = await import("@/lib/query-client");
       const baseUrl = getApiUrl();
-      const g = currentGeoRef.current || { lat: 30.3165, lng: 78.0322 };
+      const g = currentGeoRef.current || userDistrictGeo;
       const res = await fetch(`${baseUrl}api/sos/forest-fire`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -761,7 +747,7 @@ function SOSScreenInner() {
     try {
       const { getApiUrl } = await import("@/lib/query-client");
       const baseUrl = getApiUrl();
-      const g = currentGeoRef.current || { lat: 30.3165, lng: 78.0322 };
+      const g = currentGeoRef.current || userDistrictGeo;
       const res = await fetch(`${baseUrl}api/cpr/user-request`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -801,7 +787,7 @@ function SOSScreenInner() {
       Vibration.vibrate([0, 300, 100, 300]);
     }
     try {
-      const g = currentGeoRef.current || { lat: 28.6139, lng: 77.209 };
+      const g = currentGeoRef.current || userDistrictGeo;
       const cat = SOS_CATS.find(c => c.key === selectedCat);
       const alert = await triggerSOS({
         category: selectedCat as any,

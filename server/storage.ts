@@ -1299,6 +1299,12 @@ class AppStorage {
     return [...this.workers];
   }
 
+  // ── DISTRICT CENTER ──────────────────────────────────────────────────────────
+  getDistrictCenter(district: string): GeoPoint {
+    const found = DISTRICTS_DATA.find(d => d.district === district);
+    return found ? found.center : { lat: 30.0668, lng: 79.0193 }; // Uttarakhand state center
+  }
+
   // ── POLICE OPERATIONS ────────────────────────────────────────────────────────
   getPoliceStations(district?: string): PoliceStation[] {
     if (district && district !== "Uttarakhand") {

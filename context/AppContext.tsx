@@ -462,7 +462,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const triggerWomenSafetySOS = useCallback(async (geo: GeoPoint | null, location: string, audioUrl?: string) => {
     const apiCall = makeApiCall(tokenRef.current);
     const result = await apiCall("/api/sos/women-safety", "POST", {
-      geo: geo || { lat: 28.6139, lng: 77.2090 },
+      geo: geo || null,
       location,
       audioUrl,
     });
