@@ -115,22 +115,34 @@ function getAppName(): string {
 }
 
 function proxyToMetro(req: Request, res: Response) {
+  const rawBody: Buffer | undefined = req.rawBody as Buffer | undefined;
+  const headers: http.OutgoingHttpHeaders = { ...req.headers, host: "localhost:8080" };
+  if (rawBody) {
+    headers["content-length"] = rawBody.length;
+  } else {
+    delete headers["content-length"];
+  }
   const options: http.RequestOptions = {
     hostname: "127.0.0.1",
     port: 8080,
     path: req.url,
     method: req.method,
-    headers: { ...req.headers, host: "localhost:8080" },
+    headers,
   };
   const proxyReq = http.request(options, (proxyRes) => {
     res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
     proxyRes.pipe(res, { end: true });
   });
-  proxyReq.on("error", () => {
-    res.status(502).json({ error: "Expo dev server not available on port 8080" });
+  proxyReq.on("error", (err) => {
+    log(`[Expo proxy error] ${err.message}`);
+    if (!res.headersSent) {
+      res.status(502).json({ error: "Expo dev server not available on port 8080" });
+    }
   });
-  if (req.readable) req.pipe(proxyReq, { end: true });
-  else proxyReq.end();
+  if (rawBody && rawBody.length > 0) {
+    proxyReq.write(rawBody);
+  }
+  proxyReq.end();
 }
 
 function serveExpoManifest(platform: string, req: Request, res: Response) {
@@ -170,9 +182,9 @@ function serveLandingPage({
   const forwardedHost = req.header("x-forwarded-host");
   const host = forwardedHost || req.get("host");
   const baseUrl = `${protocol}://${host}`;
-  // Use the Expo Dev Server domain for QR code — this is where Metro serves native bundles
+  // Use the Expo Dev Server domain + port 8080 for QR code so Expo Go connects to Metro directly
   const devDomain = process.env.REPLIT_DEV_DOMAIN;
-  const expsUrl = devDomain || host;
+  const expsUrl = devDomain ? `${devDomain}:8080` : host;
 
   log(`baseUrl`, baseUrl);
   log(`expsUrl`, expsUrl);

@@ -44,7 +44,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "EXPO_PACKAGER_PROXY_URL=https://$REPLIT_DEV_DOMAIN REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=sankalp-ai.replit.app node_modules/.bin/expo start --localhost --port 8080"
+args = "CI=1 EXPO_PACKAGER_PROXY_URL=https://$REPLIT_DEV_DOMAIN REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=sankalp-ai.replit.app node_modules/.bin/expo start --localhost --port 8080"
 waitForPort = 8080
 
 [[ports]]
@@ -54,10 +54,6 @@ externalPort = 80
 [[ports]]
 localPort = 8080
 externalPort = 8080
-
-[[ports]]
-localPort = 8081
-externalPort = 8081
 
 [deployment]
 deploymentTarget = "vm"
