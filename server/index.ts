@@ -182,9 +182,9 @@ function serveLandingPage({
   const forwardedHost = req.header("x-forwarded-host");
   const host = forwardedHost || req.get("host");
   const baseUrl = `${protocol}://${host}`;
-  // Use the Expo Dev Server domain + port 8080 for QR code so Expo Go connects to Metro directly
+  // Use the dev domain for QR code — Express serves the static manifest on port 80
   const devDomain = process.env.REPLIT_DEV_DOMAIN;
-  const expsUrl = devDomain ? `${devDomain}:8080` : host;
+  const expsUrl = devDomain || host;
 
   log(`baseUrl`, baseUrl);
   log(`expsUrl`, expsUrl);
