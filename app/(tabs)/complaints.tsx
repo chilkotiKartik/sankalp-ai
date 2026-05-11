@@ -831,8 +831,7 @@ export default function ComplaintsScreen() {
       {/* Submit Modal */}
       <Modal visible={showSubmit} transparent animationType="slide">
         <View style={cs.overlay}>
-          <ScrollView>
-            <View style={[cs.sheet, { borderRadius: 24, marginTop: 60, marginHorizontal: 0 }]}>
+          <View style={[cs.sheet, { borderRadius: 24, marginTop: 60, marginHorizontal: 0 }]}>
               <View style={cs.sheetHandle} />
               {/* Hidden web file input */}
               {Platform.OS === "web" && (
@@ -867,6 +866,7 @@ export default function ComplaintsScreen() {
                 </Pressable>
               </View>
 
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 20 }}>
               <View style={{ paddingHorizontal: 20 }}>
 
                 {/* ── SECTION: DESCRIBE ── */}
@@ -1076,8 +1076,8 @@ export default function ComplaintsScreen() {
                   Auto-routed to {CATS.find(c => c.key === newCat)?.deptFull} · Ticket generated instantly
                 </Text>
               </View>
-            </View>
-          </ScrollView>
+              </ScrollView>
+          </View>
         </View>
       </Modal>
     </View>

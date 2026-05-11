@@ -3,6 +3,7 @@ import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
+import * as http from "http";
 
 const app = express();
 const log = console.log;
@@ -113,7 +114,26 @@ function getAppName(): string {
   }
 }
 
-function serveExpoManifest(platform: string, res: Response) {
+function proxyToMetro(req: Request, res: Response) {
+  const options: http.RequestOptions = {
+    hostname: "127.0.0.1",
+    port: 8080,
+    path: req.url,
+    method: req.method,
+    headers: { ...req.headers, host: "localhost:8080" },
+  };
+  const proxyReq = http.request(options, (proxyRes) => {
+    res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
+    proxyRes.pipe(res, { end: true });
+  });
+  proxyReq.on("error", () => {
+    res.status(502).json({ error: "Expo dev server not available on port 8080" });
+  });
+  if (req.readable) req.pipe(proxyReq, { end: true });
+  else proxyReq.end();
+}
+
+function serveExpoManifest(platform: string, req: Request, res: Response) {
   const manifestPath = path.resolve(
     process.cwd(),
     "static-build",
@@ -122,9 +142,8 @@ function serveExpoManifest(platform: string, res: Response) {
   );
 
   if (!fs.existsSync(manifestPath)) {
-    return res
-      .status(404)
-      .json({ error: `Manifest not found for platform: ${platform}` });
+    log(`[Expo] No static manifest for ${platform} — proxying to Metro dev server`);
+    return proxyToMetro(req, res);
   }
 
   res.setHeader("expo-protocol-version", "1");
@@ -184,13 +203,27 @@ function configureExpoAndLanding(app: express.Application) {
       return next();
     }
 
+    // Proxy Metro-specific paths (JS bundles, HMR, source maps, etc.) to Expo dev server
+    const isMetroPath =
+      req.path.startsWith("/_expo/") ||
+      req.path.startsWith("/node_modules/") ||
+      req.path.endsWith(".bundle") ||
+      req.path.startsWith("/debugger-ui") ||
+      req.path === "/status" ||
+      req.path === "/symbolicate" ||
+      req.path === "/open-stack-frame" ||
+      req.path.startsWith("/inspector");
+    if (isMetroPath) {
+      return proxyToMetro(req, res);
+    }
+
     if (req.path !== "/" && req.path !== "/manifest") {
       return next();
     }
 
     const platform = req.header("expo-platform");
     if (platform && (platform === "ios" || platform === "android")) {
-      return serveExpoManifest(platform, res);
+      return serveExpoManifest(platform, req, res);
     }
 
     if (req.path === "/") {
