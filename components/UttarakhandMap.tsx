@@ -3,6 +3,7 @@ import { View, StyleSheet, Pressable, Alert, Linking, Modal, Text, TouchableOpac
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import type { Complaint, SOSAlert, Worker, PoliceStation, RiskZone, GeoPoint } from "@/context/AppContext";
+import { LEAFLET_CSS, LEAFLET_JS } from "@/lib/leaflet-bundle";
 
 export type MapFilter = "all" | "complaints" | "sos" | "workers" | "police" | "risks" | "hospitals" | "fire";
 
@@ -69,7 +70,7 @@ function buildLeafletHTML(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<style>${LEAFLET_CSS}</style>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body,#map{width:100%;height:100%;background:#f8f9fa}
@@ -93,7 +94,7 @@ function buildLeafletHTML(
 </head>
 <body>
 <div id="map"></div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>${LEAFLET_JS}</script>
 <script>
 var map=L.map('map',{
   center:[${cLat},${cLng}],

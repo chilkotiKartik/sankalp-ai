@@ -1,5 +1,6 @@
 // Shared Leaflet HTML builder for Worker GPS Map
 // Used by both native (WebView) and web (iframe) versions
+import { LEAFLET_CSS, LEAFLET_JS } from "./leaflet-bundle";
 
 export interface WorkerMapData {
   id: string;
@@ -62,7 +63,7 @@ export function buildWorkerMapHTML(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<style>${LEAFLET_CSS}</style>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body,#map{width:100%;height:100%;background:#0d1117;overflow:hidden}
@@ -128,7 +129,7 @@ export function buildWorkerMapHTML(
   <div class="hl-row"><div class="hl-swatch" style="background:#FF9933"></div><span class="hl-label">High</span></div>
   <div class="hl-row"><div class="hl-swatch" style="background:#EF4444"></div><span class="hl-label">Critical</span></div>
 </div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>${LEAFLET_JS}</script>
 <script>
 var workers=${wJson};
 var heatData=${hJson};
