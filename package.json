@@ -90,5 +90,9 @@
     "tsx": "^4.21.0",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "tar": "^7.5.22",
+    "shell-quote": "^1.10.0"
+  }
 }
