@@ -329,7 +329,7 @@ export default function UttarakhandMap({
     }
 
     if (show("hospitals")) {
-      emergencyServices.filter(s => s.type === "hospital").forEach(s => {
+      emergencyServices.filter(s => s.type === "hospital" && s.geo?.lat && s.geo?.lng).forEach(s => {
         result.push({
           lat: s.geo.lat, lng: s.geo.lng,
           color: "#EF4444", type: "hospital", radius: 10,
@@ -341,7 +341,7 @@ export default function UttarakhandMap({
     }
 
     if (show("fire")) {
-      emergencyServices.filter(s => s.type === "fire").forEach(s => {
+      emergencyServices.filter(s => s.type === "fire" && s.geo?.lat && s.geo?.lng).forEach(s => {
         result.push({
           lat: s.geo.lat, lng: s.geo.lng,
           color: "#F59E0B", type: "fire", radius: 10,

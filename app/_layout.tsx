@@ -5,6 +5,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
+import { Ionicons, MaterialIcons, FontAwesome } from "@expo/vector-icons";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Slot, router, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -137,6 +138,9 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    ...Ionicons.font,
+    ...MaterialIcons.font,
+    ...FontAwesome.font,
   });
   const [fontTimeout, setFontTimeout] = useState(false);
 
