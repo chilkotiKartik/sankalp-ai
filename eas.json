@@ -6,13 +6,15 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "node": "20.18.3"
     },
     "apk": {
       "android": {
         "buildType": "apk"
       },
       "distribution": "internal",
+      "node": "20.18.3",
       "env": {
         "EXPO_PUBLIC_DOMAIN": "sankalp-ai.replit.app"
       }
@@ -22,12 +24,14 @@
         "buildType": "apk"
       },
       "distribution": "internal",
+      "node": "20.18.3",
       "env": {
         "EXPO_PUBLIC_DOMAIN": "sankalp-ai.replit.app"
       }
     },
     "production": {
       "autoIncrement": true,
+      "node": "20.18.3",
       "env": {
         "EXPO_PUBLIC_DOMAIN": "sankalp-ai.replit.app"
       }
