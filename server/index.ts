@@ -216,6 +216,7 @@ function configureExpoAndLanding(app: express.Application) {
     }
 
     // Proxy Metro-specific paths (JS bundles, HMR, source maps, etc.) to Expo dev server
+    // BUT only if the file doesn't already exist in the static build — static build takes priority
     const isMetroPath =
       req.path.startsWith("/_expo/") ||
       req.path.startsWith("/node_modules/") ||
@@ -226,7 +227,11 @@ function configureExpoAndLanding(app: express.Application) {
       req.path === "/open-stack-frame" ||
       req.path.startsWith("/inspector");
     if (isMetroPath) {
-      return proxyToMetro(req, res);
+      const staticFilePath = path.resolve(process.cwd(), "static-build", "web", req.path.slice(1));
+      if (!fs.existsSync(staticFilePath)) {
+        return proxyToMetro(req, res);
+      }
+      // File exists in static build — fall through to express.static
     }
 
     if (req.path !== "/" && req.path !== "/manifest") {
@@ -239,7 +244,13 @@ function configureExpoAndLanding(app: express.Application) {
     }
 
     if (req.path === "/") {
-      // Always serve the landing page at root — shows Expo Go QR code + web app link
+      // Serve the web app directly for browser requests
+      const webIndexPath = path.resolve(process.cwd(), "static-build", "web", "index.html");
+      if (fs.existsSync(webIndexPath)) {
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        return res.sendFile(webIndexPath);
+      }
+      // Fallback: landing page (e.g. no web bundle built yet)
       return serveLandingPage({ req, res, landingPageTemplate, appName });
     }
 
