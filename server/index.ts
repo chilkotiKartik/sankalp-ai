@@ -292,15 +292,22 @@ function configureExpoAndLanding(app: express.Application) {
   app.use(express.static(path.resolve(process.cwd(), "static-build", "web")));
   app.use(express.static(path.resolve(process.cwd(), "static-build")));
   // The web bundle references assets at /assets/node_modules/... and /assets/assets/...
-  // Serve them from their real locations on disk
-  app.use("/assets/node_modules", express.static(path.resolve(process.cwd(), "node_modules"), {
+  // Metro hashes filenames in the bundle (e.g. Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf)
+  // but node_modules / assets only have the unhashed versions (Ionicons.ttf).
+  // Strip the .{md5hash} segment before serving so the files resolve correctly.
+  function dehashedMiddleware(req: Request, _res: Response, next: NextFunction) {
+    const dehashed = req.path.replace(/\.([a-f0-9]{32})(\.[^./]+)$/, '$2');
+    if (dehashed !== req.path) req.url = dehashed;
+    next();
+  }
+  app.use("/assets/node_modules", dehashedMiddleware, express.static(path.resolve(process.cwd(), "node_modules"), {
     setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=604800"); }
   }));
-  app.use("/assets/assets", express.static(path.resolve(process.cwd(), "assets"), {
+  app.use("/assets/assets", dehashedMiddleware, express.static(path.resolve(process.cwd(), "assets"), {
     setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=604800"); }
   }));
   // Raw source assets as fallback (for icons, splash, etc. not hashed by Metro)
-  app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
+  app.use("/assets", dehashedMiddleware, express.static(path.resolve(process.cwd(), "assets")));
 
   // SPA fallback — all non-API, non-static routes serve index.html for client-side routing
   app.use((req: Request, res: Response, next: NextFunction) => {
