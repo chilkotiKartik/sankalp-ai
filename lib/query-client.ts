@@ -19,6 +19,11 @@ export function getWsUrl(): string {
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     return `${wsProtocol}//${window.location.host}/ws`;
   }
+  // In Expo Go dev mode, hostUri is always the correct live server address
+  const hostUri = (Constants.manifest as any)?.hostUri;
+  if (hostUri) {
+    return `wss://${hostUri}/ws`;
+  }
   if (process.env.EXPO_PUBLIC_DOMAIN) {
     return `wss://${process.env.EXPO_PUBLIC_DOMAIN}/ws`;
   }
@@ -28,6 +33,13 @@ export function getWsUrl(): string {
 export function getApiUrl(): string {
   if (isBrowser()) {
     return window.location.origin + "/";
+  }
+
+  // In Expo Go dev mode, hostUri in the manifest is always the correct live server address.
+  // Prefer it over EXPO_PUBLIC_DOMAIN which is baked in at bundle time and can be stale.
+  const hostUri = (Constants.manifest as any)?.hostUri;
+  if (hostUri) {
+    return `https://${hostUri}/`;
   }
 
   if (process.env.EXPO_PUBLIC_DOMAIN) {
