@@ -29,7 +29,6 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { StatusBar } from "expo-status-bar";
 import { LogoAnimation } from "@/components/LogoAnimation";
 import Colors from "@/constants/colors";
-import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";

@@ -291,6 +291,14 @@ function configureExpoAndLanding(app: express.Application) {
   // Serve the built web bundle first so hashed asset filenames are resolved correctly
   app.use(express.static(path.resolve(process.cwd(), "static-build", "web")));
   app.use(express.static(path.resolve(process.cwd(), "static-build")));
+  // The web bundle references assets at /assets/node_modules/... and /assets/assets/...
+  // Serve them from their real locations on disk
+  app.use("/assets/node_modules", express.static(path.resolve(process.cwd(), "node_modules"), {
+    setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=604800"); }
+  }));
+  app.use("/assets/assets", express.static(path.resolve(process.cwd(), "assets"), {
+    setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=604800"); }
+  }));
   // Raw source assets as fallback (for icons, splash, etc. not hashed by Metro)
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
 

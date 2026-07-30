@@ -53,7 +53,8 @@ interface MarkerData {
 function buildLeafletHTML(
   markers: MarkerData[],
   center: { lat: number; lng: number; zoom: number },
-  userLoc: { lat: number; lng: number } | null
+  userLoc: { lat: number; lng: number } | null,
+  baseUrl: string = ""
 ): string {
   const markersJson = JSON.stringify(markers);
   const userJson = JSON.stringify(userLoc);
@@ -66,7 +67,8 @@ function buildLeafletHTML(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<base href="${baseUrl}/">
+<link rel="stylesheet" href="leaflet/leaflet.css"/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body,#map{width:100%;height:100%;background:#0d1117}
@@ -91,7 +93,7 @@ function buildLeafletHTML(
 </head>
 <body>
 <div id="map"></div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="leaflet/leaflet.js"></script>
 <script>
 var map=L.map('map',{
   center:[${cLat},${cLng}],
@@ -339,13 +341,16 @@ export default function UttarakhandMap({
     return { lat: 30.0668, lng: 79.0193, zoom: 8 };
   }, [userLocation, userDistrict]);
 
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+
   const html = useMemo(() =>
     buildLeafletHTML(
       markers,
       center,
-      userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : null
+      userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : null,
+      baseUrl
     ),
-    [markers, center, userLocation]
+    [markers, center, userLocation, baseUrl]
   );
 
   useEffect(() => {
