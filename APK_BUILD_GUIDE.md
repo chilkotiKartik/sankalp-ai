@@ -5,239 +5,122 @@
 
 ---
 
-## What You Need
+## Prerequisites
 
 | Requirement | Details |
 |-------------|---------|
 | Expo account | Free — create at https://expo.dev/signup |
-| Expo account username | Must match `"owner": "uuyhb"` in `app.json` |
-| Node.js 18+ | Already installed in this project |
-| EAS CLI | Installed in the next step |
-| Android phone | To install the APK (or use an emulator) |
-| Backend deployed | The Replit app must be **published/deployed** |
+| Expo account username | Must match `"owner": "sportifykartik"` in `app.json` |
+| Node.js 18+ | Install from https://nodejs.org if not already installed |
+| EAS CLI | Installed in Step 1 below |
+| Android phone | To sideload the APK (enable "Install from unknown sources") |
+| Replit app deployed | The APK needs a live HTTPS backend — deploy your Replit app first |
 
 ---
 
-## Step 1 — Deploy the Backend First (Critical!)
+## Step 1 — Deploy the Backend (Critical!)
 
-The APK is a native app — it can't reach `localhost`. It needs a real HTTPS URL.
+The APK is a native app — it cannot reach `localhost`. It needs a real HTTPS URL.
 
-**Your backend URL is already configured:**
+**Your backend URL is already configured in `eas.json`:**
 ```
-https://animation-graphics-hub--monalweb61.replit.app
+https://sankalp-ai.replit.app
 ```
 
 Make sure your Replit app is **published/deployed** (click the Deploy button in Replit).
-The `eas.json` file already has this URL baked in for all build profiles.
+The `eas.json` file already has this URL baked into all build profiles.
 
-> If your deployed URL changes, update `"EXPO_PUBLIC_DOMAIN"` in `eas.json` for all
-> three profiles (`apk`, `preview`, `production`) before building.
+> ⚠️ If your deployed URL ever changes, update `"EXPO_PUBLIC_DOMAIN"` in `eas.json`
+> for all profiles (`apk`, `preview`, `production`) before rebuilding.
 
 ---
 
-## Step 2 — Install EAS CLI
+## Step 2 — Install EAS CLI on your local machine
 
-Run this **on your local machine** (or in the Replit Shell):
+Open a terminal **on your computer** (not in Replit):
 
 ```bash
 npm install -g eas-cli
 ```
 
-Verify it works:
+Verify it installed:
 ```bash
 eas --version
-# Should print: eas-cli/x.x.x
 ```
 
 ---
 
-## Step 3 — Log In to Expo
+## Step 3 — Log in to your Expo account
 
 ```bash
 eas login
 ```
 
-Enter your Expo account credentials (the same account that owns `uuyhb`).
-
-Verify you're logged in as the right user:
-```bash
-eas whoami
-# Should print: uuyhb
-```
-
-> ⚠️ **Important:** The `app.json` sets `"owner": "uuyhb"`. You must log in as
-> that exact Expo account or the build will fail with a permissions error.
+Enter your Expo username (`sportifykartik`) and password when prompted.
 
 ---
 
-## Step 4 — Build the APK
+## Step 4 — Clone / download the project
 
-From the project root directory, run:
+If you haven't already, download the project from Replit to your local machine
+(use "Download as zip" from the Replit menu, or `git clone` if you have Git set up).
+
+---
+
+## Step 5 — Build the APK
+
+In the project root on your local machine:
 
 ```bash
 eas build --platform android --profile apk
 ```
 
-What happens:
-1. EAS uploads your source code to Expo's cloud build servers
-2. It compiles a native Android APK (this takes **5–15 minutes**)
-3. When done, it prints a download link
+This uploads your code to Expo's build servers and compiles a native APK.
+The build usually takes **5–15 minutes**.
 
-**Watch the build progress at:**
+When it finishes, EAS prints a download URL like:
 ```
-https://expo.dev/accounts/uuyhb/projects/sankalp-ai/builds
-```
-
----
-
-## Step 5 — Download the APK
-
-When the build finishes:
-
-**Option A — From the terminal:**
-The CLI prints a direct `.apk` download URL. Click it or paste in browser.
-
-**Option B — From expo.dev:**
-1. Go to https://expo.dev
-2. Sign in → Projects → `sankalp-ai`
-3. Click "Builds" in the left sidebar
-4. Find your build → click **"Download"**
-
----
-
-## Step 6 — Install on Android
-
-### Method 1 — Direct on phone
-1. Send the `.apk` file to your phone (WhatsApp, email, Google Drive, USB)
-2. Open the file on the phone
-3. If prompted: **Settings → Allow from this source**
-4. Tap Install
-
-### Method 2 — ADB (USB cable)
-```bash
-# Make sure USB Debugging is enabled on the phone
-adb install sankalp-ai.apk
-```
-
-### Method 3 — QR code on expo.dev
-On the build detail page, expo.dev shows a QR code — scan it with your phone's camera to download directly.
-
----
-
-## One-Command Summary
-
-```bash
-# 1. Install EAS CLI (once)
-npm install -g eas-cli
-
-# 2. Login (once)
-eas login
-
-# 3. Build APK
-eas build --platform android --profile apk
-
-# 4. Download from the printed URL and install
+✅ Build finished
+https://expo.dev/artifacts/eas/xxxx.apk
 ```
 
 ---
 
-## Build Profiles Explained
+## Step 6 — Install on your phone
 
-| Profile | Command | Output | Use For |
-|---------|---------|--------|---------|
-| `apk` | `--profile apk` | `.apk` file | Direct install, demos, testing |
-| `preview` | `--profile preview` | `.aab` via Expo | Internal testers via expo.dev |
-| `production` | `--profile production` | `.aab` for Play Store | App Store submission |
-
----
-
-## If Building from Replit Shell
-
-The Replit shell can run EAS builds, but the build itself runs in Expo's cloud —
-your machine just monitors progress. Run:
-
-```bash
-npx eas-cli build --platform android --profile apk --non-interactive
-```
-
-The `--non-interactive` flag prevents it from waiting for input.
+1. Download the `.apk` file from the URL above.
+2. Transfer it to your Android phone (AirDrop, Google Drive, USB cable, etc.).
+3. On the phone: **Settings → Security → Install from unknown sources** (enable it).
+4. Open the `.apk` file from your file manager and tap Install.
+5. Launch **SANKALP AI** — it will connect to `sankalp-ai.replit.app` automatically.
 
 ---
 
-## Environment Variables in the Build
+## Build Profiles
 
-The APK needs `EXPO_PUBLIC_DOMAIN` to know which server to talk to.
-This is already set in `eas.json`:
-
-```json
-"apk": {
-  "env": {
-    "EXPO_PUBLIC_DOMAIN": "animation-graphics-hub--monalweb61.replit.app"
-  }
-}
-```
-
-If you ever change your backend URL (e.g., custom domain), update this value
-in `eas.json` and rebuild the APK.
-
-For the NVIDIA API key, add it as an EAS secret (never in source code):
-```bash
-eas secret:create --name NVIDIA_API_KEY --value "nvapi-your-key-here"
-```
+| Profile | Output | Use case |
+|---------|--------|----------|
+| `apk` | `.apk` sideloadable | Internal testing, direct install |
+| `preview` | `.apk` sideloadable | Alias for `apk` |
+| `production` | `.aab` (Play Store bundle) | Google Play submission |
 
 ---
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| `Error: Not authorized` | Run `eas login` and ensure you're logged in as `uuyhb` |
-| `Project not found` | Check `"owner"` and `"slug"` in `app.json` match your Expo account |
-| App opens but "Network request failed" | Backend not deployed — publish the Replit app first |
-| App installs but blank screen | Check `EXPO_PUBLIC_DOMAIN` in eas.json matches your deployed URL |
-| Build fails: "metro bundler error" | Run `npx expo install --fix` then retry |
-| "Unknown build profile" | Make sure you type `--profile apk` exactly |
-| Can't install APK | Enable "Install unknown apps" in Android Settings → Security |
-| Build queue is long | Free Expo accounts share build workers — wait 10–20 min during peak hours |
+| Problem | Fix |
+|---------|-----|
+| `"owner" mismatch` | Make sure you're logged in as `sportifykartik` |
+| API calls fail in APK | Check that `https://sankalp-ai.replit.app` is deployed and responding |
+| Maps not loading | Already fixed — Leaflet is inlined, no CDN needed |
+| Icons missing | Already fixed — font hash-stripping middleware is live on the server |
+| Build fails on EAS | Check https://expo.dev/accounts/sportifykartik/projects/sankalp-ai/builds |
 
 ---
 
-## Checking Your Deployed Backend URL
+## Project IDs (for reference)
 
-Your backend URL is set in two places:
-
-1. **`app.json`** → `extra.EXPO_PUBLIC_DOMAIN`
-2. **`eas.json`** → `build.apk.env.EXPO_PUBLIC_DOMAIN`
-
-Both should point to the same Replit deployment URL. To find your current URL:
-- In Replit: click **"Deploy"** tab → copy the `.replit.app` domain shown there
-
----
-
-## App Details
-
-| Field | Value |
-|-------|-------|
-| App Name | SANKALP AI |
-| Package ID | `com.sankalpai` |
-| EAS Project ID | `09c3550a-dabb-4f1c-8a7a-b69733e059ce` |
-| Expo Owner | `uuyhb` |
-| Expo Slug | `sankalp-ai` |
-| Min Android | Android 5.0+ (API 21) |
-| Architecture | New Architecture enabled |
-
----
-
-## After the APK is Built — Demo Flow
-
-Once installed, log in with:
-- **Super Admin:** `9999999999` / `000000`
-- **Admin (Dehradun):** `9999000001` / `111111`
-- **Citizen:** `9876543210` / `123456`
-
-The APK connects to your deployed Replit backend for all data, AI chat,
-WebSocket real-time updates, SOS alerts, and maps.
-
----
-
-*SANKALP AI — Uttarakhand Civic Governance Platform*
+- **EAS Project ID:** `a882b97c-171c-4c3a-8499-5c3533c11516`
+- **Expo owner:** `sportifykartik`
+- **Android package:** `com.sankalpai`
+- **Backend:** `https://sankalp-ai.replit.app`
