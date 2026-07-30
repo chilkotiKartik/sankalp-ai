@@ -794,7 +794,7 @@ function SOSScreenInner() {
         description: description || `${cat?.label} emergency via SANKALP AI`,
         location: `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}`,
         geo: g,
-        ward: nearestPS[0]?.ward || "Dehradun",
+        ward: nearestPS[0]?.ward || "Champawat",
         wardNumber: 1,
         status: "active",
       });

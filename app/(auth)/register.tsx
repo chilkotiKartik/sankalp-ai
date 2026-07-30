@@ -24,7 +24,7 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  const [district, setDistrict] = useState("Dehradun");
+  const [district, setDistrict] = useState("Champawat");
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

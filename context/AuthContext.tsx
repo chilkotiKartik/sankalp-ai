@@ -31,6 +31,27 @@ const AuthContext = createContext<AuthContextType | null>(null);
 const TOKEN_KEY = "@sankalp_token";
 const USER_KEY = "@sankalp_user";
 
+// Demo users — these work without a backend. Credentials match server seed data.
+const DEMO_USERS: Record<string, { user: AuthUser; pin: string }> = {
+  "9876543210": {
+    pin: "123456",
+    user: { id: "demo-citizen-arjun", name: "Arjun", phone: "9876543210", role: "citizen", district: "Champawat", points: 350, badges: ["first_report", "active_citizen"], level: 4 },
+  },
+  "9999000003": {
+    pin: "333333",
+    user: { id: "demo-admin-champawat", name: "Champawat Admin", phone: "9999000003", role: "admin", district: "Champawat", points: 500, badges: ["district_admin"], level: 50 },
+  },
+  "9999000002": {
+    pin: "222222",
+    user: { id: "demo-admin-haridwar", name: "Haridwar Admin", phone: "9999000002", role: "admin", district: "Haridwar", points: 500, badges: ["district_admin"], level: 50 },
+  },
+  "9999999999": {
+    pin: "000000",
+    user: { id: "demo-super-admin", name: "SANKALP Super Admin", phone: "9999999999", role: "super_admin", district: "Uttarakhand", points: 9999, badges: [], level: 99 },
+  },
+};
+const DEMO_TOKEN_PREFIX = "demo-offline-token-";
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -75,8 +96,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, pin }),
       });
-    } catch (networkErr: any) {
-      throw new Error(`Network error — check your connection. (${networkErr?.message || "unreachable"})`);
+    } catch (_networkErr: any) {
+      // Network unreachable — fall back to offline demo users
+      const demo = DEMO_USERS[phone];
+      if (demo && demo.pin === pin) {
+        const demoToken = DEMO_TOKEN_PREFIX + phone;
+        setUser(demo.user);
+        setToken(demoToken);
+        await AsyncStorage.setItem(TOKEN_KEY, demoToken);
+        await AsyncStorage.setItem(USER_KEY, JSON.stringify(demo.user));
+        return;
+      }
+      throw new Error("Network error — check your connection or use a demo account.");
     }
     if (!res.ok) {
       let msg = `Login failed (${res.status})`;

@@ -666,7 +666,7 @@ export default function DashboardScreen() {
         )}
 
         {/* AQI & WEATHER */}
-        <AqiWeatherWidget district={user?.district || "Dehradun"} />
+        <AqiWeatherWidget district={user?.district || "Champawat"} />
 
         {/* AI CITY INTELLIGENCE */}
         <AICityAlertCard />

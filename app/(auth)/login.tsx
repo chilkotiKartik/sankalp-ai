@@ -290,14 +290,17 @@ export default function LoginScreen() {
     Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: false }),
   ]).start();
 
-  const handleLogin = async () => {
+  const handleLogin = async (overridePhone?: string, overridePin?: string) => {
+    const p = (overridePhone ?? phone).trim();
+    const n = overridePin ?? pin;
     setError("");
-    if (!phone.trim()) { setError("Please enter your mobile number"); shake(); return; }
-    if (phone.length !== 10) { setError("Mobile number must be 10 digits"); shake(); return; }
-    if (pin.length !== PIN_DIGITS) { setError("Please enter your 6-digit PIN"); shake(); return; }
+    if (overridePhone) { setPhone(overridePhone); setPin(overridePin ?? ""); }
+    if (!p) { setError("Please enter your mobile number"); shake(); return; }
+    if (p.length !== 10) { setError("Mobile number must be 10 digits"); shake(); return; }
+    if (n.length !== PIN_DIGITS) { setError("Please enter your 6-digit PIN"); shake(); return; }
     setLoading(true);
     try {
-      await login(phone.trim(), pin);
+      await login(p, n);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e: any) {
       setError(e.message || "Login failed. Check credentials.");
@@ -473,25 +476,25 @@ export default function LoginScreen() {
               <Text style={las.demoTitle}>DEMO CREDENTIALS — TAP TO AUTO-FILL</Text>
             </View>
 
-            <Pressable onPress={() => { setPhone("9876543210"); setPin("123456"); setError(""); }} style={las.demoRow}>
+            <Pressable onPress={() => handleLogin("9876543210", "123456")} style={las.demoRow}>
               <View style={[las.demoAv, { backgroundColor: "#E8F5E9" }]}><Text style={{ fontSize: 18 }}>👤</Text></View>
               <View style={{ flex: 1 }}>
-                <Text style={las.demoName}>Citizen</Text>
+                <Text style={las.demoName}>Citizen · Champawat</Text>
                 <Text style={las.demoInfo}>9876543210 · PIN 123456</Text>
               </View>
               <Ionicons name="arrow-forward-circle" size={20} color="#22C55E" />
             </Pressable>
 
-            <Pressable onPress={() => { setPhone("9999000001"); setPin("111111"); setError(""); }} style={[las.demoRow, { paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
+            <Pressable onPress={() => handleLogin("9999000003", "333333")} style={[las.demoRow, { paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
               <View style={[las.demoAv, { backgroundColor: "#EFF6FF" }]}><Text style={{ fontSize: 18 }}>🏛️</Text></View>
               <View style={{ flex: 1 }}>
-                <Text style={[las.demoName, { color: "#3B82F6" }]}>District Admin (DM) · Dehradun</Text>
-                <Text style={las.demoInfo}>9999000001 · PIN 111111</Text>
+                <Text style={[las.demoName, { color: "#3B82F6" }]}>District Admin (DM) · Champawat</Text>
+                <Text style={las.demoInfo}>9999000003 · PIN 333333</Text>
               </View>
               <Ionicons name="arrow-forward-circle" size={20} color="#3B82F6" />
             </Pressable>
 
-            <Pressable onPress={() => { setPhone("9999000002"); setPin("222222"); setError(""); }} style={[las.demoRow, { paddingTop: 8, borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
+            <Pressable onPress={() => handleLogin("9999000002", "222222")} style={[las.demoRow, { paddingTop: 8, borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
               <View style={[las.demoAv, { backgroundColor: "#F0FFF4" }]}><Text style={{ fontSize: 18 }}>🏔️</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={[las.demoName, { color: "#22C55E" }]}>District Admin (DM) · Haridwar</Text>
@@ -500,7 +503,7 @@ export default function LoginScreen() {
               <Ionicons name="arrow-forward-circle" size={20} color="#22C55E" />
             </Pressable>
 
-            <Pressable onPress={() => { setPhone("9999999999"); setPin("000000"); setError(""); }} style={[las.demoRow, { paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
+            <Pressable onPress={() => handleLogin("9999999999", "000000")} style={[las.demoRow, { paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
               <View style={[las.demoAv, { backgroundColor: "#FFF0E6" }]}><Text style={{ fontSize: 18 }}>⚡</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={[las.demoName, { color: Colors.saffron }]}>Super Admin · Uttarakhand</Text>

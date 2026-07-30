@@ -285,14 +285,14 @@ export default function ComplaintsScreen() {
                 resolve();
               },
               () => {
-                setNewLoc("Dehradun, Uttarakhand");
+                setNewLoc("Champawat, Uttarakhand");
                 resolve();
               },
               { enableHighAccuracy: true, timeout: 8000 }
             );
           });
         } else {
-          setNewLoc("Dehradun, Uttarakhand");
+          setNewLoc("Champawat, Uttarakhand");
         }
       } else {
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -301,7 +301,7 @@ export default function ComplaintsScreen() {
         setNewLoc(`GPS: ${loc.coords.latitude.toFixed(5)}°N, ${loc.coords.longitude.toFixed(5)}°E`);
       }
     } catch {
-      setNewLoc("Dehradun, Uttarakhand");
+      setNewLoc("Champawat, Uttarakhand");
     } finally {
       setDetectingLoc(false);
     }
@@ -363,7 +363,7 @@ export default function ComplaintsScreen() {
         description: newDesc.trim(),
         location: locStr,
         geo: { lat: 30.0668 + (Math.random() - 0.5) * 2.8, lng: 79.0193 + (Math.random() - 0.5) * 3.8 },
-        ward: user?.district || "Dehradun",
+        ward: user?.district || "Champawat",
         wardNumber: 1,
         priority: newPriority as any,
         status: "pending",
