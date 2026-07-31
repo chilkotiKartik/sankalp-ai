@@ -104,11 +104,20 @@ var map=L.map('map',{
   preferCanvas:true
 });
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+var cartoLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
   attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
   subdomains:'abcd',
   maxZoom:19
 }).addTo(map);
+
+// Fallback tiles if the Carto CDN is unreachable on the device
+var osmLayer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+  maxZoom:19
+});
+cartoLayer.on('tileerror',function(ev){
+  if(ev.tile && !osmLayer._map){ map.addLayer(osmLayer); }
+});
 
 var typeLabels={
   complaint:'ISSUE',sos:'SOS',worker:'WORKER',police:'POLICE',risk:'RISK',hospital:'HOSPITAL',fire:'FIRE STN'
@@ -381,6 +390,16 @@ export default function UttarakhandMap({
     webViewRef.current?.injectJavaScript(js);
   };
 
+  const ensureMapSized = () => {
+    // Leaflet captures its container size at init; if the WebView is laid out
+    // after the map initializes (0x0), tiles never render (blank/white map).
+    // invalidateSize() forces a re-measure once real dimensions exist.
+    const js = `setTimeout(function(){ try { map.invalidateSize(); } catch(e){} }, 50); true;`;
+    webViewRef.current?.injectJavaScript(js);
+  };
+
+  const lastHeight = useRef(0);
+
   const handleMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
@@ -403,7 +422,16 @@ export default function UttarakhandMap({
   };
 
   return (
-    <View style={[styles.container, style]}>
+    <View
+      style={[styles.container, style]}
+      onLayout={e => {
+        const h = e.nativeEvent.layout.height;
+        if (h > 0 && h !== lastHeight.current) {
+          lastHeight.current = h;
+          setTimeout(ensureMapSized, 80);
+        }
+      }}
+    >
       <WebView
         ref={webViewRef}
         source={{ html }}
@@ -416,6 +444,7 @@ export default function UttarakhandMap({
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
         onMessage={handleMessage}
+        onLoad={ensureMapSized}
         onError={e => console.warn("[Map] WebView error:", e.nativeEvent.description)}
         onHttpError={e => console.warn("[Map] HTTP error:", e.nativeEvent.statusCode)}
       />
