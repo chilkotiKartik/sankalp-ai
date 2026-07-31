@@ -16,7 +16,7 @@
       "distribution": "internal",
       "node": "20.18.3",
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "sankalp-ai.replit.app"
+        "EXPO_PUBLIC_DOMAIN": "sankalp-ai.onrender.com"
       }
     },
     "preview": {
@@ -26,14 +26,14 @@
       "distribution": "internal",
       "node": "20.18.3",
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "sankalp-ai.replit.app"
+        "EXPO_PUBLIC_DOMAIN": "sankalp-ai.onrender.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "node": "20.18.3",
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "sankalp-ai.replit.app"
+        "EXPO_PUBLIC_DOMAIN": "sankalp-ai.onrender.com"
       }
     }
   },
