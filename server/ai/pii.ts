@@ -1,28 +1,51 @@
 /**
- * PII masking before ANY model call (P2.3). Applied to every text message the gateway sends.
- * Masks: Indian mobile numbers, 12-digit Aadhaar-like numbers, e-mail addresses, PIN codes after address words,
- * and house/flat addresses (English + Hindi/Devanagari forms). Masking is irreversible on purpose.
+ * PII masking before ANY model call (P2.3). Applied to every text the gateway sends.
+ * Masks: phone numbers and 12-digit ID (Aadhaar-like) numbers in any common grouping (spaces, dots, dashes,
+ * brackets, +91/0 prefix, Devanagari digits), e-mail addresses, house/flat/plot numbers (English + Hindi forms),
+ * and 6-digit PIN codes. Masking is irreversible on purpose.
+ *
+ * Review P2-1: address rules need a NUMBER after the keyword, so civic phrases such as "door to door garbage",
+ * "near my house drain" or "flat tyre" are left intact (the model needs them to classify).
  */
+const DEV = "०१२३४५६७८९";
+const toAscii = (s: string) => s.replace(/[०-९]/g, d => String(DEV.indexOf(d)));
+
+// A digit (ASCII or Devanagari) and an allowed separator between digits.
+const D = "[0-9०-९]";
+const SEP = "[\\s.\\-()]{0,2}";
+
+/** Runs of 10–14 digits with separators between them. Classified by their digit count after normalisation. */
+const DIGIT_RUN = new RegExp(`(?<![0-9०-९])(?:\\+${SEP})?${D}(?:${SEP}${D}){9,13}(?![0-9०-९])`, "g");
+
+function maskDigitRun(m: string): string {
+  const digits = toAscii(m).replace(/\D/g, "");
+  if (digits.length === 12 && /^[2-9]/.test(digits) && !/^91[6-9]/.test(digits)) return "[ID_NUMBER]";
+  const local = digits.replace(/^(?:91|0)(?=[6-9]\d{9}$)/, "");
+  if (local.length === 10 && /^[6-9]/.test(local)) return "[PHONE]";
+  if (digits.length >= 10) return "[NUMBER]"; // long identifiers of unknown kind are never sent
+  return m;
+}
+
 const RULES: Array<[RegExp, string]> = [
-  // e-mail
-  [/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[EMAIL]"],
-  // Aadhaar-like: 12 digits, optionally grouped 4-4-4 (also Devanagari digits)
-  [/(?<![\d०-९])(?:[2-9२-९][\d०-९]{3}[\s-]?[\d०-९]{4}[\s-]?[\d०-९]{4})(?![\d०-९])/g, "[ID_NUMBER]"],
-  // Indian mobile numbers with optional +91 / 0 prefix (also Devanagari digits)
-  [/(?<![\d०-९])(?:\+?91[\s-]?|0)?[6-9६-९][\d०-९]{4}[\s-]?[\d०-९]{5}(?![\d०-९])/g, "[PHONE]"],
-  // House / flat / plot numbers — English
-  [/\b(?:house|h\.?\s?no|flat|plot|door|qtr|quarter)\.?\s*(?:no\.?|number|#)?\s*[:\-]?\s*[\w/-]{1,8}\b/gi, "[ADDRESS]"],
-  // House numbers — Hindi (मकान नं / मकान नंबर / म.नं / फ्लैट)
-  [/(?:मकान|म\.|फ्लैट|प्लॉट)\s*(?:नं\.?|नंबर|संख्या)?\s*[:\-]?\s*[\w०-९/-]{1,8}/g, "[ADDRESS]"],
-  // 6-digit postal PIN codes (only right after an address-ish word, to avoid masking ticket numbers)
-  [/(?:pin\s*code|pincode|पिन\s*कोड|पिनकोड)\s*[:\-]?\s*[1-9१-९][\d०-९]{5}/gi, "[PINCODE]"],
+  // e-mail (also with Devanagari in the local part)
+  [/[\p{L}\p{M}\p{N}._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/gu, "[EMAIL]"],
+  // House / flat / plot / door numbers — English: keyword + optional "no." + a token that starts with a digit
+  [/\b(?:house|h\.?\s?no|flat|plot|door|qtr|quarter|khasra)\s*(?:no\.?|number|num|#)?\s*[:\-]?\s*\d[\w/-]{0,7}/gi, "[ADDRESS]"],
+  // House numbers — Hindi (मकान/घर/हाउस/फ्लैट/प्लॉट + नं./नंबर/नम्बर/संख्या + number). No match inside words.
+  [/(?<![ऀ-ॿ])(?:मकान|घर|हाउस|फ्लैट|प्लॉट|म\.)\s*(?:नं\.?|नंबर|नम्बर|संख्या|न\.)?\s*[:\-]?\s*[0-9०-९][\w०-९/-]{0,7}/g, "[ADDRESS]"],
+  // 6-digit PIN codes: after a PIN keyword, or a bare 6-digit number (Indian PINs start 1–8)
+  [/(?:pin\s*code|pincode|pin|पिन\s*कोड|पिनकोड)\s*[:\-]?\s*[1-8१-८](?:\s?[0-9०-९]){5}(?![0-9०-९])/gi, "[PINCODE]"],
+  [/(?<![0-9०-९\-/])[1-8१-८][0-9०-९]{2}\s?[0-9०-९]{3}(?![0-9०-९\-/])/g, "[PINCODE]"],
 ];
 
 export function maskPII(text: string): string {
-  return RULES.reduce((t, [re, rep]) => t.replace(re, rep), text);
+  let t = text.replace(DIGIT_RUN, maskDigitRun);
+  for (const [re, rep] of RULES) t = t.replace(re, rep);
+  return t;
 }
 
-/** True if text still looks like it contains a phone/ID — used by tests and as a last guard. */
+/** Last guard (review P2-2): true if text still looks like it contains a phone, ID number or e-mail. */
 export function looksLikePII(text: string): boolean {
-  return /(?<!\d)[6-9]\d{9}(?!\d)/.test(text) || /(?<!\d)\d{4}\s?\d{4}\s?\d{4}(?!\d)/.test(text) || /@[\w-]+\.\w{2,}/.test(text);
+  const digits = toAscii(text).replace(/(?<=\d)[\s.\-()]{1,2}(?=\d)/g, "");
+  return /(?<!\d)(?:91|0)?[6-9]\d{9}(?!\d)/.test(digits) || /(?<!\d)[2-9]\d{11}(?!\d)/.test(digits) || /@[\w-]+\.\w{2,}/.test(text);
 }

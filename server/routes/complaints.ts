@@ -143,8 +143,10 @@ export function registerComplaintRoutes(app: Express) {
         // M4: without a sovereign vision model the photo is queued for a human — never auto-approved.
         photoReview: photoUrl ? "manual_review" : "not_required",
       }, user);
-      if (photoUrl && config().visionProvider === "manual_review") {
-        storage.createReviewTask({ kind: "photo_authenticity", complaintId: complaint.id, reason: "No vision model configured — verify photo manually" });
+      // Review P2-5: until an automated authenticity check exists, every photo is queued for a human.
+      if (photoUrl) {
+        storage.createReviewTask({ kind: "photo_authenticity", complaintId: complaint.id,
+          reason: config().visionProvider === "manual_review" ? "No vision model configured — verify photo manually" : "Verify photo authenticity" });
       }
       emitDept("complaint_new", complaint);
       res.status(201);

@@ -1,3 +1,4 @@
+import { maskPII } from "../ai/pii";
 import { stateLabel } from "../data/reference";
 import type { Express } from "express";
 import { z } from "zod";
@@ -25,14 +26,21 @@ function liveStats(district?: string) {
   };
 }
 
-function systemPrompt(name?: string, district?: string): string {
+// Review P2-6: no personal data (not even the first name) goes into a model prompt.
+function systemPrompt(district?: string): string {
   const s = liveStats(district);
   return `You are Sankalp, a warm civic assistant for the Government of ${stateLabel()}'s SANKALP AI platform.
 Reply in the user's language (Hindi or English), concisely (under 200 words), kindly and accurately.
 Never invent statistics. If someone is in danger, give the emergency number first: Police/All emergencies 112, Women helpline 1090, Ambulance 108, Disaster 1070.
-Recorded data for ${district || stateLabel()}: ${s.total} complaints, ${s.resolved} closed with citizen confirmation, ${s.pending} pending, ${s.activeSos} active SOS.
-${name ? `The user's first name is ${name.split(" ")[0]}.` : ""}`;
+Recorded data for ${district || stateLabel()}: ${s.total} complaints, ${s.resolved} closed with citizen confirmation, ${s.pending} pending, ${s.activeSos} active SOS.`;
 }
+
+const imageAnalysis = z.object({
+  severity: z.enum(["Low", "Medium", "High", "Critical"]),
+  issueType: z.string().max(40),
+  description: z.string().max(400).transform(v => maskPII(v)),
+  priority: z.enum(["P1", "P2", "P3", "P4"]),
+}).strip();
 
 export function registerAiRoutes(app: Express) {
   route(app, {
@@ -46,7 +54,7 @@ export function registerAiRoutes(app: Express) {
     }),
     handler: async ({ body, user }) => {
       const history: Msg[] = (body.history || []).slice(-6).map(h => ({ role: h.role === "user" ? "user" : "assistant", content: h.content }));
-      const result = await chat([{ role: "system", content: systemPrompt(user.name, user.district) }, ...history, { role: "user", content: body.message }]);
+      const result = await chat([{ role: "system", content: systemPrompt(user.district) }, ...history, { role: "user", content: body.message }]);
       if (result) return { reply: result.text, timestamp: new Date().toISOString(), powered_by: result.provider };
       const reply = rulesReply(body.message, body.history || [], user.name, user.district, liveStats(user.district));
       return { reply, timestamp: new Date().toISOString(), powered_by: "rules" };
@@ -62,10 +70,12 @@ export function registerAiRoutes(app: Express) {
       const prompt = `Identify the civic issue in this photo from Uttarakhand, India. Respond ONLY with JSON:
 {"severity":"Low|Medium|High|Critical","issueType":"pothole|garbage|streetlight|water|drain|electricity|tree|other","description":"1-2 sentences","priority":"P1|P2|P3|P4"}`;
       const result = await vision(body.imageBase64, prompt);
-      const parsed = result ? extractJson<{ severity?: string; issueType?: string; description?: string; priority?: string }>(result.text) : null;
-      if (result && parsed?.issueType) {
-        const issue = (CATEGORIES as readonly string[]).includes(parsed.issueType) ? parsed.issueType : "other";
-        return { analysis: { ...parsed, issueType: issue, department: assignDepartment(issue) }, status: "analyzed", powered_by: result.provider };
+      // Review P2-10: model output is validated against a strict schema; nothing else is passed through.
+      const parsed = result ? imageAnalysis.safeParse(extractJson(result.text)) : null;
+      if (result && parsed?.success) {
+        const a = parsed.data;
+        const issue = (CATEGORIES as readonly string[]).includes(a.issueType) ? a.issueType : "other";
+        return { analysis: { severity: a.severity, issueType: issue, description: a.description, priority: a.priority, department: assignDepartment(issue) }, status: "analyzed", powered_by: result.provider };
       }
       const cat = body.category || "other";
       return {
@@ -85,7 +95,8 @@ export function registerAiRoutes(app: Express) {
     handler: async ({ body }) => {
       const result = await vision(body.imageBase64, `Is this a real camera photograph or AI-generated/edited? Reply ONLY as JSON: {"isReal":true|false,"confidence":0-100,"reason":"brief"}`);
       const parsed = result ? extractJson<{ isReal?: unknown; confidence?: unknown; reason?: unknown }>(result.text) : null;
-      if (result && parsed && typeof parsed.isReal === "boolean" && typeof parsed.confidence === "number") {
+      // Review P2-9: only a confident answer counts; anything below 80% goes to a human.
+      if (result && parsed && typeof parsed.isReal === "boolean" && typeof parsed.confidence === "number" && parsed.confidence >= 80) {
         return { status: "analyzed", isReal: parsed.isReal, confidence: Math.max(0, Math.min(100, parsed.confidence)), reason: String(parsed.reason ?? "").slice(0, 300), powered_by: result.provider };
       }
       // M4 — fail closed.

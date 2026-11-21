@@ -1,0 +1,36 @@
+{"text":"Road near the school has a big crater, my bike tyre burst","category":"pothole","lang":"en"}
+{"text":"गली के मोड़ पर सड़क धंस गई है, गहरा गड्ढा बन गया","category":"pothole","lang":"hi"}
+{"text":"Market road pe bahut bade khadde hain, accident ho sakta hai","category":"pothole","lang":"hinglish"}
+{"text":"Nobody has picked up the rubbish from our lane for a week, it stinks","category":"garbage","lang":"en"}
+{"text":"मोहल्ले में कचरे का ढेर लगा है, कुत्ते फैला रहे हैं","category":"garbage","lang":"hi"}
+{"text":"Kachra gaadi teen din se nahi aayi","category":"garbage","lang":"hinglish"}
+{"text":"The lamp post outside the temple has been dark for ten nights","category":"streetlight","lang":"en"}
+{"text":"सड़क की लाइट रात भर बंद रहती है, अंधेरे में डर लगता है","category":"streetlight","lang":"hi"}
+{"text":"Gali ki street light kharab hai, raat ko andhera","category":"streetlight","lang":"hinglish"}
+{"text":"Tap water has stopped coming since Monday morning","category":"water","lang":"en"}
+{"text":"नल में गंदा पानी आ रहा है, पीने लायक नहीं","category":"water","lang":"hi"}
+{"text":"Pani ki supply do din se band hai","category":"water","lang":"hinglish"}
+{"text":"The roadside nala is choked with plastic and overflowing","category":"drain","lang":"en"}
+{"text":"नाली जाम है, बारिश का पानी घरों में घुस रहा","category":"drain","lang":"hi"}
+{"text":"Naali band ho gayi, paani sadak par bhar gaya","category":"drain","lang":"hinglish"}
+{"text":"We have had no electricity for fourteen hours","category":"electricity","lang":"en"}
+{"text":"बिजली बार बार कट रही है, पूरे दिन नहीं आई","category":"electricity","lang":"hi"}
+{"text":"Light chali gayi subah se, power cut bahut ho raha","category":"electricity","lang":"hinglish"}
+{"text":"A large branch is hanging over the footpath and may fall on someone","category":"tree","lang":"en"}
+{"text":"आंधी में पेड़ सड़क पर गिर गया, रास्ता बंद","category":"tree","lang":"hi"}
+{"text":"Ped gir gaya road pe, gaadi nahi nikal rahi","category":"tree","lang":"hinglish"}
+{"text":"Loudspeakers at the wedding hall play past midnight every day","category":"noise","lang":"en"}
+{"text":"रात को डीजे का बहुत शोर है, बच्चे पढ़ नहीं पाते","category":"noise","lang":"hi"}
+{"text":"Factory ki machine ka shor raat bhar","category":"noise","lang":"hinglish"}
+{"text":"Dead animal lying near the market for two days, flies everywhere","category":"health_hazard","lang":"en"}
+{"text":"गांव में मच्छर बहुत हैं, डेंगू के मरीज बढ़ रहे","category":"health_hazard","lang":"hi"}
+{"text":"Sewer line burst and dirty water is flowing on the street","category":"sewage","lang":"en"}
+{"text":"सीवर का पानी गली में बह रहा है, बदबू आ रही","category":"sewage","lang":"hi"}
+{"text":"The transformer near the bank sparks and makes a loud humming","category":"transformer","lang":"en"}
+{"text":"ट्रांसफार्मर से धुआं निकल रहा है, आग लग सकती है","category":"transformer","lang":"hi"}
+{"text":"Landslide has blocked the highway after last night's rain","category":"disaster","lang":"en"}
+{"text":"पहाड़ से मलबा गिरा, सड़क बंद, लोग फंसे हैं","category":"disaster","lang":"hi"}
+{"text":"The road surface is broken and cracked for half a kilometre","category":"road_damage","lang":"en"}
+{"text":"पुल की सड़क टूट गई है, दरारें आ गई हैं","category":"road_damage","lang":"hi"}
+{"text":"I want to know the status of my pension application","category":"other","lang":"en"}
+{"text":"राशन कार्ड में नाम जुड़वाना है","category":"other","lang":"hi"}
