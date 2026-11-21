@@ -59,6 +59,58 @@ const officerUpdate = z.object({
   proofGeo: geo.optional(),
 });
 
+/**
+ * Shared complaint filing (app, SMS keyword, IVR — P5.2): classification + explainable routing, photo review task,
+ * duplicate linking and department notification. Consent is checked by the caller. `beforePhoto` is an /uploads URL.
+ */
+export async function fileComplaintFor(user: AppUser, body: {
+  category: (typeof CATEGORIES)[number]; description: string; location: string; geo?: { lat: number; lng: number };
+  ward?: string; wardNumber?: number; priority?: (typeof PRIORITIES)[number]; beforePhoto?: string; clientRequestId?: string; channel?: "app" | "sms" | "ivr" | "whatsapp";
+}): Promise<Complaint> {
+  const district = user.district || defaultDistrict();
+  const photoUrl = body.beforePhoto;
+  // P2.4/P2.6: classify (Indian model if configured, else rules) and keep an explainable decision record.
+  const decision = await classifyComplaint(body.description);
+  const aiCat = decision.output.category as typeof body.category;
+  // The citizen's choice wins; AI only re-routes "other" when it is reasonably confident.
+  const category = body.category === "other" && aiCat !== "other" && decision.confidence >= 0.6 ? aiCat : body.category;
+  const agrees = aiCat === category;
+  const complaint = storage.createComplaint({
+    category,
+    description: body.description,
+    location: body.location,
+    geo: body.geo ?? storage.getDistrictCenter(district),
+    geoApproximate: body.geo ? undefined : true,
+    clientRequestId: body.clientRequestId,
+    ward: body.ward || `${district} Block`,
+    wardNumber: body.wardNumber ?? 1,
+    district,
+    priority: body.priority || "P3",
+    beforePhoto: photoUrl,
+    hasProof: false,
+    aiRouting: {
+      method: `${decision.method}:${decision.promptVersion}`,
+      department: getDeptIdForCategory(category),
+      confidence: agrees ? decision.confidence : 0.5,
+      reason: category !== body.category ? `re-routed from "other": ${decision.reason}`
+        : agrees ? `citizen category confirmed (${decision.reason})` : `routed by citizen-selected category; ${decision.method} suggested "${aiCat}"`,
+    },
+    aiDecisions: [decision],
+    // M4: without a sovereign vision model the photo is queued for a human — never auto-approved.
+    photoReview: photoUrl ? "manual_review" : "not_required",
+  }, user);
+  // Review P2-5: until an automated authenticity check exists, every photo is queued for a human.
+  if (photoUrl) {
+    storage.createReviewTask({ kind: "photo_authenticity", complaintId: complaint.id,
+      reason: config().visionProvider === "manual_review" ? "No vision model configured — verify photo manually" : "Verify photo authenticity" });
+  }
+  // P4.1: link to an open duplicate nearby (reversible; the citizen's own ticket keeps its lifecycle).
+  const parent = autoMerge(complaint);
+  if (parent) emitDept("complaint_updated", parent);
+  emitDept("complaint_new", complaint);
+  return complaint;
+}
+
 /** Shared officer status handler for admin + department routes (rule 4: no closure without proof). */
 /** P3: run proof-of-fix verification and store the engine's decision (flags → human review). Fails closed. */
 async function runVerification(c: Complaint, proofGeo?: { lat: number; lng: number }) {
@@ -76,12 +128,15 @@ async function runVerification(c: Complaint, proofGeo?: { lat: number; lng: numb
  * P4.1: proof for a parent ticket also serves its linked duplicates. Each child enters its own verification and its
  * own citizen must confirm — merging never closes anyone else's complaint (rule 4).
  */
-async function propagateProof(parent: Complaint, actorId: string, proofGeo?: { lat: number; lng: number }) {
+async function propagateProof(parent: Complaint, actorId: string, proofGeo: { lat: number; lng: number } | undefined, kind: "officer" | "worker") {
+  // Review P4-6: only when the parent's proof was not flagged, and only to children still before proof —
+  // a child its citizen rejected (REOPENED/ESCALATED) needs its own human decision.
+  if (parent.state === "NEEDS_REVIEW") return;
   for (const id of parent.duplicates ?? []) {
     const child = storage.getComplaint(id);
-    if (!child || !parent.proofPhoto || ["PROOF_SUBMITTED", "VERIFYING", "NEEDS_REVIEW", "CITIZEN_VERIFIED", "CLOSED", "AUTO_CLOSED_UNVERIFIED", "CANCELLED_BY_CITIZEN"].includes(child.state)) continue;
+    if (!child || !parent.proofPhoto || !["NEW", "ASSIGNED", "IN_PROGRESS"].includes(child.state)) continue;
     try {
-      storage.submitProof(child.id, { photoUrl: parent.proofPhoto, note: `Fixed together with ${parent.ticketId}`, geo: proofGeo }, "officer", actorId);
+      storage.submitProof(child.id, { photoUrl: parent.proofPhoto, note: `Fixed together with ${parent.ticketId}`, geo: proofGeo }, kind, actorId);
       await runVerification(child, proofGeo);
       notifyOwner(child);
     } catch (err) {
@@ -101,7 +156,7 @@ async function applyOfficerUpdate(c: Complaint, body: z.infer<typeof officerUpda
     const url = resolveImage(body.proofPhoto, actorId, { proofFor: c })!;
     domain(() => storage.submitProof(c.id, { photoUrl: url, note: body.proofNote, geo: body.proofGeo }, "officer", actorId));
     await runVerification(c, body.proofGeo);
-    await propagateProof(c, actorId, body.proofGeo);
+    await propagateProof(c, actorId, body.proofGeo, "officer");
   }
   if (body.status === "in_progress" || body.status === "acknowledged") domain(() => storage.startWork(c.id, "officer", actorId));
   if (body.adminNote !== undefined) storage.setAdminNote(c.id, body.adminNote);
@@ -148,49 +203,16 @@ export function registerComplaintRoutes(app: Express) {
       wardNumber: z.number().int().min(0).max(10000).optional(),
       priority: z.enum(PRIORITIES).optional(),
       beforePhoto: z.string().max(22 * 1024 * 1024).optional(),
+      /** P5.1 offline queue: a client-generated id makes retries idempotent (same id → same complaint). */
+      clientRequestId: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/).optional(),
     }).passthrough(),
     handler: async ({ body, user, res }) => {
       requireConsent(user);
-      const district = user.district || defaultDistrict();
-      const photoUrl = resolveImage(body.beforePhoto, user.id);
-      // P2.4/P2.6: classify (Indian model if configured, else rules) and keep an explainable decision record.
-      const decision = await classifyComplaint(body.description);
-      const aiCat = decision.output.category as typeof body.category;
-      // The citizen's choice wins; AI only re-routes "other" when it is reasonably confident.
-      const category = body.category === "other" && aiCat !== "other" && decision.confidence >= 0.6 ? aiCat : body.category;
-      const agrees = aiCat === category;
-      const complaint = storage.createComplaint({
-        category,
-        description: body.description,
-        location: body.location,
-        geo: body.geo ?? storage.getDistrictCenter(district),
-        geoApproximate: body.geo ? undefined : true,
-        ward: body.ward || `${district} Block`,
-        wardNumber: body.wardNumber ?? 1,
-        district,
-        priority: body.priority || "P3",
-        beforePhoto: photoUrl,
-        hasProof: false,
-        aiRouting: {
-          method: `${decision.method}:${decision.promptVersion}`,
-          department: getDeptIdForCategory(category),
-          confidence: agrees ? decision.confidence : 0.5,
-          reason: category !== body.category ? `re-routed from "other": ${decision.reason}`
-            : agrees ? `citizen category confirmed (${decision.reason})` : `routed by citizen-selected category; ${decision.method} suggested "${aiCat}"`,
-        },
-        aiDecisions: [decision],
-        // M4: without a sovereign vision model the photo is queued for a human — never auto-approved.
-        photoReview: photoUrl ? "manual_review" : "not_required",
-      }, user);
-      // Review P2-5: until an automated authenticity check exists, every photo is queued for a human.
-      if (photoUrl) {
-        storage.createReviewTask({ kind: "photo_authenticity", complaintId: complaint.id,
-          reason: config().visionProvider === "manual_review" ? "No vision model configured — verify photo manually" : "Verify photo authenticity" });
+      if (body.clientRequestId) {
+        const seen = storage.getComplaints().find(c => c.userId === user.id && c.clientRequestId === body.clientRequestId);
+        if (seen) { res.status(200); return complaintFor(user, seen, false); }
       }
-      // P4.1: link to an open duplicate nearby (reversible; the citizen's own ticket keeps its lifecycle).
-      const parent = autoMerge(complaint);
-      if (parent) emitDept("complaint_updated", parent);
-      emitDept("complaint_new", complaint);
+      const complaint = await fileComplaintFor(user, { ...body, beforePhoto: resolveImage(body.beforePhoto, user.id) });
       res.status(201);
       return complaintFor(user, complaint, false);
     },
@@ -320,7 +342,7 @@ export function registerComplaintRoutes(app: Express) {
       const url = resolveImage(body.proofPhoto, `worker:${c.id}`, { proofFor: c })!;
       domain(() => storage.submitProof(c.id, { photoUrl: url, note: body.proofNote, geo: body.proofGeo }, "worker", `worker:${c.assignedWorkerName ?? "unknown"}`));
       await runVerification(c, body.proofGeo);
-      await propagateProof(c, `worker:${c.assignedWorkerName ?? "unknown"}`, body.proofGeo);
+      await propagateProof(c, `worker:${c.assignedWorkerName ?? "unknown"}`, body.proofGeo, "worker");
       storage.addAuditLog("proof_submitted", "worker", c.assignedWorkerName || "worker", `Proof submitted for ${c.ticketId}`, c.id);
       notifyOwner(c);
       emitDept("complaint_resolved_proof", c);

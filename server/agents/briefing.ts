@@ -7,6 +7,7 @@ import { resolutionRates, RRR_DEFINITION } from "../verification/rate";
 import { seasonalTrends } from "./trends";
 import { slaFraction } from "./sla";
 import { renderPdf, type PdfLine } from "../lib/pdf";
+import { coveredByParent } from "./duplicates";
 
 /**
  * P4.4 weekly district briefing — every number is computed from stored records, and each item names its source
@@ -19,7 +20,7 @@ export function weeklyBriefing(district: string, at = Date.now()) {
   const all = storage.getComplaints(district).filter(c => !c.isDemo || config().DEMO_MODE);
   const week = all.filter(c => new Date(c.submittedAt).getTime() >= since && new Date(c.submittedAt).getTime() <= at);
   const closedThisWeek = all.filter(c => c.state === "CLOSED" && c.resolvedAt && new Date(c.resolvedAt).getTime() >= since);
-  const open = all.filter(c => !TERMINAL.has(c.state) && !c.duplicateOf);
+  const open = all.filter(c => !TERMINAL.has(c.state) && !coveredByParent(c));
   const overdue = open.filter(c => slaFraction(c, at) >= 1);
   const review = all.filter(c => c.state === "NEEDS_REVIEW");
   const byCat = new Map<string, number>();
@@ -31,7 +32,7 @@ export function weeklyBriefing(district: string, at = Date.now()) {
   const items: BriefingItem[] = [
     { label: "Complaints filed this week", value: week.length, source: "complaints where submittedAt in the last 7 days" },
     { label: "Closed with citizen confirmation this week", value: closedThisWeek.length, source: "state = CLOSED and resolvedAt in the last 7 days" },
-    { label: "Open complaints", value: open.length, source: "state not terminal, excluding linked duplicates" },
+    { label: "Open complaints", value: open.length, source: "state not terminal, excluding duplicates still covered by an open parent" },
     { label: "Open and past SLA", value: overdue.length, source: "open complaints with elapsed time ≥ SLA hours for their priority" },
     { label: "Proofs waiting for human review", value: review.length, source: "state = NEEDS_REVIEW" },
     { label: "SOS alerts this week", value: sos.length, source: "sosAlerts where triggeredAt in the last 7 days" },
@@ -43,7 +44,8 @@ export function weeklyBriefing(district: string, at = Date.now()) {
     demo: config().DEMO_MODE,
     items,
     topCategories: topCats.map(([category, n]) => ({ category, n })),
-    mostAffected: dupParents.map(c => ({ ticketId: c.ticketId, category: c.category, affected: c.affectedCount, location: c.location })),
+    // Ward and category only — the free-text location can contain names (review P4 note).
+    mostAffected: dupParents.map(c => ({ ticketId: c.ticketId, category: c.category, affected: c.affectedCount, ward: c.ward })),
     resolutionRates: resolutionRates("department", district),
     resolutionRateDefinition: RRR_DEFINITION,
     trends: seasonalTrends(district, at).filter(t => t.status !== "normal"),

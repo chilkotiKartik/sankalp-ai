@@ -11,6 +11,22 @@ import type { Complaint } from "../types";
  */
 export const DUP_RADIUS_M = 100, DUP_CLOSE_M = 30, DUP_WINDOW_DAYS = 7, DUP_MIN_SIMILARITY = 0.3;
 const PRIORITY = ["P4", "P3", "P2", "P1"] as const;
+export const MERGEABLE = new Set(["NEW", "ASSIGNED", "IN_PROGRESS"]);
+
+/** Review P4-2: "citizens affected" counts distinct people, so one account cannot inflate it. */
+export function distinctAffected(parent: Complaint): number {
+  const ids = new Set<string>();
+  if (parent.userId) ids.add(parent.userId);
+  for (const id of parent.duplicates ?? []) { const u = storage.getComplaint(id)?.userId; if (u) ids.add(u); }
+  return Math.max(1, ids.size);
+}
+
+/** A child is "covered by its parent" only while both are still before proof. Otherwise it stands alone. */
+export function coveredByParent(c: Complaint): boolean {
+  if (!c.duplicateOf || !MERGEABLE.has(c.state)) return false;
+  const p = storage.getComplaint(c.duplicateOf);
+  return !!p && !TERMINAL.has(p.state);
+}
 
 const STOP = new Set("the a an is are was of to in on at and or for near my our is it this that there have has been since from with hai hain ka ki ke ko se mein me par nahi bahut ek yah yeh wah है हैं का की के को से में पर और यह वह एक नहीं बहुत".split(" "));
 
@@ -31,7 +47,8 @@ export function findDuplicateParent(c: Complaint): { parent: Complaint; distance
   const since = new Date(c.submittedAt).getTime() - DUP_WINDOW_DAYS * 86400000;
   let best: { parent: Complaint; distanceM: number; similarity: number } | null = null;
   for (const p of storage.getComplaints()) {
-    if (p.id === c.id || p.duplicateOf || p.category !== c.category || !p.geo || p.geoApproximate || TERMINAL.has(p.state)) continue;
+    // Review P4-1: only parents whose work has not reached proof yet — later children could never get the proof.
+    if (p.id === c.id || p.duplicateOf || p.category !== c.category || !p.geo || p.geoApproximate || !MERGEABLE.has(p.state)) continue;
     if (p.district !== c.district || new Date(p.submittedAt).getTime() < since || p.submittedAt > c.submittedAt) continue;
     const d = haversineM(c.geo, p.geo);
     if (d > DUP_RADIUS_M) continue;
@@ -52,7 +69,7 @@ export function priorityFor(base: string, affected: number): string {
 export function mergeDuplicate(child: Complaint, parent: Complaint, reason: string): void {
   child.duplicateOf = parent.id;
   parent.duplicates = [...new Set([...(parent.duplicates ?? []), child.id])];
-  parent.affectedCount = 1 + parent.duplicates.length;
+  parent.affectedCount = distinctAffected(parent);
   parent.priorityBeforeMerge ??= parent.priority;
   parent.priority = priorityFor(parent.priorityBeforeMerge, parent.affectedCount) as Complaint["priority"];
   storage.addAuditLog("agent_duplicate_merged", "agent:duplicates", "Duplicate agent",
@@ -65,7 +82,7 @@ export function unmergeDuplicate(child: Complaint, actorId: string, actorName: s
   child.duplicateOf = undefined;
   if (parent) {
     parent.duplicates = (parent.duplicates ?? []).filter(id => id !== child.id);
-    parent.affectedCount = 1 + parent.duplicates.length;
+    parent.affectedCount = distinctAffected(parent);
     if (parent.priorityBeforeMerge) parent.priority = priorityFor(parent.priorityBeforeMerge, parent.affectedCount) as Complaint["priority"];
     if (!parent.duplicates.length) { parent.affectedCount = undefined; parent.priorityBeforeMerge = undefined; }
   }

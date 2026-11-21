@@ -551,7 +551,7 @@ export class AppStorage {
 
   createComplaint(
     data: Pick<Complaint, "category" | "description" | "location" | "geo" | "ward" | "wardNumber" | "district" | "priority"> &
-      Partial<Pick<Complaint, "beforePhoto" | "submittedBy" | "submittedByPhone" | "aiRouting" | "aiDecisions" | "photoReview" | "isDemo" | "hasProof" | "geoApproximate">>,
+      Partial<Pick<Complaint, "beforePhoto" | "submittedBy" | "submittedByPhone" | "aiRouting" | "aiDecisions" | "photoReview" | "isDemo" | "hasProof" | "geoApproximate" | "clientRequestId">>,
     user: Pick<AppUser, "id" | "name" | "phone">,
   ): Complaint {
     const state: ComplaintState = "NEW";
@@ -596,7 +596,7 @@ export class AppStorage {
     for (const st of steps) this.recordEvent(c.id, st.from, st.to, st.actor, actorId, note);
     c.status = legacyStatus(c.state);
     if (c.state === "CLOSED" || c.state === "AUTO_CLOSED_UNVERIFIED") c.resolvedAt = now();
-    if (c.state === "REOPENED" || c.state === "ESCALATED") { c.reopened = true; c.resolvedAt = undefined; }
+    if (c.state === "REOPENED" || c.state === "ESCALATED") { c.reopened = true; c.resolvedAt = undefined; c.slaLevel = undefined; }
     this.touch();
     bus.emit("complaint", { type: "complaint_state", complaint: c, steps });
   }

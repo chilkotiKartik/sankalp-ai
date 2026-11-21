@@ -91,11 +91,13 @@ export interface Complaint {
   slaLevel?: number;
   slaSnoozedUntil?: string;
   slaSnoozeReason?: string;
+  slaSnoozedTotalH?: number;
   /** P3: device GPS sent with the proof (worker app / officer upload). */
   proofGeo?: GeoPoint;
   verification?: ProofVerification;
   /** Review P3-1: true from proof submission until the machine signals are stored. Answers wait for it. */
   verificationPending?: boolean;
+  clientRequestId?: string;
   /** Review P3-3: geo is the district centre (citizen sent no GPS) — not usable for geo/neighbour/duplicate checks. */
   geoApproximate?: boolean;
   /** P3.5: the citizen's answer and the channel it came from. "yes" alone never closes a flagged case. */

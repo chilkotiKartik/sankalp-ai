@@ -98,10 +98,10 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P4.4 weekly briefing — weekly district briefing with per-figure sources; PDF export (no dependency)
 - [x] P4.5 trend signals — seasonal week-of-year baselines; insufficient_data unless ≥2 years & n≥10; Poisson 95% bound
 - [x] P4.6 agent hard limits — hard limit enforced by a static test over server/agents
-- [ ] P4.gate
+- [x] P4.gate — gate green; review findings 1–6 fixed (docs/reports/phase-4.md)
 
 ## Phase 5 — Reach every Indian
-- [ ] P5.1 offline queue
+- [x] P5.1 offline queue — AsyncStorage outbox, clientRequestId idempotency, backoff, failed list, "Saved — will send when online"
 - [ ] P5.2 basic-phone channels
 - [ ] P5.3 WhatsApp
 - [ ] P5.4 i18n

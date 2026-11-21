@@ -2,9 +2,9 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { route, none, idParams, type Actor } from "../lib/route";
-import { forbidden, notFound } from "../lib/errors";
+import { forbidden, notFound, AppError } from "../lib/errors";
 import { isStateWide, DISTRICT_NAMES } from "../data/reference";
-import { isDistrictAdmin } from "../auth/roles";
+import { isDistrictAdmin, isAdminUser } from "../auth/roles";
 import { unmergeDuplicate } from "../agents/duplicates";
 import { snoozeSla } from "../agents/sla";
 import { suggestAssignees } from "../agents/workload";
@@ -52,8 +52,10 @@ export function registerAgentRoutes(app: Express) {
     params: idParams, query: none, body: z.object({ hours: z.number().int().min(1).max(168), reason: z.string().trim().min(5).max(300) }),
     handler: ({ actor, params, body }) => {
       const c = mustStaffComplaint(actor, params.id);
+      // Review P4-3: once escalated to the department head (level 2+), only a district/state admin may snooze.
+      if ((c.slaLevel ?? 0) >= 2 && !isAdminUser(actor.user)) throw forbidden("Escalated cases can only be snoozed by a district or state admin");
       const w = who(actor);
-      snoozeSla(c, body.hours, body.reason, w.id, w.name);
+      try { snoozeSla(c, body.hours, body.reason, w.id, w.name); } catch (err) { throw new AppError(409, "SNOOZE_LIMIT", (err as Error).message); }
       return { slaSnoozedUntil: c.slaSnoozedUntil, slaSnoozeReason: c.slaSnoozeReason };
     },
   });

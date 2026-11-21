@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { Platform } from "react-native";
+import { Platform, AppState } from "react-native";
+import * as Outbox from "@/lib/offline-queue";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { getApiUrl, getWsUrl } from "@/lib/query-client";
@@ -450,12 +451,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     avgHealth: wards.length ? Math.round(wards.reduce((s, w) => s + w.healthScore, 0) / wards.length) : 0,
   }), [complaints, sosAlerts, wards]);
 
+  /**
+   * P5.1: complaints are sent with a client id; with no network they are saved in the outbox and sent later
+   * (the returned placeholder has `queued: true` so the screen can say "Saved — will send when online").
+   */
   const submitComplaint = useCallback(async (data: Partial<Complaint>): Promise<Complaint> => {
     const apiCall = makeApiCall(tokenRef.current);
-    const result = await apiCall("/api/complaints", "POST", data);
-    setComplaints(prev => [result, ...prev]);
-    return result;
+    const clientRequestId = Outbox.newClientId();
+    const body = { ...data, clientRequestId };
+    try {
+      const result = await apiCall("/api/complaints", "POST", body);
+      setComplaints(prev => [result, ...prev]);
+      return result;
+    } catch (err) {
+      if (!Outbox.isNetworkError(err)) throw err;
+      await Outbox.enqueue({ id: clientRequestId, path: "/api/complaints", method: "POST", body: data as Record<string, unknown>, label: String(data.description ?? "").slice(0, 60) });
+      const placeholder = { ...data, id: `local-${clientRequestId}`, ticketId: "SAVED", status: "pending", queued: true, submittedAt: new Date().toISOString(), upvotes: 0, upvotedBy: [] } as unknown as Complaint;
+      setComplaints(prev => [placeholder, ...prev]);
+      return placeholder;
+    }
   }, []);
+
+  // P5.1 outbox flush: on sign-in/start, every 30 s, and whenever the app comes back to the foreground.
+  useEffect(() => {
+    if (!token) return;
+    const send = async (path: string, method: string, body: unknown) => {
+      const r = await fetch(`${getApiUrl()}${path.slice(1)}`, { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenRef.current ?? ""}` }, body: JSON.stringify(body) });
+      return { ok: r.ok, status: r.status, json: () => r.json() };
+    };
+    const run = () => { void Outbox.flush(send, (item, result) => {
+      if (result && typeof result === "object") setComplaints(prev => prev.map(c => (c.id === `local-${item.id}` ? (result as Complaint) : c)));
+    }); };
+    run();
+    const t = setInterval(run, 30_000);
+    const sub = AppState.addEventListener("change", st => { if (st === "active") run(); });
+    return () => { clearInterval(t); sub.remove(); };
+  }, [token]);
 
   const upvoteComplaint = useCallback(async (id: string) => {
     const apiCall = makeApiCall(tokenRef.current);

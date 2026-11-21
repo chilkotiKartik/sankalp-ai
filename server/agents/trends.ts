@@ -4,7 +4,8 @@ import { istWeekOfYear } from "../lib/time";
 
 /**
  * P4.5 real trend signals — seasonal week-of-year baselines. No invented forecasts:
- *  - baseline = mean count for the same IST week (±1) in each previous year that has data for that window
+ *  - baseline = mean weekly count in the 3-week window centred on this week, 52·k weeks ago, for each previous year
+ *    inside the data coverage (years with no complaints in the window count as 0 — review P4-5)
  *  - needs ≥ 2 prior years AND ≥ 10 complaints in the baseline window, otherwise "insufficient_data"
  *  - "rising" only if this week's count exceeds the upper 95% Poisson bound of the baseline (mean + 1.96·√mean + 1)
  * Every row reports n, the expected range and the observed count.
@@ -19,26 +20,27 @@ export interface TrendRow {
 export function seasonalTrends(district?: string, at = Date.now()): TrendRow[] {
   const list = storage.getComplaints(district).filter(c => !c.isDemo || config().DEMO_MODE);
   const week = istWeekOfYear(at);
-  const year = new Date(at + 5.5 * 3600000).getUTCFullYear();
-  const yearOf = (iso: string) => new Date(new Date(iso).getTime() + 5.5 * 3600000).getUTCFullYear();
-  const near = (w: number) => Math.min(Math.abs(w - week), 53 - Math.abs(w - week)) <= 1;
-  const weekStart = at - 7 * 86400000;
+  const DAY = 86400000, YEAR = 364 * DAY; // 52 weeks: keeps the weekday alignment, avoids ISO week-year edge cases
+  const weekStart = at - 7 * DAY;
+  // Review P4-5: data coverage starts with the first complaint of this state; earlier years are "no data", not zero.
+  const coverageStart = Math.min(...storage.getComplaints().map(c => new Date(c.submittedAt).getTime()), at);
   const categories = [...new Set(list.map(c => c.category))].sort();
   return categories.map(category => {
-    const cs = list.filter(c => c.category === category);
-    const observed = cs.filter(c => new Date(c.submittedAt).getTime() > weekStart && new Date(c.submittedAt).getTime() <= at).length;
-    const perYear = new Map<number, number>();
-    for (const c of cs) {
-      const y = yearOf(c.submittedAt);
-      if (y >= year || !near(istWeekOfYear(c.submittedAt))) continue;
-      perYear.set(y, (perYear.get(y) ?? 0) + 1);
+    const ts = list.filter(c => c.category === category).map(c => new Date(c.submittedAt).getTime());
+    const observed = ts.filter(t => t > weekStart && t <= at).length;
+    // Year k window: the 3 weeks centred on this week, k×52 weeks ago. Counted only if fully inside coverage,
+    // and never overlapping the observed week. Years with zero complaints in the window count as 0.
+    let years = 0, baselineN = 0;
+    for (let k = 1; k <= 10; k++) {
+      const from = at - k * YEAR - 14 * DAY, to = at - k * YEAR + 7 * DAY;
+      if (from < coverageStart || to > weekStart) continue;
+      years++;
+      baselineN += ts.filter(t => t > from && t <= to).length;
     }
-    const years = perYear.size;
-    const baselineN = [...perYear.values()].reduce((a, b) => a + b, 0);
     if (years < MIN_YEARS || baselineN < MIN_BASELINE_N) {
       return { category, status: "insufficient_data" as const, observed, expected: null, upper95: null, yearsOfHistory: years, baselineN, week };
     }
-    const expected = baselineN / years / 3; // a 3-week window per year → per-week mean
+    const expected = baselineN / years / 3; // 3-week window per year → per-week mean
     const upper95 = expected + 1.96 * Math.sqrt(expected) + 1;
     return { category, status: observed > upper95 ? "rising" as const : "normal" as const, observed, expected: Math.round(expected * 10) / 10, upper95: Math.round(upper95 * 10) / 10, yearsOfHistory: years, baselineN, week };
   });

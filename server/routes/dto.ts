@@ -33,10 +33,12 @@ export function toCitizenComplaint(c: Complaint, viewer: AppUser): Partial<Compl
     adminNote: mine ? c.adminNote : undefined,
     ...neighbourSummary(c),
     confirmReminders: undefined,
+    // Review P4-4: internal workflow fields are staff-only.
+    slaSnoozeReason: undefined, slaSnoozedUntil: undefined, slaSnoozedTotalH: undefined, slaLevel: undefined, priorityBeforeMerge: undefined,
   };
   if (mine) return base;
   return { ...base, userId: undefined, submittedBy: "Citizen", submittedByPhone: undefined, feedback: undefined, proofNote: undefined,
-    proofGeo: undefined, citizenAnswer: undefined, citizenAnswerChannel: undefined, citizenAnsweredAt: undefined, verification: undefined };
+    proofGeo: undefined, clientRequestId: undefined, citizenAnswer: undefined, citizenAnswerChannel: undefined, citizenAnsweredAt: undefined, verification: undefined };
 }
 
 export function complaintFor(viewer: AppUser | undefined, c: Complaint, staff: boolean) {

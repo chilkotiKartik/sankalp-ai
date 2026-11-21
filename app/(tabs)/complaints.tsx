@@ -348,15 +348,21 @@ export default function ComplaintsScreen() {
       const locStr = newLandmark.trim() ? `${newLoc.trim()} (near ${newLandmark.trim()})` : newLoc.trim();
       let photoUrl: string | undefined;
       if (newPhotoData) {
-        const up = await fetch(`${getApiUrl()}api/upload`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || ""}` },
-          body: JSON.stringify({ image: newPhotoData }),
-        });
-        if (!up.ok) throw new Error((await up.json().catch(() => ({}))).message || "Photo upload failed");
-        photoUrl = (await up.json()).url;
+        try {
+          const up = await fetch(`${getApiUrl()}api/upload`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || ""}` },
+            body: JSON.stringify({ image: newPhotoData }),
+          });
+          if (!up.ok) throw Object.assign(new Error((await up.json().catch(() => ({}))).message || "Photo upload failed"), { status: up.status });
+          photoUrl = (await up.json()).url;
+        } catch (e: any) {
+          // P5.1: offline → keep the (already compressed) photo inline; it is uploaded with the queued complaint.
+          if (e?.status !== undefined) throw e;
+          photoUrl = newPhotoData;
+        }
       }
-      await submitComplaint({
+      const saved: any = await submitComplaint({
         category: newCat as any,
         description: newDesc.trim(),
         location: locStr,
@@ -370,6 +376,7 @@ export default function ComplaintsScreen() {
       } as any);
       setShowSubmit(false);
       resetForm();
+      if (saved?.queued) Alert.alert("Saved", "No internet right now. Your complaint is saved on this phone and will be sent automatically when you are online.\n\nसहेज लिया गया — इंटरनेट मिलते ही अपने-आप भेज दिया जाएगा।");
     } catch (err: any) { Alert.alert("Error", err.message); }
     finally { setSubmitting(false); }
   }, [newCat, newDesc, newLoc, newLandmark, newPriority, newPhotoData, newGeo, token, submitComplaint, user, resetForm]);
