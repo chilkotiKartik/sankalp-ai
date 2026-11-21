@@ -7,6 +7,7 @@ import { config } from "../config";
 import { tenant } from "../tenancy";
 import { aiStatus } from "../ai/gateway";
 import { route, none } from "../lib/route";
+import { readiness } from "../health";
 
 /**
  * Explicitly public routes. They return AGGREGATES ONLY — no names, phones or exact citizen coordinates.
@@ -16,6 +17,10 @@ export function registerPublicRoutes(app: Express) {
   const health = () => ({ status: "ok", timestamp: new Date().toISOString(), uptime: Math.floor(process.uptime()), service: "SANKALP AI", version: "1.1.0" });
   route(app, { method: "get", path: "/api/health", auth: "public", permission: "public.health", params: none, query: none, body: none, handler: health });
   route(app, { method: "get", path: "/healthz", auth: "public", permission: "public.health", params: none, query: none, body: none, handler: health });
+  route(app, {
+    method: "get", path: "/readyz", auth: "public", permission: "public.health", params: none, query: none, body: none,
+    handler: async ({ res }) => { const r = await readiness(); res.status(r.ready ? 200 : 503); return r; },
+  });
 
   route(app, {
     method: "get", path: "/api/public/config", auth: "public", permission: "public.config",

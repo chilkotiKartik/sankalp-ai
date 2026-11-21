@@ -45,6 +45,21 @@ export const TenantConfigSchema = z.object({
     disasterMode: z.boolean().default(false),
     yatraMode: z.boolean().default(false),
   }).default({ autoCloseUnverifiedDays: null, neighbourConfirmation: false, disasterMode: false, yatraMode: false }),
+  privacy: z.object({
+    noticeVersion: z.string().min(3),
+    controller: z.string().min(3),
+    processor: z.string().min(3),
+    purposes: z.array(z.object({ id: z.string(), en: z.string(), hi: z.string() })).min(1),
+  }).default({
+    noticeVersion: "2026-11-v1",
+    controller: "State Government (Data Fiduciary)",
+    processor: "SANKALP AI platform operator (Data Processor)",
+    purposes: [
+      { id: "grievance", en: "Register, route and resolve your civic complaints", hi: "आपकी नागरिक शिकायतें दर्ज करना, सही विभाग को भेजना और हल करना" },
+      { id: "safety", en: "Respond to SOS emergencies with your live location", hi: "आपकी लाइव लोकेशन के साथ SOS आपातकाल में मदद पहुँचाना" },
+      { id: "updates", en: "Send you status updates about your complaints", hi: "आपकी शिकायतों की स्थिति की जानकारी भेजना" },
+    ],
+  }),
   verification: z.object({
     proofRadiusM: z.number().positive().default(50),
     weights: z.object({ geo: z.number(), reuse: z.number(), scene: z.number(), change: z.number(), citizen: z.number() })

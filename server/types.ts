@@ -89,6 +89,8 @@ export interface DeptConfig {
 
 export interface SOSAlert {
   id: string;
+  /** Set by police/state: evidence must not be purged (P1.9). */
+  legalHold?: boolean;
   userId?: string;
   isDemo?: boolean;
   category: SOSCategory;
@@ -410,4 +412,23 @@ export interface DeptCredential {
   codeHash: string;
   version: number;
   rotatedAt: string;
+}
+
+export interface ConsentRecord {
+  id: string;
+  userId: string;
+  version: string;
+  lang: string;
+  purposes: string[];
+  at: string;
+}
+
+export interface ErasureRequest {
+  id: string;
+  userRef: string; // pseudonymous reference — the user record may already be gone
+  status: "completed" | "legal_hold" | "rejected";
+  reason?: string;
+  requestedAt: string;
+  decidedAt?: string;
+  decidedBy?: string;
 }

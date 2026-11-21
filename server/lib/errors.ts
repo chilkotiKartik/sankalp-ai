@@ -41,8 +41,9 @@ export function errorHandler(err: unknown, req: Request, res: Response, next: Ne
   if (e?.type === "entity.parse.failed") {
     return res.status(400).json({ code: "INVALID_JSON", message: "Malformed JSON body" });
   }
-  logger.error("unhandled_error", { path: req.path, method: req.method, err });
-  return res.status(500).json({ code: "INTERNAL", message: "Internal server error" });
+  const requestId = (req as Request & { id?: string }).id;
+  logger.error("unhandled_error", { reqId: requestId, path: req.path, method: req.method, err });
+  return res.status(500).json({ code: "INTERNAL", message: "Internal server error", requestId });
 }
 
 /** Unref a timer handle regardless of whether DOM or Node typings are in scope. */

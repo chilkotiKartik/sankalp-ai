@@ -3,6 +3,26 @@ import { storage, storeFor } from "../storage";
 import { tenantIds, runInTenant } from "../tenancy";
 import { logger } from "../lib/logger";
 import { unref } from "../lib/errors";
+import { runRetention } from "../routes/privacy";
+import { readiness } from "../health";
+import { sendSms } from "../notify/sms";
+import { safeFetch } from "../lib/safeFetch";
+
+/** P1.10 downtime alert hook: notify ops (SMS to ALERT_PHONES and/or ALERT_WEBHOOK_URL) on state changes. No PII. */
+let lastReady = true;
+export async function watchReadiness(): Promise<boolean> {
+  const r = await readiness();
+  if (r.ready !== lastReady) {
+    lastReady = r.ready;
+    const state = r.ready ? "RECOVERED" : "DOWN";
+    logger.warn("readiness_changed", { state, checks: r.checks });
+    for (const ph of (process.env.ALERT_PHONES || "").split(",").map(s => s.trim()).filter(Boolean)) await sendSms(ph, "ops_alert", ["api", state]);
+    if (process.env.ALERT_WEBHOOK_URL) {
+      await safeFetch(process.env.ALERT_WEBHOOK_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ service: "sankalp-api", state, checks: r.checks, at: new Date().toISOString() }) }).catch(err => logger.error("alert_webhook_failed", { err: (err as Error).message }));
+    }
+  }
+  return r.ready;
+}
 
 /**
  * Background jobs (m12 groundwork). Started once from server/index.ts; stopped on shutdown.
@@ -32,6 +52,8 @@ export function startJobs() {
     }
   };
   timers.push(setInterval(eachTenant("sla_job", () => { runSlaCheck(); }), 5 * 60 * 1000));
+  timers.push(setInterval(eachTenant("retention_job", () => { runRetention(); }), 24 * 3600 * 1000));
+  timers.push(setInterval(() => { void watchReadiness(); }, 60_000));
   if (config().DEMO_MODE) timers.push(setInterval(eachTenant("demo_workers", () => storeFor(storage.tenantId).simulateDemoWorkerMovement()), 8000));
   timers.forEach(t => unref(t));
 }

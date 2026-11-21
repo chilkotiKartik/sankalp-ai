@@ -154,6 +154,19 @@ export function registerSosRoutes(app: Express) {
     },
   });
 
+  route(app, {
+    method: "put", path: "/api/sos/:id/legal-hold", auth: "staff", permission: "sos.legal_hold",
+    params: idParams, query: none, body: z.object({ hold: z.boolean(), reason: z.string().trim().min(3).max(300) }),
+    handler: ({ actor, params, body }) => {
+      const a = mustSos(params.id);
+      if (!staffForSos(actor, a)) throw forbidden("This SOS is outside your jurisdiction");
+      a.legalHold = body.hold;
+      storage.touch();
+      storage.addAuditLog(body.hold ? "legal_hold_set" : "legal_hold_released", actor.user?.id ?? `dept:${actor.deptId}`, actor.user?.name ?? `dept:${actor.deptId}`, `SOS ${a.id.slice(0, 8)}: ${body.reason}`);
+      return { id: a.id, legalHold: a.legalHold };
+    },
+  });
+
   const ownedAudio = (url: string, user: AppUser, sosId: string) => {
     const m = url.match(/^\/api\/media\/audio\/([0-9a-f-]{36}\.[a-z0-9]{2,4})$/);
     const rec = m ? storage.getMediaByFile(m[1]) : undefined;

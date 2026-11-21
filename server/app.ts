@@ -4,6 +4,7 @@ import { createServer, type Server } from "node:http";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as http from "node:http";
+import { randomUUID } from "node:crypto";
 import { config } from "./config";
 import { resolveTenantFromRequest, runInTenant } from "./tenancy";
 import { errorHandler, AppError } from "./lib/errors";
@@ -21,6 +22,7 @@ import { registerAdminRoutes } from "./routes/admin";
 import { registerAiRoutes } from "./routes/ai";
 import { registerPublicRoutes } from "./routes/public";
 import { registerCitizenRoutes } from "./routes/citizen";
+import { registerPrivacyRoutes } from "./routes/privacy";
 
 const ROOT = process.cwd();
 /** Body size: 100 KB by default; media-carrying routes get 22 MB (≈15 MB binary after base64). */
@@ -85,10 +87,15 @@ function setupBody(app: Express) {
 function setupRequestLog(app: Express) {
   app.use((req, res, next) => {
     const start = Date.now();
+    // P1.10: correlation id (accept a sane upstream id, else generate); echoed to the client for support.
+    const incoming = req.header("x-request-id");
+    const reqId = incoming && /^[\w-]{8,64}$/.test(incoming) ? incoming : randomUUID();
+    (req as Request & { id?: string }).id = reqId;
+    res.setHeader("X-Request-Id", reqId);
     res.on("finish", () => {
       if (!req.path.startsWith("/api")) return;
       // Never log bodies, query strings (may contain tokens) or headers — rule 2.
-      logger.info("request", { method: req.method, route: req.route?.path ?? req.path.replace(/[0-9a-f-]{20,}/g, ":id"), status: res.statusCode, ms: Date.now() - start });
+      logger.info("request", { reqId, tenant: res.getHeader("X-Tenant"), method: req.method, route: req.route?.path ?? req.path.replace(/[0-9a-f-]{20,}/g, ":id"), status: res.statusCode, ms: Date.now() - start });
     });
     next();
   });
@@ -143,7 +150,7 @@ function setupStatic(app: Express) {
     });
   }
 
-  for (const [route, file] of Object.entries({ dept: "dept.html", cpr: "cpr.html", pcr: "pcr.html", video: "video.html", public: "public.html", rti: "rti.html", portal: "portal.html" })) {
+  for (const [route, file] of Object.entries({ dept: "dept.html", cpr: "cpr.html", pcr: "pcr.html", video: "video.html", public: "public.html", rti: "rti.html", portal: "portal.html", privacy: "privacy.html" })) {
     app.get([`/web/${route}`, `/web/${route}/`], portalFile(file));
   }
   app.get("/dept", portalFile("dept.html"));
@@ -218,6 +225,7 @@ export function createApp(): Built {
   registerAdminRoutes(app);
   registerAiRoutes(app);
   registerCitizenRoutes(app);
+  registerPrivacyRoutes(app);
 
   app.use("/api", (_req, _res, next) => next(new AppError(404, "NOT_FOUND", "Unknown API route")));
   setupStatic(app);

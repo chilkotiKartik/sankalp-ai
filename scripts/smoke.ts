@@ -66,6 +66,11 @@ async function main() {
   const reg = await call("POST", "/api/auth/register", { name: "Smoke Citizen", phone, pin: "246813", district: "Dehradun" });
   const citizen = reg.token as string;
   ok("citizen registered");
+  await call("POST", "/api/complaints", { category: "pothole", description: "Consent check", location: "Somewhere" }, citizen, 428);
+  ok("complaint refused until privacy notice accepted (DPDP)");
+  const notice = await call("GET", "/api/public/privacy-notice?lang=hi");
+  await call("POST", "/api/privacy/consent", { version: notice.version, lang: "hi", accepted: true }, citizen, 201);
+  ok(`privacy notice ${notice.version} accepted`);
   const up = await call("POST", "/api/upload", { image: PNG }, citizen);
   if (!/^\/uploads\/[0-9a-f-]{36}\.png$/.test(up.url)) fail(`unexpected upload url ${up.url}`);
   ok("photo uploaded");

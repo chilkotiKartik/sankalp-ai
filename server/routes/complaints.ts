@@ -12,6 +12,7 @@ import { authLimiter, phoneLimiter, writeLimiter } from "./limits";
 import { CATEGORIES, PRIORITIES, domain, geo, text, phone10 } from "./common";
 import { complaintFor, toStaffComplaint } from "./dto";
 import { resolveImage } from "./media";
+import { requireConsent } from "./privacy";
 import { deptEmitter } from "../storage";
 
 const isAdmin = (u?: AppUser) => isAdminUser(u);
@@ -111,6 +112,7 @@ export function registerComplaintRoutes(app: Express) {
       beforePhoto: z.string().max(22 * 1024 * 1024).optional(),
     }).passthrough(),
     handler: ({ body, user, res }) => {
+      requireConsent(user);
       const district = user.district || defaultDistrict();
       const photoUrl = resolveImage(body.beforePhoto, user.id);
       const guess = classifyText(body.description);

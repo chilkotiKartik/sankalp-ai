@@ -1,3 +1,4 @@
+import { PrivacyControls } from "@/components/PrivacyControls";
 import React, { useRef, useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
@@ -383,6 +384,7 @@ export default function ProfileScreen() {
         </Pressable>
 
         {/* SIGN OUT */}
+        <PrivacyControls />
         <Pressable onPress={handleLogout} style={styles.logoutBtn}>
           <LinearGradient colors={["#DC2626", "#EF4444"]} style={styles.logoutGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <Ionicons name="log-out-outline" size={20} color="#fff" />

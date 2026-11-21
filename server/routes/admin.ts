@@ -8,6 +8,7 @@ import { forbidden, notFound, badRequest } from "../lib/errors";
 import { publishEmergencyBroadcast } from "../realtime";
 import { writeLimiter } from "./limits";
 import { text, tenantDistrict } from "./common";
+import { requireConsent } from "./privacy";
 import { toStaffComplaint, toPublicWorker } from "./dto";
 
 const annBody = z.object({
@@ -166,6 +167,7 @@ export function registerAdminRoutes(app: Express) {
     params: none, query: none,
     body: z.object({ title: z.string().trim().min(5).max(200), description: z.string().trim().min(10).max(3000), target: z.string().trim().min(2).max(200), goalSignatures: z.number().int().min(10).max(1_000_000).optional(), department: text(120).optional() }),
     handler: ({ body, user, res }) => {
+      requireConsent(user);
       res.status(201);
       return storage.createPetition({ title: body.title, description: body.description, target: body.target, goalSignatures: body.goalSignatures || 500,
         signerIds: [], district: user.district, createdAt: new Date().toISOString(), createdBy: user.name, status: "active", department: body.department || "District Administration" });
@@ -227,6 +229,7 @@ export function registerAdminRoutes(app: Express) {
       department: text(200).optional(), targetDepartment: text(200).optional(),
     }).passthrough(),
     handler: ({ body, user, res }) => {
+      requireConsent(user);
       const subject = body.subject || body.title;
       const description = body.description || body.questionText;
       const department = body.department || body.targetDepartment;

@@ -11,7 +11,7 @@ import { logger } from "../lib/logger";
  *    with `Authorization: Bearer SMS_API_KEY`. The host must be in EGRESS_ALLOWLIST (safeFetch).
  * Messages use DLT templates with variables only — never names, addresses or locations (rule 2).
  */
-export type SmsTemplate = "otp" | "status_update" | "sos_fallback" | "checkin_alert" | "verify_request";
+export type SmsTemplate = "otp" | "status_update" | "sos_fallback" | "checkin_alert" | "verify_request" | "ops_alert";
 
 export const TEMPLATES: Record<SmsTemplate, string> = {
   otp: "Your SANKALP verification code is {#var#}. Valid 5 minutes. Do not share it.",
@@ -19,6 +19,7 @@ export const TEMPLATES: Record<SmsTemplate, string> = {
   sos_fallback: "SANKALP SOS: Help needed. Location: {#var#}. Call 112.",
   checkin_alert: "SANKALP: A contact did not check in on time. Please call them.",
   verify_request: "SANKALP: Was complaint #{#var#} fixed? Reply 1 for YES, 2 for NO.",
+  ops_alert: "SANKALP OPS: service {#var#} is {#var#}. Check the status page.",
 };
 
 export interface SmsResult { ok: boolean; driver: string; error?: string }

@@ -1,3 +1,4 @@
+import pino from "pino";
 /**
  * Minimal structured JSON logger with PII redaction (m6 groundwork; pino in Phase 1).
  * Never pass raw request bodies; known PII keys are masked recursively.
@@ -23,14 +24,23 @@ function redactString(s: string): string {
 }
 
 type Level = "debug" | "info" | "warn" | "error";
-const levels: Record<Level, number> = { debug: 10, info: 20, warn: 30, error: 40 };
-const min = levels[(process.env.LOG_LEVEL as Level) || (process.env.NODE_ENV === "test" ? "warn" : "info")] ?? 20;
 
-function write(level: Level, msg: string, fields?: Record<string, unknown>) {
-  if (levels[level] < min) return;
-  const line = JSON.stringify({ t: new Date().toISOString(), level, msg, ...(fields ? (redact(fields) as object) : {}) });
-  if (level === "error" || level === "warn") process.stderr.write(line + "\n");
-  else process.stdout.write(line + "\n");
+/**
+ * pino structured logger (m6, P1.10). Every field passes through redact() first (keys AND phone numbers inside
+ * strings), then pino's own path redaction as a second net. No foreign log shipping: stdout/stderr only.
+ */
+const level = (process.env.LOG_LEVEL as Level) || (process.env.NODE_ENV === "test" ? "warn" : "info");
+const base = pino({
+  level,
+  base: undefined,
+  timestamp: pino.stdTimeFunctions.isoTime,
+  messageKey: "msg",
+  formatters: { level: (label: string) => ({ level: label }) },
+  redact: { paths: ["*.phone", "*.pin", "*.token", "*.authorization", "*.password", "*.geo", "req.headers.authorization"], censor: "[redacted]" },
+});
+
+function write(lvl: Level, msg: string, fields?: Record<string, unknown>) {
+  base[lvl]((fields ? (redact(fields) as object) : {}), msg);
 }
 
 export const logger = {

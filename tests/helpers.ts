@@ -4,6 +4,7 @@ import { createApp, type Built } from "../server/app";
 import { storage, type AppUser } from "../server/storage";
 import { closeRealtime } from "../server/realtime";
 import { signDeptToken } from "../server/lib/route";
+import { tenant } from "../server/tenancy";
 
 export const PNG_1PX = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 export const M4A_HEADER = Buffer.concat([Buffer.from([0, 0, 0, 0x20]), Buffer.from("ftypM4A "), Buffer.alloc(64)]).toString("base64");
@@ -30,8 +31,9 @@ export function nextPhone() {
   return `90000${String(10000 + seq).slice(-5)}`;
 }
 
-export async function makeUser(role: AppUser["role"] = "citizen", district = "Dehradun", pin = "135792") {
+export async function makeUser(role: AppUser["role"] = "citizen", district = "Dehradun", pin = "135792", opts: { consent?: boolean } = {}) {
   const user = await storage.createUser({ name: `${role}-${seq}`, phone: nextPhone(), pin: await bcrypt.hash(pin, 4), role, district, points: 0, badges: [], level: 1 });
+  if (opts.consent !== false) storage.recordConsent(user.id, tenant().privacy.noticeVersion, "en");
   return { user, token: storage.createToken(user.id), pin };
 }
 

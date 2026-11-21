@@ -20,6 +20,8 @@ afterAll(() => stopApp());
 async function register(tenantId: string, phone: string, district: string) {
   const r = await request(app()).post("/api/auth/register").set("X-Tenant", tenantId).send({ name: "Tenant User", phone, pin: "135791", district });
   expect(r.status, JSON.stringify(r.body)).toBe(200);
+  const v = (await request(app()).get("/api/public/privacy-notice").set("X-Tenant", tenantId)).body.version;
+  expect((await request(app()).post("/api/privacy/consent").set("X-Tenant", tenantId).set(auth(r.body.token)).send({ version: v, accepted: true })).status).toBe(201);
   return r.body.token as string;
 }
 

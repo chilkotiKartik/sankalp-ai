@@ -17,6 +17,7 @@ import type {
   AppUser, AuthToken, Complaint, ComplaintCategory, SOSAlert, Ward, Worker, PoliceStation, GeoPoint, RiskZone,
   Announcement, Poll, Petition, RTIRequest, NightSafetyZone, PatrolVan, SafetyIncident, CivicEvent, ChatMessage,
   BudgetItem, AuditLog, EmergencyService, PredictiveAlert, MediaRecord, ComplaintEvent, ReviewTask, DeptCredential,
+  ConsentRecord, ErasureRequest,
 } from "./types";
 
 export * from "./types";
@@ -72,6 +73,11 @@ function shortName(n: string): string {
   return rest.length ? `${first} ${rest[rest.length - 1][0]}.` : first;
 }
 
+/** Stable, non-reversible reference for audit entries about erased users. */
+function pseudoRef(userId: string): string {
+  return createHmac("sha256", config().JWT_SECRET).update(`ref:${userId}`).digest("hex").slice(0, 12);
+}
+
 export function distanceKm(a: GeoPoint, b: GeoPoint): number {
   const R = 6371;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
@@ -125,13 +131,15 @@ interface State {
   pushTokens: PushEntry[];
   demoRiskZones: RiskZone[];
   auditAnchor?: { seq: number; hash: string };
+  consents: ConsentRecord[];
+  erasureRequests: ErasureRequest[];
 }
 
 const emptyState = (): State => ({
   users: [], tokens: [], sessions: [], refreshTokens: [], otps: [], workerPins: [], deptCredentials: [], complaints: [], complaintEvents: [], sosAlerts: [],
   workers: [], patrolVans: [], safetyIncidents: [], nightSafetyZones: [], announcements: [], polls: [], petitions: [],
   rtis: [], civicEvents: [], chatMessages: [], budgetItems: [], auditLogs: [], media: [], reviewTasks: [], pushTokens: [],
-  demoRiskZones: [],
+  demoRiskZones: [], consents: [], erasureRequests: [],
 });
 
 export class AppStorage {
@@ -324,6 +332,107 @@ export class AppStorage {
     else o.attempts++;
     this.touch();
     return ok;
+  }
+
+  // ── DPDP: consent, export, erasure, retention (P1.9) ───────────────────────
+  hasConsent(userId: string, version = tenant().privacy.noticeVersion): boolean {
+    return this.s.consents.some(c => c.userId === userId && c.version === version);
+  }
+
+  recordConsent(userId: string, version: string, lang: string): ConsentRecord {
+    const rec: ConsentRecord = { id: genId(), userId, version, lang, purposes: tenant().privacy.purposes.map(p => p.id), at: now() };
+    this.s.consents.push(rec);
+    this.addAuditLog("consent_given", userId, "citizen", `Privacy notice ${version} accepted (${lang})`);
+    return rec;
+  }
+
+  /** Everything we hold about one user (data-principal access right). */
+  exportUserData(userId: string) {
+    const u = this.getUserById(userId);
+    if (!u) return null;
+    const { pin: _pin, ...profile } = u;
+    return {
+      exportedAt: now(),
+      profile,
+      complaints: this.s.complaints.filter(c => c.userId === userId),
+      sosAlerts: this.s.sosAlerts.filter(a => a.userId === userId),
+      rtis: this.s.rtis.filter(r => r.filedByPhone === u.phone),
+      consents: this.s.consents.filter(c => c.userId === userId),
+      media: this.s.media.filter(m => m.ownerId === userId).map(m => ({ id: m.id, kind: m.kind, createdAt: m.createdAt })),
+    };
+  }
+
+  /** SOS / police cases must be retained (legal hold) — erasure then needs a state-level decision. */
+  legalHoldReason(userId: string): string | null {
+    const sos = this.s.sosAlerts.filter(a => a.userId === userId);
+    if (sos.some(a => a.status !== "resolved")) return "An SOS case is still open";
+    if (sos.some(a => a.legalHold)) return "SOS evidence is under legal hold";
+    if (sos.length) return "SOS records are retained for police investigation for the retention period";
+    return null;
+  }
+
+  /** Erase a user: delete the account and sessions, pseudonymise their complaints (kept for public accountability). */
+  eraseUser(userId: string, decidedBy: string): void {
+    const u = this.getUserById(userId);
+    if (!u) return;
+    for (const c of this.s.complaints.filter(x => x.userId === userId)) {
+      c.userId = undefined; c.submittedBy = "Erased citizen"; c.submittedByPhone = undefined; c.feedback = undefined;
+    }
+    for (const r of this.s.rtis.filter(x => x.filedByPhone === u.phone)) { r.filedBy = "Erased citizen"; r.filedByPhone = ""; }
+    for (const m of this.s.chatMessages) if (m.senderName === u.name && m.senderRole === "citizen") m.senderName = "Erased citizen";
+    const sids = new Set(this.s.sessions.filter(x => x.userId === userId).map(x => x.sid));
+    this.s.sessions = this.s.sessions.filter(x => !sids.has(x.sid));
+    this.s.refreshTokens = this.s.refreshTokens.filter(x => !sids.has(x.sid));
+    this.s.tokens = this.s.tokens.filter(t => t.userId !== userId);
+    this.s.pushTokens = this.s.pushTokens.filter(t => t.userId !== userId);
+    this.s.consents = this.s.consents.filter(c => c.userId !== userId);
+    this.s.users = this.s.users.filter(x => x.id !== userId);
+    this.addAuditLog("user_erased", decidedBy, decidedBy === userId ? "citizen" : "state", `Account erased (ref ${pseudoRef(userId)})`);
+    this.touch();
+  }
+
+  requestErasure(userId: string): ErasureRequest {
+    const hold = this.legalHoldReason(userId);
+    const req: ErasureRequest = { id: genId(), userRef: pseudoRef(userId), status: hold ? "legal_hold" : "completed", reason: hold ?? undefined, requestedAt: now() };
+    this.s.erasureRequests.push(req);
+    if (!hold) { req.decidedAt = now(); req.decidedBy = "self-service"; this.eraseUser(userId, userId); }
+    else this.addAuditLog("erasure_legal_hold", userId, "citizen", `Erasure request ${req.id} placed on legal hold`);
+    this.touch();
+    return req;
+  }
+
+  /** Retention purge (P1.9). Returns counts. Media files are removed through the media driver by the caller. */
+  purgeExpired(at = Date.now()): { complaints: number; media: string[]; sosEvidence: string[] } {
+    const r = tenant().retention;
+    const day = 86400000;
+    const closedLong = (c: Complaint) => (c.state === "CLOSED" || c.state === "CANCELLED_BY_CITIZEN" || c.state === "AUTO_CLOSED_UNVERIFIED")
+      && at - new Date(c.resolvedAt ?? c.submittedAt).getTime() > r.complaintsDays * day;
+    const expired = new Set(this.s.complaints.filter(closedLong).map(c => c.id));
+    const mediaCut = (c: Complaint) => (c.state === "CLOSED" || c.state === "CANCELLED_BY_CITIZEN") && at - new Date(c.resolvedAt ?? c.submittedAt).getTime() > r.mediaDaysAfterClosure * day;
+    const mediaFiles = new Set<string>();
+    for (const c of this.s.complaints.filter(mediaCut)) {
+      for (const url of [c.beforePhoto, c.proofPhoto, c.afterPhoto]) {
+        const f = url?.match(/\/uploads\/([0-9a-f-]{36}\.\w+)$/)?.[1];
+        if (f) mediaFiles.add(f);
+      }
+      c.beforePhoto = c.proofPhoto = c.afterPhoto = undefined;
+    }
+    const sosFiles: string[] = [];
+    for (const a of this.s.sosAlerts) {
+      if (a.legalHold || at - new Date(a.triggeredAt).getTime() <= r.sosEvidenceDays * day) continue;
+      for (const m of this.s.media.filter(x => x.sosId === a.id)) sosFiles.push(m.fileName);
+      a.audioChunks = []; a.audioRecordingUrl = undefined;
+    }
+    this.s.complaints = this.s.complaints.filter(c => !expired.has(c.id));
+    this.s.complaintEvents = this.s.complaintEvents.filter(e => !expired.has(e.complaintId));
+    this.s.chatMessages = this.s.chatMessages.filter(m => !expired.has(m.complaintId));
+    const gone = new Set([...mediaFiles, ...sosFiles]);
+    this.s.media = this.s.media.filter(m => !gone.has(m.fileName));
+    if (expired.size || gone.size) {
+      this.addAuditLog("retention_purge", "system", "SANKALP System", `Purged ${expired.size} complaints, ${mediaFiles.size} photos, ${sosFiles.length} SOS evidence files`);
+      this.touch();
+    }
+    return { complaints: expired.size, media: [...mediaFiles], sosEvidence: sosFiles };
   }
 
   // ── DEPARTMENT CREDENTIALS (M5) ─────────────────────────────────────────────
