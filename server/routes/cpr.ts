@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage, cprEmitter, type SafetyIncident } from "../storage";
 import { route, none, idParams, type Actor } from "../lib/route";
-import { forbidden, notFound } from "../lib/errors";
+import { forbidden, notFound, unauthorized } from "../lib/errors";
 import { writeLimiter } from "./limits";
 import { district, geo, text } from "./common";
 import { toPublicVan } from "./dto";
@@ -28,10 +28,12 @@ const sse = (res: import("express").Response) => {
 export function registerCprRoutes(app: Express) {
   // Citizens may see patrol coverage in their district — without officer phone numbers.
   route(app, {
-    method: "get", path: "/api/cpr/patrols", auth: "user", permission: "cpr.patrols_read",
-    allowQueryToken: false,
+    method: "get", path: "/api/cpr/patrols", auth: "optional", permission: "cpr.patrols_read",
     params: none, query: z.object({ district: district.optional() }), body: none,
-    handler: ({ query, user }) => {
+    handler: ({ query, actor }) => {
+      if (actor.deptId === "police" || actor.deptId === "usdma") return storage.getPatrolVans(query.district);
+      if (!actor.user) throw unauthorized();
+      const user = actor.user;
       const staff = user.role === "admin" || user.role === "super_admin";
       const d = user.role === "super_admin" ? query.district : user.district;
       const vans = storage.getPatrolVans(d);
@@ -81,7 +83,10 @@ export function registerCprRoutes(app: Express) {
   route(app, {
     method: "put", path: "/api/cpr/patrols/:id/location", auth: "police", permission: "cpr.patrol_location",
     params: idParams, query: none, body: geo,
-    handler: ({ params, body }) => {
+    handler: ({ actor, params, body }) => {
+      const existing = storage.getPatrolVans().find(v => v.id === params.id);
+      if (!existing) throw notFound("Patrol van not found");
+      if (actor.user?.role === "admin" && actor.user.district !== existing.district) throw forbidden("Patrol van is outside your district");
       const van = storage.updatePatrolLocation(params.id, body);
       if (!van) throw notFound("Patrol van not found");
       return van;
@@ -119,16 +124,22 @@ export function registerCprRoutes(app: Express) {
   });
 
   route(app, {
-    method: "get", path: "/api/cpr/night-safety", auth: "user", permission: "cpr.night_safety_read",
+    method: "get", path: "/api/cpr/night-safety", auth: "optional", permission: "cpr.night_safety_read",
     params: none, query: none, body: none,
-    handler: ({ user }) => storage.getNightSafetyZones().filter(z => user.role === "super_admin" || z.district === user.district).map(z => ({ ...z, reporterName: undefined })),
+    handler: ({ actor }) => {
+      const zones = storage.getNightSafetyZones().map(z => ({ ...z, reporterName: undefined }));
+      if (actor.deptId === "police" || actor.deptId === "usdma") return zones;
+      if (!actor.user) throw unauthorized();
+      const u = actor.user;
+      return zones.filter(z => u.role === "super_admin" || z.district === u.district);
+    },
   });
 
   route(app, {
     method: "post", path: "/api/cpr/night-safety", auth: "user", permission: "cpr.night_safety_report",
     middleware: [writeLimiter],
     params: none, query: none,
-    body: z.object({ location: z.string().trim().min(2).max(300), description: text(1000).optional(), riskType: z.enum(["crime", "accident", "harassment", "lighting", "general"]).optional(), geo: geo.optional() }).passthrough(),
+    body: z.object({ location: z.string().trim().min(2).max(300), description: text(1000).optional(), riskType: z.enum(["crime", "accident", "harassment", "lighting", "general"]).optional(), geo: geo.nullish() }).passthrough(),
     handler: ({ body, user, res }) => {
       const zone = storage.createNightSafetyZone({ location: body.location, district: user.district, description: body.description || "",
         riskType: body.riskType || "general", geo: body.geo ?? null, reporterName: user.name });

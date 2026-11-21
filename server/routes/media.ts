@@ -9,11 +9,17 @@ import { uploadLimiter } from "./limits";
 const b64 = z.string().min(16).max(22 * 1024 * 1024);
 
 /** Accepts a fresh base64 image (validated + stored) or a previously uploaded `/uploads/<uuid>.<ext>` URL. */
-export function resolveImage(input: string | undefined, owner: string): string | undefined {
+export function resolveImage(input: string | undefined, owner: string, opts: { proofFor?: { beforePhoto?: string } } = {}): string | undefined {
   if (!input) return undefined;
   const m = input.match(/^\/uploads\/([0-9a-f-]{36}\.(?:jpg|png|webp))$/);
   if (m) {
-    if (!publicPathExists(m[1]) || !storage.getMediaByFile(m[1])) throw unprocessable("INVALID_MEDIA", "Unknown uploaded image");
+    const rec = storage.getMediaByFile(m[1]);
+    if (!publicPathExists(m[1]) || !rec) throw unprocessable("INVALID_MEDIA", "Unknown uploaded image");
+    // Proof must be the actor's own upload and never the complaint's own "before" photo (review M1).
+    if (opts.proofFor && (rec.ownerId !== owner || opts.proofFor.beforePhoto === input)) {
+      throw unprocessable("INVALID_PROOF", "Proof must be a new photo taken by you after the work was done");
+    }
+    if (!opts.proofFor && rec.ownerId !== owner) throw unprocessable("INVALID_MEDIA", "You can only attach photos you uploaded");
     return input;
   }
   if (/^(file|content|blob|https?):/i.test(input)) throw unprocessable("INVALID_MEDIA", "Upload the photo first (POST /api/upload) and send its /uploads URL");
@@ -46,7 +52,7 @@ export function registerMediaRoutes(app: Express) {
   });
 
   route(app, {
-    method: "post", path: "/api/upload/audio", auth: "user", permission: "media.upload_audio",
+    method: "post", path: "/api/upload/audio", auth: "sos", permission: "media.upload_audio",
     middleware: [uploadLimiter],
     params: none, query: none,
     body: z.object({ audio: b64, filename: z.string().max(200).optional(), sosId: z.string().max(100).optional() }),

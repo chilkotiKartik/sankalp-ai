@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage, cprEmitter, deptEmitter, type SOSAlert, type AppUser } from "../storage";
 import { route, none, idParams, scopeDistrict, type Actor } from "../lib/route";
-import { forbidden, notFound, unprocessable } from "../lib/errors";
+import { forbidden, notFound, unprocessable, unauthorized } from "../lib/errors";
 import { sendPush } from "../notify/push";
 import { SOS_CATEGORIES, geo, text } from "./common";
 import { canAccessEvidence } from "./media";
@@ -43,9 +43,14 @@ function alertStaff(a: SOSAlert, kind: "women_safety_sos" | "forest_fire_sos" | 
 
 export function registerSosRoutes(app: Express) {
   route(app, {
-    method: "get", path: "/api/sos", auth: "user", permission: "sos.list",
+    method: "get", path: "/api/sos", auth: "optional", permission: "sos.list",
     params: none, query: none, body: none,
-    handler: ({ actor, user }) => {
+    handler: ({ actor }) => {
+      if (actor.deptId === "police" || actor.deptId === "usdma") return storage.getSosAlerts();
+      if (actor.deptId === "forest") return storage.getSosAlerts().filter(a => a.category === "forest_fire");
+      if (actor.deptId) throw forbidden("SOS data is restricted to police, USDMA and forest departments");
+      if (!actor.user) throw unauthorized();
+      const user = actor.user;
       // Citizens see only their own alerts; staff see their district.
       if (!isAdmin(user)) return storage.getSosAlerts().filter(a => a.userId === user.id);
       return storage.getSosAlerts(scopeDistrict(actor));
@@ -62,7 +67,7 @@ export function registerSosRoutes(app: Express) {
   }).passthrough();
 
   route(app, {
-    method: "post", path: "/api/sos", auth: "user", permission: "sos.create",
+    method: "post", path: "/api/sos", auth: "sos", permission: "sos.create",
     params: none, query: none, body: sosBody,
     handler: ({ body, user, res }) => {
       const g = body.geo ?? storage.getDistrictCenter(user.district);
@@ -80,7 +85,7 @@ export function registerSosRoutes(app: Express) {
   });
 
   route(app, {
-    method: "post", path: "/api/sos/women-safety", auth: "user", permission: "sos.create_women_safety",
+    method: "post", path: "/api/sos/women-safety", auth: "sos", permission: "sos.create_women_safety",
     params: none, query: none,
     body: z.object({ geo: geo.optional(), location: text(300).optional(), audioUrl: z.string().max(200).optional(), geoApproximate: z.boolean().optional() }).passthrough(),
     handler: ({ body, user, res }) => {
@@ -107,7 +112,7 @@ export function registerSosRoutes(app: Express) {
   });
 
   route(app, {
-    method: "post", path: "/api/sos/forest-fire", auth: "user", permission: "sos.create_forest_fire",
+    method: "post", path: "/api/sos/forest-fire", auth: "sos", permission: "sos.create_forest_fire",
     params: none, query: none,
     body: z.object({ geo: geo.optional(), location: text(300).optional(), description: text(1000).optional() }).passthrough(),
     handler: ({ body, user, res }) => {
@@ -124,7 +129,7 @@ export function registerSosRoutes(app: Express) {
   });
 
   route(app, {
-    method: "put", path: "/api/sos/:id/location", auth: "user", permission: "sos.update_location",
+    method: "put", path: "/api/sos/:id/location", auth: "sos", permission: "sos.update_location",
     params: idParams, query: none, body: geo,
     handler: ({ params, body, user }) => {
       const a = mustSos(params.id);
@@ -156,7 +161,7 @@ export function registerSosRoutes(app: Express) {
   };
 
   route(app, {
-    method: "put", path: "/api/sos/:id/audio-url", auth: "user", permission: "sos.attach_audio",
+    method: "put", path: "/api/sos/:id/audio-url", auth: "sos", permission: "sos.attach_audio",
     params: idParams, query: none, body: z.object({ audioUrl: z.string().max(200) }),
     handler: ({ params, body, user }) => {
       const a = mustSos(params.id);
@@ -169,7 +174,7 @@ export function registerSosRoutes(app: Express) {
   });
 
   route(app, {
-    method: "put", path: "/api/sos/:id/audio-chunk", auth: "user", permission: "sos.attach_audio",
+    method: "put", path: "/api/sos/:id/audio-chunk", auth: "sos", permission: "sos.attach_audio",
     params: idParams, query: none,
     body: z.object({ chunkUrl: z.string().max(200), chunkIndex: z.number().int().min(0).max(10000), duration: z.number().min(0).max(600).optional() }),
     handler: ({ params, body, user }) => {

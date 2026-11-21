@@ -39,7 +39,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P0.a seed:demo — 86bac98
 - [x] P0.b DEMO.md — 86bac98
 - [x] P0.c scripts/smoke.ts — 86bac98
-- [ ] P0.gate Phase 0 gate + review + report
+- [x] P0.gate Phase 0 gate + review + report — docs/reports/phase-0.md
 
 ## Phase 1 — Production foundation
 - [ ] P1.1 Postgres schema

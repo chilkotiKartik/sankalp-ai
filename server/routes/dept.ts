@@ -113,11 +113,10 @@ export function registerDeptRoutes(app: Express) {
       res.setHeader("Connection", "keep-alive");
       res.flushHeaders();
       const hb = setInterval(() => res.write(`: ping\n\n`), 25_000);
-      const emergency = deptId === "police" || deptId === "usdma" || deptId === "health";
       const listener = (ev: { type: string; departmentId?: string }) => {
         const own = ev.departmentId === deptId;
         if ((["complaint_new", "complaint_updated", "complaint_resolved_proof", "worker_assigned"].includes(ev.type) && own)
-          || (ev.type === "sos_alert" && (own || emergency))
+          || (ev.type === "sos_alert" && own)
           || (ev.type === "announcement_new" && (own || ev.departmentId === "all"))) {
           res.write(`data: ${JSON.stringify(ev)}\n\n`);
         }

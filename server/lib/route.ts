@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction, RequestHandler } from "e
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z, type ZodTypeAny } from "zod";
 import { config } from "../config";
-import { storage, type AppUser, DEPARTMENTS } from "../storage";
+import { storage, type AppUser, DEPARTMENTS, SOS_SESSION_GRACE_MS } from "../storage";
 import { unauthorized, forbidden } from "./errors";
 
 /**
@@ -14,6 +14,7 @@ export type AuthLevel =
   | "public"        // explicitly public (no PII may be returned)
   | "optional"      // user if a valid token is present
   | "user"          // any logged-in user
+  | "sos"           // logged-in user; also accepts a session expired < 30 days ago (rule 9 — never block a genuine SOS)
   | "worker"        // role worker
   | "admin"         // admin or super_admin
   | "superAdmin"
@@ -100,14 +101,14 @@ function bearer(req: Request, allowQuery: boolean): string | null {
   return null;
 }
 
-export function resolveActor(req: Request, allowQuery = false): Actor {
+export function resolveActor(req: Request, allowQuery = false, graceMs = 0): Actor {
   const tok = bearer(req, allowQuery);
   if (!tok) return {};
   if (tok.includes(".")) {
     const d = verifyDeptToken(tok);
     return d ? { deptId: d.departmentId } : {};
   }
-  const user = storage.validateToken(tok);
+  const user = storage.validateToken(tok, graceMs);
   return user ? { user } : {};
 }
 
@@ -119,6 +120,7 @@ export function authorize(level: AuthLevel, a: Actor): void {
     case "optional":
       return;
     case "user":
+    case "sos":
       if (!a.user) throw unauthorized();
       return;
     case "worker":
@@ -154,7 +156,7 @@ export function route<P extends ZodTypeAny, Q extends ZodTypeAny, B extends ZodT
   });
   const run = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const actor = resolveActor(req, !!def.allowQueryToken);
+      const actor = resolveActor(req, !!def.allowQueryToken, def.auth === "sos" ? SOS_SESSION_GRACE_MS : 0);
       authorize(def.auth, actor);
       const { token: _t, ...queryRest } = req.query as Record<string, unknown>;
       const params = def.params.parse(req.params);

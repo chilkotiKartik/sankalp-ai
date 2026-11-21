@@ -40,8 +40,10 @@ export function toOwnerSos(a: SOSAlert): SOSAlert {
   return { ...a };
 }
 
-export function toPublicWorker(w: Worker): Omit<Worker, "phone"> & { phone?: string } {
-  return { ...w, phone: undefined };
+/** Citizens/departments get no personal or location data about field workers (staff-only, audit review M4). */
+export function toPublicWorker(w: Worker) {
+  return { id: w.id, name: w.name.split(" ")[0], ward: w.ward, wardNumber: w.wardNumber, district: w.district, status: w.status,
+    score: w.score, resolvedToday: w.resolvedToday, totalResolved: w.totalResolved, avgRating: w.avgRating, isDemo: w.isDemo };
 }
 
 export function toPublicVan(v: PatrolVan) {

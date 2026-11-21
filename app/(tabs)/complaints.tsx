@@ -314,7 +314,7 @@ export default function ComplaintsScreen() {
       }
     } catch {}
     setPhotoAiLoading(false);
-  }, []);
+  }, [token]);
 
   const handlePickPhoto = useCallback(async () => {
     if (Platform.OS === "web") {

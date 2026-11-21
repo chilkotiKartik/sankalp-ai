@@ -16,7 +16,7 @@ const RULES: Array<[string, RegExp]> = [
   ["db-url-with-password", /\b(?:postgres(?:ql)?|mongodb(?:\+srv)?|mysql|redis):\/\/[^\s:/@'"]+:[^\s@'"]{6,}@/],
   ["jwt-literal", /\beyJ[A-Za-z0-9_-]{15,}\.eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{20,}\b/],
   ["generic-secret-assignment", /\b(?:api[_-]?key|secret|password|token)\s*[:=]\s*["'][A-Za-z0-9+/_\-]{24,}["']/i],
-  ["dotenv-secret-value", /^(?:JWT_SECRET|DEPT_JWT_SECRET|SARVAM_API_KEY|S3_SECRET_KEY|WHATSAPP_TOKEN|SMS_API_KEY|EVIDENCE_ENC_KEY|EXPO_ACCESS_TOKEN)=\S{8,}/m],
+  ["dotenv-secret-value", /^(?:JWT_SECRET|DEPT_JWT_SECRET|SARVAM_API_KEY|S3_SECRET_KEY|WHATSAPP_TOKEN|SMS_API_KEY|EVIDENCE_ENC_KEY|EXPO_ACCESS_TOKEN)=(?!\$\(|<|\$\{)\S{8,}/m],
 ];
 const ALLOW = [/^tests\//, /^scripts\/secret-scan\.ts$/, /^package-lock\.json$/, /^static-build\//, /\.(png|jpg|jpeg|ico|ttf|zip)$/i, /^server\/web\/vendor\//, /^lib\/leaflet-bundle\.ts$/, /^public\/leaflet\//];
 

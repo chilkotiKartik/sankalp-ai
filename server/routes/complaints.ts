@@ -6,7 +6,7 @@ import { route, none, idParams, scopeDistrict, type Actor } from "../lib/route";
 import { forbidden, notFound, unauthorized, unprocessable } from "../lib/errors";
 import { classifyText } from "../ai/rules";
 import { sendPush } from "../notify/push";
-import { authLimiter, writeLimiter } from "./limits";
+import { authLimiter, phoneLimiter, writeLimiter } from "./limits";
 import { CATEGORIES, PRIORITIES, domain, geo, text, phone10 } from "./common";
 import { complaintFor, toStaffComplaint } from "./dto";
 import { resolveImage } from "./media";
@@ -57,13 +57,13 @@ function applyOfficerUpdate(c: Complaint, body: z.infer<typeof officerUpdate>, a
       ? "Only the citizen can close a complaint, by confirming the fix"
       : "A complaint cannot be moved back to pending");
   }
-  if (body.adminNote !== undefined) storage.setAdminNote(c.id, body.adminNote);
-  if (body.status === "in_progress" || body.status === "acknowledged") domain(() => storage.startWork(c.id, "officer", actorId));
+  if (body.status === "resolved" && !body.proofPhoto) throw unprocessable("PROOF_REQUIRED", "Upload a proof photo of the completed work to mark it resolved");
   if (body.status === "resolved") {
-    if (!body.proofPhoto) throw unprocessable("PROOF_REQUIRED", "Upload a proof photo of the completed work to mark it resolved");
-    const url = resolveImage(body.proofPhoto, actorId)!;
+    const url = resolveImage(body.proofPhoto, actorId, { proofFor: c })!;
     domain(() => storage.submitProof(c.id, { photoUrl: url, note: body.proofNote }, "officer", actorId));
   }
+  if (body.status === "in_progress" || body.status === "acknowledged") domain(() => storage.startWork(c.id, "officer", actorId));
+  if (body.adminNote !== undefined) storage.setAdminNote(c.id, body.adminNote);
   if (body.status) {
     storage.addAuditLog("complaint_status", actorId, actorName, `${c.ticketId} → ${c.state}`, c.id);
     notifyOwner(c);
@@ -241,7 +241,7 @@ export function registerComplaintRoutes(app: Express) {
   // ── Worker (temporary PIN, no account) ─────────────────────────────────────
   route(app, {
     method: "post", path: "/api/auth/worker-login", auth: "public", permission: "worker.pin_login",
-    middleware: [authLimiter],
+    middleware: [authLimiter, phoneLimiter],
     params: none, query: none,
     body: z.object({ phone: phone10, pin: z.string().regex(/^\d{6}$/), complaintId: z.string().min(1).max(100) }),
     handler: ({ body }) => {
@@ -256,13 +256,13 @@ export function registerComplaintRoutes(app: Express) {
 
   route(app, {
     method: "put", path: "/api/complaints/:id/proof", auth: "public", permission: "worker.submit_proof",
-    middleware: [authLimiter],
+    middleware: [authLimiter, phoneLimiter],
     params: idParams, query: none,
     body: z.object({ phone: phone10, pin: z.string().regex(/^\d{6}$/), proofPhoto: z.string().min(16).max(22 * 1024 * 1024), proofNote: text(1000).optional() }),
     handler: ({ params, body }) => {
       if (!storage.verifyWorkerPin(body.phone, body.pin, params.id)) throw unauthorized("Invalid worker credentials");
       const c = mustComplaint(params.id);
-      const url = resolveImage(body.proofPhoto, `worker:${c.id}`)!;
+      const url = resolveImage(body.proofPhoto, `worker:${c.id}`, { proofFor: c })!;
       domain(() => storage.submitProof(c.id, { photoUrl: url, note: body.proofNote }, "worker", `worker:${c.assignedWorkerName ?? "unknown"}`));
       storage.addAuditLog("proof_submitted", "worker", c.assignedWorkerName || "worker", `Proof submitted for ${c.ticketId}`, c.id);
       notifyOwner(c);

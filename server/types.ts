@@ -198,6 +198,7 @@ export type AnnouncementType = "general" | "scheme" | "emergency" | "welfare" | 
 
 export interface Announcement {
   id: string;
+  isDemo?: boolean;
   title: string;
   body: string;
   type: AnnouncementType;
@@ -214,6 +215,7 @@ export interface Announcement {
 
 export interface Poll {
   id: string;
+  isDemo?: boolean;
   question: string;
   options: string[];
   votes: number[];
@@ -227,6 +229,7 @@ export interface Poll {
 
 export interface Petition {
   id: string;
+  isDemo?: boolean;
   title: string;
   description: string;
   target: string;
@@ -241,6 +244,7 @@ export interface Petition {
 
 export interface RTIRequest {
   id: string;
+  isDemo?: boolean;
   ticketId: string;
   subject: string;
   description: string;
@@ -257,6 +261,7 @@ export interface RTIRequest {
 
 export interface NightSafetyZone {
   id: string;
+  isDemo?: boolean;
   location: string;
   district: string;
   description: string;
@@ -284,6 +289,7 @@ export interface PatrolVan {
 
 export interface SafetyIncident {
   id: string;
+  isDemo?: boolean;
   citizenName: string;
   district: string;
   location: string;
@@ -300,6 +306,7 @@ export interface SafetyIncident {
 
 export interface CivicEvent {
   id: string;
+  isDemo?: boolean;
   title: string;
   description: string;
   date: string;
@@ -314,6 +321,7 @@ export interface CivicEvent {
 
 export interface ChatMessage {
   id: string;
+  isDemo?: boolean;
   complaintId: string;
   message: string;
   senderName: string;

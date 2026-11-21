@@ -33,9 +33,18 @@ const TOKEN_TTL_MS = 7 * 24 * 3600 * 1000;
 const WORKER_PIN_TTL_MS = 48 * 3600 * 1000;
 const WORKER_PIN_MAX_ATTEMPTS = 5;
 const SOS_DEDUP_WINDOW_MS = 2 * 60 * 1000;
+export const SOS_SESSION_GRACE_MS = 30 * 24 * 3600 * 1000;
 
 const genId = () => randomUUID();
+/** M2 (review): everything created while DEMO_MODE is on is demo data and is purged when it is off. */
+const demoFlag = (): { isDemo?: true } => (config().DEMO_MODE ? { isDemo: true } : {});
 const now = () => new Date().toISOString();
+
+/** "Asha Rawat" → "Asha R." — enough for a public leaderboard, not enough to identify (review L6). */
+function shortName(n: string): string {
+  const [first, ...rest] = n.trim().split(/\s+/);
+  return rest.length ? `${first} ${rest[rest.length - 1][0]}.` : first;
+}
 
 export function distanceKm(a: GeoPoint, b: GeoPoint): number {
   const R = 6371;
@@ -134,12 +143,26 @@ export class AppStorage {
     this.s.patrolVans = [];
     this.s.budgetItems = [];
     this.s.demoRiskZones = [];
+    const drop = <T extends { isDemo?: boolean }>(xs: T[]) => xs.filter(x => !x.isDemo);
+    this.s.announcements = drop(this.s.announcements);
+    this.s.polls = drop(this.s.polls);
+    this.s.petitions = drop(this.s.petitions);
+    this.s.civicEvents = drop(this.s.civicEvents);
+    this.s.rtis = drop(this.s.rtis);
+    this.s.safetyIncidents = drop(this.s.safetyIncidents);
+    this.s.nightSafetyZones = drop(this.s.nightSafetyZones);
+    this.s.chatMessages = drop(this.s.chatMessages).filter(m => ids.has(m.complaintId));
+    this.s.reviewTasks = this.s.reviewTasks.filter(t => !t.complaintId || ids.has(t.complaintId));
+    this.s.auditLogs = this.s.auditLogs.filter(l => !l.complaintId || ids.has(l.complaintId));
+    this.s.workerPins = this.s.workerPins.filter(w => ids.has(w.complaintId));
     this.touch();
     return before - (this.s.users.length + this.s.complaints.length + this.s.sosAlerts.length + this.s.workers.length);
   }
 
   hasDemoData(): boolean {
-    return this.s.users.some(u => u.isDemo) || this.s.complaints.some(c => c.isDemo);
+    const s = this.s;
+    return [s.users, s.complaints, s.sosAlerts, s.workers, s.announcements, s.polls, s.petitions, s.civicEvents, s.rtis, s.safetyIncidents, s.nightSafetyZones]
+      .some((xs: Array<{ isDemo?: boolean }>) => xs.some(x => x.isDemo)) || s.patrolVans.length > 0 || s.budgetItems.length > 0;
   }
 
   // ── USERS ───────────────────────────────────────────────────────────────────
@@ -148,7 +171,7 @@ export class AppStorage {
   }
 
   async createUser(data: Omit<AppUser, "id" | "createdAt">): Promise<AppUser> {
-    const user: AppUser = { ...data, id: genId(), createdAt: now() };
+    const user: AppUser = { ...demoFlag(), ...data, id: genId(), createdAt: now() };
     this.s.users.push(user);
     this.touch();
     return user;
@@ -173,11 +196,17 @@ export class AppStorage {
     return raw;
   }
 
-  validateToken(raw: string | null | undefined): AppUser | null {
+  /**
+   * Sliding expiry (review M5): active sessions are renewed when less than half the TTL remains.
+   * `graceMs` lets SOS routes accept a recently expired genuine session (rule 9 — never block a real SOS).
+   */
+  validateToken(raw: string | null | undefined, graceMs = 0): AppUser | null {
     if (!raw || raw.length > 200) return null;
     const h = hmac(config().JWT_SECRET, raw);
     const t = this.s.tokens.find(x => safeEqualHex(x.tokenHash, h));
-    if (!t || t.expiresAt < Date.now()) return null;
+    const at = Date.now();
+    if (!t || t.expiresAt + graceMs < at) return null;
+    if (t.expiresAt >= at && t.expiresAt - at < TOKEN_TTL_MS / 2) { t.expiresAt = at + TOKEN_TTL_MS; this.touch(); }
     return this.getUserById(t.userId) || null;
   }
 
@@ -187,8 +216,10 @@ export class AppStorage {
     this.touch();
   }
 
+  /** Revocation must also defeat the SOS grace window: revoked tokens are deleted, not expired. */
+
   private pruneTokens() {
-    const t = Date.now();
+    const t = Date.now() - SOS_SESSION_GRACE_MS;
     if (this.s.tokens.length > 1000) this.s.tokens = this.s.tokens.filter(x => x.expiresAt > t);
   }
 
@@ -246,6 +277,7 @@ export class AppStorage {
   ): Complaint {
     const state: ComplaintState = "NEW";
     const complaint: Complaint = {
+      ...demoFlag(),
       ...data,
       id: genId(),
       userId: user.id,
@@ -419,7 +451,7 @@ export class AppStorage {
     const dup = this.s.sosAlerts.find(a => a.userId === userId && a.category === data.category && a.status !== "resolved"
       && t - new Date(a.triggeredAt).getTime() < SOS_DEDUP_WINDOW_MS);
     if (dup) { dup.liveGeo = data.geo; dup.liveUpdatedAt = now(); this.touch(); return { alert: dup, deduplicated: true }; }
-    const alert: SOSAlert = { ...data, id: genId(), userId, triggeredAt: now() };
+    const alert: SOSAlert = { ...demoFlag(), ...data, id: genId(), userId, triggeredAt: now() };
     this.s.sosAlerts.unshift(alert);
     this.touch();
     bus.emit("sos", { type: "sos_new", alert });
@@ -606,7 +638,7 @@ export class AppStorage {
   // ── LEADERBOARD ─────────────────────────────────────────────────────────────
   getLeaderboard() {
     return this.s.users.filter(u => u.role === "citizen").sort((a, b) => b.points - a.points).slice(0, 20)
-      .map((u, i) => ({ rank: i + 1, id: u.id, name: u.name, phone: u.phone.slice(0, 2) + "XXXXXXXX", points: u.points, level: u.level, badges: u.badges, district: u.district }));
+      .map((u, i) => ({ rank: i + 1, id: u.id, name: shortName(u.name), phone: "XXXXXXXXXX", points: u.points, level: u.level, badges: u.badges, district: u.district }));
   }
 
   // ── ANNOUNCEMENTS ───────────────────────────────────────────────────────────
@@ -618,7 +650,7 @@ export class AppStorage {
   getAnnouncement(id: string) { return this.s.announcements.find(a => a.id === id); }
 
   createAnnouncement(data: Omit<Announcement, "id" | "postedAt" | "views">): Announcement {
-    const ann: Announcement = { ...data, id: genId(), postedAt: now(), views: 0 };
+    const ann: Announcement = { ...demoFlag(), ...data, id: genId(), postedAt: now(), views: 0 };
     this.s.announcements.unshift(ann);
     this.touch();
     bus.emit("announcement", { type: "announcement", announcement: ann });
@@ -643,7 +675,7 @@ export class AppStorage {
     if (district && district !== "Uttarakhand") return this.s.polls.filter(p => !p.district || p.district === district);
     return [...this.s.polls];
   }
-  createPoll(data: Omit<Poll, "id">): Poll { const p = { ...data, id: genId() }; this.s.polls.unshift(p); this.touch(); return p; }
+  createPoll(data: Omit<Poll, "id">): Poll { const p = { ...demoFlag(), ...data, id: genId() }; this.s.polls.unshift(p); this.touch(); return p; }
   votePoll(id: string, optionIndex: number, userId: string): Poll | null {
     const p = this.s.polls.find(x => x.id === id);
     if (!p || p.status !== "active") return null;
@@ -659,7 +691,7 @@ export class AppStorage {
     if (district && district !== "Uttarakhand") return this.s.petitions.filter(p => !p.district || p.district === district);
     return [...this.s.petitions];
   }
-  createPetition(data: Omit<Petition, "id">): Petition { const p = { ...data, id: genId() }; this.s.petitions.unshift(p); this.touch(); return p; }
+  createPetition(data: Omit<Petition, "id">): Petition { const p = { ...demoFlag(), ...data, id: genId() }; this.s.petitions.unshift(p); this.touch(); return p; }
   signPetition(id: string, userId: string): Petition | null {
     const p = this.s.petitions.find(x => x.id === id);
     if (!p || p.status !== "active") return null;
@@ -676,7 +708,7 @@ export class AppStorage {
     return [...this.s.civicEvents];
   }
   createEvent(data: Omit<CivicEvent, "id" | "createdAt" | "rsvpIds">): CivicEvent {
-    const e: CivicEvent = { ...data, id: genId(), createdAt: now(), rsvpIds: [] };
+    const e: CivicEvent = { ...demoFlag(), ...data, id: genId(), createdAt: now(), rsvpIds: [] };
     this.s.civicEvents.unshift(e);
     this.touch();
     return e;
@@ -697,7 +729,7 @@ export class AppStorage {
   getRTIsByPhone(phone: string): RTIRequest[] { return this.s.rtis.filter(r => r.filedByPhone === phone); }
   createRTI(data: Omit<RTIRequest, "id" | "ticketId" | "filedAt" | "deadline" | "status">, actorId: string): RTIRequest {
     const filed = new Date();
-    const rti: RTIRequest = { ...data, id: genId(), ticketId: `RTI-UK-${randomUUID().slice(0, 8).toUpperCase()}`,
+    const rti: RTIRequest = { ...demoFlag(), ...data, id: genId(), ticketId: `RTI-UK-${randomUUID().slice(0, 8).toUpperCase()}`,
       filedAt: filed.toISOString(), deadline: new Date(filed.getTime() + 30 * 86400000).toISOString(), status: "filed" };
     this.s.rtis.unshift(rti);
     this.addAuditLog("rti_filed", actorId, "citizen", `RTI ${rti.ticketId} filed`, rti.id);
@@ -722,7 +754,7 @@ export class AppStorage {
   // ── CHAT ────────────────────────────────────────────────────────────────────
   getChatMessages(complaintId: string): ChatMessage[] { return this.s.chatMessages.filter(m => m.complaintId === complaintId); }
   addChatMessage(complaintId: string, message: string, senderName: string, senderRole: ChatMessage["senderRole"]): ChatMessage {
-    const msg: ChatMessage = { id: genId(), complaintId, message, senderName, senderRole, sentAt: now() };
+    const msg: ChatMessage = { ...demoFlag(), id: genId(), complaintId, message, senderName, senderRole, sentAt: now() };
     this.s.chatMessages.push(msg);
     this.touch();
     bus.emit("chat", { type: "chat_message", complaintId, message: msg });
@@ -827,6 +859,7 @@ export class AppStorage {
   createSafetyIncident(data: { citizenName: string; district: string; location: string; lat: number; lng: number }): SafetyIncident {
     const van = this.s.patrolVans.find(v => v.status === "active_patrol" && v.district === data.district);
     const incident: SafetyIncident = {
+      ...demoFlag(),
       id: genId(), citizenName: data.citizenName, district: data.district, location: data.location,
       geo: { lat: data.lat, lng: data.lng }, status: van ? "patrol_dispatched" : "active", reportedAt: now(), escalationLevel: 1,
       assignedPatrolVan: van?.vanNumber, assignedPatrolOfficer: van?.officerInCharge, assignedPatrolPhone: van?.officerPhone,
@@ -874,7 +907,7 @@ export class AppStorage {
   }
 
   createNightSafetyZone(data: { location: string; district: string; description: string; riskType: NightSafetyZone["riskType"]; geo: GeoPoint | null; reporterName: string }): NightSafetyZone {
-    const z: NightSafetyZone = { ...data, id: genId(), reportedAt: now(), status: "active", patrolVisits: 0 };
+    const z: NightSafetyZone = { ...demoFlag(), ...data, id: genId(), reportedAt: now(), status: "active", patrolVisits: 0 };
     this.s.nightSafetyZones.unshift(z);
     this.touch();
     return z;
