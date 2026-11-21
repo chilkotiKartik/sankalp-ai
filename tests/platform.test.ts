@@ -1,6 +1,7 @@
 import { describe, it, expect, afterAll } from "vitest";
 import { app, stopApp } from "./helpers";
 import { registry } from "../server/lib/route";
+import { PERMISSIONS } from "../server/auth/permissions";
 import { loadConfig } from "../server/config";
 import { safeFetch, EgressBlockedError, isAllowedHost } from "../server/lib/safeFetch";
 import { redact } from "../server/lib/logger";
@@ -29,6 +30,14 @@ describe("route inventory (M14)", () => {
     }
   });
 
+  it("P1.4: every route permission is defined in the RBAC map (fail closed otherwise)", () => {
+    app();
+    const missing = [...new Set(registry.map(r => r.permission))].filter(p => !PERMISSIONS[p]);
+    expect(missing).toEqual([]);
+    for (const r of registry.filter(x => x.auth === "public")) expect(PERMISSIONS[r.permission], r.path).toContain("public");
+    for (const r of registry.filter(x => x.auth !== "public")) expect(PERMISSIONS[r.permission], r.path).not.toContain("public");
+  });
+
   it("no duplicate method+path declarations", () => {
     const keys = registry.map(r => `${r.method} ${r.path}`);
     expect(new Set(keys).size).toBe(keys.length);
@@ -40,7 +49,8 @@ describe("route inventory (M14)", () => {
       "GET /api/cpr/emergency-locations", "GET /api/cpr/emergency-services", "GET /api/dept/list", "GET /api/health",
       "GET /api/public/announcements", "GET /api/public/anomalies", "GET /api/public/budget", "GET /api/public/config",
       "GET /api/public/department-report", "GET /api/public/district-stats", "GET /api/public/stats", "GET /api/public/ward-health",
-      "GET /healthz", "POST /api/auth/login", "POST /api/auth/register", "POST /api/auth/worker-login", "POST /api/dept/login",
+      "GET /healthz", "POST /api/auth/login", "POST /api/auth/otp/request", "POST /api/auth/otp/verify", "POST /api/auth/refresh",
+      "POST /api/auth/register", "POST /api/auth/worker-login", "POST /api/dept/login",
       "PUT /api/complaints/:id/proof",
     ]);
   });

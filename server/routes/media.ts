@@ -1,3 +1,4 @@
+import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage, type AppUser } from "../storage";
@@ -33,8 +34,8 @@ export function canAccessEvidence(actor: Actor, rec: { ownerId: string; sosId?: 
   if (actor.deptId === "police" || actor.deptId === "usdma") return true;
   const u: AppUser | undefined = actor.user;
   if (!u) return false;
-  if (u.id === rec.ownerId || u.role === "super_admin") return true;
-  if (u.role === "admin" && rec.sosId) return storage.getSOSAlert(rec.sosId)?.district === u.district;
+  if (u.id === rec.ownerId || isStateUser(u)) return true;
+  if (isDistrictAdmin(u) && rec.sosId) return storage.getSOSAlert(rec.sosId)?.district === u.district;
   return false;
 }
 

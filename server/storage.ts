@@ -1,3 +1,4 @@
+import { isAdminUser, isStateUser, isDistrictAdmin } from "./auth/roles";
 import { randomUUID, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { EventEmitter } from "node:events";
 import bcrypt from "bcrypt";
@@ -7,6 +8,7 @@ import {
   EMERGENCY_SERVICES, SLA_HOURS, isStateWide,
 } from "./data/reference";
 import { tenant, currentTenantId, defaultTenant } from "./tenancy";
+import { signAccess, verifyAccess, newRefreshToken, hashToken, newSessionId, ACCESS_TTL_S, REFRESH_TTL_MS } from "./auth/tokens";
 import {
   type ComplaintState, legacyStatus, applyPath, pathToInProgress, pathToVerifying,
   citizenConfirm as smConfirm, citizenReject as smReject, TERMINAL, type TransitionStep, type ActorKind,
@@ -84,6 +86,9 @@ export type PushEntry = { token: string; platform: string; userId: string; role:
 interface State {
   users: AppUser[];
   tokens: AuthToken[];
+  sessions: Array<{ sid: string; userId: string; createdAt: number; expiresAt: number; revokedAt?: number }>;
+  refreshTokens: Array<{ hash: string; sid: string; expiresAt: number; usedAt?: number }>;
+  otps: Array<{ phone: string; codeHash: string; expiresAt: number; attempts: number; sentAt: number }>;
   workerPins: Array<{ key: string; complaintId: string; phone: string; pinHash: string; expiresAt: number; attempts: number }>;
   deptCredentials: DeptCredential[];
   complaints: Complaint[];
@@ -108,7 +113,7 @@ interface State {
 }
 
 const emptyState = (): State => ({
-  users: [], tokens: [], workerPins: [], deptCredentials: [], complaints: [], complaintEvents: [], sosAlerts: [],
+  users: [], tokens: [], sessions: [], refreshTokens: [], otps: [], workerPins: [], deptCredentials: [], complaints: [], complaintEvents: [], sosAlerts: [],
   workers: [], patrolVans: [], safetyIncidents: [], nightSafetyZones: [], announcements: [], polls: [], petitions: [],
   rtis: [], civicEvents: [], chatMessages: [], budgetItems: [], auditLogs: [], media: [], reviewTasks: [], pushTokens: [],
   demoRiskZones: [],
@@ -144,6 +149,9 @@ export class AppStorage {
     const demoUserIds = new Set(this.s.users.filter(u => u.isDemo).map(u => u.id));
     this.s.users = this.s.users.filter(u => !u.isDemo);
     this.s.tokens = this.s.tokens.filter(t => !demoUserIds.has(t.userId));
+    const demoSids = new Set(this.s.sessions.filter(x => demoUserIds.has(x.userId)).map(x => x.sid));
+    this.s.sessions = this.s.sessions.filter(x => !demoSids.has(x.sid));
+    this.s.refreshTokens = this.s.refreshTokens.filter(x => !demoSids.has(x.sid));
     this.s.complaints = this.s.complaints.filter(c => !c.isDemo);
     const ids = new Set(this.s.complaints.map(c => c.id));
     this.s.complaintEvents = this.s.complaintEvents.filter(e => ids.has(e.complaintId));
@@ -232,6 +240,76 @@ export class AppStorage {
   private pruneTokens() {
     const t = Date.now() - SOS_SESSION_GRACE_MS;
     if (this.s.tokens.length > 1000) this.s.tokens = this.s.tokens.filter(x => x.expiresAt > t);
+  }
+
+  // ── ACCESS / REFRESH SESSIONS (P1.5) ───────────────────────────────────────
+  issueSession(userId: string, sid = newSessionId()): { accessToken: string; refreshToken: string; expiresIn: number; sid: string } {
+    const t = Date.now();
+    if (!this.s.sessions.some(x => x.sid === sid)) this.s.sessions.push({ sid, userId, createdAt: t, expiresAt: t + REFRESH_TTL_MS });
+    const refreshToken = newRefreshToken();
+    this.s.refreshTokens.push({ hash: hashToken(refreshToken), sid, expiresAt: t + REFRESH_TTL_MS });
+    this.pruneSessions();
+    this.touch();
+    return { accessToken: signAccess(userId, sid), refreshToken, expiresIn: ACCESS_TTL_S, sid };
+  }
+
+  /** Rotate a refresh token. Re-use of a rotated token revokes the whole session family. */
+  rotateRefresh(raw: string): { accessToken: string; refreshToken: string; expiresIn: number; user: AppUser } | null {
+    const h = hashToken(raw);
+    const rt = this.s.refreshTokens.find(x => x.hash === h);
+    if (!rt) return null;
+    const sess = this.s.sessions.find(x => x.sid === rt.sid);
+    if (!sess || sess.revokedAt || rt.expiresAt < Date.now()) return null;
+    if (rt.usedAt) { this.revokeSession(rt.sid); return null; }
+    const user = this.getUserById(sess.userId);
+    if (!user) return null;
+    rt.usedAt = Date.now();
+    const next = this.issueSession(user.id, rt.sid);
+    return { accessToken: next.accessToken, refreshToken: next.refreshToken, expiresIn: next.expiresIn, user };
+  }
+
+  revokeSession(sid: string) {
+    const sess = this.s.sessions.find(x => x.sid === sid);
+    if (sess && !sess.revokedAt) { sess.revokedAt = Date.now(); this.touch(); }
+  }
+
+  /** Validate a JWT access token: signature, tenant, expiry (with optional SOS grace) and live session. */
+  validateAccess(token: string, graceMs = 0): AppUser | null {
+    const c = verifyAccess(token, Math.floor(graceMs / 1000));
+    if (!c) return null;
+    const sess = this.s.sessions.find(x => x.sid === c.sid);
+    if (!sess || sess.revokedAt || sess.userId !== c.sub) return null;
+    return this.getUserById(c.sub) || null;
+  }
+
+  private pruneSessions() {
+    const t = Date.now();
+    if (this.s.refreshTokens.length > 2000) this.s.refreshTokens = this.s.refreshTokens.filter(x => x.expiresAt > t && !x.usedAt);
+    if (this.s.sessions.length > 2000) this.s.sessions = this.s.sessions.filter(x => x.expiresAt > t - SOS_SESSION_GRACE_MS);
+  }
+
+  // ── PHONE OTP (P1.5) ────────────────────────────────────────────────────────
+  /** Creates a 6-digit OTP (hash stored). Returns null while in the 30 s resend cooldown. */
+  createOtp(phone: string): string | null {
+    const t = Date.now();
+    const prev = this.s.otps.find(o => o.phone === phone);
+    if (prev && t - prev.sentAt < 30_000) return null;
+    const code = String(100000 + (randomBytes(4).readUInt32BE() % 900000));
+    this.s.otps = this.s.otps.filter(o => o.phone !== phone && o.expiresAt > t);
+    this.s.otps.push({ phone, codeHash: hmac(config().JWT_SECRET, `otp:${phone}:${code}`), expiresAt: t + 5 * 60_000, attempts: 0, sentAt: t });
+    this.touch();
+    return code;
+  }
+
+  /** Single use, 5 minutes, max 5 attempts. */
+  verifyOtp(phone: string, code: string): boolean {
+    const o = this.s.otps.find(x => x.phone === phone);
+    if (!o || o.expiresAt < Date.now() || o.attempts >= 5) return false;
+    const ok = safeEqualHex(o.codeHash, hmac(config().JWT_SECRET, `otp:${phone}:${code}`));
+    if (ok) this.s.otps = this.s.otps.filter(x => x !== o);
+    else o.attempts++;
+    this.touch();
+    return ok;
   }
 
   // ── DEPARTMENT CREDENTIALS (M5) ─────────────────────────────────────────────
@@ -934,7 +1012,7 @@ export class AppStorage {
   }
   pushTokensForUser(userId: string) { return this.s.pushTokens.filter(t => t.userId === userId).map(t => t.token); }
   adminPushTokensForDistrict(district: string) {
-    return this.s.pushTokens.filter(t => t.role === "super_admin" || (t.role === "admin" && t.district === district)).map(t => t.token);
+    return this.s.pushTokens.filter(t => isStateUser(t) || (isDistrictAdmin(t) && t.district === district)).map(t => t.token);
   }
 }
 

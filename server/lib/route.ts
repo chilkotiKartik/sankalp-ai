@@ -1,9 +1,12 @@
+import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z, type ZodTypeAny } from "zod";
 import { config } from "../config";
 import { storage, type AppUser, DEPARTMENTS, SOS_SESSION_GRACE_MS } from "../storage";
 import { unauthorized, forbidden } from "./errors";
+import { permits, type Principal } from "../auth/permissions";
+import { isJwtShape } from "../auth/tokens";
 
 /**
  * Route registry (M14). Every API route MUST be declared through `route()` with:
@@ -24,7 +27,18 @@ export type AuthLevel =
 
 export interface Actor {
   user?: AppUser;
+  /** Department this actor acts for: a department portal token, or an officer/dept_admin/police account. */
   deptId?: string;
+  /** True when deptId comes from a department portal token (not a personal account). */
+  deptToken?: boolean;
+}
+
+/** RBAC principals of an actor (P1.4). */
+export function principals(a: Actor): Principal[] {
+  const out: Principal[] = [];
+  if (a.user) out.push(a.user.role as Principal);
+  if (a.deptToken && a.deptId) out.push("dept_token", `dept_token:${a.deptId}`);
+  return out;
 }
 
 export interface RouteMeta {
@@ -104,15 +118,20 @@ function bearer(req: Request, allowQuery: boolean): string | null {
 export function resolveActor(req: Request, allowQuery = false, graceMs = 0): Actor {
   const tok = bearer(req, allowQuery);
   if (!tok) return {};
-  if (tok.includes(".")) {
+  let user: AppUser | null = null;
+  if (isJwtShape(tok)) user = storage.validateAccess(tok, graceMs);
+  else if (tok.includes(".")) {
     const d = verifyDeptToken(tok);
-    return d ? { deptId: d.departmentId } : {};
-  }
-  const user = storage.validateToken(tok, graceMs);
-  return user ? { user } : {};
+    return d ? { deptId: d.departmentId, deptToken: true } : {};
+  } else user = storage.validateToken(tok, graceMs);
+  if (!user) return {};
+  // Personal department accounts act for their department; police accounts act for the police unit.
+  if ((user.role === "officer" || user.role === "dept_admin") && user.departmentId) return { user, deptId: user.departmentId };
+  if (user.role === "police") return { user, deptId: "police" };
+  return { user };
 }
 
-const isAdmin = (u?: AppUser) => u?.role === "admin" || u?.role === "super_admin";
+const isAdmin = (u?: AppUser) => isAdminUser(u);
 
 export function authorize(level: AuthLevel, a: Actor): void {
   switch (level) {
@@ -158,6 +177,9 @@ export function route<P extends ZodTypeAny, Q extends ZodTypeAny, B extends ZodT
     try {
       const actor = resolveActor(req, !!def.allowQueryToken, def.auth === "sos" ? SOS_SESSION_GRACE_MS : 0);
       authorize(def.auth, actor);
+      if (def.auth !== "public" && def.auth !== "optional" && !permits(def.permission, principals(actor))) {
+        throw forbidden("Your role is not allowed to do this");
+      }
       const { token: _t, ...queryRest } = req.query as Record<string, unknown>;
       const params = def.params.parse(req.params);
       const query = def.query.parse(def.allowQueryToken ? queryRest : req.query);
@@ -178,5 +200,5 @@ export function route<P extends ZodTypeAny, Q extends ZodTypeAny, B extends ZodT
 /** Tenant/district scope: super_admin sees all; others see their own district. */
 export function scopeDistrict(actor: Actor): string | undefined {
   if (!actor.user) return undefined;
-  return actor.user.role === "super_admin" ? undefined : actor.user.district;
+  return isStateUser(actor.user) ? undefined : actor.user.district;
 }

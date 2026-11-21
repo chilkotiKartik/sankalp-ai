@@ -1,3 +1,4 @@
+import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import { defaultDistrict } from "../data/reference";
 import type { Express } from "express";
 import { z } from "zod";
@@ -13,13 +14,13 @@ import { complaintFor, toStaffComplaint } from "./dto";
 import { resolveImage } from "./media";
 import { deptEmitter } from "../storage";
 
-const isAdmin = (u?: AppUser) => u?.role === "admin" || u?.role === "super_admin";
+const isAdmin = (u?: AppUser) => isAdminUser(u);
 
 /** Staff with authority over this complaint: super admin, admin of its district, or the owning department. */
 export function staffFor(actor: Actor, c: Complaint): boolean {
   if (actor.deptId) return getDeptIdForCategory(c.category) === actor.deptId;
   const u = actor.user;
-  return !!u && (u.role === "super_admin" || (u.role === "admin" && u.district === c.district));
+  return !!u && (isStateUser(u) || (isDistrictAdmin(u) && u.district === c.district));
 }
 
 function canView(actor: Actor, c: Complaint): boolean {

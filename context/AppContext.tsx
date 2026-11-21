@@ -256,7 +256,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const { token, logout } = useAuth();
+  const { token, logout, refreshSession } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [sosAlerts, setSosAlerts] = useState<SOSAlert[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
@@ -275,6 +275,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const logoutRef = useRef(logout);
   logoutRef.current = logout;
+  const refreshRef = useRef(refreshSession);
+  refreshRef.current = refreshSession;
 
   const loadData = useCallback(async (silent = false) => {
     const currentToken = tokenRef.current;
@@ -304,7 +306,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (e: any) {
       // Token expired or invalid → force re-login so user sees fresh data
       if (e?.status === 401 || String(e?.message).includes("401") || String(e?.message).toLowerCase().includes("invalid or expired")) {
-        logoutRef.current();
+        // Access tokens are short-lived: try the refresh token first; sign out only if that fails too.
+        const renewed = await refreshRef.current();
+        if (!renewed) logoutRef.current();
       }
     }
     finally { if (!silent) setIsLoading(false); }

@@ -1,6 +1,6 @@
 import type { ComplaintState, LegacyStatus } from "./domain/complaintState";
 
-export type UserRole = "citizen" | "worker" | "admin" | "super_admin";
+export type UserRole = "citizen" | "worker" | "officer" | "dept_admin" | "district_admin" | "admin" | "police" | "state_admin" | "super_admin";
 export type Priority = "P1" | "P2" | "P3" | "P4";
 export type ComplaintStatus = LegacyStatus;
 export type ComplaintCategory =
@@ -15,6 +15,8 @@ export type SOSCategory =
 export interface AppUser {
   id: string;
   isDemo?: boolean;
+  /** Department for officer / dept_admin accounts (P1.4). */
+  departmentId?: string;
   name: string;
   phone: string;
   pin: string;

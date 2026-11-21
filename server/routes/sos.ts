@@ -1,3 +1,4 @@
+import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage, cprEmitter, deptEmitter, type SOSAlert, type AppUser } from "../storage";
@@ -11,13 +12,13 @@ import { canAccessEvidence } from "./media";
  * SOS (rule 9: never rate-limited or blocked — duplicates are merged in storage).
  * Victim details go only to district staff, police/USDMA and the victim (audit C1/C2 fix).
  */
-const isAdmin = (u?: AppUser) => u?.role === "admin" || u?.role === "super_admin";
+const isAdmin = (u?: AppUser) => isAdminUser(u);
 
 function staffForSos(actor: Actor, a: SOSAlert): boolean {
   if (actor.deptId === "police" || actor.deptId === "usdma") return true;
   if (actor.deptId === "forest" && a.category === "forest_fire") return true;
   const u = actor.user;
-  return !!u && (u.role === "super_admin" || (u.role === "admin" && u.district === a.district));
+  return !!u && (isStateUser(u) || (isDistrictAdmin(u) && u.district === a.district));
 }
 
 function mustSos(id: string): SOSAlert {

@@ -1,3 +1,4 @@
+import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
@@ -69,8 +70,8 @@ export function registerAdminRoutes(app: Express) {
     handler: ({ body, user }) => {
       const message = body.message || "DISTRICT-WIDE EMERGENCY ALERT: Take immediate precautions. Follow official instructions.";
       publishEmergencyBroadcast(user, message, body.severity || "high");
-      storage.addAuditLog("emergency_broadcast", user.id, user.name, `Emergency broadcast to ${user.role === "super_admin" ? "all districts" : user.district}`);
-      return { success: true, scope: user.role === "super_admin" ? "all" : user.district };
+      storage.addAuditLog("emergency_broadcast", user.id, user.name, `Emergency broadcast to ${isStateUser(user) ? "all districts" : user.district}`);
+      return { success: true, scope: isStateUser(user) ? "all" : user.district };
     },
   });
 
@@ -105,7 +106,7 @@ export function registerAdminRoutes(app: Express) {
     params: none, query: none, body: annBody,
     handler: ({ body, user, res }) => {
       const ann = storage.createAnnouncement({ ...body, type: body.type || "general", department: body.department || "District Administration",
-        priority: body.priority || "normal", targetDistrict: user.role === "super_admin" ? body.targetDistrict : user.district, postedBy: user.name });
+        priority: body.priority || "normal", targetDistrict: isStateUser(user) ? body.targetDistrict : user.district, postedBy: user.name });
       storage.addAuditLog("announcement_posted", user.id, user.name, `Announcement: ${body.title}`);
       res.status(201);
       return ann;
@@ -118,7 +119,7 @@ export function registerAdminRoutes(app: Express) {
     handler: ({ params, user }) => {
       const a = storage.getAnnouncement(params.id);
       if (!a) throw notFound();
-      if (user.role !== "super_admin" && a.targetDistrict !== user.district) throw forbidden("You can only delete announcements for your district");
+      if (!isStateUser(user) && a.targetDistrict !== user.district) throw forbidden("You can only delete announcements for your district");
       storage.deleteAnnouncement(a.id);
       storage.addAuditLog("announcement_deleted", user.id, user.name, `Announcement deleted: ${a.title}`);
       return { success: true };
@@ -139,7 +140,7 @@ export function registerAdminRoutes(app: Express) {
     handler: ({ body, user, res }) => {
       res.status(201);
       return storage.createPoll({ question: body.question, options: body.options, votes: body.options.map(() => 0), voterIds: [],
-        district: user.role === "super_admin" ? undefined : user.district, createdAt: new Date().toISOString(), createdBy: user.name, status: "active", expiresAt: body.expiresAt });
+        district: isStateUser(user) ? undefined : user.district, createdAt: new Date().toISOString(), createdBy: user.name, status: "active", expiresAt: body.expiresAt });
     },
   });
 
@@ -194,7 +195,7 @@ export function registerAdminRoutes(app: Express) {
     handler: ({ body, user, res }) => {
       res.status(201);
       return storage.createEvent({ title: body.title, description: body.description || "", date: body.date, time: body.time || "TBD", location: body.location,
-        type: body.type || "meeting", district: user.role === "super_admin" ? undefined : user.district, organizer: user.name });
+        type: body.type || "meeting", district: isStateUser(user) ? undefined : user.district, organizer: user.name });
     },
   });
 
@@ -252,7 +253,7 @@ export function registerAdminRoutes(app: Express) {
     handler: ({ params, body, user }) => {
       const r = storage.getRTI(params.id);
       if (!r) throw notFound("RTI not found");
-      if (user.role !== "super_admin" && r.district !== user.district) throw forbidden("RTI is outside your district");
+      if (!isStateUser(user) && r.district !== user.district) throw forbidden("RTI is outside your district");
       storage.addAuditLog("rti_responded", user.id, user.name, `RTI ${r.ticketId} responded`);
       return storage.respondRTI(r.id, body.response);
     },
@@ -310,7 +311,7 @@ export function registerAdminRoutes(app: Express) {
     params: none, query: none, body: none,
     handler: ({ actor, user }) => {
       const list = storage.getWorkers(scopeDistrict(actor));
-      return user.role === "admin" || user.role === "super_admin" ? list : list.map(toPublicWorker);
+      return isAdminUser(user) ? list : list.map(toPublicWorker);
     },
   });
 }

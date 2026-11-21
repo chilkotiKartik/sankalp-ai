@@ -1,3 +1,4 @@
+import { isAdminUser, isStateUser, isDistrictAdmin } from "./auth/roles";
 import type { Server, IncomingMessage } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage, bus, type AppUser, type Complaint, type SOSAlert, type Announcement } from "./storage";
@@ -21,7 +22,7 @@ let heartbeat: ReturnType<typeof setInterval> | null = null;
 const unsubscribers: Array<() => void> = [];
 
 const isStaffFor = (u: AppUser, district?: string) =>
-  u.role === "super_admin" || (u.role === "admin" && (!district || u.district === district));
+  isStateUser(u) || (isDistrictAdmin(u) && (!district || u.district === district));
 
 function send(c: Client, payload: unknown) {
   if (c.ws.readyState === WebSocket.OPEN) c.ws.send(JSON.stringify(payload));
@@ -38,8 +39,8 @@ function deliver(pred: (u: AppUser) => boolean, payload: unknown, tenantId = cur
 }
 
 export function publishEmergencyBroadcast(sender: AppUser, message: string, severity: string) {
-  const district = sender.role === "super_admin" ? null : sender.district;
-  deliver(u => !district || u.district === district || u.role === "super_admin",
+  const district = isStateUser(sender) ? null : sender.district;
+  deliver(u => !district || u.district === district || isStateUser(u),
     { type: "emergency_broadcast", message, severity, district: district ?? "all", timestamp: new Date().toISOString() });
 }
 
@@ -64,7 +65,7 @@ function onSos(ev: { type: string; alert: SOSAlert }) {
 
 function onAnnouncement(ev: { announcement: Announcement }) {
   const a = ev.announcement;
-  deliver(u => !a.targetDistrict || a.targetDistrict === "all" || a.targetDistrict === u.district || u.role === "super_admin",
+  deliver(u => !a.targetDistrict || a.targetDistrict === "all" || a.targetDistrict === u.district || isStateUser(u),
     { type: "announcement", announcement: a, timestamp: new Date().toISOString() });
 }
 

@@ -1,3 +1,4 @@
+import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import { currentTenantId } from "../tenancy";
 import type { Express } from "express";
 import { z } from "zod";
@@ -13,7 +14,7 @@ import { toPublicVan } from "./dto";
  * department token or an admin account. Admin users are scoped to their district.
  */
 function districtScope(actor: Actor, requested?: string): string | undefined {
-  if (actor.user && actor.user.role === "admin") return actor.user.district;
+  if (actor.user && isDistrictAdmin(actor.user)) return actor.user.district;
   return requested;
 }
 
@@ -34,8 +35,8 @@ export function registerCprRoutes(app: Express) {
       if (actor.deptId === "police" || actor.deptId === "usdma") return storage.getPatrolVans(query.district);
       if (!actor.user) throw unauthorized();
       const user = actor.user;
-      const staff = user.role === "admin" || user.role === "super_admin";
-      const d = user.role === "super_admin" ? query.district : user.district;
+      const staff = isAdminUser(user);
+      const d = isStateUser(user) ? query.district : user.district;
       const vans = storage.getPatrolVans(d);
       return staff ? vans : vans.map(toPublicVan);
     },
@@ -72,7 +73,7 @@ export function registerCprRoutes(app: Express) {
     handler: ({ actor, params, body }) => {
       const inc = storage.getSafetyIncidents().find(i => i.id === params.id);
       if (!inc) throw notFound("Incident not found");
-      if (actor.user?.role === "admin" && actor.user.district !== inc.district) throw forbidden("Incident is outside your district");
+      if (actor.user && isDistrictAdmin(actor.user) && actor.user.district !== inc.district) throw forbidden("Incident is outside your district");
       const who = actor.user ? `${actor.user.name}` : `dept:${actor.deptId}`;
       const updated = storage.updateIncidentStatus(inc.id, body.status as SafetyIncident["status"], body.message || "Status updated", who)!;
       storage.addAuditLog("cpr_incident_update", actor.user?.id ?? `dept:${actor.deptId}`, who, `Incident ${inc.id.slice(0, 8)} → ${body.status}`);
@@ -86,7 +87,7 @@ export function registerCprRoutes(app: Express) {
     handler: ({ actor, params, body }) => {
       const existing = storage.getPatrolVans().find(v => v.id === params.id);
       if (!existing) throw notFound("Patrol van not found");
-      if (actor.user?.role === "admin" && actor.user.district !== existing.district) throw forbidden("Patrol van is outside your district");
+      if (actor.user && isDistrictAdmin(actor.user) && actor.user.district !== existing.district) throw forbidden("Patrol van is outside your district");
       const van = storage.updatePatrolLocation(params.id, body);
       if (!van) throw notFound("Patrol van not found");
       return van;
@@ -131,7 +132,7 @@ export function registerCprRoutes(app: Express) {
       if (actor.deptId === "police" || actor.deptId === "usdma") return zones;
       if (!actor.user) throw unauthorized();
       const u = actor.user;
-      return zones.filter(z => u.role === "super_admin" || z.district === u.district);
+      return zones.filter(z => isStateUser(u) || z.district === u.district);
     },
   });
 
@@ -177,7 +178,7 @@ export function registerCprRoutes(app: Express) {
     allowQueryToken: true,
     params: none, query: none, body: none,
     handler: ({ actor, req, res }) => {
-      const scoped = actor.user?.role === "admin" ? actor.user.district : undefined;
+      const scoped = actor.user && isDistrictAdmin(actor.user) ? actor.user.district : undefined;
       sse(res);
       const hb = setInterval(() => res.write(`: ping\n\n`), 25_000);
       const tid = currentTenantId();
