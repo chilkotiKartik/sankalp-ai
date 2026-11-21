@@ -34,6 +34,13 @@ if [[ -n "${BACKUP_S3_URI:-}" ]]; then
   aws s3 cp "$OUT.sha256" "$BACKUP_S3_URI/" ${BACKUP_S3_ENDPOINT:+--endpoint-url "$BACKUP_S3_ENDPOINT"}
   echo "uploaded to $BACKUP_S3_URI"
 fi
+# P7.4: second copy in another Indian region (e.g. Mumbai + Hyderabad). Same encrypted object, separate credentials allowed.
+if [[ -n "${BACKUP_S3_URI_2:-}" ]]; then
+  command -v aws >/dev/null || { echo "aws CLI not installed — skipping second-region upload" >&2; exit 0; }
+  aws s3 cp "$OUT" "$BACKUP_S3_URI_2/" ${BACKUP_S3_ENDPOINT_2:+--endpoint-url "$BACKUP_S3_ENDPOINT_2"}
+  aws s3 cp "$OUT.sha256" "$BACKUP_S3_URI_2/" ${BACKUP_S3_ENDPOINT_2:+--endpoint-url "$BACKUP_S3_ENDPOINT_2"}
+  echo "uploaded to second region $BACKUP_S3_URI_2"
+fi
 
 # retention of local copies (default 14)
 ls -1t "$BACKUP_DIR"/sankalp-*.enc 2>/dev/null | tail -n +"$(( ${BACKUP_KEEP:-14} + 1 ))" | while read -r f; do rm -f "$f" "$f.sha256"; done

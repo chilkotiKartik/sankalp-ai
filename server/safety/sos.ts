@@ -48,8 +48,22 @@ export function startContactDeliveries(alert: SOSAlert, user: AppUser): number {
   return contacts.length;
 }
 
-/** Job body (every 15 s): sends due deliveries for open SOS alerts. */
-export async function runSosDeliveries(at = Date.now()): Promise<number> {
+/**
+ * Job body (every 15 s, and right after a new SOS): sends due deliveries for open SOS alerts.
+ * Review P6-1: one run per tenant at a time, and a delivery is marked "sending" before the SMS call, so
+ * overlapping runs can never send twice or burn retry attempts.
+ */
+const running = new Map<string, Promise<number>>();
+export function runSosDeliveries(at = Date.now()): Promise<number> {
+  const key = currentTenantId();
+  const prev = running.get(key);
+  if (prev) return prev.then(() => runOnce(at));
+  const p = runOnce(at).finally(() => { if (running.get(key) === p) running.delete(key); });
+  running.set(key, p);
+  return p;
+}
+
+async function runOnce(at: number): Promise<number> {
   let sent = 0;
   for (const a of storage.getSosAlerts()) {
     if (!a.contactDeliveries?.length || a.status === "resolved" || a.status === "cancelled") continue;
@@ -60,10 +74,11 @@ export async function runSosDeliveries(at = Date.now()): Promise<number> {
       if (!contact) { d.status = "failed"; d.error = "contact removed"; continue; }
       d.attempts++;
       d.lastAttemptAt = new Date(at).toISOString();
-      const r = await sendSms(contact.phone, "sos_contact", [shareLink(a)]);
+      d.status = "sending";
+      const r = await sendSms(contact.phone, "sos_contact", [shareLink(a)]).catch(err => ({ ok: false, error: (err as Error).message, messageId: undefined }));
       if (r.ok) { d.status = "sent"; d.messageId = r.messageId; sent++; }
       else if (d.attempts >= BACKOFF_MS.length) { d.status = "failed"; d.error = r.error; logger.warn("sos_contact_failed", { sos: a.id, attempts: d.attempts }); }
-      else d.nextAttemptAt = at + BACKOFF_MS[d.attempts];
+      else { d.status = "pending"; d.nextAttemptAt = at + BACKOFF_MS[d.attempts]; }
     }
   }
   if (sent) storage.touch();

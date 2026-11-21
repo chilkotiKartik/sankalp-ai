@@ -496,7 +496,7 @@ export class AppStorage {
       }
     }
     const sosExpired = this.s.sosAlerts.filter(a => !a.legalHold && (a.status === "resolved" || a.status === "cancelled")
-      && at - new Date(a.resolvedAt ?? a.triggeredAt).getTime() > r.sosEvidenceDays * day);
+      && at - new Date(a.resolvedAt ?? a.cancelledAt ?? a.triggeredAt).getTime() > r.sosEvidenceDays * day);
     const sosIds = new Set(sosExpired.map(a => a.id));
     const sosFiles = this.s.media.filter(x => x.sosId && sosIds.has(x.sosId)).map(m => m.fileName);
     const result = { complaints: expired.size, media: [...mediaFiles], sosEvidence: sosFiles, dryRun };

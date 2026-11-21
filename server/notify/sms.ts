@@ -12,7 +12,7 @@ import { logger } from "../lib/logger";
  * Messages use DLT templates with variables only — never names, addresses or locations (rule 2).
  */
 export type SmsTemplate = "otp" | "status_update" | "sos_fallback" | "checkin_alert" | "verify_request" | "ops_alert"
-  | "complaint_received" | "consent_request" | "status_reply" | "channel_help" | "voice_received" | "sos_contact" | "sos_cancelled";
+  | "complaint_received" | "consent_request" | "status_reply" | "channel_help" | "voice_received" | "sos_contact" | "sos_cancelled" | "checkin_safe";
 
 export const TEMPLATES: Record<SmsTemplate, string> = {
   otp: "Your SANKALP verification code is {#var#}. Valid 5 minutes. Do not share it.",
@@ -30,6 +30,7 @@ export const TEMPLATES: Record<SmsTemplate, string> = {
   // P6.1: the location is behind a signed link that expires — never in the SMS text itself.
   sos_contact: "SANKALP SOS: someone who listed you as a trusted contact needs help. Live location: {#var#} . Call 112.",
   sos_cancelled: "SANKALP: the SOS alert you received was cancelled by the sender.",
+  checkin_safe: "SANKALP: the person who missed a check-in has now confirmed they are safe.",
 };
 
 export interface SmsResult { ok: boolean; driver: string; error?: string; messageId?: string }

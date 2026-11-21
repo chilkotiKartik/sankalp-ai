@@ -32,7 +32,8 @@ const memberView = (g: YatraGroup) => ({
 });
 
 function notifyGroup(g: YatraGroup, exceptUserId?: string) {
-  for (const m of g.members) if (m.userId !== exceptUserId) void sendPush(storage.pushTokensForUser(m.userId), { kind: "announcement", id: g.id, ref: g.code });
+  // Review P6-9: never the join code (it would let anyone on the lock screen join and see live locations).
+  for (const m of g.members) if (m.userId !== exceptUserId) void sendPush(storage.pushTokensForUser(m.userId), { kind: "announcement", id: g.id, ref: "yatra group" });
 }
 
 /** Job body: flag silent members, delete expired groups (with all locations). */
@@ -41,7 +42,7 @@ export function runYatraHousekeeping(at = Date.now()): { expired: number; flagge
   const before = storage.s.yatraGroups.length;
   storage.s.yatraGroups = storage.s.yatraGroups.filter(g => new Date(g.expiresAt).getTime() > at);
   for (const g of storage.s.yatraGroups) for (const m of g.members) {
-    if (m.at && !m.lost && at - new Date(m.at).getTime() > SILENT_MS) { m.lost = true; m.lostAlertedAt = new Date(at).toISOString(); flagged++; notifyGroup(g, m.userId); }
+    if (m.at && !m.lost && at - new Date(m.at).getTime() > SILENT_MS) { m.lost = true; m.lostReason = "silent"; m.lostAlertedAt = new Date(at).toISOString(); flagged++; notifyGroup(g, m.userId); }
   }
   const expired = before - storage.s.yatraGroups.length;
   if (expired || flagged) storage.touch();
@@ -102,7 +103,8 @@ export function registerYatraRoutes(app: Express) {
     handler: ({ params, body, user }) => {
       const { m } = mine(params.id, user.id);
       m.geo = body.geo; m.at = new Date().toISOString();
-      if (m.lost && !m.lostAlertedAt) m.lost = false;
+      // A member flagged only for silence is fine again once they report a location; "I'm lost" needs their own reset.
+      if (m.lost && m.lostReason === "silent") { m.lost = false; m.lostReason = undefined; m.lostAlertedAt = undefined; }
       storage.touch();
       return { ok: true };
     },
@@ -113,7 +115,7 @@ export function registerYatraRoutes(app: Express) {
     params: idParams, query: none, body: z.object({ lost: z.boolean(), geo: geo.optional() }),
     handler: ({ params, body, user }) => {
       const { g, m } = mine(params.id, user.id);
-      m.lost = body.lost; m.lostAlertedAt = body.lost ? new Date().toISOString() : undefined;
+      m.lost = body.lost; m.lostReason = body.lost ? "self" : undefined; m.lostAlertedAt = body.lost ? new Date().toISOString() : undefined;
       if (body.geo) { m.geo = body.geo; m.at = new Date().toISOString(); }
       if (body.lost) notifyGroup(g, user.id);
       storage.touch();

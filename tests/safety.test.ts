@@ -97,7 +97,7 @@ describe("P6.2 evidence vault", () => {
     expect(up.status).toBe(200);
     const file = up.body.filename ?? up.body.url.split("/").pop();
     const raw = fs.readFileSync(path.join(path.resolve(config().DATA_DIR), "private", file));
-    expect(raw.subarray(0, 4).toString()).toBe("SKV1");
+    expect(raw.subarray(0, 4).toString()).toBe("SKV2");
     expect(raw.includes(Buffer.from("ftypM4A"))).toBe(false);
     const got = await request(app()).get(`/api/media/audio/${file}`).set(auth(u.token)).buffer(true).parse((res, cb) => { const ch: Buffer[] = []; res.on("data", (c: Buffer) => ch.push(c)); res.on("end", () => cb(null, Buffer.concat(ch))); });
     expect(got.status).toBe(200);
@@ -133,5 +133,55 @@ describe("P6.3 check-in timer", () => {
     expect(await runCheckInAlerts(Date.now() + 60 * 60_000)).toBe(0);
     storage.eraseUser(u.user.id, "test");
     expect(storage.s.checkins.some(c => c.userId === u.user.id)).toBe(false);
+  });
+});
+
+describe("Phase 6 review regressions", () => {
+  it("P6-1: overlapping delivery runs send each SMS once", async () => {
+    const { u, c1 } = await withContacts();
+    await request(app()).post("/api/sos").set(auth(u.token)).send({ category: "medical", geo: { lat: 30.3, lng: 78 } });
+    await Promise.all([runSosDeliveries(), runSosDeliveries(), runSosDeliveries()]);
+    expect(smsLog().split("\n").filter(l => l.includes(c1) && l.includes("trusted contact"))).toHaveLength(1);
+  });
+
+  it("P6-2: parallel wrong PINs cannot get past the 5-attempt lock", async () => {
+    const { u } = await withContacts();
+    const r = await request(app()).post("/api/sos").set(auth(u.token)).send({ category: "medical", geo: { lat: 30.3, lng: 78 } });
+    const tries = Array.from({ length: 12 }, () => request(app()).put(`/api/sos/${r.body.id}/cancel`).set(auth(u.token)).send({ pin: "000000" }));
+    await Promise.all([...tries, request(app()).put(`/api/sos/${r.body.id}/cancel`).set(auth(u.token)).send({ pin: u.pin })]);
+    const a = storage.getSOSAlert(r.body.id)!;
+    expect((a.cancelPinAttempts ?? 0) <= 5 || a.status === "active").toBe(true);
+    expect(a.status === "cancelled" && (a.cancelPinAttempts ?? 0) > 5).toBe(false);
+  });
+
+  it("P6-6: an account without a known PIN can cancel with a one-time SMS code", async () => {
+    const { u } = await withContacts();
+    const r = await request(app()).post("/api/sos").set(auth(u.token)).send({ category: "medical", geo: { lat: 30.3, lng: 78 } });
+    const code = storage.createOtp(u.user.phone)!;
+    expect((await request(app()).put(`/api/sos/${r.body.id}/cancel`).set(auth(u.token)).send({ otp: code })).body.status).toBe("cancelled");
+  });
+
+  it("P6-5: 'I'm safe' after the alert still closes the check-in and sends an all-clear", async () => {
+    const { runCheckInAlerts } = await import("../server/safety/checkin");
+    const { u, c1 } = await withContacts();
+    const r = await request(app()).post("/api/safety/checkins").set(auth(u.token)).send({ minutes: 5 });
+    await runCheckInAlerts(Date.now() + 20 * 60_000);
+    expect((await request(app()).put(`/api/safety/checkins/${r.body.id}/done`).set(auth(u.token)).send({})).body.status).toBe("done");
+    expect(smsLog().split("\n").some(l => l.includes(c1) && l.includes("confirmed they are safe"))).toBe(true);
+  });
+
+  it("P6-7: evidence stays readable after rotating the vault key", async () => {
+    const { sealEvidence, openEvidence } = await import("../server/lib/media");
+    const { config, setConfig, loadConfig } = await import("../server/config");
+    const before = config();
+    const k1 = "a".repeat(64), k2 = "b".repeat(64);
+    try {
+      setConfig(loadConfig({ ...process.env, EVIDENCE_ENC_KEY: k1 }));
+      const sealed = sealEvidence(Buffer.from("evidence"));
+      setConfig(loadConfig({ ...process.env, EVIDENCE_ENC_KEY: k2 }));
+      expect(() => openEvidence(sealed)).toThrow(/key not available/);
+      process.env.EVIDENCE_ENC_KEYS_OLD = k1;
+      expect(openEvidence(sealed).toString()).toBe("evidence");
+    } finally { delete process.env.EVIDENCE_ENC_KEYS_OLD; setConfig(before); }
   });
 });

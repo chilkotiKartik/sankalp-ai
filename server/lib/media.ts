@@ -1,4 +1,4 @@
-import { randomUUID, createHmac, timingSafeEqual, randomBytes, createCipheriv, createDecipheriv, hkdfSync } from "node:crypto";
+import { randomUUID, createHmac, createHash, timingSafeEqual, randomBytes, createCipheriv, createDecipheriv, hkdfSync } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { config } from "../config";
@@ -76,32 +76,71 @@ export const localDriver: MediaDriver = {
 };
 
 // ── P6.2 evidence vault: AES-256-GCM at rest for "private" (SOS audio/evidence) and "originals" (EXIF/GPS) ──
-const VAULT_MAGIC = Buffer.from("SKV1");
-let warnedDerived = false;
-function vaultKey(): Buffer {
-  const k = config().EVIDENCE_ENC_KEY;
-  if (k) {
-    const b = /^[0-9a-f]{64}$/i.test(k) ? Buffer.from(k, "hex") : Buffer.from(k, "base64");
-    if (b.length !== 32) throw new Error("EVIDENCE_ENC_KEY must be 32 bytes (64 hex characters or base64)");
-    return b;
+// Review P6-7: SKV2 = "SKV2" + 4-byte key id + 12-byte IV + 16-byte tag + ciphertext. Keys:
+//   EVIDENCE_ENC_KEY (current) · EVIDENCE_ENC_KEYS_OLD (comma-separated, still readable — rotation) ·
+//   otherwise a random key generated once in DATA_DIR/vault.key (0600; included in the encrypted backups).
+// The key is independent of JWT_SECRET, so rotating session secrets never destroys evidence.
+// SKV1 (first P6.2 build, key derived from JWT_SECRET) stays readable.
+const V1 = Buffer.from("SKV1"), V2 = Buffer.from("SKV2");
+const parseKey = (k: string) => {
+  const b = /^[0-9a-f]{64}$/i.test(k) ? Buffer.from(k, "hex") : Buffer.from(k, "base64");
+  if (b.length !== 32) throw new Error("Evidence keys must be 32 bytes (64 hex characters or base64)");
+  return b;
+};
+const keyId = (k: Buffer) => createHash("sha256").update(k).digest().subarray(0, 4);
+let fileKey: Buffer | null = null;
+function localVaultKey(): Buffer {
+  if (fileKey) return fileKey;
+  const p = path.join(path.resolve(config().DATA_DIR), "vault.key");
+  if (fs.existsSync(p)) fileKey = parseKey(fs.readFileSync(p, "utf8").trim());
+  else {
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    const k = randomBytes(32);
+    fs.writeFileSync(p, k.toString("hex") + "\n", { mode: 0o600, flag: "wx" });
+    fileKey = k;
   }
-  if (!warnedDerived && config().NODE_ENV === "production") { warnedDerived = true; console.warn("EVIDENCE_ENC_KEY not set — evidence key derived from JWT_SECRET; set it before rotating JWT_SECRET"); }
-  return Buffer.from(hkdfSync("sha256", config().JWT_SECRET, "sankalp-evidence-vault", "aes-256-gcm", 32));
+  return fileKey;
 }
+function currentKey(): Buffer {
+  const k = config().EVIDENCE_ENC_KEY;
+  return k ? parseKey(k) : localVaultKey();
+}
+function keyring(): Buffer[] {
+  const ks = [currentKey()];
+  for (const o of (process.env.EVIDENCE_ENC_KEYS_OLD || "").split(",").map(x => x.trim()).filter(Boolean)) ks.push(parseKey(o));
+  if (config().EVIDENCE_ENC_KEY) { try { ks.push(localVaultKey()); } catch { /* none */ } }
+  return ks;
+}
+const legacyV1Key = () => Buffer.from(hkdfSync("sha256", config().JWT_SECRET, "sankalp-evidence-vault", "aes-256-gcm", 32));
+
+/** true when the vault key is the deployment's own EVIDENCE_ENC_KEY (recommended for production; reported by /readyz). */
+export const vaultKeyConfigured = () => !!config().EVIDENCE_ENC_KEY;
 
 export function sealEvidence(plain: Buffer): Buffer {
+  const k = currentKey();
   const iv = randomBytes(12);
-  const c = createCipheriv("aes-256-gcm", vaultKey(), iv);
+  const c = createCipheriv("aes-256-gcm", k, iv);
   const body = Buffer.concat([c.update(plain), c.final()]);
-  return Buffer.concat([VAULT_MAGIC, iv, c.getAuthTag(), body]);
+  return Buffer.concat([V2, keyId(k), iv, c.getAuthTag(), body]);
 }
 
-/** Decrypts vault files; files written before P6.2 (no header) are returned as they are. Throws on tampering. */
+/** Decrypts vault files; files written before P6.2 (no header) are returned as they are. Throws on tampering or unknown key. */
 export function openEvidence(data: Buffer): Buffer {
-  if (data.length < 32 || !data.subarray(0, 4).equals(VAULT_MAGIC)) return data;
-  const d = createDecipheriv("aes-256-gcm", vaultKey(), data.subarray(4, 16));
-  d.setAuthTag(data.subarray(16, 32));
-  return Buffer.concat([d.update(data.subarray(32)), d.final()]);
+  const magic = data.subarray(0, 4);
+  if (data.length >= 36 && magic.equals(V2)) {
+    const id = data.subarray(4, 8);
+    const k = keyring().find(x => keyId(x).equals(id));
+    if (!k) throw new Error("Evidence key not available (set EVIDENCE_ENC_KEYS_OLD)");
+    const d = createDecipheriv("aes-256-gcm", k, data.subarray(8, 20));
+    d.setAuthTag(data.subarray(20, 36));
+    return Buffer.concat([d.update(data.subarray(36)), d.final()]);
+  }
+  if (data.length >= 32 && magic.equals(V1)) {
+    const d = createDecipheriv("aes-256-gcm", legacyV1Key(), data.subarray(4, 16));
+    d.setAuthTag(data.subarray(16, 32));
+    return Buffer.concat([d.update(data.subarray(32)), d.final()]);
+  }
+  return data;
 }
 
 const sealed = (area: "public" | "private" | "originals") => area !== "public";

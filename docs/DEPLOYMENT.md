@@ -43,13 +43,17 @@ Health checks: `GET /healthz` (liveness) and `GET /api/health`.
 
 ## 4. Platforms
 
-### Indian cloud VM / container (recommended)
-Any Linux VM in an Indian region. Run the steps above under systemd or a container, mount `DATA_DIR` on a persistent volume, and put nginx or Caddy in front for TLS. Docker Compose and a Helm chart arrive with Phase 7.2.
+### Indian cloud VM (MeitY-empanelled) or State Data Centre — recommended for production
+One command on Ubuntu 22.04/24.04, from a checkout of this repository:
+```bash
+sudo bash deploy/install-onprem.sh
+```
+It installs Node 22 if needed and creates a locked-down `sankalp` system user. It builds the server and writes `/etc/sankalp/sankalp.env` with freshly generated secrets (first run only). It then installs the hardened systemd unit (`deploy/sankalp.service`) and waits for `/readyz`. Re-running it upgrades the code and keeps your data and secrets. Put `deploy/nginx-sankalp.conf` in front for TLS (it is SSE/WebSocket aware and allows 25 MB uploads).
 
-### On-premise State Data Centre
-The same as above, with no outbound internet needed except the hosts you allow in `EGRESS_ALLOWLIST` (none are required: AI falls back to the rules engine and photos to manual review).
+No outbound internet is needed beyond the hosts you allow in `EGRESS_ALLOWLIST`, and none are required: AI falls back to the rules engine and photos to manual review. Docker Compose and Helm were deliberately not built (DECISIONS D-024). The systemd install is the supported on-premise path.
 
-### Render / Railway (current pilot hosting — not in India by default)
+### Render (current pilot hosting — not in India)
+`render.yaml` is the blueprint for the live service: web service with a 10 GB persistent disk at `DATA_DIR`, health check `/healthz`, generated JWT secrets, and a daily encrypted-backup cron job. Render has no Indian region, so keep it for pilots and demos and use the install above for production data.
 - **Build:** `npm ci && npm run expo:static:build && npm run server:build`
 - **Start:** `npm run server:prod`
 - Add a **persistent disk** mounted at `DATA_DIR`. Without one, data is lost on every restart or sleep.

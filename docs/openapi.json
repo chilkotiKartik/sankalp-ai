@@ -5098,6 +5098,39 @@
               "minLength": 2,
               "maxLength": 20
             }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 500,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2000
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+            }
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "0",
+                "1"
+              ]
+            }
           }
         ],
         "responses": {
@@ -10797,16 +10830,17 @@
                 "properties": {
                   "pin": {
                     "type": "string",
+                    "pattern": "^\\d{4,6}$"
+                  },
+                  "otp": {
+                    "type": "string",
                     "pattern": "^\\d{6}$"
                   },
                   "reason": {
                     "type": "string",
                     "maxLength": 200
                   }
-                },
-                "required": [
-                  "pin"
-                ]
+                }
               }
             }
           }
@@ -11446,6 +11480,7 @@
           "super_admin"
         ],
         "security": [
+          {},
           {
             "bearer": []
           }
@@ -11491,6 +11526,7 @@
           "super_admin"
         ],
         "security": [
+          {},
           {
             "bearer": []
           }
@@ -11614,6 +11650,7 @@
           "super_admin"
         ],
         "security": [
+          {},
           {
             "bearer": []
           }
@@ -11740,6 +11777,7 @@
           "super_admin"
         ],
         "security": [
+          {},
           {
             "bearer": []
           }
@@ -11869,6 +11907,7 @@
           "super_admin"
         ],
         "security": [
+          {},
           {
             "bearer": []
           }
@@ -12068,6 +12107,131 @@
           },
           "404": {
             "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/disaster/missing/queue": {
+      "get": {
+        "operationId": "get_api_disaster_missing_queue",
+        "summary": "disaster.manage",
+        "x-permission": "disaster.manage",
+        "x-allowed-principals": [
+          "disaster_authority",
+          "dept_token:usdma",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {},
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/disaster/missing/{id}/review": {
+      "put": {
+        "operationId": "put_api_disaster_missing_id_review",
+        "summary": "disaster.manage",
+        "x-permission": "disaster.manage",
+        "x-allowed-principals": [
+          "disaster_authority",
+          "dept_token:usdma",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {},
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "publish",
+                      "reject"
+                    ]
+                  }
+                },
+                "required": [
+                  "decision"
+                ]
+              }
+            }
           }
         }
       }

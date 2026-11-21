@@ -117,14 +117,14 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P6.4 police routing + 112 plan — nearest-station routing on all SOS routes; docs/112_INTEGRATION_PLAN.md (no live integration without approval)
 - [x] P6.5 disaster mode — config/runtime toggle, disaster_authority role, verified-only public road-block/landslide reports, relief camps, area broadcast, missing persons (no reporter identity), /web/disaster (no JS, <30 KB, a11y clean)
 - [x] P6.6 yatra mode — opt-in groups (code join, ≤10 days), member locations only within the group, I'm-lost + 60-min silence flags, nearest medical point, helplines, auto-expiry deletes locations
-- [ ] P6.gate
+- [x] P6.gate — gate green; review findings 1–10 fixed (docs/reports/phase-6.md)
 
 ## Phase 7 — Scale & deployment
-- [ ] P7.1 tenant onboarding
-- [ ] P7.2 docker-compose + Helm + deployment docs
-- [ ] P7.3 k6 load test
-- [ ] P7.4 DR
-- [ ] P7.5 ASVS L2
+- [x] P7.1 tenant onboarding — npm run tenant:onboard (CSV templates → zod-validated config, row-level errors); new state live by config only (test)
+- [x] P7.2 deployment (D-024: no Docker/Helm) — render.yaml blueprint, deploy/install-onprem.sh one-command VM/SDC install (hardened systemd + nginx), docs/DEPLOYMENT.md
+- [x] P7.3 load test — loadtest/k6.js (staging) + npm run loadtest: API p95 26–31 ms, SSE fan-out p95 24 ms at 6 complaints/s, 500 officers, 200 streams, 20k seeded; fixed quadratic RRR + unpaginated dept list (docs/LOADTEST.md)
+- [x] P7.4 DR — second Indian-region backup copy, scripts/dr-drill.sh, measured RTO 3.4 s for 20k complaints, RPO table, failover runbook (docs/DR.md)
+- [x] P7.5 ASVS L2 — docs/ASVS.md self-assessment (12 met, 2 partial with tracked gaps) + CERT-In audit pack list
 - [ ] P7.gate
 
 ## Phase 8 — Transparency

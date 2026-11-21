@@ -6,6 +6,7 @@ import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
 import { isIndianMobile, normalizeIndianMobile } from "@/lib/india";
+import { cacheTrustedContacts } from "@/lib/sos-fallback";
 
 /**
  * P6.1/P6.3 personal safety tools:
@@ -30,7 +31,7 @@ export default function SafetyScreen() {
   const [inCall, setInCall] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => { api("/api/me/trusted-contacts").then(setContacts).catch(() => {}); }, [token]);
+  useEffect(() => { api("/api/me/trusted-contacts").then((cs: Contact[]) => { setContacts(cs); void cacheTrustedContacts(cs.map(c => c.phone)); }).catch(() => {}); }, [token]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); Vibration.cancel(); }, []);
   useEffect(() => {
     if (!inCall) return;
@@ -41,7 +42,7 @@ export default function SafetyScreen() {
   const saveContacts = async () => {
     const clean = contacts.filter(c => c.phone.trim()).map(c => ({ label: c.label.trim() || "Contact", phone: normalizeIndianMobile(c.phone) }));
     if (clean.some(c => !isIndianMobile(c.phone))) { Alert.alert("Check the numbers", "Enter 10-digit Indian mobile numbers"); return; }
-    try { await api("/api/me/trusted-contacts", "PUT", { contacts: clean }); Alert.alert("Saved", `${clean.length} trusted contact(s) saved`); } catch (e: any) { Alert.alert("Error", e.message); }
+    try { await api("/api/me/trusted-contacts", "PUT", { contacts: clean }); void cacheTrustedContacts(clean.map(c => c.phone)); Alert.alert("Saved", `${clean.length} trusted contact(s) saved`); } catch (e: any) { Alert.alert("Error", e.message); }
   };
 
   const startCheckIn = async () => {

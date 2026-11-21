@@ -26,4 +26,10 @@ export const channelLimiter = rateLimit({
   keyGenerator: (req) => `chan:${currentTenantId()}:${String((req.body as { from?: unknown })?.from ?? "").replace(/\D/g, "").slice(-12)}`,
   message: json("Too many messages from this number"),
 });
+/** SOS cancel: per alert, not per IP (one shared mobile IP must not block other users; the PIN lock caps guesses). */
+export const sosCancelLimiter = rateLimit({
+  windowMs: 15 * 60_000, limit: 12, standardHeaders: "draft-7", legacyHeaders: false,
+  keyGenerator: (req) => `sos-cancel:${currentTenantId()}:${String(req.params?.id ?? "").slice(0, 80)}`,
+  message: json("Too many cancel attempts for this alert"),
+});
 export const writeLimiter = rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: "draft-7", legacyHeaders: false, keyGenerator: ip, message: json("Too many requests") });

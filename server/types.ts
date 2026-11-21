@@ -148,7 +148,7 @@ export interface SOSAlert {
   cancelledAt?: string;
   cancelPinAttempts?: number;
   /** P6.1: per trusted-contact SMS delivery with retry/backoff and provider receipts. */
-  contactDeliveries?: Array<{ contactId: string; phoneMasked: string; attempts: number; status: "pending" | "sent" | "delivered" | "failed"; lastAttemptAt?: string; nextAttemptAt: number; messageId?: string; error?: string }>;
+  contactDeliveries?: Array<{ contactId: string; phoneMasked: string; attempts: number; status: "pending" | "sending" | "sent" | "delivered" | "failed"; lastAttemptAt?: string; nextAttemptAt: number; messageId?: string; error?: string }>;
   triggeredBy?: string;
   triggeredByPhone?: string;
   nearestPoliceStation?: string;
@@ -505,14 +505,14 @@ export interface ReliefCamp {
 }
 export interface MissingPerson {
   id: string; reporterId: string; name: string; age?: number; gender?: string; description: string;
-  lastSeenArea: string; district: string; lastSeenAt?: string; status: "missing" | "found" | "withdrawn"; reportedAt: string; closedAt?: string;
+  lastSeenArea: string; district: string; lastSeenAt?: string; status: "pending_review" | "missing" | "found" | "withdrawn"; reportedAt: string; closedAt?: string;
 }
 export interface DisasterModeState { active: boolean; since?: string; by?: string; districts?: string[] }
 
 /** P6.6 yatra / tourist group. Locations are deleted when the group expires. */
 export interface YatraGroup {
   id: string; code: string; name: string; leaderId: string; createdAt: string; expiresAt: string;
-  members: Array<{ userId: string; displayName: string; joinedAt: string; geo?: GeoPoint; at?: string; lost?: boolean; lostAlertedAt?: string }>;
+  members: Array<{ userId: string; displayName: string; joinedAt: string; geo?: GeoPoint; at?: string; lost?: boolean; lostReason?: "self" | "silent"; lostAlertedAt?: string }>;
 }
 
 /** P6.3 safety check-in: if the user does not confirm by dueAt (+ grace), trusted contacts are alerted. */
@@ -525,6 +525,7 @@ export interface CheckIn {
   lastGeo?: GeoPoint;
   status: "active" | "done" | "alerted" | "cancelled";
   alertedAt?: string;
+  doneAt?: string;
 }
 
 export interface ErasureRequest {

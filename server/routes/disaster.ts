@@ -35,6 +35,10 @@ function manageScope(actor: Actor): string | undefined {
   return isStateUser(u) || isStateWide(u.district) ? undefined : u.district;
 }
 const inScope = (actor: Actor, district: string) => { const d = manageScope(actor); return !d || d === district; };
+/** Review P6-4: management routes take a disaster user OR a USDMA department session (no user). */
+function requireManager(actor: Actor) {
+  if (!actor.user && actor.deptId !== "usdma") throw new AppError(401, "UNAUTHORIZED", "Sign in as disaster staff");
+}
 const who = (actor: Actor) => actor.user?.id ?? `dept:${actor.deptId}`;
 
 const publicReport = (r: DisasterReport) => ({ id: r.id, kind: r.kind, district: r.district, geo: r.geo, description: r.description, reportedAt: r.reportedAt, status: r.status, verifiedAt: r.verifiedAt });
@@ -50,9 +54,23 @@ export function registerDisasterRoutes(app: Express) {
   route(app, {
     method: "put", path: "/api/disaster/mode", auth: "user", permission: "disaster.mode",
     params: none, query: none, body: z.object({ active: z.boolean(), districts: z.array(tenantDistrict).max(50).optional() }),
-    handler: ({ body, user }) => {
-      storage.s.disasterMode = body.active ? { active: true, since: new Date().toISOString(), by: user.id, districts: body.districts ?? [] } : { active: false };
-      storage.addAuditLog("disaster_mode", user.id, user.name, `Disaster mode ${body.active ? "ON" : "OFF"}${body.districts?.length ? ` for ${body.districts.join(", ")}` : ""}`);
+    handler: ({ body, user, actor }) => {
+      const own = manageScope(actor); // undefined = state-wide authority
+      const cur = storage.s.disasterMode ?? { active: false };
+      if (!own) {
+        storage.s.disasterMode = body.active ? { active: true, since: new Date().toISOString(), by: user.id, districts: body.districts ?? [] } : { active: false };
+      } else {
+        // Review P6-3: a district authority switches only its own district, never the whole state.
+        if (body.districts?.some(d => d !== own)) throw forbidden("You can only change disaster mode for your own district");
+        if (cur.active && !cur.districts?.length) {
+          if (!body.active) throw forbidden("Disaster mode is on state-wide; only the state authority can turn it off");
+        } else {
+          const set = new Set(cur.active ? cur.districts ?? [] : []);
+          if (body.active) set.add(own); else set.delete(own);
+          storage.s.disasterMode = set.size ? { active: true, since: cur.since ?? new Date().toISOString(), by: user.id, districts: [...set] } : { active: false };
+        }
+      }
+      storage.addAuditLog("disaster_mode", user.id, user.name, `Disaster mode ${body.active ? "ON" : "OFF"} (${own ?? (body.districts?.length ? body.districts.join(", ") : "state-wide")})`);
       storage.touch();
       return { active: disasterActive(), districts: storage.s.disasterMode.districts ?? [] };
     },
@@ -83,15 +101,16 @@ export function registerDisasterRoutes(app: Express) {
   });
 
   route(app, {
-    method: "get", path: "/api/disaster/reports/queue", auth: "user", permission: "disaster.manage",
+    method: "get", path: "/api/disaster/reports/queue", auth: "optional", permission: "disaster.manage",
     params: none, query: none, body: none,
-    handler: ({ actor }) => storage.s.disasterReports.filter(r => inScope(actor, r.district)).map(publicReport),
+    handler: ({ actor }) => { requireManager(actor); return storage.s.disasterReports.filter(r => inScope(actor, r.district)).map(publicReport); },
   });
 
   route(app, {
-    method: "put", path: "/api/disaster/reports/:id", auth: "user", permission: "disaster.manage",
+    method: "put", path: "/api/disaster/reports/:id", auth: "optional", permission: "disaster.manage",
     params: idParams, query: none, body: z.object({ status: z.enum(["verified", "cleared", "rejected"]) }),
     handler: ({ actor, params, body }) => {
+      requireManager(actor);
       const r = storage.s.disasterReports.find(x => x.id === params.id);
       if (!r) throw notFound();
       if (!inScope(actor, r.district)) throw forbidden("Outside your district");
@@ -113,9 +132,10 @@ export function registerDisasterRoutes(app: Express) {
     handler: ({ query }) => storage.s.reliefCamps.filter(c => c.open && (!query.district || c.district === query.district)),
   });
   route(app, {
-    method: "post", path: "/api/disaster/camps", auth: "user", permission: "disaster.manage",
+    method: "post", path: "/api/disaster/camps", auth: "optional", permission: "disaster.manage",
     params: none, query: none, body: campBody,
     handler: ({ actor, body, res }) => {
+      requireManager(actor);
       if (!inScope(actor, body.district)) throw forbidden("Outside your district");
       const c: ReliefCamp = { ...body, id: randomUUID(), updatedAt: new Date().toISOString(), updatedBy: who(actor) };
       storage.s.reliefCamps.push(c);
@@ -126,9 +146,10 @@ export function registerDisasterRoutes(app: Express) {
     },
   });
   route(app, {
-    method: "put", path: "/api/disaster/camps/:id", auth: "user", permission: "disaster.manage",
+    method: "put", path: "/api/disaster/camps/:id", auth: "optional", permission: "disaster.manage",
     params: idParams, query: none, body: campBody.partial(),
     handler: ({ actor, params, body }) => {
+      requireManager(actor);
       const c = storage.s.reliefCamps.find(x => x.id === params.id);
       if (!c) throw notFound();
       if (!inScope(actor, c.district) || (body.district && !inScope(actor, body.district))) throw forbidden("Outside your district");
@@ -140,13 +161,16 @@ export function registerDisasterRoutes(app: Express) {
 
   // ── area broadcast ──
   route(app, {
-    method: "post", path: "/api/disaster/broadcast", auth: "user", permission: "disaster.manage",
+    method: "post", path: "/api/disaster/broadcast", auth: "optional", permission: "disaster.manage",
     middleware: [writeLimiter],
     params: none, query: none, body: z.object({ message: text(500), severity: z.enum(["info", "warning", "critical"]).default("warning") }),
-    handler: ({ body, user }) => {
+    handler: ({ body, actor }) => {
+      requireManager(actor);
       const message = maskPII(body.message);
-      publishEmergencyBroadcast(user, message, body.severity);
-      storage.addAuditLog("disaster_broadcast", user.id, user.name, `Broadcast (${body.severity}) to ${isStateUser(user) ? "all districts" : user.district}`);
+      // A USDMA department session broadcasts state-wide; a district authority to its district.
+      const sender = actor.user ?? ({ id: "dept:usdma", name: "USDMA", role: "state_admin", district: tenant().stateLabel } as unknown as Parameters<typeof publishEmergencyBroadcast>[0]);
+      publishEmergencyBroadcast(sender, message, body.severity);
+      storage.addAuditLog("disaster_broadcast", who(actor), actor.user?.name ?? "USDMA", `Broadcast (${body.severity}) to ${manageScope(actor) ?? "all districts"}`);
       return { sent: true };
     },
   });
@@ -159,11 +183,35 @@ export function registerDisasterRoutes(app: Express) {
     body: z.object({ name: text(80), age: z.number().int().min(0).max(120).optional(), gender: z.enum(["female", "male", "other"]).optional(), description: text(500), lastSeenArea: text(200), district: tenantDistrict, lastSeenAt: z.string().datetime().optional() }),
     handler: ({ body, user, res }) => {
       if (!disasterActive(body.district)) throw new AppError(409, "DISASTER_MODE_OFF", "Missing-person reports open when disaster mode is active. Otherwise contact the police (112).");
-      const m: MissingPerson = { ...body, description: maskPII(body.description), lastSeenArea: maskPII(body.lastSeenArea), id: randomUUID(), reporterId: user.id, status: "missing", reportedAt: new Date().toISOString() };
+      // Review P6-8: at most 10 open reports per person; everything is masked; staff publish after a check.
+      const open = storage.s.missingPersons.filter(x => x.reporterId === user.id && (x.status === "missing" || x.status === "pending_review")).length;
+      if (open >= 10) throw new AppError(429, "TOO_MANY_REPORTS", "You already have 10 open reports");
+      const staffReporter = ["disaster_authority", "police", "district_admin", "admin", "state_admin", "super_admin"].includes(user.role);
+      const m: MissingPerson = { ...body, name: maskPII(body.name), description: maskPII(body.description), lastSeenArea: maskPII(body.lastSeenArea), id: randomUUID(), reporterId: user.id,
+        status: staffReporter ? "missing" : "pending_review", reportedAt: new Date().toISOString() };
       storage.s.missingPersons.unshift(m);
       storage.addAuditLog("missing_person_reported", user.id, "citizen", `Missing person report in ${m.district}`);
       storage.touch();
       res.status(201);
+      return { id: m.id, status: m.status, message: m.status === "pending_review" ? "Disaster staff will check this report and publish it." : undefined };
+    },
+  });
+  route(app, {
+    method: "get", path: "/api/disaster/missing/queue", auth: "optional", permission: "disaster.manage",
+    params: none, query: none, body: none,
+    handler: ({ actor }) => { requireManager(actor); return storage.s.missingPersons.filter(m => m.status === "pending_review" && inScope(actor, m.district)).map(publicMissing); },
+  });
+  route(app, {
+    method: "put", path: "/api/disaster/missing/:id/review", auth: "optional", permission: "disaster.manage",
+    params: idParams, query: none, body: z.object({ decision: z.enum(["publish", "reject"]) }),
+    handler: ({ actor, params, body }) => {
+      requireManager(actor);
+      const m = storage.s.missingPersons.find(x => x.id === params.id);
+      if (!m) throw notFound();
+      if (!inScope(actor, m.district)) throw forbidden("Outside your district");
+      m.status = body.decision === "publish" ? "missing" : "withdrawn";
+      storage.addAuditLog("missing_person_reviewed", who(actor), actor.user?.name ?? who(actor), `Missing person report → ${m.status}`);
+      storage.touch();
       return { id: m.id, status: m.status };
     },
   });
@@ -200,6 +248,7 @@ export function registerDisasterRoutes(app: Express) {
       const help = tenant().emergencyServices.filter(s => s.type === "disaster" || s.type === "ambulance").slice(0, 8);
       const list = (items: string[], empty: string) => (items.length ? `<ul>${items.join("")}</ul>` : `<p>${empty}</p>`);
       res.setHeader("Cache-Control", "public, max-age=60");
+      res.setHeader("Vary", "X-Tenant, Host"); // review P6-10: never serve one state's page to another
       res.type("html").send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(tenant().stateLabel)} — disaster information</title>
 <style>body{font:15px system-ui,sans-serif;margin:0 auto;max-width:720px;padding:12px;color:#111}h1{font-size:19px}h2{font-size:16px;border-bottom:2px solid #B91C1C;padding-bottom:2px}li{margin:6px 0}a.t{font-weight:700;color:#B91C1C}small{color:#374151}form{margin:8px 0}</style></head><body>
 <h1>${esc(tenant().stateLabel)}: disaster information${d ? ` — ${esc(d)}` : ""}</h1>

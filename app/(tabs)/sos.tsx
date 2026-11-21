@@ -1,5 +1,6 @@
 import { openInMaps, openInMapsQuery } from "@/lib/maps";
 import { router } from "expo-router";
+import { openSosSms } from "@/lib/sos-fallback";
 import React, { useRef, useEffect, useState, useCallback, Component } from "react";
 import {
   View, Text, StyleSheet, Pressable, Animated, ScrollView,
@@ -571,7 +572,7 @@ function SOSScreenInner() {
       Alert.alert(
         "SOS NOT SENT",
         "We could not reach the server. Call 112 now — it works even without internet data.",
-        [{ text: "Call 112", style: "destructive", onPress: () => Linking.openURL("tel:112") }, { text: "Try again", onPress: () => activateWomenSafetyRef.current(source) }],
+        [{ text: "Call 112", style: "destructive", onPress: () => Linking.openURL("tel:112") }, { text: "SMS my contacts", onPress: () => { void openSosSms(); } }, { text: "Try again", onPress: () => activateWomenSafetyRef.current(source) }],
       );
     }
   }, [womenPanic, triggerWomenSafetySOS, startLive, startAudioRecording]);
@@ -831,7 +832,7 @@ function SOSScreenInner() {
       } catch {}
     } catch (err: any) {
       Alert.alert("SOS NOT SENT", `${err?.message || "Could not reach the server."} Call 112 now.`, [
-        { text: "Call 112", style: "destructive", onPress: () => Linking.openURL("tel:112") }, { text: "OK" },
+        { text: "Call 112", style: "destructive", onPress: () => Linking.openURL("tel:112") }, { text: "SMS my contacts", onPress: () => { void openSosSms(); } }, { text: "OK" },
       ]);
     } finally { setIsTriggering(false); }
   };

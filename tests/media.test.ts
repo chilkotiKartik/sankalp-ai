@@ -46,7 +46,7 @@ describe("P1.6 metadata stripping", () => {
     expect(Buffer.from(pub.body).includes(Buffer.from("GPSLatitude"))).toBe(false);
     // P6.2: the original is encrypted at rest (AES-256-GCM); decrypted it still has the EXIF for verification.
     expect(fs.readFileSync(originalPath(file)!).includes(Buffer.from("GPSLatitude"))).toBe(false);
-    expect(fs.readFileSync(originalPath(file)!).subarray(0, 4).toString()).toBe("SKV1");
+    expect(fs.readFileSync(originalPath(file)!).subarray(0, 4).toString()).toBe("SKV2");
     expect(readStored("originals", file)!.includes(Buffer.from("GPSLatitude"))).toBe(true);
   });
 });

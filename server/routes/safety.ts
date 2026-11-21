@@ -11,7 +11,7 @@ import { checkSecret } from "./channels";
 import { phone10, text, geo } from "./common";
 import { startCheckIn } from "../safety/checkin";
 import { readPayload } from "../safety/sign";
-import { authLimiter, writeLimiter } from "./limits";
+import { writeLimiter, sosCancelLimiter } from "./limits";
 
 /** P6.1 trusted contacts, PIN-protected cancel, delivery receipts and the public live-location page. */
 export function registerSafetyRoutes(app: Express) {
@@ -39,20 +39,26 @@ export function registerSafetyRoutes(app: Express) {
   // Cancelling needs the PIN, so someone who grabs the phone cannot silence a real alert.
   route(app, {
     method: "put", path: "/api/sos/:id/cancel", auth: "sos", permission: "sos.cancel",
-    middleware: [authLimiter],
-    params: idParams, query: none, body: z.object({ pin: z.string().regex(/^\d{6}$/), reason: text(200).optional() }),
+    middleware: [sosCancelLimiter],
+    // Review P6-6: legacy 4–6 digit PINs, or a one-time SMS code (for accounts created by OTP that never set a PIN).
+    params: idParams, query: none,
+    body: z.object({ pin: z.string().regex(/^\d{4,6}$/).optional(), otp: z.string().regex(/^\d{6}$/).optional(), reason: text(200).optional() })
+      .refine(b => !!b.pin !== !!b.otp, { message: "Send either pin or otp" }),
     handler: async ({ params, body, user }) => {
       const a = storage.getSOSAlert(params.id);
       if (!a) throw notFound();
       if (a.userId !== user.id) throw forbidden("Only the sender can cancel this SOS");
       if (a.status === "resolved" || a.status === "cancelled") return { status: a.status };
       if ((a.cancelPinAttempts ?? 0) >= 5) throw new AppError(423, "LOCKED", "Too many wrong PINs — the alert stays active. Call 112 if you are safe now.");
-      if (!(await bcrypt.compare(body.pin, user.pin))) {
-        a.cancelPinAttempts = (a.cancelPinAttempts ?? 0) + 1;
+      // Review P6-2: reserve the attempt BEFORE the slow comparison, so parallel guesses cannot get past the lock.
+      a.cancelPinAttempts = (a.cancelPinAttempts ?? 0) + 1;
+      const ok = body.otp ? storage.verifyOtp(user.phone, body.otp) : await bcrypt.compare(body.pin!, user.pin);
+      if (!ok) {
         storage.addAuditLog("sos_cancel_wrong_pin", user.id, "citizen", `Wrong PIN while cancelling SOS ${a.id} (${a.cancelPinAttempts}/5)`);
         storage.touch();
         throw new AppError(401, "WRONG_PIN", "Wrong PIN — the alert is still active");
       }
+      a.cancelPinAttempts = 0;
       a.status = "cancelled";
       a.cancelledAt = new Date().toISOString();
       storage.addAuditLog("sos_cancelled", user.id, "citizen", `SOS ${a.id} cancelled by the sender${body.reason ? ` — ${body.reason}` : ""}`);
@@ -60,6 +66,7 @@ export function registerSafetyRoutes(app: Express) {
       const owner = storage.getUserById(user.id);
       for (const d of a.contactDeliveries ?? []) {
         if (d.status === "pending") { d.status = "failed"; d.error = "cancelled before sending"; continue; }
+        if (d.status !== "sent" && d.status !== "delivered") continue; // never alerted → nothing to cancel
         const c = owner?.trustedContacts?.find(x => x.id === d.contactId);
         if (c) await sendSms(c.phone, "sos_cancelled", []);
       }
@@ -131,10 +138,14 @@ export function registerCheckInRoutes(app: Express) {
   route(app, {
     method: "put", path: "/api/safety/checkins/:id/done", auth: "sos", permission: "safety.checkin",
     params: idParams, query: none, body: z.object({}).passthrough(),
-    handler: ({ params, user }) => {
+    handler: async ({ params, user }) => {
       const c = storage.s.checkins.find(x => x.id === params.id && x.userId === user.id);
       if (!c) throw notFound();
-      if (c.status === "active") { c.status = "done"; storage.touch(); }
+      // Review P6-5: "I'm safe" also works after contacts were alerted — they get an all-clear (no personal data).
+      if (c.status === "alerted") {
+        for (const contact of user.trustedContacts ?? []) await sendSms(contact.phone, "checkin_safe", []);
+      }
+      if (c.status === "active" || c.status === "alerted") { c.status = "done"; c.doneAt = new Date().toISOString(); storage.touch(); }
       return { status: c.status };
     },
   });

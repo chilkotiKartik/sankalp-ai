@@ -1,0 +1,49 @@
+# Render blueprint (P7.2, D-024): the existing pilot hosting, as code.
+# NOTE: Render has no Indian region. Use it for pilots/demos; for production data residency deploy on a
+# MeitY-empanelled Indian cloud or the State Data Centre with deploy/install-onprem.sh (docs/DEPLOYMENT.md).
+services:
+  - type: web
+    name: sankalp-ai
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run expo:static:build && npm run server:build
+    startCommand: npm run server:prod
+    healthCheckPath: /healthz
+    autoDeploy: false
+    disk:
+      name: sankalp-data
+      mountPath: /var/data
+      sizeGB: 10
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DEPT_JWT_SECRET
+        generateValue: true
+      - key: EVIDENCE_ENC_KEY
+        sync: false   # set once (64 hex chars) and keep it in a password manager — needed to read evidence after restore
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: EGRESS_ALLOWLIST
+        value: api.sarvam.ai
+      - key: SARVAM_API_KEY
+        sync: false
+      - key: DEFAULT_TENANT
+        value: uttarakhand
+  # Daily encrypted backup (docs/OPERATIONS.md §3). Needs BACKUP_PASSPHRASE and an India-region S3 target.
+  - type: cron
+    name: sankalp-backup
+    runtime: node
+    schedule: "40 21 * * *"   # 03:10 IST
+    buildCommand: npm ci --omit=dev
+    startCommand: bash scripts/backup.sh
+    envVars:
+      - key: BACKUP_PASSPHRASE
+        sync: false
+      - key: BACKUP_S3_URI
+        sync: false
+      - key: BACKUP_S3_ENDPOINT
+        sync: false
