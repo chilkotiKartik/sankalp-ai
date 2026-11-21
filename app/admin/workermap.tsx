@@ -17,6 +17,7 @@ import {
   buildWorkerMapHTML, DISTRICT_CENTERS,
   type WorkerMapData, type DistrictHeatData,
 } from "@/lib/workermap-html";
+import { getSecure } from "@/lib/secure-session";
 
 interface Worker {
   id: string; name: string; phone: string;
@@ -109,7 +110,7 @@ export default function WorkerMapScreen() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       if (!tok) { setLoading(false); setRefreshing(false); return; }
       const base = getApiUrl();
       let res = await fetch(`${base}api/admin/workers`, { headers: { Authorization: `Bearer ${tok}` } });

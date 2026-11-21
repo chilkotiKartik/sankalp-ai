@@ -9,6 +9,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getSecure } from "@/lib/secure-session";
 
 const QUICK_DIAL = [
   { number: "112", label: "All Emergency", icon: "🆘", color: "#EF4444", bg: "#7F1D1D" },
@@ -54,7 +55,7 @@ export default function EmergencyScreen() {
 
   const load = useCallback(async () => {
     try {
-      const t = token || await AsyncStorage.getItem("@sankalp_token");
+      const t = token || await getSecure("@sankalp_token");
       const base = getApiUrl();
       const res = await fetch(`${base}api/emergency-services`, {
         headers: t ? { Authorization: `Bearer ${t}` } : {},

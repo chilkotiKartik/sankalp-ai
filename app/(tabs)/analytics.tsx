@@ -11,6 +11,7 @@ import Colors from "@/constants/colors";
 import { useApp } from "@/context/AppContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiUrl } from "@/lib/query-client";
+import { getSecure } from "@/lib/secure-session";
 
 const CAT_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
   pothole:     { label: "Pothole",     icon: "alert-circle",        color: "#F59E0B" },
@@ -116,7 +117,7 @@ export default function AnalyticsScreen() {
 
   const loadPredictions = useCallback(async () => {
     try {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       const res = await fetch(`${getApiUrl()}api/predictive`, {
         headers: { Authorization: `Bearer ${tok}` },
       });

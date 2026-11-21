@@ -8,6 +8,7 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
+import { captureProofPhoto } from "@/lib/proof";
 import { useApp, type Complaint, type RiskZone, type PoliceStation, type Worker } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
@@ -185,7 +186,7 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
             {complaint.feedback && (
               <View style={styles.feedbackBox}>
                 <Ionicons name="chatbubble" size={12} color={Colors.textMuted} />
-                <Text style={styles.feedbackText}>"{complaint.feedback}"</Text>
+                <Text style={styles.feedbackText}>&quot;{complaint.feedback}&quot;</Text>
               </View>
             )}
 
@@ -193,11 +194,11 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
               <View style={styles.detailActions}>
                 <Pressable onPress={() => onResolve(complaint.id)} style={styles.resolveBtn}>
                   <Ionicons name="checkmark-circle" size={16} color="#fff" />
-                  <Text style={styles.resolveBtnText}>Mark Resolved</Text>
+                  <Text style={styles.resolveBtnText}>Upload proof & mark fixed</Text>
                 </Pressable>
                 <Pressable onPress={() => onReject(complaint.id)} style={styles.rejectBtn}>
                   <Ionicons name="close-circle" size={16} color="#EF4444" />
-                  <Text style={styles.rejectBtnText}>Reject</Text>
+                  <Text style={styles.rejectBtnText}>Start work</Text>
                 </Pressable>
               </View>
             )}
@@ -718,7 +719,7 @@ export default function AdminDashboard() {
 // ── DISTRICT ADMIN WAR ROOM ────────────────────────────────────────────────────
 function DistrictAdminDashboard() {
   const insets = useSafeAreaInsets();
-  const { complaints, sosAlerts, riskZones, workers, policeStations, isLoading, refresh, getStats, broadcastEmergency, resolveComplaint, rejectComplaint } = useApp();
+  const { complaints, sosAlerts, riskZones, workers, policeStations, isLoading, refresh, getStats, broadcastEmergency, updateComplaintStatus } = useApp();
   const { user, logout } = useAuth();
 
   const [emergencyMode, setEmergencyMode] = useState(false);
@@ -786,23 +787,25 @@ function DistrictAdminDashboard() {
   const handleResolve = useCallback(async (id: string) => {
     setResolvingId(id);
     try {
-      await resolveComplaint(id, 4, "Admin resolved");
+      const proofPhoto = await captureProofPhoto();
+      if (!proofPhoto) return;
+      await updateComplaintStatus(id, "resolved", { proofPhoto, proofNote: "Proof captured by officer" });
       setSelectedComplaint(null);
     } catch (e: any) {
       Alert.alert("Error", e.message);
     } finally {
       setResolvingId(null);
     }
-  }, [resolveComplaint]);
+  }, [updateComplaintStatus]);
 
   const handleReject = useCallback(async (id: string) => {
     try {
-      await rejectComplaint(id);
+      await updateComplaintStatus(id, "in_progress");
       setSelectedComplaint(null);
     } catch (e: any) {
       Alert.alert("Error", e.message);
     }
-  }, [rejectComplaint]);
+  }, [updateComplaintStatus]);
 
   return (
     <View style={[styles.container, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>

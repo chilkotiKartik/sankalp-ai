@@ -375,7 +375,7 @@ export default function LoginScreen() {
 
             <View style={las.taglinePill}>
               <Text style={{ fontSize: 12 }}>🙏</Text>
-              <Text style={las.taglineText}>Uttarakhand's citizens powering civic change</Text>
+              <Text style={las.taglineText}>Uttarakhand&apos;s citizens powering civic change</Text>
             </View>
           </LinearGradient>
 

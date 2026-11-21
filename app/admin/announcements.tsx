@@ -268,7 +268,7 @@ export default function AdminAnnouncements() {
           <View style={styles.empty}>
             <Ionicons name="megaphone-outline" size={36} color={Colors.textMuted} />
             <Text style={styles.emptyTitle}>No announcements yet</Text>
-            <Text style={styles.emptySub}>Tap "Post" to publish a new announcement for Uttarakhand citizens</Text>
+            <Text style={styles.emptySub}>Tap &quot;Post&quot; to publish a new announcement for Uttarakhand citizens</Text>
             <Pressable onPress={() => setShowPost(true)} style={styles.emptyBtn}>
               <Ionicons name="add" size={16} color="#fff" />
               <Text style={styles.emptyBtnText}>Post First Announcement</Text>

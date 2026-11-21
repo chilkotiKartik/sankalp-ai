@@ -257,7 +257,7 @@ function SOSScreenInner() {
     let watchSub: Location.LocationSubscription | null = null;
     // Use user's district center as fallback — never hardcode Delhi or Dehradun
     const fallbackGeo: GeoPoint = getDistrictCenter((user as any)?.district);
-    const useFallback = () => {
+    const applyFallback = () => {
       if (cancelled) return;
       setGeo(fallbackGeo); currentGeoRef.current = fallbackGeo; setGeoStatus("found");
       setNearestPS(sortStations(policeStations, fallbackGeo));
@@ -274,7 +274,7 @@ function SOSScreenInner() {
                 setGeo(g); currentGeoRef.current = g; setGeoStatus("found");
                 setNearestPS(sortStations(policeStations, g));
               },
-              () => useFallback(),
+              () => applyFallback(),
               { enableHighAccuracy: true, timeout: 8000 }
             );
             webWatchId = navigator.geolocation.watchPosition(
@@ -288,7 +288,7 @@ function SOSScreenInner() {
               { enableHighAccuracy: true, maximumAge: 5000 }
             );
           } else {
-            useFallback();
+            applyFallback();
           }
           return;
         }
@@ -310,7 +310,7 @@ function SOSScreenInner() {
         );
         locationWatchRef.current = watchSub;
       } catch {
-        useFallback();
+        applyFallback();
       }
     };
     init();

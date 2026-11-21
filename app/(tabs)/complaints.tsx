@@ -8,8 +8,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import { getApiUrl } from "@/lib/query-client";
 import { useApp, type Complaint } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { getSecure } from "@/lib/secure-session";
 
 const CATS = [
   { key: "pothole",      label: "Pothole",       icon: "alert-circle"        as const, color: "#F59E0B", bg: "#FFFBEB", dept: "PWD",    deptFull: "Public Works Dept." },
@@ -42,27 +44,12 @@ const STATUS_META: Record<string, { color: string; bg: string }> = {
   closed:      { color: "#6B7280", bg: "#F9FAFB" },
 };
 
-const BEFORE_PHOTOS: Record<string, string> = {
-  pothole:     "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=200&fit=crop",
-  garbage:     "https://images.unsplash.com/photo-1605600659908-0ef719419d41?w=400&h=200&fit=crop",
-  streetlight: "https://images.unsplash.com/photo-1536240478700-b869ad10e093?w=400&h=200&fit=crop",
-  water:       "https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=400&h=200&fit=crop",
-  drain:       "https://images.unsplash.com/photo-1621451537084-482c73073a0f?w=400&h=200&fit=crop",
-  electricity: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=400&h=200&fit=crop",
-  tree:        "https://images.unsplash.com/photo-1541795795328-f073b763494e?w=400&h=200&fit=crop",
-  other:       "https://images.unsplash.com/photo-1517685352821-92cf88aee5a5?w=400&h=200&fit=crop",
-};
-
-const AFTER_PHOTOS: Record<string, string> = {
-  pothole:     "https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?w=400&h=200&fit=crop",
-  garbage:     "https://images.unsplash.com/photo-1534759926370-e4b08f282c9e?w=400&h=200&fit=crop",
-  streetlight: "https://images.unsplash.com/photo-1505673542670-a5e3ff5b14c3?w=400&h=200&fit=crop",
-  water:       "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&h=200&fit=crop",
-  drain:       "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=400&h=200&fit=crop",
-  electricity: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=400&h=200&fit=crop",
-  tree:        "https://images.unsplash.com/photo-1535766571970-9376f5d1cd1e?w=400&h=200&fit=crop",
-  other:       "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=400&h=200&fit=crop",
-};
+/** Resolve a server media path (e.g. /uploads/<id>.jpg) to an absolute URL. */
+function mediaUri(path?: string | null): string | null {
+  if (!path) return null;
+  if (/^(https?:|data:|file:)/.test(path)) return path;
+  return `${getApiUrl()}${path.replace(/^\//, "")}`;
+}
 
 function aiClassify(text: string): string {
   const t = text.toLowerCase();
@@ -205,8 +192,8 @@ function startVoiceInput(onResult: (text: string) => void, onEnd: () => void) {
 
 export default function ComplaintsScreen() {
   const insets = useSafeAreaInsets();
-  const { complaints, submitComplaint, upvoteComplaint, resolveComplaint, rejectComplaint, isLoading, refresh } = useApp();
-  const { user } = useAuth();
+  const { complaints, submitComplaint, upvoteComplaint, resolveComplaint, rejectComplaint, cancelComplaint, isLoading, refresh } = useApp();
+  const { user, token } = useAuth();
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -225,11 +212,13 @@ export default function ComplaintsScreen() {
   const [newLandmark, setNewLandmark] = useState("");
   const [newPriority, setNewPriority] = useState("P3");
   const [newPhoto, setNewPhoto] = useState<string | null>(null);
+  const [newPhotoData, setNewPhotoData] = useState<string | null>(null);
+  const [newGeo, setNewGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [aiDetected, setAiDetected] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [detectingLoc, setDetectingLoc] = useState(false);
-  const [photoAiResult, setPhotoAiResult] = useState<{ isReal: boolean; confidence: number; reason: string } | null>(null);
+  const [photoAiResult, setPhotoAiResult] = useState<{ status?: string; isReal: boolean | null; confidence: number | null; reason: string } | null>(null);
   const [photoAiLoading, setPhotoAiLoading] = useState(false);
   const webFileInputRef = useRef<any>(null);
 
@@ -281,27 +270,29 @@ export default function ComplaintsScreen() {
           await new Promise<void>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
               (pos) => {
+                setNewGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
                 setNewLoc(`GPS: ${pos.coords.latitude.toFixed(5)}°N, ${pos.coords.longitude.toFixed(5)}°E`);
                 resolve();
               },
               () => {
-                setNewLoc("Champawat, Uttarakhand");
+                setNewLoc("");
                 resolve();
               },
               { enableHighAccuracy: true, timeout: 8000 }
             );
           });
         } else {
-          setNewLoc("Champawat, Uttarakhand");
+          setNewLoc("");
         }
       } else {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") { setNewLoc("Location permission denied"); return; }
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setNewGeo({ lat: loc.coords.latitude, lng: loc.coords.longitude });
         setNewLoc(`GPS: ${loc.coords.latitude.toFixed(5)}°N, ${loc.coords.longitude.toFixed(5)}°E`);
       }
     } catch {
-      setNewLoc("Champawat, Uttarakhand");
+      setNewLoc("");
     } finally {
       setDetectingLoc(false);
     }
@@ -311,10 +302,7 @@ export default function ComplaintsScreen() {
     setPhotoAiLoading(true);
     setPhotoAiResult(null);
     try {
-      const { getApiUrl } = await import("@/lib/query-client");
-      const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
-      const tok = await AsyncStorage.getItem("@sankalp_token");
-      const base64 = Platform.OS === "web" ? photoUri : `data:image/jpeg;base64,${photoUri.split(",").pop() || ""}`;
+      const tok = token;
       const res = await fetch(`${getApiUrl()}api/ai/detect-image`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok || ""}` },
@@ -335,12 +323,12 @@ export default function ComplaintsScreen() {
     }
     Alert.alert("Attach Photo", "Choose source", [
       { text: "Camera", onPress: async () => {
-        const r = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.7 });
-        if (!r.canceled && r.assets[0]) { setNewPhoto(r.assets[0].uri); runAiDetection(r.assets[0].uri); }
+        const r = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.6, base64: true, exif: false });
+        if (!r.canceled && r.assets[0]?.base64) { const d = `data:image/jpeg;base64,${r.assets[0].base64}`; setNewPhoto(r.assets[0].uri); setNewPhotoData(d); runAiDetection(d); }
       }},
       { text: "Gallery", onPress: async () => {
-        const r = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.7 });
-        if (!r.canceled && r.assets[0]) { setNewPhoto(r.assets[0].uri); runAiDetection(r.assets[0].uri); }
+        const r = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.6, base64: true, exif: false });
+        if (!r.canceled && r.assets[0]?.base64) { const d = `data:image/jpeg;base64,${r.assets[0].base64}`; setNewPhoto(r.assets[0].uri); setNewPhotoData(d); runAiDetection(d); }
       }},
       { text: "Cancel", style: "cancel" },
     ]);
@@ -348,7 +336,7 @@ export default function ComplaintsScreen() {
 
   const resetForm = useCallback(() => {
     setNewDesc(""); setNewLoc(""); setNewLandmark(""); setNewCat("pothole");
-    setNewPriority("P3"); setAiDetected(""); setNewPhoto(null);
+    setNewPriority("P3"); setAiDetected(""); setNewPhoto(null); setNewPhotoData(null); setNewGeo(null);
     setPhotoAiResult(null); setPhotoAiLoading(false);
   }, []);
 
@@ -358,27 +346,33 @@ export default function ComplaintsScreen() {
     setSubmitting(true);
     try {
       const locStr = newLandmark.trim() ? `${newLoc.trim()} (near ${newLandmark.trim()})` : newLoc.trim();
+      let photoUrl: string | undefined;
+      if (newPhotoData) {
+        const up = await fetch(`${getApiUrl()}api/upload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || ""}` },
+          body: JSON.stringify({ image: newPhotoData }),
+        });
+        if (!up.ok) throw new Error((await up.json().catch(() => ({}))).message || "Photo upload failed");
+        photoUrl = (await up.json()).url;
+      }
       await submitComplaint({
         category: newCat as any,
         description: newDesc.trim(),
         location: locStr,
-        geo: { lat: 30.0668 + (Math.random() - 0.5) * 2.8, lng: 79.0193 + (Math.random() - 0.5) * 3.8 },
+        geo: newGeo ?? undefined,
         ward: user?.district || "Champawat",
         wardNumber: 1,
         priority: newPriority as any,
         status: "pending",
         isCluster: false,
-        hasProof: !!newPhoto,
-        beforePhoto: newPhoto || undefined,
-        photoIsReal: photoAiResult?.isReal,
-        photoAiReason: photoAiResult?.reason,
-        photoAiConfidence: photoAiResult?.confidence,
+        beforePhoto: photoUrl,
       } as any);
       setShowSubmit(false);
       resetForm();
     } catch (err: any) { Alert.alert("Error", err.message); }
     finally { setSubmitting(false); }
-  }, [newCat, newDesc, newLoc, newLandmark, newPriority, newPhoto, photoAiResult, submitComplaint, user, resetForm]);
+  }, [newCat, newDesc, newLoc, newLandmark, newPriority, newPhotoData, newGeo, token, submitComplaint, user, resetForm]);
 
   const handleUpvote = useCallback(async (id: string) => { try { await upvoteComplaint(id); } catch {} }, [upvoteComplaint]);
 
@@ -386,11 +380,15 @@ export default function ComplaintsScreen() {
     if (!selectedC) return;
     setResolving(true);
     try {
-      await resolveComplaint(selectedC.id, rating || 4, feedback, `https://images.unsplash.com/photo-${Date.now()}?w=400`);
+      await resolveComplaint(selectedC.id, rating || 4, feedback);
       setSelectedC(null); setShowResolution(false); setRating(0); setFeedback(""); setProofAdded(false);
     } catch (err: any) { Alert.alert("Error", err.message); }
     finally { setResolving(false); }
   }, [selectedC, rating, feedback, resolveComplaint]);
+
+  const handleCancel = useCallback(async (id: string) => {
+    try { await cancelComplaint(id); setSelectedC(null); } catch (err: any) { Alert.alert("Error", err.message); }
+  }, [cancelComplaint]);
 
   const handleReject = useCallback(async () => {
     if (!selectedC) return;
@@ -427,7 +425,7 @@ export default function ComplaintsScreen() {
     try {
       const { getApiUrl } = await import("@/lib/query-client");
       const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       const res = await fetch(`${getApiUrl()}api/complaints/${selectedC.id}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
@@ -466,7 +464,7 @@ export default function ComplaintsScreen() {
             </View>
             <View style={[cs.statPill, { borderColor: "rgba(0,166,81,0.4)" }]}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#4ADE80" }} />
-              <Text style={[cs.statPillText, { color: "#4ADE80" }]}>{complaints.filter(c => c.status === "resolved").length} done</Text>
+              <Text style={[cs.statPillText, { color: "#4ADE80" }]}>{complaints.filter(c => c.status === "closed").length} closed</Text>
             </View>
           </View>
         </View>
@@ -645,7 +643,14 @@ export default function ComplaintsScreen() {
                         <Text style={[cs.statLabel, { marginBottom: 8, textAlign: "left" }]}>PHOTO EVIDENCE</Text>
                         <View style={cs.proofRow}>
                           <View style={{ flex: 1, gap: 4 }}>
-                            <Image source={{ uri: BEFORE_PHOTOS[selectedC.category] || BEFORE_PHOTOS.other }} style={[cs.proofImg, { width: "100%", height: 90 }]} resizeMode="cover" />
+                            {mediaUri(selectedC.beforePhoto) ? (
+                              <Image source={{ uri: mediaUri(selectedC.beforePhoto)! }} accessibilityLabel="Photo submitted with the complaint" style={[cs.proofImg, { width: "100%", height: 90 }]} resizeMode="cover" />
+                            ) : (
+                              <View style={[cs.proofImg, { width: "100%", height: 90, borderStyle: "dashed" }]}>
+                                <Ionicons name="image-outline" size={22} color="#9CA3AF" />
+                                <Text style={cs.proofLabel}>No photo</Text>
+                              </View>
+                            )}
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                               <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#EF4444" }} />
                               <Text style={[cs.proofLabel, { color: "#EF4444" }]}>Before</Text>
@@ -653,11 +658,11 @@ export default function ComplaintsScreen() {
                           </View>
                           <View style={{ alignItems: "center", gap: 4 }}>
                             <Ionicons name="arrow-forward" size={16} color="#9CA3AF" />
-                            <Text style={{ fontSize: 8, color: "#9CA3AF", fontFamily: "Inter_400Regular" }}>AI Verified</Text>
+                            <Text style={{ fontSize: 8, color: "#9CA3AF", fontFamily: "Inter_400Regular" }}>{selectedC.status === "closed" ? "Citizen verified" : "Proof"}</Text>
                           </View>
                           <View style={{ flex: 1, gap: 4 }}>
-                            {selectedC.status === "resolved" ? (
-                              <Image source={{ uri: AFTER_PHOTOS[selectedC.category] || AFTER_PHOTOS.other }} style={[cs.proofImg, { width: "100%", height: 90, borderColor: "#A7F3D0" }]} resizeMode="cover" />
+                            {mediaUri((selectedC as any).proofPhoto || selectedC.afterPhoto) ? (
+                              <Image source={{ uri: mediaUri((selectedC as any).proofPhoto || selectedC.afterPhoto)! }} accessibilityLabel="Proof photo of the completed work" style={[cs.proofImg, { width: "100%", height: 90, borderColor: "#A7F3D0" }]} resizeMode="cover" />
                             ) : (
                               <View style={[cs.proofImg, { width: "100%", height: 90, borderStyle: "dashed" }]}>
                                 <Ionicons name="camera-outline" size={22} color="#9CA3AF" />
@@ -665,8 +670,8 @@ export default function ComplaintsScreen() {
                               </View>
                             )}
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: selectedC.status === "resolved" ? "#00A651" : "#9CA3AF" }} />
-                              <Text style={[cs.proofLabel, { color: selectedC.status === "resolved" ? "#00A651" : "#9CA3AF" }]}>After</Text>
+                              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: selectedC.afterPhoto ? "#00A651" : "#9CA3AF" }} />
+                              <Text style={[cs.proofLabel, { color: selectedC.afterPhoto ? "#00A651" : "#9CA3AF" }]}>After</Text>
                             </View>
                           </View>
                         </View>
@@ -680,7 +685,7 @@ export default function ComplaintsScreen() {
                               <Ionicons key={n} name={n <= selectedC.rating! ? "star" : "star-outline"} size={18} color="#F59E0B" />
                             ))}
                           </View>
-                          {selectedC.feedback && <Text style={cs.feedbackText}>"{selectedC.feedback}"</Text>}
+                          {selectedC.feedback && <Text style={cs.feedbackText}>&quot;{selectedC.feedback}&quot;</Text>}
                         </View>
                       )}
 
@@ -698,22 +703,24 @@ export default function ComplaintsScreen() {
                             <Ionicons name="chevron-up" size={16} color="#00A651" />
                             <Text style={[cs.actionText, { color: "#00A651" }]}>Upvote ({selectedC.upvotes})</Text>
                           </Pressable>
-                          <Pressable onPress={() => setShowResolution(true)} style={[cs.actionBtn, { borderColor: "#A7F3D0" }]}>
-                            <Ionicons name="checkmark-circle" size={16} color="#00A651" />
-                            <Text style={[cs.actionText, { color: "#00A651" }]}>Mark Resolved</Text>
-                          </Pressable>
+                          {(selectedC as any).isMine && selectedC.status === "pending" && (
+                            <Pressable accessibilityRole="button" accessibilityLabel="Withdraw this complaint" onPress={() => handleCancel(selectedC.id)} style={[cs.actionBtn, { borderColor: "#FECACA" }]}>
+                              <Ionicons name="close-circle-outline" size={16} color="#EF4444" />
+                              <Text style={[cs.actionText, { color: "#EF4444" }]}>Withdraw complaint</Text>
+                            </Pressable>
+                          )}
                         </View>
                       )}
 
-                      {selectedC.status === "resolved" && !selectedC.rating && (
+                      {selectedC.status === "resolved" && (selectedC as any).isMine && (
                         <View style={{ gap: 8, marginTop: 8 }}>
                           <Pressable onPress={() => setShowResolution(true)} style={[cs.actionBtn, { borderColor: "#A7F3D0" }]}>
                             <Ionicons name="checkmark-circle" size={16} color="#00A651" />
-                            <Text style={[cs.actionText, { color: "#00A651" }]}>Confirm & Rate</Text>
+                            <Text style={[cs.actionText, { color: "#00A651" }]}>Yes, it is fixed — confirm & rate</Text>
                           </Pressable>
                           <Pressable onPress={handleReject} style={[cs.actionBtn, { borderColor: "#FECACA" }]}>
                             <Ionicons name="close-circle" size={16} color="#EF4444" />
-                            <Text style={[cs.actionText, { color: "#EF4444" }]}>Reject — Reopen</Text>
+                            <Text style={[cs.actionText, { color: "#EF4444" }]}>Not fixed — reopen</Text>
                           </Pressable>
                         </View>
                       )}
@@ -847,6 +854,7 @@ export default function ComplaintsScreen() {
                     reader.onloadend = () => {
                       const dataUrl = reader.result as string;
                       setNewPhoto(dataUrl);
+                      setNewPhotoData(dataUrl);
                       runAiDetection(dataUrl);
                     };
                     reader.readAsDataURL(file);
@@ -969,15 +977,15 @@ export default function ComplaintsScreen() {
                       {photoAiLoading && (
                         <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "rgba(0,0,0,0.65)", paddingVertical: 8, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 }}>
                           <ActivityIndicator size="small" color="#fff" />
-                          <Text style={{ color: "#fff", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>AI checking authenticity...</Text>
+                          <Text style={{ color: "#fff", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>Checking photo...</Text>
                         </View>
                       )}
                       {!photoAiLoading && photoAiResult && (
-                        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: photoAiResult.isReal ? "rgba(0,100,50,0.85)" : "rgba(180,0,0,0.85)", paddingVertical: 8, paddingHorizontal: 12 }}>
+                        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: photoAiResult.isReal === null ? "rgba(30,58,95,0.85)" : photoAiResult.isReal ? "rgba(0,100,50,0.85)" : "rgba(180,0,0,0.85)", paddingVertical: 8, paddingHorizontal: 12 }}>
                           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                            <Ionicons name={photoAiResult.isReal ? "shield-checkmark" : "warning"} size={14} color="#fff" />
+                            <Ionicons name={photoAiResult.isReal === null ? "eye-outline" : photoAiResult.isReal ? "shield-checkmark" : "warning"} size={14} color="#fff" />
                             <Text style={{ color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold" }}>
-                              {photoAiResult.isReal ? `✓ Real Photo (${photoAiResult.confidence}% confidence)` : `⚠ AI-Generated (${photoAiResult.confidence}% confidence)`}
+                              {photoAiResult.isReal === null ? "Photo attached — an officer will review it" : photoAiResult.isReal ? `✓ Real Photo (${photoAiResult.confidence}% confidence)` : `⚠ Possibly edited (${photoAiResult.confidence}% confidence)`}
                             </Text>
                           </View>
                           <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={1}>{photoAiResult.reason}</Text>
@@ -993,12 +1001,12 @@ export default function ComplaintsScreen() {
                         <Text style={[cs.photoPickerTitle, { color: "#7C3AED" }]}>
                           {Platform.OS === "web" ? "Upload Photo from Device" : "Camera / Gallery"}
                         </Text>
-                        <Text style={cs.photoPickerSub}>AI will verify if photo is real · Boosts priority score by 30%</Text>
+                        <Text style={cs.photoPickerSub}>A clear photo helps officers locate and fix the issue faster</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
                     </Pressable>
                   )}
-                  {!photoAiLoading && photoAiResult && !photoAiResult.isReal && (
+                  {!photoAiLoading && photoAiResult && photoAiResult.isReal === false && (
                     <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 10, marginTop: 8, borderWidth: 1, borderColor: "#FECACA" }}>
                       <Ionicons name="warning" size={16} color="#DC2626" style={{ marginTop: 1 }} />
                       <Text style={{ flex: 1, color: "#991B1B", fontSize: 12, fontFamily: "Inter_500Medium", lineHeight: 16 }}>
@@ -1065,7 +1073,7 @@ export default function ComplaintsScreen() {
                       {photoAiResult && (
                         <View style={{ backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
                           <Text style={{ color: "#fff", fontSize: 10, fontFamily: "Inter_700Bold" }}>
-                            {photoAiResult.isReal ? "✓ Verified" : "⚠ Flagged"}
+                            {photoAiResult.isReal === null ? "📷 Photo" : photoAiResult.isReal ? "✓ Verified" : "⚠ Flagged"}
                           </Text>
                         </View>
                       )}

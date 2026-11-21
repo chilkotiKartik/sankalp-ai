@@ -53,7 +53,7 @@ export type AppConfig = z.infer<typeof schema> & {
 
 const OSM_DEV_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
+export function loadConfig(env: Record<string, string | undefined> = process.env): AppConfig {
   const parsed = schema.safeParse(env);
   if (!parsed.success) {
     const lines = parsed.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`);

@@ -18,7 +18,7 @@ let KeyboardProvider: React.ComponentType<{ children: React.ReactNode }>;
 try {
   KeyboardProvider = require("react-native-keyboard-controller").KeyboardProvider;
 } catch {
-  KeyboardProvider = ({ children }) => <>{children}</>;
+  KeyboardProvider = function KeyboardProviderFallback({ children }) { return <>{children}</>; };
 }
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";

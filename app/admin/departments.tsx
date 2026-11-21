@@ -10,6 +10,7 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
+import { getSecure } from "@/lib/secure-session";
 
 interface Department {
   name: string;
@@ -91,13 +92,13 @@ export default function DepartmentsScreen() {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem("@sankalp_token").then(t => setToken(t));
+    getSecure("@sankalp_token").then(t => setToken(t));
   }, []);
 
   const loadDepartments = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       if (!tok) return;
       const [deptRes, workerRes] = await Promise.all([
         fetch(`${getApiUrl()}api/departments`, { headers: { Authorization: `Bearer ${tok}` } }),
@@ -125,7 +126,7 @@ export default function DepartmentsScreen() {
     setSelectedDept(dept);
     setLoadingComplaints(true);
     try {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       if (!tok) return;
       const res = await fetch(`${getApiUrl()}api/departments/${encodeURIComponent(dept.name)}/complaints`, {
         headers: { Authorization: `Bearer ${tok}` },

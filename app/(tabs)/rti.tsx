@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { getApiUrl } from "@/lib/query-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getSecure } from "@/lib/secure-session";
 
 interface RTIRequest {
   id: string; ticketId: string; subject: string; description: string;
@@ -85,7 +86,7 @@ export default function RTIScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem("@sankalp_token").then(t => { setToken(t); });
+    getSecure("@sankalp_token").then(t => { setToken(t); });
   }, []);
 
   const loadRTIs = useCallback(async (tok: string | null) => {

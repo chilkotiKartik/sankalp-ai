@@ -11,6 +11,7 @@ import Colors from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getSecure } from "@/lib/secure-session";
 
 interface BillBreakdown { label: string; amount: number; }
 interface BillTransaction { ref: string; date: string; amount: number; method: string; status: string; }
@@ -173,7 +174,7 @@ export default function BillsScreen() {
 
   const fetchBills = useCallback(async () => {
     try {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       const res = await fetch(`${getApiUrl()}api/bills`, {
         headers: { Authorization: `Bearer ${tok}` }
       });
@@ -212,7 +213,7 @@ export default function BillsScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setPayStep("processing");
     try {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       const res = await fetch(`${getApiUrl()}api/bills/${selectedBill.id}/pay`, {
         method:"POST",
         headers:{"Content-Type":"application/json",Authorization:`Bearer ${tok}`},

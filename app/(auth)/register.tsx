@@ -102,7 +102,7 @@ export default function RegisterScreen() {
             <Text style={{ fontSize: 48 }}>🏔️</Text>
           </View>
           <View>
-            <Text style={s.heroTitle}>Join Uttarakhand's{"\n"}Civic Community</Text>
+            <Text style={s.heroTitle}>Join Uttarakhand&apos;s{"\n"}Civic Community</Text>
             <Text style={s.heroSub}>Report issues & earn civic points · देवभूमि के लिए</Text>
           </View>
         </View>
@@ -121,7 +121,7 @@ export default function RegisterScreen() {
                   <Ionicons name="checkmark" size={40} color="#fff" />
                 </LinearGradient>
                 <Text style={s.successEmoji}>🎉</Text>
-                <Text style={s.successTitle}>You're In!</Text>
+                <Text style={s.successTitle}>You&apos;re In!</Text>
                 <Text style={s.successSub}>Welcome to SANKALP AI. Your citizen account is active for {district} district!</Text>
                 <View style={s.successBadges}>
                   {["New Citizen", "Devbhoomi Hero", "Problem Solver"].map(b => (
@@ -140,7 +140,7 @@ export default function RegisterScreen() {
                 </View>
 
                 <Text style={s.cardTitle}>Create Account</Text>
-                <Text style={s.cardSub}>Join Uttarakhand's active citizens community</Text>
+                <Text style={s.cardSub}>Join Uttarakhand&apos;s active citizens community</Text>
 
                 <View style={s.statsRow}>
                   {[

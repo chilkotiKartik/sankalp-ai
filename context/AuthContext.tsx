@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiUrl } from "@/lib/query-client";
+import { getSecure, setSecure, deleteSecure } from "@/lib/secure-session";
 
 export type UserRole = "citizen" | "worker" | "admin" | "super_admin";
 
@@ -31,26 +32,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 const TOKEN_KEY = "@sankalp_token";
 const USER_KEY = "@sankalp_user";
 
-// Demo users — these work without a backend. Credentials match server seed data.
-const DEMO_USERS: Record<string, { user: AuthUser; pin: string }> = {
-  "9876543210": {
-    pin: "123456",
-    user: { id: "demo-citizen-arjun", name: "Arjun", phone: "9876543210", role: "citizen", district: "Champawat", points: 350, badges: ["first_report", "active_citizen"], level: 4 },
-  },
-  "9999000003": {
-    pin: "333333",
-    user: { id: "demo-admin-champawat", name: "Champawat Admin", phone: "9999000003", role: "admin", district: "Champawat", points: 500, badges: ["district_admin"], level: 50 },
-  },
-  "9999000002": {
-    pin: "222222",
-    user: { id: "demo-admin-haridwar", name: "Haridwar Admin", phone: "9999000002", role: "admin", district: "Haridwar", points: 500, badges: ["district_admin"], level: 50 },
-  },
-  "9999999999": {
-    pin: "000000",
-    user: { id: "demo-super-admin", name: "SANKALP Super Admin", phone: "9999999999", role: "super_admin", district: "Uttarakhand", points: 9999, badges: [], level: 99 },
-  },
-};
-const DEMO_TOKEN_PREFIX = "demo-offline-token-";
+// M13/M6: no hard-coded offline accounts. Demo accounts exist only on a server running DEMO_MODE=true.
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -61,20 +43,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const [storedToken, storedUser] = await Promise.all([
-          AsyncStorage.getItem(TOKEN_KEY),
+          getSecure(TOKEN_KEY),
           AsyncStorage.getItem(USER_KEY),
         ]);
         if (storedToken && storedUser) {
           try {
             const baseUrl = getApiUrl();
-            const validateRes = await fetch(new URL("/api/complaints", baseUrl).toString(), {
+            const validateRes = await fetch(new URL("/api/auth/me", baseUrl).toString(), {
               headers: { Authorization: `Bearer ${storedToken}` },
             });
-            if (validateRes.ok || validateRes.status !== 401) {
+            if (validateRes.ok) {
+              const fresh = await validateRes.json();
+              setToken(storedToken);
+              setUser(fresh);
+              await AsyncStorage.setItem(USER_KEY, JSON.stringify(fresh));
+            } else if (validateRes.status === 401) {
+              await deleteSecure(TOKEN_KEY);
+              await AsyncStorage.removeItem(USER_KEY);
+            } else {
               setToken(storedToken);
               setUser(JSON.parse(storedUser));
-            } else {
-              await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
             }
           } catch {
             setToken(storedToken);
@@ -96,18 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, pin }),
       });
-    } catch (_networkErr: any) {
-      // Network unreachable — fall back to offline demo users
-      const demo = DEMO_USERS[phone];
-      if (demo && demo.pin === pin) {
-        const demoToken = DEMO_TOKEN_PREFIX + phone;
-        setUser(demo.user);
-        setToken(demoToken);
-        await AsyncStorage.setItem(TOKEN_KEY, demoToken);
-        await AsyncStorage.setItem(USER_KEY, JSON.stringify(demo.user));
-        return;
-      }
-      throw new Error("Network error — check your connection or use a demo account.");
+    } catch {
+      throw new Error("Network error — check your connection and try again.");
     }
     if (!res.ok) {
       let msg = `Login failed (${res.status})`;
@@ -117,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await res.json();
     setUser(data.user);
     setToken(data.token);
-    await AsyncStorage.setItem(TOKEN_KEY, data.token);
+    await setSecure(TOKEN_KEY, data.token);
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(data.user));
   };
 
@@ -136,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await res.json();
     setUser(data.user);
     setToken(data.token);
-    await AsyncStorage.setItem(TOKEN_KEY, data.token);
+    await setSecure(TOKEN_KEY, data.token);
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(data.user));
   };
 
@@ -153,7 +131,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {}
     setUser(null);
     setToken(null);
-    await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
+    await deleteSecure(TOKEN_KEY);
+    await AsyncStorage.removeItem(USER_KEY);
   };
 
   return (

@@ -10,6 +10,7 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
+import { getSecure } from "@/lib/secure-session";
 
 interface AuditLog {
   id: string;
@@ -68,7 +69,7 @@ export default function AuditScreen() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       const res = await fetch(`${getApiUrl()}api/audit`, {
         headers: { Authorization: `Bearer ${tok}` },
       });

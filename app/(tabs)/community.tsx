@@ -9,6 +9,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { getApiUrl } from "@/lib/query-client";
 import { useAuth } from "@/context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getSecure } from "@/lib/secure-session";
 
 type TabKey = "polls" | "petitions" | "events" | "map";
 
@@ -96,7 +97,7 @@ export default function CommunityScreen() {
 
   useEffect(() => {
     if (user) {
-      AsyncStorage.getItem("@sankalp_token").then(t => {
+      getSecure("@sankalp_token").then(t => {
         if (t) setToken(t);
         else setLoading(false);
       });

@@ -11,6 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 import { useAuth } from "@/context/AuthContext";
+import { getSecure } from "@/lib/secure-session";
 
 interface BudgetItem {
   id: string;
@@ -133,7 +134,7 @@ export default function BudgetScreen() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       const res = await fetch(`${getApiUrl()}api/budget`, {
         headers: { Authorization: `Bearer ${tok}` },
       });

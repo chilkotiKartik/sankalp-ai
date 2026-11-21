@@ -72,7 +72,7 @@ export default function MapScreen() {
         .map(ps => ({ ...ps, distance: parseFloat((Math.sqrt((ps.geo.lat - geo.lat) ** 2 + (ps.geo.lng - geo.lng) ** 2) * 111).toFixed(2)) }))
         .sort((a, b) => a.distance - b.distance).slice(0, 3);
 
-    const useFallback = () => {
+    const applyFallback = () => {
       if (cancelled) return;
       // Use user's own district center — never hardcode Delhi/Dehradun
       const fallback = getDistrictCenter(user?.district);
@@ -92,7 +92,7 @@ export default function MapScreen() {
                 const geo: GeoPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                 setUserGeo(geo); setNearestPolice(sortPS(geo)); setGeoLoading(false);
               },
-              () => useFallback(),
+              () => applyFallback(),
               { enableHighAccuracy: true, timeout: 8000 }
             );
             webWatchId = navigator.geolocation.watchPosition(
@@ -104,7 +104,7 @@ export default function MapScreen() {
               () => {},
               { enableHighAccuracy: true, maximumAge: 10000 }
             );
-          } else { useFallback(); }
+          } else { applyFallback(); }
           return;
         }
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -123,7 +123,7 @@ export default function MapScreen() {
           }
         );
       } catch {
-        useFallback();
+        applyFallback();
       }
     };
     init();
