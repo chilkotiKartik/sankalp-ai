@@ -42,3 +42,9 @@ yarn-error.*
 
 # Build artifacts
 *.zip
+
+# Runtime data (snapshots, uploads, evidence, one-time codes)
+data/
+uploads/
+server_dist/
+coverage/

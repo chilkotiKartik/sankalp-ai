@@ -1,372 +1,68 @@
-import express from "express";
-import type { Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import * as fs from "fs";
-import * as path from "path";
-import * as http from "http";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import bcrypt from "bcrypt";
+import { config } from "./config";
+import { storage } from "./storage";
+import { createApp } from "./app";
+import { loadSnapshot, startSnapshots, stopSnapshots } from "./persistence";
+import { startJobs, stopJobs } from "./jobs";
+import { closeRealtime } from "./realtime";
+import { logger } from "./lib/logger";
+import { unref } from "./lib/errors";
 
-const app = express();
-const log = console.log;
-
-declare module "http" {
-  interface IncomingMessage {
-    rawBody: unknown;
-  }
-}
-
-function setupCors(app: express.Application) {
-  app.use((req, res, next) => {
-    const origins = new Set<string>([
-      "https://sankalp-ai.replit.app", // production domain — always allowed
-    ]);
-
-    if (process.env.REPLIT_DEV_DOMAIN) {
-      origins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
-      origins.add(`https://8080-${process.env.REPLIT_DEV_DOMAIN}`);
-    }
-
-    if (process.env.REPLIT_DOMAINS) {
-      process.env.REPLIT_DOMAINS.split(",").forEach((d) => {
-        origins.add(`https://${d.trim()}`);
-      });
-    }
-
-    const origin = req.header("origin");
-
-    const isLocalhost =
-      origin?.startsWith("http://localhost:") ||
-      origin?.startsWith("http://127.0.0.1:");
-
-    // Allow any Replit dev domain (covers all developer preview origins)
-    const isReplitDev = !!origin?.match(/https:\/\/[\w-]+\.pike\.replit\.dev$|https:\/\/[\w-]+-\d+\.[\w-]+\.replit\.dev$|https:\/\/[\w-]+\.replit\.dev$/);
-
-    // No origin = mobile/native app (Expo Go) — always allow
-    // Known origin = web browser — allow if in set, localhost, or any replit.dev
-    const allowed = !origin || origins.has(origin) || isLocalhost || isReplitDev;
-    if (allowed) {
-      res.header("Access-Control-Allow-Origin", origin ?? "*");
-      res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-      res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-      if (origin) res.header("Access-Control-Allow-Credentials", "true");
-    }
-
-    if (req.method === "OPTIONS") {
-      return res.sendStatus(200);
-    }
-
-    next();
-  });
-}
-
-function setupBodyParsing(app: express.Application) {
-  app.use(
-    express.json({
-      verify: (req, _res, buf) => {
-        req.rawBody = buf;
-      },
-    }),
-  );
-
-  app.use(express.urlencoded({ extended: false }));
-}
-
-function setupRequestLogging(app: express.Application) {
-  app.use((req, res, next) => {
-    const start = Date.now();
-    const path = req.path;
-    let capturedJsonResponse: Record<string, unknown> | undefined = undefined;
-
-    const originalResJson = res.json;
-    res.json = function (bodyJson, ...args) {
-      capturedJsonResponse = bodyJson;
-      return originalResJson.apply(res, [bodyJson, ...args]);
-    };
-
-    res.on("finish", () => {
-      if (!path.startsWith("/api")) return;
-
-      const duration = Date.now() - start;
-
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    });
-
-    next();
-  });
-}
-
-function getAppName(): string {
+async function main() {
+  let c;
   try {
-    const appJsonPath = path.resolve(process.cwd(), "app.json");
-    const appJsonContent = fs.readFileSync(appJsonPath, "utf-8");
-    const appJson = JSON.parse(appJsonContent);
-    return appJson.expo?.name || "App Landing Page";
-  } catch {
-    return "App Landing Page";
+    c = config();
+  } catch (err) {
+    // m13/M5: fail fast with a clear message (never print secret values).
+    process.stderr.write(`${(err as Error).message}\n`);
+    process.exit(1);
   }
-}
 
-function proxyToMetro(req: Request, res: Response) {
-  const rawBody: Buffer | undefined = req.rawBody as Buffer | undefined;
-  const headers: http.OutgoingHttpHeaders = { ...req.headers, host: "localhost:8080" };
-  if (rawBody) {
-    headers["content-length"] = rawBody.length;
-  } else {
-    delete headers["content-length"];
+  const restored = loadSnapshot();
+  logger.info("snapshot", { restored });
+  if (!c.DEMO_MODE && storage.hasDemoData()) {
+    const removed = storage.purgeDemo();
+    logger.warn("demo_data_purged", { removed, reason: "DEMO_MODE is off" });
   }
-  const options: http.RequestOptions = {
-    hostname: "127.0.0.1",
-    port: 8080,
-    path: req.url,
-    method: req.method,
-    headers,
+
+  // M5: random department codes on first boot, written once to a 0600 file (never logged).
+  const created = await storage.ensureDeptCodes();
+  if (Object.keys(created).length) {
+    const file = path.join(path.resolve(c.DATA_DIR), "dept-codes.initial.txt");
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, Object.entries(created).map(([d, code]) => `${d}\t${code}`).join("\n") + "\n", { mode: 0o600 });
+    logger.warn("dept_codes_created", { departments: Object.keys(created), file, action: "Distribute securely, then delete this file" });
+  }
+
+  if (c.BOOTSTRAP_SUPER_ADMIN_PHONE && c.BOOTSTRAP_SUPER_ADMIN_PIN && !(await storage.findUserByPhone(c.BOOTSTRAP_SUPER_ADMIN_PHONE))) {
+    await storage.createUser({ name: "State Administrator", phone: c.BOOTSTRAP_SUPER_ADMIN_PHONE, pin: await bcrypt.hash(c.BOOTSTRAP_SUPER_ADMIN_PIN, 12),
+      role: "super_admin", district: "Uttarakhand", points: 0, badges: ["super_admin"], level: 1 });
+    logger.warn("bootstrap_super_admin_created", { action: "Unset BOOTSTRAP_SUPER_ADMIN_PIN now" });
+  }
+
+  const { server } = createApp();
+  startSnapshots();
+  startJobs();
+
+  server.listen({ port: c.PORT, host: "0.0.0.0" }, () => {
+    logger.info("listening", { port: c.PORT, demoMode: c.DEMO_MODE, textAI: c.textProvider, visionAI: c.visionProvider, env: c.NODE_ENV });
+  });
+
+  let stopping = false;
+  const shutdown = (signal: string) => {
+    if (stopping) return;
+    stopping = true;
+    logger.info("shutdown", { signal });
+    stopJobs();
+    closeRealtime();
+    stopSnapshots();
+    server.close(() => process.exit(0));
+    unref(setTimeout(() => process.exit(0), 5000));
   };
-  const proxyReq = http.request(options, (proxyRes) => {
-    res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
-    proxyRes.pipe(res, { end: true });
-  });
-  proxyReq.on("error", (err) => {
-    log(`[Expo proxy error] ${err.message}`);
-    if (!res.headersSent) {
-      res.status(502).json({ error: "Expo dev server not available on port 8080" });
-    }
-  });
-  if (rawBody && rawBody.length > 0) {
-    proxyReq.write(rawBody);
-  }
-  proxyReq.end();
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
-function serveExpoManifest(platform: string, req: Request, res: Response) {
-  const manifestPath = path.resolve(
-    process.cwd(),
-    "static-build",
-    platform,
-    "manifest.json",
-  );
-
-  if (!fs.existsSync(manifestPath)) {
-    log(`[Expo] No static manifest for ${platform} — proxying to Metro dev server`);
-    return proxyToMetro(req, res);
-  }
-
-  res.setHeader("expo-protocol-version", "1");
-  res.setHeader("expo-sfv-version", "0");
-  res.setHeader("content-type", "application/json");
-
-  const manifest = fs.readFileSync(manifestPath, "utf-8");
-  res.send(manifest);
-}
-
-function serveLandingPage({
-  req,
-  res,
-  landingPageTemplate,
-  appName,
-}: {
-  req: Request;
-  res: Response;
-  landingPageTemplate: string;
-  appName: string;
-}) {
-  const forwardedProto = req.header("x-forwarded-proto");
-  const protocol = forwardedProto || req.protocol || "https";
-  const forwardedHost = req.header("x-forwarded-host");
-  const host = forwardedHost || req.get("host");
-  const baseUrl = `${protocol}://${host}`;
-  // Use the dev domain for QR code — Express serves the static manifest on port 80
-  const devDomain = process.env.REPLIT_DEV_DOMAIN;
-  const expsUrl = devDomain || host;
-
-  log(`baseUrl`, baseUrl);
-  log(`expsUrl`, expsUrl);
-
-  const html = landingPageTemplate
-    .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
-    .replace(/EXPS_URL_PLACEHOLDER/g, expsUrl ?? "")
-    .replace(/APP_NAME_PLACEHOLDER/g, appName);
-
-  res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.status(200).send(html);
-}
-
-function configureExpoAndLanding(app: express.Application) {
-  const templatePath = path.resolve(
-    process.cwd(),
-    "server",
-    "templates",
-    "landing-page.html",
-  );
-  const landingPageTemplate = fs.readFileSync(templatePath, "utf-8");
-  const appName = getAppName();
-
-  log("Serving static Expo files with dynamic manifest routing");
-
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith("/api")) {
-      return next();
-    }
-
-    // Proxy Metro-specific paths (JS bundles, HMR, source maps, etc.) to Expo dev server
-    // BUT only if the file doesn't already exist in the static build — static build takes priority
-    const isMetroPath =
-      req.path.startsWith("/_expo/") ||
-      req.path.startsWith("/node_modules/") ||
-      req.path.endsWith(".bundle") ||
-      req.path.startsWith("/debugger-ui") ||
-      req.path === "/status" ||
-      req.path === "/symbolicate" ||
-      req.path === "/open-stack-frame" ||
-      req.path.startsWith("/inspector");
-    if (isMetroPath) {
-      const staticFilePath = path.resolve(process.cwd(), "static-build", "web", req.path.slice(1));
-      if (!fs.existsSync(staticFilePath)) {
-        return proxyToMetro(req, res);
-      }
-      // File exists in static build — fall through to express.static
-    }
-
-    if (req.path !== "/" && req.path !== "/manifest") {
-      return next();
-    }
-
-    const platform = req.header("expo-platform");
-    if (platform && (platform === "ios" || platform === "android")) {
-      return serveExpoManifest(platform, req, res);
-    }
-
-    if (req.path === "/") {
-      // Serve the web app directly for browser requests
-      const webIndexPath = path.resolve(process.cwd(), "static-build", "web", "index.html");
-      if (fs.existsSync(webIndexPath)) {
-        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-        return res.sendFile(webIndexPath);
-      }
-      // Fallback: landing page (e.g. no web bundle built yet)
-      return serveLandingPage({ req, res, landingPageTemplate, appName });
-    }
-
-    next();
-  });
-
-  // ── WEB PORTALS ───────────────────────────────────────────────────────────────
-  const portalRoute = (file: string) => (_req: Request, res: Response) => {
-    res.setHeader("Cache-Control", "no-store");
-    res.sendFile(path.resolve(process.cwd(), "server", "web", file));
-  };
-  app.get("/dept",        portalRoute("dept.html"));
-  app.get("/web/dept",    portalRoute("dept.html"));
-  app.get("/web/dept/",   portalRoute("dept.html"));
-  app.get("/web/cpr",     portalRoute("cpr.html"));
-  app.get("/web/cpr/",    portalRoute("cpr.html"));
-  app.get("/web/pcr",     portalRoute("pcr.html"));
-  app.get("/web/pcr/",    portalRoute("pcr.html"));
-  app.get("/web/video",   portalRoute("video.html"));
-  app.get("/web/video/",  portalRoute("video.html"));
-  app.get("/web/public",  portalRoute("public.html"));
-  app.get("/web/public/", portalRoute("public.html"));
-  app.get("/web/rti",     portalRoute("rti.html"));
-  app.get("/web/rti/",    portalRoute("rti.html"));
-  app.get("/web/portal",  portalRoute("portal.html"));
-  app.get("/web/portal/", portalRoute("portal.html"));
-
-  // Serve uploaded files (complaint photos, audio recordings, etc.)
-  app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads"), {
-    setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=86400"); }
-  }));
-
-  // Serve self-hosted public assets (Leaflet, etc.) — avoids CDN blocking in production
-  app.use(express.static(path.resolve(process.cwd(), "public"), {
-    setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=604800"); }
-  }));
-
-  // Serve the built web bundle first so hashed asset filenames are resolved correctly
-  app.use(express.static(path.resolve(process.cwd(), "static-build", "web")));
-  app.use(express.static(path.resolve(process.cwd(), "static-build")));
-  // The web bundle references assets at /assets/node_modules/... and /assets/assets/...
-  // Metro hashes filenames in the bundle (e.g. Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf)
-  // but node_modules / assets only have the unhashed versions (Ionicons.ttf).
-  // Strip the .{md5hash} segment before serving so the files resolve correctly.
-  function dehashedMiddleware(req: Request, _res: Response, next: NextFunction) {
-    const dehashed = req.path.replace(/\.([a-f0-9]{32})(\.[^./]+)$/, '$2');
-    if (dehashed !== req.path) req.url = dehashed;
-    next();
-  }
-  app.use("/assets/node_modules", dehashedMiddleware, express.static(path.resolve(process.cwd(), "node_modules"), {
-    setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=604800"); }
-  }));
-  app.use("/assets/assets", dehashedMiddleware, express.static(path.resolve(process.cwd(), "assets"), {
-    setHeaders: (res) => { res.setHeader("Cache-Control", "public, max-age=604800"); }
-  }));
-  // Raw source assets as fallback (for icons, splash, etc. not hashed by Metro)
-  app.use("/assets", dehashedMiddleware, express.static(path.resolve(process.cwd(), "assets")));
-
-  // SPA fallback — all non-API, non-static routes serve index.html for client-side routing
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith("/api") || req.path.startsWith("/_expo") || req.path.startsWith("/assets")) {
-      return next();
-    }
-    const webIndexPath = path.resolve(process.cwd(), "static-build", "web", "index.html");
-    if (fs.existsSync(webIndexPath)) {
-      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-      res.setHeader("Pragma", "no-cache");
-      return res.sendFile(webIndexPath);
-    }
-    next();
-  });
-
-  log("Expo routing: Checking expo-platform header on / and /manifest");
-}
-
-function setupErrorHandler(app: express.Application) {
-  app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
-    const error = err as {
-      status?: number;
-      statusCode?: number;
-      message?: string;
-    };
-
-    const status = error.status || error.statusCode || 500;
-    const message = error.message || "Internal Server Error";
-
-    console.error("Internal Server Error:", err);
-
-    if (res.headersSent) {
-      return next(err);
-    }
-
-    return res.status(status).json({ message });
-  });
-}
-
-(async () => {
-  setupCors(app);
-  setupBodyParsing(app);
-  setupRequestLogging(app);
-
-  configureExpoAndLanding(app);
-
-  const server = await registerRoutes(app);
-
-  setupErrorHandler(app);
-
-  const port = parseInt(process.env.PORT || "5000", 10);
-  server.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`express server serving on port ${port}`);
-    },
-  );
-})();
+void main();
