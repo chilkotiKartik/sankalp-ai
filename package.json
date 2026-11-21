@@ -21,7 +21,9 @@
     "egress:audit": "tsx scripts/egress-audit.ts",
     "seed:demo": "tsx --env-file-if-exists=.env scripts/seed-demo.ts",
     "migrate:pins": "tsx --env-file-if-exists=.env scripts/migrate-pins.ts",
-    "secrets:scan": "tsx scripts/secret-scan.ts"
+    "secrets:scan": "tsx scripts/secret-scan.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate-snapshot": "tsx --env-file-if-exists=.env scripts/migrate-snapshot-to-pg.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.0",
@@ -87,6 +89,7 @@
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^3.2.4",
     "babel-plugin-react-compiler": "^19.0.0-beta-e993439-20250117",
+    "drizzle-kit": "^0.31.11",
     "esbuild": "^0.28.0",
     "eslint": "^9.31.0",
     "eslint-config-expo": "~10.0.0",
