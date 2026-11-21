@@ -4,7 +4,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { z, type ZodTypeAny } from "zod";
 import { config } from "../config";
 import { storage, type AppUser, DEPARTMENTS, SOS_SESSION_GRACE_MS } from "../storage";
-import { unauthorized, forbidden } from "./errors";
+import { unauthorized, forbidden, AppError } from "./errors";
 import { permits, type Principal } from "../auth/permissions";
 import { isJwtShape } from "../auth/tokens";
 
@@ -49,6 +49,9 @@ export interface RouteMeta {
   hasParams: boolean;
   hasQuery: boolean;
   hasBody: boolean;
+  /** zod schemas, kept for OpenAPI generation (m19). */
+  schemas: { params: ZodTypeAny; query: ZodTypeAny; body: ZodTypeAny };
+  paginated?: boolean;
 }
 
 export const registry: RouteMeta[] = [];
@@ -77,6 +80,8 @@ export interface RouteDef<P extends ZodTypeAny, Q extends ZodTypeAny, B extends 
   /** allow `?token=` (EventSource / <audio src> cannot send headers) */
   allowQueryToken?: boolean;
   middleware?: RequestHandler[];
+  /** m10: also expose /api/v2<path> returning { items, nextCursor } (default 50, max 200). */
+  paginate?: boolean;
   handler: (ctx: Ctx<Infer<P>, Infer<Q>, Infer<B>>) => unknown | Promise<unknown>;
 }
 
@@ -168,10 +173,41 @@ export function authorize(level: AuthLevel, a: Actor): void {
   }
 }
 
+const PAGE = { default: 50, max: 200 };
+const pageQuery = z.object({ limit: z.coerce.number().int().min(1).max(PAGE.max).default(PAGE.default), cursor: z.string().max(40).optional() });
+
+/** Opaque offset cursor. Lists are returned newest-first, so offsets are stable between consecutive pages. */
+export function paginateList<T>(items: T[], q: { limit: number; cursor?: string }) {
+  let offset = 0;
+  if (q.cursor) {
+    const m = Buffer.from(q.cursor, "base64url").toString("utf8").match(/^o:(\d{1,9})$/);
+    if (!m) throw new AppError(400, "BAD_CURSOR", "Invalid cursor");
+    offset = Number(m[1]);
+  }
+  const page = items.slice(offset, offset + q.limit);
+  const next = offset + q.limit < items.length ? Buffer.from(`o:${offset + q.limit}`).toString("base64url") : null;
+  return { items: page, nextCursor: next, total: items.length };
+}
+
 export function route<P extends ZodTypeAny, Q extends ZodTypeAny, B extends ZodTypeAny>(app: Express, def: RouteDef<P, Q, B>) {
+  if (def.paginate) {
+    const v2Path = def.path.replace(/^\/api\//, "/api/v2/");
+    const inner = def.handler;
+    route(app, {
+      ...def, paginate: false, path: v2Path,
+      query: def.query,
+      handler: async (ctx: Ctx<Infer<P>, Infer<Q>, Infer<B>>) => {
+        const q = pageQuery.parse({ limit: ctx.req.query.limit, cursor: ctx.req.query.cursor });
+        const out = await inner(ctx);
+        if (!Array.isArray(out)) return out;
+        return paginateList(out, q);
+      },
+    } as RouteDef<P, Q, B>);
+  }
   registry.push({
     method: def.method, path: def.path, auth: def.auth, permission: def.permission,
     hasParams: !!def.params, hasQuery: !!def.query, hasBody: !!def.body,
+    schemas: { params: def.params, query: def.query, body: def.body }, paginated: def.path.startsWith("/api/v2/"),
   });
   const run = async (req: Request, res: Response, next: NextFunction) => {
     try {

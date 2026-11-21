@@ -89,7 +89,7 @@ export function registerPrivacyRoutes(app: Express) {
   });
 
   route(app, {
-    method: "get", path: "/api/privacy/erasure-requests", auth: "admin", permission: "privacy.erasure_review",
+    method: "get", path: "/api/privacy/erasure-requests", auth: "admin", permission: "privacy.erasure_review", paginate: true,
     params: none, query: none, body: none,
     handler: () => storage.s.erasureRequests.slice().reverse(),
   });

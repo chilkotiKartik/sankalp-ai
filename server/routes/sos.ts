@@ -44,7 +44,7 @@ function alertStaff(a: SOSAlert, kind: "women_safety_sos" | "forest_fire_sos" | 
 
 export function registerSosRoutes(app: Express) {
   route(app, {
-    method: "get", path: "/api/sos", auth: "optional", permission: "sos.list",
+    method: "get", path: "/api/sos", auth: "optional", permission: "sos.list", paginate: true,
     params: none, query: none, body: none,
     handler: ({ actor }) => {
       if (actor.deptId === "police" || actor.deptId === "usdma") return storage.getSosAlerts();

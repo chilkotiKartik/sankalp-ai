@@ -50,3 +50,4 @@ server_dist/
 coverage/
 dist-web/
 zipFile.zip
+attached_assets/

@@ -28,7 +28,7 @@ export function registerAdminRoutes(app: Express) {
   });
 
   route(app, {
-    method: "get", path: "/api/admin/alerts", auth: "admin", permission: "sos.list",
+    method: "get", path: "/api/admin/alerts", auth: "admin", permission: "sos.list", paginate: true,
     params: none, query: none, body: none,
     handler: ({ actor }) => storage.getSosAlerts(scopeDistrict(actor)),
   });
@@ -91,7 +91,7 @@ export function registerAdminRoutes(app: Express) {
 
   // ── Announcements ──────────────────────────────────────────────────────────
   route(app, {
-    method: "get", path: "/api/announcements", auth: "user", permission: "announcements.read",
+    method: "get", path: "/api/announcements", auth: "user", permission: "announcements.read", paginate: true,
     params: none, query: none, body: none,
     handler: ({ actor }) => storage.getAnnouncements(scopeDistrict(actor)),
   });
@@ -129,7 +129,7 @@ export function registerAdminRoutes(app: Express) {
 
   // ── Polls / petitions / events ─────────────────────────────────────────────
   route(app, {
-    method: "get", path: "/api/polls", auth: "user", permission: "community.read",
+    method: "get", path: "/api/polls", auth: "user", permission: "community.read", paginate: true,
     params: none, query: none, body: none,
     handler: ({ actor, user }) => storage.getPolls(scopeDistrict(actor)).map(p => ({ ...p, voterIds: p.voterIds.includes(user.id) ? [user.id] : [], totalVoters: p.voterIds.length })),
   });
@@ -156,7 +156,7 @@ export function registerAdminRoutes(app: Express) {
   });
 
   route(app, {
-    method: "get", path: "/api/petitions", auth: "user", permission: "community.read",
+    method: "get", path: "/api/petitions", auth: "user", permission: "community.read", paginate: true,
     params: none, query: none, body: none,
     handler: ({ actor, user }) => storage.getPetitions(scopeDistrict(actor)).map(p => ({ ...p, signerIds: p.signerIds.includes(user.id) ? [user.id] : [], signatureCount: p.signerIds.length })),
   });
@@ -185,7 +185,7 @@ export function registerAdminRoutes(app: Express) {
   });
 
   route(app, {
-    method: "get", path: "/api/events", auth: "user", permission: "community.read",
+    method: "get", path: "/api/events", auth: "user", permission: "community.read", paginate: true,
     params: none, query: none, body: none,
     handler: ({ actor, user }) => storage.getEvents(scopeDistrict(actor)).map(e => ({ ...e, rsvpIds: e.rsvpIds.includes(user.id) ? [user.id] : [], rsvpCount: e.rsvpIds.length })),
   });
@@ -264,7 +264,7 @@ export function registerAdminRoutes(app: Express) {
 
   // ── Audit / departments summary / budget / predictive ──────────────────────
   route(app, {
-    method: "get", path: "/api/audit", auth: "admin", permission: "audit.read",
+    method: "get", path: "/api/audit", auth: "admin", permission: "audit.read", paginate: true,
     params: none, query: z.object({ complaintId: z.string().max(100).optional() }), body: none,
     handler: ({ actor, query }) => {
       const d = scopeDistrict(actor);
@@ -316,7 +316,7 @@ export function registerAdminRoutes(app: Express) {
   });
 
   route(app, {
-    method: "get", path: "/api/workers", auth: "user", permission: "workers.list",
+    method: "get", path: "/api/workers", auth: "user", permission: "workers.list", paginate: true,
     params: none, query: none, body: none,
     handler: ({ actor, user }) => {
       const list = storage.getWorkers(scopeDistrict(actor));

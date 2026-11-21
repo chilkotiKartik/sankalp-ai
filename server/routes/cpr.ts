@@ -1,3 +1,4 @@
+import { openSse, sseKey } from "../lib/sse";
 import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import { currentTenantId } from "../tenancy";
 import type { Express } from "express";
@@ -17,14 +18,6 @@ function districtScope(actor: Actor, requested?: string): string | undefined {
   if (actor.user && isDistrictAdmin(actor.user)) return actor.user.district;
   return requested;
 }
-
-const sse = (res: import("express").Response) => {
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache, no-transform");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
-  res.flushHeaders();
-};
 
 export function registerCprRoutes(app: Express) {
   // Citizens may see patrol coverage in their district — without officer phone numbers.
@@ -49,7 +42,7 @@ export function registerCprRoutes(app: Express) {
   });
 
   route(app, {
-    method: "get", path: "/api/cpr/incidents", auth: "police", permission: "cpr.command_read",
+    method: "get", path: "/api/cpr/incidents", auth: "police", permission: "cpr.command_read", paginate: true,
     params: none, query: z.object({ district: district.optional() }), body: none,
     handler: ({ actor, query }) => storage.getSafetyIncidents(districtScope(actor, query.district)),
   });
@@ -179,18 +172,17 @@ export function registerCprRoutes(app: Express) {
     params: none, query: none, body: none,
     handler: ({ actor, req, res }) => {
       const scoped = actor.user && isDistrictAdmin(actor.user) ? actor.user.district : undefined;
-      sse(res);
-      const hb = setInterval(() => res.write(`: ping\n\n`), 25_000);
+      const send = openSse(req, res, sseKey(actor));
       const tid = currentTenantId();
       const listener = (ev: { tenantId?: string; district?: string; incident?: { district?: string }; alert?: { district?: string } }) => {
         if (ev.tenantId !== tid) return;
         const d = ev.district ?? ev.incident?.district ?? ev.alert?.district;
         if (scoped && d && d !== scoped) return;
-        res.write(`data: ${JSON.stringify(ev)}\n\n`);
+        send(ev);
       };
       cprEmitter.on("event", listener);
-      req.on("close", () => { clearInterval(hb); cprEmitter.off("event", listener); });
-      res.write(`data: ${JSON.stringify({ type: "connected" })}\n\n`);
+      req.on("close", () => { cprEmitter.off("event", listener); });
+      send({ type: "connected" });
       return undefined;
     },
   });

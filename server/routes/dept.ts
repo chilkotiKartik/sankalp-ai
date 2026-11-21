@@ -1,3 +1,5 @@
+import { openSse, sseKey } from "../lib/sse";
+import { isSameIstDay } from "../lib/time";
 import { currentTenantId } from "../tenancy";
 import type { Express } from "express";
 import { z } from "zod";
@@ -45,7 +47,7 @@ export function registerDeptRoutes(app: Express) {
         awaitingCitizen: m.filter(c => c.status === "resolved").length,
         resolved: m.filter(c => c.state === "CLOSED").length,
         p1Critical: m.filter(c => c.priority === "P1").length,
-        todayCount: m.filter(c => t - new Date(c.submittedAt).getTime() < 86400000).length,
+        todayCount: m.filter(c => isSameIstDay(c.submittedAt, t)).length, // IST calendar day (m9)
         weekCount: m.filter(c => t - new Date(c.submittedAt).getTime() < 7 * 86400000).length,
       };
     },
@@ -109,11 +111,7 @@ export function registerDeptRoutes(app: Express) {
     handler: ({ actor, params, req, res }) => {
       check(actor.deptId, params.deptId);
       const deptId = params.deptId;
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache, no-transform");
-      res.setHeader("Connection", "keep-alive");
-      res.flushHeaders();
-      const hb = setInterval(() => res.write(`: ping\n\n`), 25_000);
+      const send = openSse(req, res, sseKey(actor));
       const tid = currentTenantId();
       const listener = (ev: { type: string; departmentId?: string; tenantId?: string }) => {
         if (ev.tenantId !== tid) return;
@@ -121,12 +119,12 @@ export function registerDeptRoutes(app: Express) {
         if ((["complaint_new", "complaint_updated", "complaint_resolved_proof", "worker_assigned"].includes(ev.type) && own)
           || (ev.type === "sos_alert" && own)
           || (ev.type === "announcement_new" && (own || ev.departmentId === "all"))) {
-          res.write(`data: ${JSON.stringify(ev)}\n\n`);
+          send(ev);
         }
       };
       deptEmitter.on("event", listener);
-      req.on("close", () => { clearInterval(hb); deptEmitter.off("event", listener); });
-      res.write(`data: ${JSON.stringify({ type: "connected", departmentId: deptId })}\n\n`);
+      req.on("close", () => { deptEmitter.off("event", listener); });
+      send({ type: "connected", departmentId: deptId });
       return undefined;
     },
   });

@@ -90,7 +90,7 @@ It is not a complaint box. It is a full civic operating system that fuses live G
 
 | AI Civic Assistant | Live District Map |
 |:---:|:---:|
-| <img src="./attached_assets/image_1778445688811.png" width="380"/> | <img src="./attached_assets/image_1778039632004.png" width="380"/> |
+| <img src="./docs/images/screenshot-dashboard.png" width="380"/> | <img src="./docs/images/screenshot-map.png" width="380"/> |
 | Bilingual civic assistant (Sarvam / self-hosted / rules) grounded in recorded data | All 13 districts, live markers, police stations, and risk zones — centered on real GPS, never hardcoded |
 
 </div>
@@ -430,7 +430,7 @@ sankalp-ai/
 │   └── web/                      #   The five zero-build HTML command portals
 ├── shared/                       # Shared Zod schemas + Drizzle models
 ├── scripts/build.js              # Builds the Expo web bundle for production
-└── assets/ · attached_assets/    # Icons, splash art, and product screenshots
+└── assets/ · docs/images/        # Icons, splash art, and product screenshots
 ```
 
 ---

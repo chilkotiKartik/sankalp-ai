@@ -101,3 +101,17 @@ describe("media sniffing (M2)", () => {
     expect(sniff(Buffer.concat([Buffer.from([0, 0, 0, 0x20]), Buffer.from("ftypM4A "), Buffer.alloc(8)]))?.kind).toBe("audio");
   });
 });
+
+describe("m19 OpenAPI", () => {
+  it("documents every registered route with its permission", async () => {
+    const { buildOpenApi } = await import("../server/openapi");
+    app();
+    const doc = buildOpenApi() as { openapi: string; paths: Record<string, Record<string, { "x-permission": string }>> };
+    expect(doc.openapi).toBe("3.1.0");
+    for (const r of registry) {
+      const op = doc.paths[r.path.replace(/:(\w+)/g, "{$1}")]?.[r.method];
+      expect(op, `${r.method} ${r.path}`).toBeDefined();
+      expect(op["x-permission"]).toBe(r.permission);
+    }
+  });
+});

@@ -1,3 +1,4 @@
+import { openSse, sseKey } from "../lib/sse";
 import { currentTenantId } from "../tenancy";
 import { isStateWide } from "../data/reference";
 import type { Express } from "express";
@@ -75,20 +76,16 @@ export function registerCitizenRoutes(app: Express) {
     params: none, query: none, body: none,
     handler: ({ actor, req, res }) => {
       const d = scopeDistrict(actor);
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache, no-transform");
-      res.setHeader("Connection", "keep-alive");
-      res.flushHeaders();
-      res.write(`data: ${JSON.stringify({ type: "initial", workers: storage.getWorkers(d), demo: config().DEMO_MODE })}\n\n`);
-      const hb = setInterval(() => res.write(`: ping\n\n`), 25_000);
+      const send = openSse(req, res, sseKey(actor));
+      send({ type: "initial", workers: storage.getWorkers(d), demo: config().DEMO_MODE });
       const tid = currentTenantId();
       const listener = (ev: { updates: Array<{ id: string }>; tenantId?: string }) => {
         if (ev.tenantId !== tid) return;
         const updates = d ? ev.updates.filter(u => storeFor(tid).getWorkers(d).some(w => w.id === u.id)) : ev.updates;
-        if (updates.length) res.write(`data: ${JSON.stringify({ ...ev, updates })}\n\n`);
+        if (updates.length) send({ ...ev, updates });
       };
       bus.on("worker", listener);
-      req.on("close", () => { clearInterval(hb); bus.off("worker", listener); });
+      req.on("close", () => { bus.off("worker", listener); });
       return undefined;
     },
   });

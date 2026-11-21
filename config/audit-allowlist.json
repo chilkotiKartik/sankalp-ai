@@ -1,0 +1,6 @@
+{
+  "$comment": "Reviewed high/critical npm advisories that are accepted temporarily. Each needs a reason and a review date. scripts/audit-check.ts fails on anything else.",
+  "allow": {
+    "image-size": { "reason": "Only used by Metro (build-time bundler) to read images committed to this repository; never parses user uploads (those go through server/lib/media.ts). DECISIONS D-016.", "reviewBy": "2027-02-28" }
+  }
+}

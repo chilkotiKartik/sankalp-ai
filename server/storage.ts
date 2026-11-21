@@ -8,6 +8,7 @@ import {
   EMERGENCY_SERVICES, SLA_HOURS, isStateWide,
 } from "./data/reference";
 import { tenant, currentTenantId, defaultTenant } from "./tenancy";
+import { hoursBetween } from "./lib/time";
 import { signAccess, verifyAccess, newRefreshToken, hashToken, newSessionId, ACCESS_TTL_S, REFRESH_TTL_MS } from "./auth/tokens";
 import {
   type ComplaintState, legacyStatus, applyPath, pathToInProgress, pathToVerifying,
@@ -1077,7 +1078,7 @@ export class AppStorage {
   slaBreached(c: Complaint, at = Date.now()): boolean {
     if (TERMINAL.has(c.state) || c.state === "VERIFYING" || c.state === "NEEDS_REVIEW") return false;
     const sla = SLA_HOURS[c.priority] ?? 72;
-    return (at - new Date(c.submittedAt).getTime()) / 3600000 > sla;
+    return hoursBetween(c.submittedAt, at) > sla; // elapsed time, timezone-independent (m9)
   }
 
   // ── CPR / PATROL ────────────────────────────────────────────────────────────

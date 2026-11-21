@@ -77,7 +77,7 @@ function applyOfficerUpdate(c: Complaint, body: z.infer<typeof officerUpdate>, a
 
 export function registerComplaintRoutes(app: Express) {
   route(app, {
-    method: "get", path: "/api/complaints", auth: "user", permission: "complaints.list",
+    method: "get", path: "/api/complaints", auth: "user", permission: "complaints.list", paginate: true,
     params: none, query: z.object({ mine: z.enum(["true", "false"]).optional() }).passthrough(), body: none,
     handler: ({ actor, user, query }) => {
       const staff = isAdmin(user);
@@ -277,7 +277,7 @@ export function registerComplaintRoutes(app: Express) {
 
   // ── Admin ──────────────────────────────────────────────────────────────────
   route(app, {
-    method: "get", path: "/api/admin/complaints", auth: "admin", permission: "complaints.admin_list",
+    method: "get", path: "/api/admin/complaints", auth: "admin", permission: "complaints.admin_list", paginate: true,
     params: none,
     query: z.object({ status: z.string().max(30).optional(), priority: z.enum(PRIORITIES).optional(), ward: z.coerce.number().int().optional(), state: z.string().max(30).optional() }),
     body: none,

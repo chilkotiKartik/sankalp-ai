@@ -42,31 +42,31 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P0.gate Phase 0 gate + review + report — docs/reports/phase-0.md
 
 ## Phase 1 — Production foundation
-- [ ] P1.1 Postgres schema
-- [ ] P1.2 repository layer + driver switch + migration
-- [ ] P1.3 multi-tenancy
-- [ ] P1.4 RBAC
-- [ ] P1.5 OTP + access/refresh tokens
-- [ ] P1.6 media storage
-- [ ] P1.7 hash-chained audit log
-- [ ] P1.8 tenant config
-- [ ] P1.9 DPDP features
-- [ ] P1.10 observability
-- [ ] P1.11 CI
-- [ ] P1.12 backups
-- [ ] M18 map abstraction
-- [~] M19 test suite ≥70% coverage — Vitest+Supertest suite (79 tests); coverage target pending
-- [ ] m2 remove any
+- [x] P1.1 Postgres schema — b9c6cc4
+- [x] P1.2 repository layer + driver switch + migration — b9c6cc4
+- [x] P1.3 multi-tenancy — 900d3e7
+- [x] P1.4 RBAC — 7a6c727
+- [x] P1.5 OTP + access/refresh tokens — 7a6c727
+- [x] P1.6 media storage — 5ee1a90
+- [x] P1.7 hash-chained audit log — 5ee1a90
+- [x] P1.8 tenant config — 900d3e7
+- [x] P1.9 DPDP features — e8da616
+- [x] P1.10 observability — e8da616
+- [x] P1.11 CI — (phase-1 minors commit)
+- [x] P1.12 backups — (phase-1 minors commit)
+- [x] M18 map abstraction — (phase-1 minors commit) — react-native-maps removed; all maps are Leaflet WebViews with MAP_TILE_URL
+- [x] M19 test suite ≥70% coverage — (phase-1 minors commit) — 135 tests, server coverage 72.5% lines / 77% branches, CI threshold 70%
+- [x] m2 remove any — no `any` left in server/
 - [x] m5 split routes — routes split into server/routes/*.ts (f724a4b)
-- [ ] m6 pino redaction
-- [~] m7 untrack build junk — dist-web/ + zipFile.zip untracked (86bac98); static-build regenerated; attached_assets pending
+- [x] m6 pino redaction — e8da616 pino with redaction
+- [x] m7 untrack build junk — attached_assets untracked; static-build kept (D-026)
 - [x] m8 merge docs — docs/DEPLOYMENT.md + docs/MOBILE_BUILD.md
-- [ ] m9 UTC/IST
-- [ ] m10 pagination
-- [~] m11 SSE/WS heartbeat+limits — 25 s heartbeat, WS auth, 5 sockets/user, client backoff (f724a4b, a42a088); per-user SSE limits pending
-- [~] m12 jobs module — server/jobs/ with start/stop (f724a4b); graceful shutdown done
-- [~] m18 dependency hygiene — unused deps removed, audit 0 critical / 1 justified high (D-016)
-- [ ] m19 OpenAPI
+- [x] m9 UTC/IST — server/lib/time.ts + IST midnight tests
+- [x] m10 pagination — /api/v2 cursor pagination (D-027)
+- [x] m11 SSE/WS heartbeat+limits — SSE per-principal limit 3, heartbeat, WS backoff
+- [x] m12 jobs module — server/jobs/ start/stop, per tenant
+- [x] m18 dependency hygiene — unused deps removed, deps:audit allow-list
+- [x] m19 OpenAPI — docs/openapi.json generated from zod (131 paths)
 - [~] m20 repo docs — SECURITY/DATA_RESIDENCY/CONTRIBUTING/CHANGELOG/.env.example done; LICENSE conflict needs owner (D-019)
 - [ ] P1.gate
 

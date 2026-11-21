@@ -24,7 +24,9 @@
     "secrets:scan": "tsx scripts/secret-scan.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate-snapshot": "tsx --env-file-if-exists=.env scripts/migrate-snapshot-to-pg.ts",
-    "audit:verify": "tsx --env-file-if-exists=.env scripts/audit-verify.ts"
+    "audit:verify": "tsx --env-file-if-exists=.env scripts/audit-verify.ts",
+    "openapi": "tsx scripts/openapi.ts",
+    "deps:audit": "tsx scripts/audit-check.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.0",
@@ -67,7 +69,6 @@
     "react-native": "^0.81.5",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-keyboard-controller": "1.18.5",
-    "react-native-maps": "1.20.1",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",

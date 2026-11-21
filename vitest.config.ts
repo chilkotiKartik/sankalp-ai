@@ -9,6 +9,6 @@ export default defineConfig({
     environment: "node",
     pool: "forks",
     testTimeout: 20000,
-    coverage: { provider: "v8", include: ["server/**/*.ts"], reporter: ["text-summary"] },
+    coverage: { provider: "v8", include: ["server/**/*.ts"], reporter: ["text-summary"], thresholds: { lines: 70, branches: 70 } },
   },
 });
