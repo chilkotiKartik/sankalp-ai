@@ -1,3 +1,4 @@
+import { autoMerge } from "../agents/duplicates";
 import { logger } from "../lib/logger";
 import { verifyProof } from "../verification";
 import { inviteNeighbours } from "../verification/confirm";
@@ -71,6 +72,24 @@ async function runVerification(c: Complaint, proofGeo?: { lat: number; lng: numb
   }
 }
 
+/**
+ * P4.1: proof for a parent ticket also serves its linked duplicates. Each child enters its own verification and its
+ * own citizen must confirm — merging never closes anyone else's complaint (rule 4).
+ */
+async function propagateProof(parent: Complaint, actorId: string, proofGeo?: { lat: number; lng: number }) {
+  for (const id of parent.duplicates ?? []) {
+    const child = storage.getComplaint(id);
+    if (!child || !parent.proofPhoto || ["PROOF_SUBMITTED", "VERIFYING", "NEEDS_REVIEW", "CITIZEN_VERIFIED", "CLOSED", "AUTO_CLOSED_UNVERIFIED", "CANCELLED_BY_CITIZEN"].includes(child.state)) continue;
+    try {
+      storage.submitProof(child.id, { photoUrl: parent.proofPhoto, note: `Fixed together with ${parent.ticketId}`, geo: proofGeo }, "officer", actorId);
+      await runVerification(child, proofGeo);
+      notifyOwner(child);
+    } catch (err) {
+      logger.warn("duplicate_proof_failed", { complaint: child.id, err: (err as Error).message });
+    }
+  }
+}
+
 async function applyOfficerUpdate(c: Complaint, body: z.infer<typeof officerUpdate>, actorId: string, actorName: string): Promise<Complaint> {
   if (body.status === "closed" || body.status === "pending") {
     throw unprocessable("CITIZEN_CONFIRMATION_REQUIRED", body.status === "closed"
@@ -82,6 +101,7 @@ async function applyOfficerUpdate(c: Complaint, body: z.infer<typeof officerUpda
     const url = resolveImage(body.proofPhoto, actorId, { proofFor: c })!;
     domain(() => storage.submitProof(c.id, { photoUrl: url, note: body.proofNote, geo: body.proofGeo }, "officer", actorId));
     await runVerification(c, body.proofGeo);
+    await propagateProof(c, actorId, body.proofGeo);
   }
   if (body.status === "in_progress" || body.status === "acknowledged") domain(() => storage.startWork(c.id, "officer", actorId));
   if (body.adminNote !== undefined) storage.setAdminNote(c.id, body.adminNote);
@@ -167,6 +187,9 @@ export function registerComplaintRoutes(app: Express) {
         storage.createReviewTask({ kind: "photo_authenticity", complaintId: complaint.id,
           reason: config().visionProvider === "manual_review" ? "No vision model configured — verify photo manually" : "Verify photo authenticity" });
       }
+      // P4.1: link to an open duplicate nearby (reversible; the citizen's own ticket keeps its lifecycle).
+      const parent = autoMerge(complaint);
+      if (parent) emitDept("complaint_updated", parent);
       emitDept("complaint_new", complaint);
       res.status(201);
       return complaintFor(user, complaint, false);
@@ -297,6 +320,7 @@ export function registerComplaintRoutes(app: Express) {
       const url = resolveImage(body.proofPhoto, `worker:${c.id}`, { proofFor: c })!;
       domain(() => storage.submitProof(c.id, { photoUrl: url, note: body.proofNote, geo: body.proofGeo }, "worker", `worker:${c.assignedWorkerName ?? "unknown"}`));
       await runVerification(c, body.proofGeo);
+      await propagateProof(c, `worker:${c.assignedWorkerName ?? "unknown"}`, body.proofGeo);
       storage.addAuditLog("proof_submitted", "worker", c.assignedWorkerName || "worker", `Proof submitted for ${c.ticketId}`, c.id);
       notifyOwner(c);
       emitDept("complaint_resolved_proof", c);

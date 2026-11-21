@@ -367,6 +367,9 @@ function ComplaintCard({c,isNew,token,onRefresh,addToast}){
         {/* Header row */}
         <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:7,flexWrap:'wrap'}}>
           <span className="ticket">{c.ticketId||`UK-${(c.id||'').slice(0,6).toUpperCase()}`}</span>
+          {c.affectedCount>1&&<span title="Linked duplicate reports (P4.1)" style={{marginLeft:6,fontSize:10,fontWeight:800,background:'rgba(255,153,51,.15)',color:'var(--orange)',borderRadius:6,padding:'1px 6px'}}>👥 {c.affectedCount} citizens affected</span>}
+          {c.duplicateOf&&<span title="Linked to another ticket — unmerge if this is a different problem" style={{marginLeft:6,fontSize:10,color:'var(--muted)'}}>🔗 duplicate</span>}
+          {c.slaLevel>0&&<span title="SLA escalation level" style={{marginLeft:6,fontSize:10,fontWeight:800,color:c.slaLevel>=3?'#ff7b72':'#e3b341'}}>⏱ L{c.slaLevel}</span>}
           {isNew&&<span style={{fontSize:9,fontWeight:800,background:'var(--orange)',color:'#000',padding:'1px 5px',borderRadius:8,animation:'pulse 1.5s infinite'}}>🔔 NEW</span>}
           <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
           <span className={'badge '+(SC[c.status]||'badge-muted')}>{(c.status||'pending').replace('_',' ')}</span>

@@ -1322,6 +1322,15 @@ function DeptDash({session,onLogout,addToast}){
     <div className="main" style={{display:'flex',flexDirection:'column',padding:0}}>
       <LiveTicker token={deptToken}/>
       <div style={{padding:26,flex:1}}>
+      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:10}}>
+        <button className="btn btn-ghost btn-sm" onClick={async()=>{
+          try{
+            const r=await fetch('/api/admin/briefing?format=pdf',{headers:{Authorization:'Bearer '+token}});
+            if(!r.ok)throw new Error('Could not create the briefing');
+            const url=URL.createObjectURL(await r.blob());const a=document.createElement('a');a.href=url;a.download='sankalp-weekly-briefing.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
+          }catch(e){addToast(e.message,'error');}
+        }}>📄 Weekly briefing (PDF)</button>
+      </div>
       {page==='overview'&&(stats?<DeptOverview dept={dept} stats={stats} complaints={complaints} setPage={setPage}/>:<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:300,gap:16}}><div className="spin" style={{width:40,height:40,borderRadius:20,border:'3px solid var(--border)',borderTopColor:'var(--orange)'}}></div><div style={{color:'var(--muted)',fontSize:13}}>Loading department data…</div></div>)}
       {page==='live'&&<DeptLiveFeed liveNew={liveNew} complaints={complaints} deptToken={deptToken} addToast={addToast} onRefresh={load}/>}
       {page==='complaints'&&<DeptAllComplaints complaints={complaints} deptToken={deptToken} addToast={addToast} onRefresh={load}/>}

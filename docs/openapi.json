@@ -9971,6 +9971,345 @@
           }
         }
       }
+    },
+    "/api/complaints/{id}/unmerge": {
+      "put": {
+        "operationId": "put_api_complaints_id_unmerge",
+        "summary": "agents.unmerge",
+        "x-permission": "agents.unmerge",
+        "x-allowed-principals": [
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin",
+          "dept_token",
+          "officer",
+          "dept_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "deptToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/complaints/{id}/sla-snooze": {
+      "put": {
+        "operationId": "put_api_complaints_id_sla_snooze",
+        "summary": "agents.sla_snooze",
+        "x-permission": "agents.sla_snooze",
+        "x-allowed-principals": [
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin",
+          "dept_token",
+          "officer",
+          "dept_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "deptToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hours": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 168
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "hours",
+                  "reason"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/complaints/{id}/suggest-assignee": {
+      "get": {
+        "operationId": "get_api_complaints_id_suggest_assignee",
+        "summary": "agents.suggest_assignee",
+        "x-permission": "agents.suggest_assignee",
+        "x-allowed-principals": [
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin",
+          "dept_token",
+          "officer",
+          "dept_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "deptToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/admin/briefing": {
+      "get": {
+        "operationId": "get_api_admin_briefing",
+        "summary": "agents.briefing",
+        "x-permission": "agents.briefing",
+        "x-allowed-principals": [
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "district",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "type": "string",
+              "enum": [
+                "json",
+                "pdf"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/admin/trends": {
+      "get": {
+        "operationId": "get_api_admin_trends",
+        "summary": "agents.trends",
+        "x-permission": "agents.trends",
+        "x-allowed-principals": [
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "district",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
     }
   }
 }

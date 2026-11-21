@@ -92,12 +92,12 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P3.gate — gate green; review findings 1–7 fixed (docs/reports/phase-3.md)
 
 ## Phase 4 — Agentic workflows
-- [ ] P4.1 duplicate merge
-- [ ] P4.2 SLA escalation
-- [ ] P4.3 workload balancer
-- [ ] P4.4 weekly briefing
-- [ ] P4.5 trend signals
-- [ ] P4.6 agent hard limits
+- [x] P4.1 duplicate merge — duplicate merge: ≤100 m, ≤7 d, Jaccard; reversible unmerge; priority rises with N; proof propagates, each citizen confirms
+- [x] P4.2 SLA escalation — SLA ladder 75/100/150% (officer/dept head/district admin), audited once per level, snooze with reason
+- [x] P4.3 workload balancer — workload balancer suggestion (load, distance, skill); officer confirms
+- [x] P4.4 weekly briefing — weekly district briefing with per-figure sources; PDF export (no dependency)
+- [x] P4.5 trend signals — seasonal week-of-year baselines; insufficient_data unless ≥2 years & n≥10; Poisson 95% bound
+- [x] P4.6 agent hard limits — hard limit enforced by a static test over server/agents
 - [ ] P4.gate
 
 ## Phase 5 — Reach every Indian
