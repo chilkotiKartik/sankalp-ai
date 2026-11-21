@@ -49,7 +49,7 @@ export const PERMISSIONS: Record<string, Principal[]> = {
   "dept.announcements_write": ["dept_token", "dept_admin"], "dept.stream": DEPT, "dept.review_queue": DEPT,
   // admin / governance
   "admin.stats": ADMINS, "admin.state_overview": STATE, "admin.assign_task": STATE, "broadcast.emergency": ADMINS,
-  "announcements.read": USERS, "announcements.write": ADMINS, "audit.read": ADMINS, "audit.verify": STATE,
+  "announcements.read": USERS, "announcements.write": ADMINS, "audit.read": ADMINS, "audit.verify": STATE, "ai.metrics": STATE,
   // community / RTI
   "community.read": USERS, "community.vote": USERS, "community.sign": USERS, "community.rsvp": USERS,
   "community.petition_create": USERS, "community.poll_create": ADMINS, "community.event_create": ADMINS,

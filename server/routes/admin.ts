@@ -7,6 +7,7 @@ import { route, none, idParams, scopeDistrict } from "../lib/route";
 import { forbidden, notFound, badRequest } from "../lib/errors";
 import { publishEmergencyBroadcast } from "../realtime";
 import { writeLimiter } from "./limits";
+import { aiMetrics, aiStatus } from "../ai/gateway";
 import { text, tenantDistrict } from "./common";
 import { requireConsent } from "./privacy";
 import { toStaffComplaint, toPublicWorker } from "./dto";
@@ -277,6 +278,13 @@ export function registerAdminRoutes(app: Express) {
     method: "get", path: "/api/admin/audit/verify", auth: "admin", permission: "audit.verify",
     params: none, query: none, body: none,
     handler: () => storage.verifyAuditChain(),
+  });
+
+  // P2.1: AI provider health — calls, failures, breaker state, p50/p95 latency. No prompts or personal data.
+  route(app, {
+    method: "get", path: "/api/admin/ai/metrics", auth: "admin", permission: "ai.metrics",
+    params: none, query: none, body: none,
+    handler: () => ({ providers: aiStatus(), metrics: aiMetrics() }),
   });
 
   route(app, {

@@ -29,6 +29,8 @@ jobs:
         run: npm run lint
       - name: Tests (with coverage)
         run: npm run test:coverage
+      - name: AI eval (fails on a >2-point accuracy drop vs eval/baseline.json)
+        run: npm run eval
       - name: Egress audit (data stays in India)
         run: npm run egress:audit
       - name: Secret scan (patterns)

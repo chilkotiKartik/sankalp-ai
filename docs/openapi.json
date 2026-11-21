@@ -634,21 +634,9 @@
         "summary": "auth.logout",
         "x-permission": "auth.logout",
         "x-allowed-principals": [
-          "citizen",
-          "worker",
-          "officer",
-          "dept_admin",
-          "police",
-          "admin",
-          "district_admin",
-          "state_admin",
-          "super_admin"
+          "public"
         ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
+        "security": [],
         "parameters": [],
         "responses": {
           "200": {
@@ -7546,6 +7534,47 @@
         "operationId": "get_api_admin_audit_verify",
         "summary": "audit.verify",
         "x-permission": "audit.verify",
+        "x-allowed-principals": [
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/admin/ai/metrics": {
+      "get": {
+        "operationId": "get_api_admin_ai_metrics",
+        "summary": "ai.metrics",
+        "x-permission": "ai.metrics",
         "x-allowed-principals": [
           "state_admin",
           "super_admin"

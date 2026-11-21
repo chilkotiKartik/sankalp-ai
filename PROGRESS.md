@@ -77,7 +77,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P2.4 versioned prompts — server/ai/prompts with zod output schemas
 - [x] P2.5 eval set + npm run eval — eval/ set, rules baseline 78.2%
 - [x] P2.6 explainability — aiDecisions on complaints; routing reason in dept portal
-- [ ] P2.7 egress enforcement
+- [x] P2.7 egress enforcement — every model call via safeFetch; self-hosted host must be explicitly allow-listed
 - [ ] P2.gate
 
 ## Phase 3 — Proof-of-Fix 2.0
