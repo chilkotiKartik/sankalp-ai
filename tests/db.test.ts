@@ -15,8 +15,9 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(async () => { await db.close(); });
 
-const tables = Object.values(schema).filter((t): t is PgTable => typeof t === "object" && t !== null && Symbol.for("drizzle:Name") in (t as object))
-  .map(t => getTableConfig(t).name);
+const tables = (Object.values(schema) as unknown[])
+  .filter(t => typeof t === "object" && t !== null && Symbol.for("drizzle:Name") in (t as object))
+  .map(t => getTableConfig(t as PgTable).name);
 
 describe("migrations", () => {
   it("apply once, are idempotent, and create every schema table", async () => {
