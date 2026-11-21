@@ -1,0 +1,13 @@
+# CLAUDE.md — Sankalp AI rules (read before every task)
+- Full plan: docs/MASTER_PROMPT.md. Progress: PROGRESS.md. Decisions: DECISIONS.md.
+- Data stays in India: all outbound HTTP via server/lib/safeFetch.ts + EGRESS_ALLOWLIST. No foreign AI on production paths.
+- No personal data in notifications, SMS, WhatsApp or logs.
+- No fake data; simulations only with DEMO_MODE=true and a visible badge.
+- A case closes only with proof + citizen confirmation (see the state machine in docs/MASTER_PROMPT.md §7.1).
+- Fail closed: AI or verification failure → manual_review.
+- Every route: auth (unless public) + RBAC permission + tenant scope + zod validation.
+- SOS is never blocked, paywalled or rate-limited; de-duplicate instead.
+- Never commit secrets; list any found in SECRETS_TO_ROTATE.md (names only).
+- After every task run: npm run typecheck && npm run lint && npm test && npm run smoke && npm run egress:audit. Fix failures; never suppress them.
+- Commit format: [P<phase>.<task>] message. Update PROGRESS.md after each task.
+- Git: this environment only permits pushing to `claude/sleepy-turing-n6wo0u` (see DECISIONS.md D-001).
