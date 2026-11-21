@@ -17,9 +17,9 @@ describe("m11 SSE connection limits", () => {
     expect(res.map(r => r.status)).toEqual([200, 200, 200]);
     const fourth = await fetch(url);
     expect(fourth.status).toBe(429);
-    expect(openStreamCount("d:ulb")).toBe(3);
+    expect(openStreamCount("uttarakhand:d:ulb")).toBe(3);
     ctrls.forEach(c => c.abort());
     await new Promise(r => setTimeout(r, 200));
-    expect(openStreamCount("d:ulb")).toBe(0);
+    expect(openStreamCount("uttarakhand:d:ulb")).toBe(0);
   });
 });

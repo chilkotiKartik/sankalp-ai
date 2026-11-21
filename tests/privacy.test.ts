@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import request from "supertest";
+import { tenant } from "../server/tenancy";
 import { storage } from "../server/storage";
 import { runRetention } from "../server/routes/privacy";
+import { originalPath } from "../server/lib/media";
 import { app, stopApp, makeUser, auth, fileComplaint, PNG_1PX } from "./helpers";
 
 beforeEach(() => storage.reset());
@@ -74,11 +76,64 @@ describe("P1.9 DPDP", () => {
     const sos = await request(app()).post("/api/sos/women-safety").set(auth(c.token)).send({ geo: { lat: 30.3, lng: 78 } });
     storage.getSOSAlert(sos.body.alert.id)!.legalHold = true;
     const fourYears = Date.now() + 4 * 365 * 86400000;
-    const r = runRetention(fourYears);
+    // Review P1-M7: with unconfirmed retention periods it is a dry run — nothing is deleted.
+    expect(tenant().retention.needsLegalConfirmation).toBe(true);
+    const dry = runRetention(fourYears);
+    expect(dry.dryRun).toBe(true);
+    expect(dry.complaints).toBe(0);
+    expect(storage.getComplaint(comp.id)).toBeDefined();
+    expect(storage.getAuditLogs().some(l => l.action === "retention_dry_run")).toBe(true);
+    tenant().retention.needsLegalConfirmation = false;
+    let r;
+    try { r = runRetention(fourYears); } finally { tenant().retention.needsLegalConfirmation = true; }
     expect(r.complaints).toBe(1);
     expect(r.media.length).toBe(2);
     expect(storage.getComplaint(comp.id)).toBeUndefined();
     expect(storage.getSOSAlert(sos.body.alert.id)).toBeDefined();
     expect((await request(app()).get(up.body.url)).status).toBe(404);
+  });
+
+  it("retention never purges evidence of an open SOS", async () => {
+    const c = await makeUser();
+    const sos = await request(app()).post("/api/sos/women-safety").set(auth(c.token)).send({ geo: { lat: 30.3, lng: 78 } });
+    const a = storage.getSOSAlert(sos.body.alert.id)!;
+    storage.addMedia({ id: "m-open", fileName: "00000000-0000-0000-0000-000000000001.m4a", mime: "audio/mp4", kind: "audio", size: 1, visibility: "private", ownerId: c.user.id, sosId: a.id });
+    tenant().retention.needsLegalConfirmation = false;
+    try {
+      expect(runRetention(Date.now() + 4 * 365 * 86400000).sosEvidence).toEqual([]);
+      a.status = "resolved"; a.resolvedAt = new Date().toISOString();
+      expect(runRetention(Date.now() + 4 * 365 * 86400000).sosEvidence).toEqual(["00000000-0000-0000-0000-000000000001.m4a"]);
+    } finally { tenant().retention.needsLegalConfirmation = true; }
+  });
+});
+
+describe("review P1-H2: erasure leaves no personal data behind", () => {
+  it("removes the person from chats, votes, upvotes, safety reports and original photos; export covers them first", async () => {
+    const c = await makeUser();
+    const other = await makeUser();
+    // Same display name as the erased user: must NOT be touched.
+    storage.getUserById(other.user.id)!.name = c.user.name;
+    const comp = await fileComplaint(other.token);
+    await request(app()).put(`/api/complaints/${comp.id}/upvote`).set(auth(c.token)).send({});
+    await request(app()).post(`/api/complaints/${comp.id}/chat`).set(auth(other.token)).send({ message: "message from the other person" });
+    const mine = await fileComplaint(c.token);
+    await request(app()).post(`/api/complaints/${mine.id}/chat`).set(auth(c.token)).send({ message: "call me on my number" });
+    const zone = await request(app()).post("/api/cpr/night-safety").set(auth(c.token)).send({ location: "Dark lane behind the market", description: "No street lights" });
+    expect(zone.status).toBe(201);
+    const up = await request(app()).post("/api/upload").set(auth(c.token)).send({ image: PNG_1PX });
+    const exported = await request(app()).get("/api/privacy/my-data").set(auth(c.token));
+    expect(exported.body.chatMessages.length).toBe(1);
+    expect(exported.body.nightSafetyReports.length).toBe(1);
+    expect(exported.body.complaintsUpvoted.map((x: { id: string }) => x.id)).toContain(comp.id);
+
+    expect((await request(app()).post("/api/privacy/erasure").set(auth(c.token)).send({ confirm: "DELETE MY ACCOUNT" })).status).toBe(200);
+    const { auditLogs: _audit, ...rest } = storage.s;
+    const dump = JSON.stringify(rest);
+    expect(dump).not.toContain(c.user.id);
+    expect(dump).not.toContain(c.user.phone);
+    expect(dump).not.toContain("call me on my number");
+    expect(dump).toContain("message from the other person");
+    expect(storage.getChatMessages(comp.id).find(m => m.message === "message from the other person")!.senderName).toBe(c.user.name);
+    expect(originalPath(up.body.filename)).toBeNull();
   });
 });

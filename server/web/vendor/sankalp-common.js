@@ -48,22 +48,68 @@
     try { var url = new URL(u, location.href); return url.origin === location.origin && url.pathname.indexOf("/api/") === 0; } catch (e) { return false; }
   };
   var origFetch = window.fetch ? window.fetch.bind(window) : null;
+
+  // ── access-token refresh (review P1-H4) ────────────────────────────────────
+  // Access tokens live 15 min. On a 401 we rotate the refresh token once, store the new pair
+  // wherever this page keeps its session, and replay the request. Stale tokens a page still
+  // holds in its own state are transparently swapped for the current one.
+  var replaced = {};
+  function refreshToken() {
+    try {
+      var r = localStorage.getItem("sankalp_refresh");
+      if (r) return r;
+      var p = JSON.parse(localStorage.getItem("portal_session") || "null");
+      return (p && p.refreshToken) || null;
+    } catch (e) { return null; }
+  }
+  function storeRefreshed(oldTok, j) {
+    replaced[oldTok] = j.accessToken;
+    try {
+      localStorage.setItem("sankalp_refresh", j.refreshToken);
+      var p = JSON.parse(localStorage.getItem("portal_session") || "null");
+      if (p && p.refreshToken) { p.token = p.accessToken = j.accessToken; p.refreshToken = j.refreshToken; localStorage.setItem("portal_session", JSON.stringify(p)); }
+      if (localStorage.getItem("sankalp_token")) localStorage.setItem("sankalp_token", j.accessToken);
+      if (sessionStorage.getItem(KEY)) sessionStorage.setItem(KEY, j.accessToken);
+    } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("sankalp:token", { detail: j.accessToken })); } catch (e) {}
+  }
+  var inflight = null;
+  function doRefresh(oldTok) {
+    var rt = refreshToken();
+    if (!rt || !origFetch) return Promise.resolve(null);
+    if (!inflight) {
+      inflight = origFetch("/api/auth/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refreshToken: rt }) })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { if (j && j.accessToken) { storeRefreshed(oldTok, j); return j.accessToken; } return null; })
+        .catch(function () { return null; })
+        .then(function (t) { inflight = null; return t; });
+    }
+    return inflight;
+  }
+  window.sankalpAuth_refresh = doRefresh;
+
   if (origFetch) {
     window.fetch = function (input, init) {
       var url = typeof input === "string" ? input : (input && input.url) || "";
+      if (!sameOriginApi(url)) return origFetch(input, init);
+      init = init || {};
+      var h = new Headers(init.headers || (typeof input !== "string" && input.headers) || {});
       var t = token();
-      if (t && sameOriginApi(url)) {
-        init = init || {};
-        var h = new Headers(init.headers || (typeof input !== "string" && input.headers) || {});
-        if (!h.has("Authorization")) h.set("Authorization", "Bearer " + t);
-        init.headers = h;
-      }
+      if (t && !h.has("Authorization")) h.set("Authorization", "Bearer " + t);
+      var sent = (h.get("Authorization") || "").replace(/^Bearer\s+/, "");
+      if (sent && replaced[sent]) { sent = replaced[sent]; h.set("Authorization", "Bearer " + sent); }
+      init.headers = h;
+      var isAuthCall = url.indexOf("/api/auth/") !== -1 || url.indexOf("/login") !== -1;
       return origFetch(input, init).then(function (res) {
-        if (res.status === 401 && requiresAuth() && sameOriginApi(url) && url.indexOf("/login") === -1) {
-          window.sankalpAuth.clear();
-          showLogin("Your session has expired. Please sign in again.");
-        }
-        return res;
+        if (res.status !== 401 || isAuthCall) return res;
+        return doRefresh(sent).then(function (fresh) {
+          if (fresh) {
+            var h2 = new Headers(init.headers); h2.set("Authorization", "Bearer " + fresh);
+            return origFetch(input, Object.assign({}, init, { headers: h2 }));
+          }
+          if (requiresAuth()) { window.sankalpAuth.clear(); showLogin("Your session has expired. Please sign in again."); }
+          return res;
+        });
       });
     };
   }
@@ -129,6 +175,7 @@
           if (!x.ok || !x.j.token) { err.textContent = (x.j && x.j.message) || "Sign-in failed"; return; }
           if (mode.value === "admin" && x.j.user && x.j.user.role !== "admin" && x.j.user.role !== "super_admin") { err.textContent = "This account is not authorised for the command centre"; return; }
           window.sankalpAuth.set(x.j.token);
+          try { if (x.j.refreshToken) localStorage.setItem("sankalp_refresh", x.j.refreshToken); } catch (e2) {}
           location.reload();
         })
         .catch(function () { err.textContent = "Network error"; });

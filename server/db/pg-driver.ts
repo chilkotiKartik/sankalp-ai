@@ -34,7 +34,10 @@ export async function openDb(url: string): Promise<Db> {
     return wrap(pg);
   }
   const { Pool } = await import("pg");
-  const pool = new Pool({ connectionString: url, max: 5, ssl: /sslmode=require|render\.com/.test(url) ? { rejectUnauthorized: false } : undefined });
+  // TLS certificates are verified by default (review P1-M6). DATABASE_SSL=insecure only for a provider with a private CA you cannot install.
+  const wantsTls = /sslmode=(require|verify)|render\.com/.test(url) || process.env.DATABASE_SSL === "require";
+  const ssl = process.env.DATABASE_SSL === "off" ? undefined : process.env.DATABASE_SSL === "insecure" ? { rejectUnauthorized: false } : wantsTls ? { rejectUnauthorized: true } : undefined;
+  const pool = new Pool({ connectionString: url, max: 5, ssl });
   const asDb = (c: { query: (s: string, p?: unknown[]) => Promise<{ rows: unknown[] }> }): Db => ({
     query: async <T,>(s: string, p?: unknown[]) => (await c.query(s, p)).rows as T[],
     transaction: async (fn) => {
@@ -143,11 +146,24 @@ export class PgPersistence {
       state[m.coll] = rows;
       any ||= rows.length > 0;
     }
-    const recs = await this.db.query<{ collection: string; data: Row }>(`SELECT collection, data FROM records WHERE tenant_id=$1 ORDER BY id`, [tenantId]);
-    for (const r of recs) (state[r.collection] ??= []).push(r.data);
+    const recs = await this.db.query<{ collection: string; data: Row }>(`SELECT collection, data FROM records WHERE tenant_id=$1`, [tenantId]);
+    let anchor: Row | undefined;
+    for (const r of recs) {
+      if (r.collection === "auditAnchor") { anchor = r.data; continue; }
+      (state[r.collection] ??= []).push(r.data);
+    }
+    // Chronological order for generic collections (review P1-L4): use their timestamp field.
+    const tsField = (r: Row) => String(r.sentAt ?? r.reportedAt ?? r.postedAt ?? r.createdAt ?? r.at ?? r.filedAt ?? "");
+    const newestFirst = new Set(["polls", "petitions", "civicEvents", "safetyIncidents", "nightSafetyZones"]);
+    for (const [coll, rows] of Object.entries(state)) {
+      if (MAPPINGS.some(m => m.coll === coll)) continue;
+      rows.sort((a, b) => newestFirst.has(coll) ? tsField(b).localeCompare(tsField(a)) : tsField(a).localeCompare(tsField(b)));
+    }
     any ||= recs.length > 0;
     const store = storeFor(tenantId);
-    if (any) store.loadSnapshot({ version: 1, state });
+    // Rows at or before the anchor are archived (kept in Postgres, verified via the anchor hash) — keep memory bounded.
+    if (anchor && state.auditLogs) state.auditLogs = state.auditLogs.filter(r => Number(r.seq ?? 0) > Number(anchor!.seq ?? 0));
+    if (any) store.loadSnapshot({ version: 1, state: anchor ? { ...state, auditAnchor: anchor } : state });
     // remember what is in the DB so the first flush only writes real changes
     const snap = store.toSnapshot().state as unknown as Record<string, Row[]>;
     this.saved.set(tenantId, this.indexState(tenantId, snap));
@@ -172,17 +188,36 @@ export class PgPersistence {
   }
 
   /** Write every changed row of every tenant store (one transaction per tenant). */
+  /** Tenants whose last flush failed (review P1-C2) — /readyz reports not-ready while non-empty. */
+  failing = new Map<string, string>();
+
   async flush(): Promise<void> {
-    if (this.flushing) return this.flushing;
+    // If a flush is running, wait for it and then flush again so nothing written meanwhile is missed (review P1-M6).
+    while (this.flushing) await this.flushing.catch(() => undefined);
     this.flushing = (async () => {
       for (const store of allStores()) {
         if (this.revisions.get(store.tenantId) === store.revision) continue;
         const rev = store.revision;
-        await this.flushTenant(store);
-        this.revisions.set(store.tenantId, rev);
+        try {
+          await this.flushTenant(store);
+          this.revisions.set(store.tenantId, rev);
+          this.failing.delete(store.tenantId);
+        } catch (err) {
+          // One tenant's failure never blocks the others.
+          this.failing.set(store.tenantId, (err as Error).message);
+          logger.error("db_flush_failed", { tenant: store.tenantId, err: (err as Error).message });
+        }
       }
     })();
     try { await this.flushing; } finally { this.flushing = null; }
+  }
+
+  /** Flush repeatedly until every store is persisted at its current revision (used on shutdown). */
+  async flushUntilStable(maxRounds = 5): Promise<void> {
+    for (let i = 0; i < maxRounds; i++) {
+      await this.flush();
+      if (allStores().every(s => this.revisions.get(s.tenantId) === s.revision)) return;
+    }
   }
 
   private async flushTenant(store: AppStorage) {
@@ -190,8 +225,23 @@ export class PgPersistence {
     const state = store.toSnapshot().state as unknown as Record<string, Row[]>;
     const prev = this.saved.get(tid) ?? new Map<string, Map<string, string>>();
     const next = this.indexState(tid, state);
+    const json = (r: unknown) => JSON.stringify(r).replace(/\\u0000/g, "");
     await this.db.transaction(async tx => {
       await runInTenant(tid, async () => {
+        // Deletes first, so a re-created unique key (e.g. same phone after erasure) does not collide (review P1-C2).
+        for (const [coll, rows] of Object.entries(state)) {
+          if (!Array.isArray(rows) || coll === "auditLogs") continue; // audit rows are never deleted (review P1-H3)
+          const m = MAPPINGS.find(x => x.coll === coll);
+          const before = prev.get(coll) ?? new Map<string, string>();
+          const now = next.get(coll)!;
+          for (const k of before.keys()) {
+            if (now.has(k)) continue;
+            if (m) await tx.query(`DELETE FROM ${m.table} WHERE tenant_id=$1 AND id=$2`, [tid, k]);
+            else await tx.query(`DELETE FROM records WHERE tenant_id=$1 AND collection=$2 AND id=$3`, [tid, coll, k]);
+          }
+        }
+        const anchor = (state as unknown as { auditAnchor?: unknown }).auditAnchor;
+        if (anchor) await tx.query(`INSERT INTO records (tenant_id,collection,id,data) VALUES ($1,'auditAnchor','anchor',$2) ON CONFLICT (tenant_id,collection,id) DO UPDATE SET data=EXCLUDED.data, updated_at=now()`, [tid, json(anchor)]);
         for (const [coll, rows] of Object.entries(state)) {
           if (!Array.isArray(rows)) continue;
           const m = MAPPINGS.find(x => x.coll === coll);
@@ -204,17 +254,12 @@ export class PgPersistence {
             if (m) {
               const cols = m.cols ? m.cols(r) : {};
               const names = ["tenant_id", "id", "data", ...Object.keys(cols)];
-              const vals = [tid, k, JSON.stringify(r), ...Object.values(cols)];
+              const vals = [tid, k, json(r), ...Object.values(cols)];
               const set = ["data=EXCLUDED.data", "updated_at=now()", ...Object.keys(cols).map(c => `${c}=EXCLUDED.${c}`)].join(", ");
               await tx.query(`INSERT INTO ${m.table} (${names.join(",")}) VALUES (${names.map((_, i) => `$${i + 1}`).join(",")}) ON CONFLICT (tenant_id,id) DO UPDATE SET ${set}`, vals);
             } else {
-              await tx.query(`INSERT INTO records (tenant_id,collection,id,data) VALUES ($1,$2,$3,$4) ON CONFLICT (tenant_id,collection,id) DO UPDATE SET data=EXCLUDED.data, updated_at=now()`, [tid, coll, k, JSON.stringify(r)]);
+              await tx.query(`INSERT INTO records (tenant_id,collection,id,data) VALUES ($1,$2,$3,$4) ON CONFLICT (tenant_id,collection,id) DO UPDATE SET data=EXCLUDED.data, updated_at=now()`, [tid, coll, k, json(r)]);
             }
-          }
-          for (const k of before.keys()) {
-            if (now.has(k)) continue;
-            if (m) await tx.query(`DELETE FROM ${m.table} WHERE tenant_id=$1 AND id=$2`, [tid, k]);
-            else await tx.query(`DELETE FROM records WHERE tenant_id=$1 AND collection=$2 AND id=$3`, [tid, coll, k]);
           }
         }
       });
@@ -247,12 +292,13 @@ export async function startPostgres(): Promise<string[]> {
 export async function stopPostgres(): Promise<void> {
   if (timer) clearInterval(timer);
   timer = null;
-  if (active) { await active.flush(); await active.close(); }
+  if (active) { await active.flushUntilStable(); await active.close(); }
   active = null;
 }
 
 /** Readiness probe (P1.10). */
 export async function pingPostgres(): Promise<boolean> {
   if (!active) return false;
+  if (active.failing.size) return false;
   try { await (active as unknown as { db: Db }).db.query("SELECT 1"); return true; } catch { return false; }
 }

@@ -21,7 +21,7 @@ const PUBLIC: Principal[] = ["public"];
 export const PERMISSIONS: Record<string, Principal[]> = {
   // auth
   "auth.register": PUBLIC, "auth.login": PUBLIC, "auth.otp_request": PUBLIC, "auth.otp_verify": PUBLIC, "auth.refresh": PUBLIC,
-  "auth.me": USERS, "auth.logout": USERS, "dept.login": PUBLIC, "worker.pin_login": PUBLIC, "worker.submit_proof": PUBLIC,
+  "auth.me": USERS, "auth.logout": PUBLIC, "dept.login": PUBLIC, "worker.pin_login": PUBLIC, "worker.submit_proof": PUBLIC,
   "dept.rotate_code": SUPER, "users.create_staff": SUPER,
   // public / reference
   "public.health": PUBLIC, "public.config": PUBLIC, "public.dashboard": PUBLIC, "public.reference": PUBLIC,

@@ -26,7 +26,8 @@
     "db:migrate-snapshot": "tsx --env-file-if-exists=.env scripts/migrate-snapshot-to-pg.ts",
     "audit:verify": "tsx --env-file-if-exists=.env scripts/audit-verify.ts",
     "openapi": "tsx scripts/openapi.ts",
-    "deps:audit": "tsx scripts/audit-check.ts"
+    "deps:audit": "tsx scripts/audit-check.ts",
+    "eval": "tsx scripts/eval.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.0",

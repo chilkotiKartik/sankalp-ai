@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState } from "react-native";
 import { getApiUrl } from "@/lib/query-client";
 import { getSecure, setSecure, deleteSecure } from "@/lib/secure-session";
 
@@ -138,7 +139,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!token) return;
     const t = setInterval(() => { void refreshSession(); }, REFRESH_EVERY_MS);
-    return () => clearInterval(t);
+    // Timers do not run while the app is backgrounded: refresh as soon as it returns (review P1-H4).
+    const sub = AppState.addEventListener("change", st => { if (st === "active") void refreshSession(); });
+    return () => { clearInterval(t); sub.remove(); };
   }, [token, refreshSession]);
 
   const login = async (phone: string, pin: string) => {
@@ -171,7 +174,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      if (token) await postJson("/api/auth/logout", { refreshToken: (await getSecure(REFRESH_KEY)) || undefined }, token);
+      const refreshToken = (await getSecure(REFRESH_KEY)) || undefined;
+      if (token || refreshToken) await postJson("/api/auth/logout", { refreshToken }, token);
     } catch {}
     await clearSession();
   };

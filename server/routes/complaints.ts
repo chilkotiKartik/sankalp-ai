@@ -6,7 +6,7 @@ import { storage, getDeptIdForCategory, type Complaint, type AppUser } from "../
 import { config } from "../config";
 import { route, none, idParams, scopeDistrict, type Actor } from "../lib/route";
 import { forbidden, notFound, unauthorized, unprocessable } from "../lib/errors";
-import { classifyText } from "../ai/rules";
+import { classifyComplaint } from "../ai/classify";
 import { sendPush } from "../notify/push";
 import { authLimiter, phoneLimiter, writeLimiter } from "./limits";
 import { CATEGORIES, PRIORITIES, domain, geo, text, phone10 } from "./common";
@@ -111,13 +111,18 @@ export function registerComplaintRoutes(app: Express) {
       priority: z.enum(PRIORITIES).optional(),
       beforePhoto: z.string().max(22 * 1024 * 1024).optional(),
     }).passthrough(),
-    handler: ({ body, user, res }) => {
+    handler: async ({ body, user, res }) => {
       requireConsent(user);
       const district = user.district || defaultDistrict();
       const photoUrl = resolveImage(body.beforePhoto, user.id);
-      const guess = classifyText(body.description);
+      // P2.4/P2.6: classify (Indian model if configured, else rules) and keep an explainable decision record.
+      const decision = await classifyComplaint(body.description);
+      const aiCat = decision.output.category as typeof body.category;
+      // The citizen's choice wins; AI only re-routes "other" when it is reasonably confident.
+      const category = body.category === "other" && aiCat !== "other" && decision.confidence >= 0.6 ? aiCat : body.category;
+      const agrees = aiCat === category;
       const complaint = storage.createComplaint({
-        category: body.category,
+        category,
         description: body.description,
         location: body.location,
         geo: body.geo ?? storage.getDistrictCenter(district),
@@ -128,11 +133,13 @@ export function registerComplaintRoutes(app: Express) {
         beforePhoto: photoUrl,
         hasProof: false,
         aiRouting: {
-          method: "rules:category→department",
-          department: getDeptIdForCategory(body.category),
-          confidence: guess.category === body.category ? guess.confidence : 0.5,
-          reason: guess.category === body.category ? `citizen category confirmed by ${guess.reason}` : "routed by citizen-selected category",
+          method: `${decision.method}:${decision.promptVersion}`,
+          department: getDeptIdForCategory(category),
+          confidence: agrees ? decision.confidence : 0.5,
+          reason: category !== body.category ? `re-routed from "other": ${decision.reason}`
+            : agrees ? `citizen category confirmed (${decision.reason})` : `routed by citizen-selected category; ${decision.method} suggested "${aiCat}"`,
         },
+        aiDecisions: [decision],
         // M4: without a sovereign vision model the photo is queued for a human — never auto-approved.
         photoReview: photoUrl ? "manual_review" : "not_required",
       }, user);
@@ -228,7 +235,7 @@ export function registerComplaintRoutes(app: Express) {
       const staff = staffFor(actor, c);
       if (!staff && user.id !== c.userId) throw forbidden();
       res.status(201);
-      return storage.addChatMessage(c.id, body.message, staff ? `${user.name} (Officer)` : user.name, staff ? "officer" : "citizen");
+      return storage.addChatMessage(c.id, body.message, staff ? `${user.name} (Officer)` : user.name, staff ? "officer" : "citizen", user.id);
     },
   });
 

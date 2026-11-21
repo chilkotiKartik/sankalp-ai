@@ -1,5 +1,6 @@
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import type { Request } from "express";
+import { currentTenantId } from "../tenancy";
 
 /**
  * Rate limits (M14). Keyed on req.ip, which respects `trust proxy` (X-Forwarded-For can't be spoofed past the proxy hop).
@@ -12,7 +13,8 @@ export const authLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standar
 /** Per-phone limit: blocks PIN brute force even across many IPs. */
 export const phoneLimiter = rateLimit({
   windowMs: 15 * 60_000, limit: 8, standardHeaders: "draft-7", legacyHeaders: false,
-  keyGenerator: (req) => `phone:${String((req.body as { phone?: unknown })?.phone ?? "").slice(0, 20)}`,
+  // Normalised (digits only, last 10) and tenant-scoped, so " 9xxxx" / "+91…" variants share one bucket (review P1-M1).
+  keyGenerator: (req) => `phone:${currentTenantId()}:${String((req.body as { phone?: unknown })?.phone ?? "").slice(0, 40).replace(/\D/g, "").slice(-10)}`,
   message: json("Too many attempts for this number — try again in 15 minutes"),
 });
 export const registerLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 10, standardHeaders: "draft-7", legacyHeaders: false, keyGenerator: ip, message: json("Too many registrations from this network") });

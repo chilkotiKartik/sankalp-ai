@@ -2,7 +2,7 @@ import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage, cprEmitter, deptEmitter, type SOSAlert, type AppUser } from "../storage";
-import { route, none, idParams, scopeDistrict, type Actor } from "../lib/route";
+import { route, none, idParams, scopeDistrict, emergencyDistrict, type Actor } from "../lib/route";
 import { forbidden, notFound, unprocessable, unauthorized } from "../lib/errors";
 import { sendPush } from "../notify/push";
 import { SOS_CATEGORIES, geo, text } from "./common";
@@ -15,7 +15,7 @@ import { canAccessEvidence } from "./media";
 const isAdmin = (u?: AppUser) => isAdminUser(u);
 
 function staffForSos(actor: Actor, a: SOSAlert): boolean {
-  if (actor.deptId === "police" || actor.deptId === "usdma") return true;
+  if (actor.deptId === "police" || actor.deptId === "usdma") { const d = emergencyDistrict(actor); return !d || d === a.district; }
   if (actor.deptId === "forest" && a.category === "forest_fire") return true;
   const u = actor.user;
   return !!u && (isStateUser(u) || (isDistrictAdmin(u) && u.district === a.district));
@@ -47,7 +47,7 @@ export function registerSosRoutes(app: Express) {
     method: "get", path: "/api/sos", auth: "optional", permission: "sos.list", paginate: true,
     params: none, query: none, body: none,
     handler: ({ actor }) => {
-      if (actor.deptId === "police" || actor.deptId === "usdma") return storage.getSosAlerts();
+      if (actor.deptId === "police" || actor.deptId === "usdma") return storage.getSosAlerts(emergencyDistrict(actor));
       if (actor.deptId === "forest") return storage.getSosAlerts().filter(a => a.category === "forest_fire");
       if (actor.deptId) throw forbidden("SOS data is restricted to police, USDMA and forest departments");
       if (!actor.user) throw unauthorized();
@@ -104,7 +104,7 @@ export function registerSosRoutes(app: Express) {
       let cprIncident = undefined;
       if (!deduplicated) {
         alertStaff(alert, "women_safety_sos");
-        cprIncident = storage.createSafetyIncident({ citizenName: user.name, district: user.district, location: alert.location, lat: g.lat, lng: g.lng });
+        cprIncident = storage.createSafetyIncident({ citizenName: user.name, citizenId: user.id, district: user.district, location: alert.location, lat: g.lat, lng: g.lng });
         alert.cprRequestId = cprIncident.id;
       }
       res.status(deduplicated ? 200 : 201);

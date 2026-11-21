@@ -85,3 +85,52 @@ describe("Postgres persistence round trip", () => {
     expect((await db.query("SELECT 1 FROM complaint_events WHERE tenant_id='uttarakhand'")).length).toBe(3);
   });
 });
+
+describe("review P1-C2/H3: flush robustness", () => {
+  it("one tenant's failing flush never blocks another; deletes run before upserts; audit rows and anchor survive trimming", async () => {
+    const p = new PgPersistence(db);
+    await p.syncReference();
+    await p.load("uttarakhand"); await p.load("dbland");
+    const uk = storeFor("uttarakhand"), dl = storeFor("dbland");
+    // Same phone re-registered after the old account was deleted: needs DELETE before INSERT.
+    const first = await runInTenant("uttarakhand", () => uk.createUser({ name: "Phone Reuse", phone: "9000000955", pin: "x", role: "citizen", district: "Dehradun", points: 0, badges: [], level: 1 }));
+    await p.flush();
+    await runInTenant("uttarakhand", async () => {
+      uk.s.users = uk.s.users.filter(u => u.id !== first.id);
+      await uk.createUser({ name: "Phone Reuse 2", phone: "9000000955", pin: "x", role: "citizen", district: "Dehradun", points: 0, badges: [], level: 1 });
+    });
+    // dbland gets an impossible state (duplicate phone) → its flush fails …
+    await runInTenant("dbland", async () => {
+      const a = await dl.createUser({ name: "Dup A", phone: "9000000956", pin: "x", role: "citizen", district: "Dehradun", points: 0, badges: [], level: 1 });
+      dl.s.users.push({ ...a, id: "dup-b" });
+      dl.touch();
+    });
+    await p.flush();
+    expect(p.failing.has("dbland")).toBe(true);
+    expect(p.failing.has("uttarakhand")).toBe(false);
+    expect((await db.query<{ name: string }>("SELECT data->>'name' AS name FROM users WHERE tenant_id='uttarakhand' AND phone='9000000955'"))[0].name).toBe("Phone Reuse 2");
+    // … and recovers once fixed.
+    runInTenant("dbland", () => { dl.s.users = dl.s.users.filter(u => u.id !== "dup-b"); dl.touch(); });
+    await p.flush();
+    expect(p.failing.size).toBe(0);
+
+    // Audit: trimming the in-memory list never deletes rows; the anchor is persisted and reloaded.
+    runInTenant("uttarakhand", () => { for (let i = 0; i < 3; i++) uk.addAuditLog("test_event", "system", "SANKALP System", `event ${i}`); });
+    await p.flush();
+    const n = (await db.query("SELECT 1 FROM audit_log WHERE tenant_id='uttarakhand'")).length;
+    runInTenant("uttarakhand", () => {
+      const last = uk.s.auditLogs[uk.s.auditLogs.length - 1];
+      const dropped = uk.s.auditLogs[uk.s.auditLogs.length - 2];
+      uk.s.auditAnchor = { seq: dropped.seq!, hash: dropped.hash! };
+      uk.s.auditLogs = [last];
+      uk.touch();
+    });
+    await p.flush();
+    expect((await db.query("SELECT 1 FROM audit_log WHERE tenant_id='uttarakhand'")).length).toBe(n);
+    uk.reset();
+    await new PgPersistence(db).load("uttarakhand");
+    expect(uk.s.auditAnchor?.seq).toBeGreaterThan(0);
+    expect(uk.s.auditLogs.length).toBe(1);
+    expect(runInTenant("uttarakhand", () => uk.verifyAuditChain().ok)).toBe(true);
+  });
+});

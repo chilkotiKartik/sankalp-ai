@@ -68,9 +68,12 @@ export function registerAuthRoutes(app: Express) {
   });
 
   route(app, {
-    method: "post", path: "/api/auth/logout", auth: "user", permission: "auth.logout",
+    // Public on purpose (review P1-H1): logout must work even when the access token has already expired.
+    // It only ever revokes the session identified by a valid signed token or a known refresh token.
+    method: "post", path: "/api/auth/logout", auth: "public", permission: "auth.logout",
     params: none, query: none, body: z.object({ refreshToken: z.string().max(200).optional() }).passthrough(),
-    handler: ({ req }) => {
+    handler: ({ req, body }) => {
+      if (body.refreshToken) storage.revokeByRefresh(body.refreshToken);
       const tok = req.headers.authorization?.slice(7);
       if (tok && isJwtShape(tok)) {
         const c = verifyAccess(tok, Math.floor(SOS_SESSION_GRACE_MS / 1000));
@@ -99,7 +102,7 @@ export function registerAuthRoutes(app: Express) {
     params: none, query: none, body: z.object({ phone: phone10 }),
     handler: async ({ body }) => {
       const code = storage.createOtp(body.phone);
-      if (!code) throw new AppError(429, "OTP_COOLDOWN", "Please wait 30 seconds before requesting another code");
+      if (!code) throw new AppError(429, "OTP_COOLDOWN", "Please wait before requesting another code");
       const sent = await sendSms(body.phone, "otp", [code]);
       if (!sent.ok) throw new AppError(503, "SMS_UNAVAILABLE", "Could not send the code right now. Sign in with your PIN or try again.");
       return { sent: true, expiresInSeconds: 300 };
@@ -114,6 +117,8 @@ export function registerAuthRoutes(app: Express) {
     handler: async ({ body }) => {
       if (!storage.verifyOtp(body.phone, body.code)) throw unauthorized("Invalid or expired code");
       let user = await storage.findUserByPhone(body.phone);
+      // Staff accounts must sign in with their PIN: an SMS code alone (SIM swap) never opens a staff session (review P1-M1).
+      if (user && user.role !== "citizen") throw new AppError(403, "PIN_REQUIRED", "Staff accounts sign in with phone and PIN");
       if (!user) {
         if (!body.name) throw new AppError(422, "PROFILE_REQUIRED", "New number — request a new code and send it with your name and district to create an account");
         user = await storage.createUser({ name: body.name, phone: body.phone, pin: await bcrypt.hash(randomBytes(16).toString("hex"), 10),

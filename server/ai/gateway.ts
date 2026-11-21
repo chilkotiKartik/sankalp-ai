@@ -1,88 +1,189 @@
+import { createHash } from "node:crypto";
 import { config } from "../config";
 import { safeFetch } from "../lib/safeFetch";
 import { logger } from "../lib/logger";
+import { maskPII } from "./pii";
+import type { PromptDef } from "./prompts";
 
 /**
- * Sovereign AI gateway (M10). The only module allowed to call a model.
- *  - text:   Sarvam (api.sarvam.ai) | self-hosted OpenAI-compatible endpoint on Indian infra | null (caller uses rules)
- *  - vision: self-hosted only | null (caller MUST route to manual_review — fail closed, rule 5)
- *  - stt/tts: Sarvam only (Phase 2 completes this); null when not configured.
- * No foreign provider exists in this file, by design.
+ * Sovereign AI gateway (M10, P2.1–P2.3). The ONLY module allowed to call a model.
+ *  text:   Sarvam (api.sarvam.ai) | self-hosted OpenAI-compatible endpoint on Indian infra | null → caller uses rules
+ *  vision: self-hosted only | null → caller routes to manual_review (fail closed)
+ *  stt/tts: Sarvam
+ * Resilience: 8 s timeout, 1 retry on network/5xx, per-provider circuit breaker (3 failures → open 60 s).
+ * Every text sent to a model is PII-masked first. Every call is recorded in metrics.
  */
 export interface Msg { role: "system" | "user" | "assistant"; content: string }
-export interface AIResult { text: string; provider: string; model: string; latencyMs: number }
+export interface AIResult { text: string; provider: string; model: string; latencyMs: number; tokens?: number }
 
 const TIMEOUT_MS = 8000;
+const BREAKER_THRESHOLD = 3;
+const BREAKER_OPEN_MS = 60_000;
 
-async function openAICompatible(baseUrl: string, model: string, headers: Record<string, string>, body: Record<string, unknown>): Promise<string | null> {
-  const res = await safeFetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json", ...headers },
-    body: JSON.stringify({ model, ...body }),
-    timeoutMs: TIMEOUT_MS,
-  });
-  if (!res.ok) throw new Error(`provider HTTP ${res.status}`);
-  const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const text = data.choices?.[0]?.message?.content?.trim();
-  return text || null;
+// ── circuit breaker + metrics ─────────────────────────────────────────────────
+interface Breaker { failures: number; openUntil: number }
+const breakers = new Map<string, Breaker>();
+interface Metric { calls: number; ok: number; failed: number; shortCircuited: number; tokens: number; latencies: number[] }
+const metrics = new Map<string, Metric>();
+
+function metric(provider: string): Metric {
+  let m = metrics.get(provider);
+  if (!m) { m = { calls: 0, ok: 0, failed: 0, shortCircuited: 0, tokens: 0, latencies: [] }; metrics.set(provider, m); }
+  return m;
 }
 
-export async function chat(messages: Msg[], opts: { maxTokens?: number; temperature?: number } = {}): Promise<AIResult | null> {
-  const c = config();
-  const started = Date.now();
-  const body = { messages, max_tokens: opts.maxTokens ?? 500, temperature: opts.temperature ?? 0.4 };
-  try {
-    if (c.textProvider === "sarvam" && c.SARVAM_API_KEY) {
-      const text = await openAICompatible("https://api.sarvam.ai/v1", c.SARVAM_MODEL, { "api-subscription-key": c.SARVAM_API_KEY }, body);
-      return text ? { text, provider: "sarvam", model: c.SARVAM_MODEL, latencyMs: Date.now() - started } : null;
+export function aiMetrics() {
+  const out: Record<string, unknown> = {};
+  metrics.forEach((m, p) => {
+    const sorted = [...m.latencies].sort((a, b) => a - b);
+    const pct = (q: number) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] : null);
+    out[p] = { calls: m.calls, ok: m.ok, failed: m.failed, shortCircuited: m.shortCircuited, tokens: m.tokens, p50ms: pct(0.5), p95ms: pct(0.95),
+      breaker: breakers.get(p)?.openUntil && breakers.get(p)!.openUntil > Date.now() ? "open" : "closed" };
+  });
+  return out;
+}
+
+export function resetAiState() { breakers.clear(); metrics.clear(); }
+
+class RetryableError extends Error {}
+
+async function guarded<T>(provider: string, fn: () => Promise<T>): Promise<T | null> {
+  const b = breakers.get(provider) ?? { failures: 0, openUntil: 0 };
+  breakers.set(provider, b);
+  const m = metric(provider);
+  if (b.openUntil > Date.now()) { m.shortCircuited++; return null; }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const t0 = Date.now();
+    m.calls++;
+    try {
+      const out = await fn();
+      m.ok++;
+      m.latencies.push(Date.now() - t0);
+      if (m.latencies.length > 500) m.latencies.shift();
+      b.failures = 0;
+      return out;
+    } catch (err) {
+      m.failed++;
+      const retryable = err instanceof RetryableError || (err as Error).name === "AbortError" || (err as Error).name === "TypeError";
+      logger.warn("ai_call_failed", { provider, attempt, err: (err as Error).message });
+      if (!retryable || attempt === 1) {
+        b.failures++;
+        if (b.failures >= BREAKER_THRESHOLD) { b.openUntil = Date.now() + BREAKER_OPEN_MS; logger.warn("ai_breaker_open", { provider }); }
+        return null;
+      }
     }
-    if (c.textProvider === "selfhosted" && c.AI_TEXT_BASE_URL) {
-      const model = c.AI_TEXT_MODEL || "default";
-      const text = await openAICompatible(c.AI_TEXT_BASE_URL, model, {}, body);
-      return text ? { text, provider: "selfhosted", model, latencyMs: Date.now() - started } : null;
-    }
-  } catch (err) {
-    logger.warn("ai_text_failed", { provider: c.textProvider, err: (err as Error).message });
   }
   return null;
 }
 
-/** Returns null when no sovereign vision model is configured or it fails → caller must use manual_review. */
+async function postJson(url: string, headers: Record<string, string>, body: unknown): Promise<unknown> {
+  const res = await safeFetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json", ...headers },
+    body: JSON.stringify(body),
+    timeoutMs: TIMEOUT_MS,
+  });
+  if (res.status >= 500 || res.status === 429) throw new RetryableError(`provider HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`provider HTTP ${res.status}`);
+  return res.json();
+}
+
+function textProvider(): { name: string; url: string; model: string; headers: Record<string, string> } | null {
+  const c = config();
+  if (c.textProvider === "sarvam" && c.SARVAM_API_KEY) return { name: "sarvam", url: "https://api.sarvam.ai/v1/chat/completions", model: c.SARVAM_MODEL, headers: { "api-subscription-key": c.SARVAM_API_KEY } };
+  if (c.textProvider === "selfhosted" && c.AI_TEXT_BASE_URL) return { name: "selfhosted", url: `${c.AI_TEXT_BASE_URL.replace(/\/$/, "")}/chat/completions`, model: c.AI_TEXT_MODEL || "default", headers: {} };
+  return null;
+}
+
+/** Free-form chat (assistant). PII is masked in every message. Returns null → caller uses the rules engine. */
+export async function chat(messages: Msg[], opts: { maxTokens?: number; temperature?: number } = {}): Promise<AIResult | null> {
+  const p = textProvider();
+  if (!p) return null;
+  const masked = messages.map(m => ({ ...m, content: maskPII(m.content) }));
+  const t0 = Date.now();
+  const data = await guarded(p.name, () => postJson(p.url, p.headers, { model: p.model, messages: masked, max_tokens: opts.maxTokens ?? 500, temperature: opts.temperature ?? 0.4 })) as
+    { choices?: Array<{ message?: { content?: string } }>; usage?: { total_tokens?: number } } | null;
+  const text = data?.choices?.[0]?.message?.content?.trim();
+  if (!text) return null;
+  if (data?.usage?.total_tokens) metric(p.name).tokens += data.usage.total_tokens;
+  return { text, provider: p.name, model: p.model, latencyMs: Date.now() - t0, tokens: data?.usage?.total_tokens };
+}
+
+/** Extract the first JSON object from model output. */
+export function extractJson<T = Record<string, unknown>>(raw: string): T | null {
+  const m = raw.match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  try { return JSON.parse(m[0]) as T; } catch {
+    const lazy = raw.match(/\{[\s\S]*?\}/);
+    try { return lazy ? (JSON.parse(lazy[0]) as T) : null; } catch { return null; }
+  }
+}
+
+export interface PromptOutcome<T> {
+  data: T;
+  provider: string;
+  model: string;
+  promptVersion: string;
+  inputHash: string;
+  latencyMs: number;
+}
+
+export const inputHash = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 16);
+
+/** Run a versioned prompt; returns null if no provider, provider failure, or output that fails its zod schema. */
+export async function runPrompt<T>(def: PromptDef<T>, input: Record<string, string>, vars: Record<string, string> = {}): Promise<PromptOutcome<T> | null> {
+  const system = Object.entries(vars).reduce((s, [k, v]) => s.replace(`{${k}}`, v), def.system);
+  const user = def.user(input);
+  const r = await chat([{ role: "system", content: system }, { role: "user", content: user }], { maxTokens: def.maxTokens, temperature: 0.1 });
+  if (!r) return null;
+  const parsed = def.output.safeParse(extractJson(r.text));
+  if (!parsed.success) { logger.warn("ai_output_invalid", { prompt: def.version, provider: r.provider }); return null; }
+  return { data: parsed.data, provider: r.provider, model: r.model, promptVersion: def.version, inputHash: inputHash(maskPII(user)), latencyMs: r.latencyMs };
+}
+
+/** Vision — self-hosted only. null → caller MUST use manual_review. */
 export async function vision(imageBase64: string, prompt: string): Promise<AIResult | null> {
   const c = config();
   if (c.visionProvider !== "selfhosted" || !c.AI_VISION_BASE_URL) return null;
-  const started = Date.now();
   const model = c.AI_VISION_MODEL || "default";
   const dataUrl = imageBase64.startsWith("data:") ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
-  try {
-    const text = await openAICompatible(c.AI_VISION_BASE_URL, model, {}, {
-      messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: dataUrl } }] }],
-      max_tokens: 300,
-      temperature: 0.2,
-    });
-    return text ? { text, provider: "selfhosted-vision", model, latencyMs: Date.now() - started } : null;
-  } catch (err) {
-    logger.warn("ai_vision_failed", { err: (err as Error).message });
-    return null;
-  }
+  const t0 = Date.now();
+  const data = await guarded("selfhosted-vision", () => postJson(`${c.AI_VISION_BASE_URL!.replace(/\/$/, "")}/chat/completions`, {}, {
+    model, max_tokens: 300, temperature: 0.2,
+    messages: [{ role: "user", content: [{ type: "text", text: maskPII(prompt) }, { type: "image_url", image_url: { url: dataUrl } }] }],
+  })) as { choices?: Array<{ message?: { content?: string } }> } | null;
+  const text = data?.choices?.[0]?.message?.content?.trim();
+  return text ? { text, provider: "selfhosted-vision", model, latencyMs: Date.now() - t0 } : null;
 }
 
-/** Speech-to-text / text-to-speech: interface only in Phase 0 (Sarvam wiring in Phase 2). */
-export async function stt(_audio: Buffer, _lang: string): Promise<string | null> {
-  return null;
-}
-export async function tts(_text: string, _lang: string): Promise<Buffer | null> {
-  return null;
+/** Speech-to-text via Sarvam (Indian languages). null when not configured or on failure. */
+export async function stt(audio: Buffer, mime: string, lang = "hi-IN"): Promise<{ transcript: string; provider: string } | null> {
+  const c = config();
+  if (!c.SARVAM_API_KEY) return null;
+  const out = await guarded("sarvam-stt", async () => {
+    const form = new FormData();
+    form.append("file", new Blob([new Uint8Array(audio)], { type: mime }), `audio.${mime.split("/")[1] || "wav"}`);
+    form.append("model", process.env.SARVAM_STT_MODEL || "saarika:v2.5");
+    form.append("language_code", lang);
+    const res = await safeFetch("https://api.sarvam.ai/speech-to-text", { method: "POST", headers: { "api-subscription-key": c.SARVAM_API_KEY! }, body: form, timeoutMs: 15000 });
+    if (res.status >= 500) throw new RetryableError(`stt HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`stt HTTP ${res.status}`);
+    return (await res.json()) as { transcript?: string };
+  });
+  return out?.transcript ? { transcript: out.transcript, provider: "sarvam" } : null;
 }
 
-/** Extract the first flat JSON object from model output. */
-export function extractJson<T = Record<string, unknown>>(raw: string): T | null {
-  const m = raw.match(/\{[\s\S]*?\}/);
-  if (!m) return null;
-  try { return JSON.parse(m[0]) as T; } catch { return null; }
+/** Text-to-speech via Sarvam. Returns WAV/MP3 bytes or null. */
+export async function tts(text: string, lang = "hi-IN"): Promise<Buffer | null> {
+  const c = config();
+  if (!c.SARVAM_API_KEY) return null;
+  const out = await guarded("sarvam-tts", () => postJson("https://api.sarvam.ai/text-to-speech", { "api-subscription-key": c.SARVAM_API_KEY! }, {
+    text: maskPII(text), inputs: [maskPII(text)], target_language_code: lang, model: process.env.SARVAM_TTS_MODEL || "bulbul:v2",
+  })) as { audios?: string[] } | null;
+  return out?.audios?.[0] ? Buffer.from(out.audios[0], "base64") : null;
 }
 
 export function aiStatus() {
   const c = config();
-  return { text: c.textProvider, vision: c.visionProvider };
+  return { text: c.textProvider, vision: c.visionProvider, speech: c.SARVAM_API_KEY ? "sarvam" : "none" };
 }

@@ -39,6 +39,8 @@ export interface Complaint {
   rejectionCount: number;
   isDemo?: boolean;
   aiRouting?: { method: string; confidence: number; reason: string; department: string };
+  /** P2.6 explainability: model, prompt version, input hash, output and confidence of every AI decision. */
+  aiDecisions?: Array<{ task: string; method: string; provider: string; model: string; promptVersion: string; inputHash: string; output: Record<string, unknown>; confidence: number; reason: string; at: string }>;
   photoReview?: "manual_review" | "verified" | "not_required";
   ticketId: string;
   category: ComplaintCategory;
@@ -257,6 +259,7 @@ export interface NightSafetyZone {
   riskType: "crime" | "accident" | "harassment" | "lighting" | "general";
   geo: GeoPoint | null;
   reporterName: string;
+  reporterId?: string;
   reportedAt: string;
   status: "active" | "resolved";
   patrolVisits: number;
@@ -280,6 +283,7 @@ export interface SafetyIncident {
   id: string;
   isDemo?: boolean;
   citizenName: string;
+  citizenId?: string;
   district: string;
   location: string;
   geo: { lat: number; lng: number };
@@ -314,6 +318,8 @@ export interface ChatMessage {
   complaintId: string;
   message: string;
   senderName: string;
+  /** Who sent it (review P1-H2): erasure matches on this, never on the display name. */
+  senderId?: string;
   senderRole: "citizen" | "officer" | "system";
   sentAt: string;
 }

@@ -6,23 +6,31 @@ import { stateLabel } from "../data/reference";
 export interface ChatTurn { role: string; content: string }
 export interface LiveStats { total: number; resolved: number; pending: number; activeSos: number; avgHealth: number }
 
+/**
+ * Multilingual keyword rules (English, Hindi, Hinglish, Garhwali, Kumaoni). Order matters: specific before generic.
+ * Measured by `npm run eval` on eval/complaints.jsonl — see eval/baseline.json.
+ */
 const CATEGORY_RULES: Array<[RegExp, string]> = [
-  [/pothole|road damage|गड्ढा|broken road|सड़क/i, "pothole"],
-  [/garbage|waste|trash|कूड़ा|कचरा|littering/i, "garbage"],
-  [/streetlight|street light|lamp|अंधेरा|बत्ती/i, "streetlight"],
-  [/water|पानी|pipeline|jal|leak/i, "water"],
-  [/drain|sewer|sewage|overflow|नाली/i, "drain"],
-  [/electricity|power cut|बिजली|transformer|voltage|wire/i, "electricity"],
-  [/tree|पेड़|branch/i, "tree"],
-  [/landslide|flood|भूस्खलन|बाढ़|cloudburst/i, "disaster"],
-  [/noise|loudspeaker|शोर/i, "noise"],
+  [/landslide|land ?slide|cloud ?burst|flood|भूस्खलन|भू-?स्खलन|मलबा|बादल फट|बाढ़|बाढ|भू-?धँस|भूधंस|पहाड़ टूट|पहाड़ धस|पाखु टूट|पैरु|dhans(a|aav)|malba|baadal fat/i, "disaster"],
+  [/transformer|ट्रांसफा?र्मर|ट्रांसफॉर्मर|ट्रान्सफार्मर/i, "transformer"],
+  [/street ?light|street ?lamp|pole (light|lamp)|बत्ती|स्ट्रीट ?लाइट|खंभ[ेा]? (की|पर) (लाइट|बत्ती)|बल्ब|lamp post|light (nahi|nhi|na) (jal|jalt)|बत्ती नि जल|लैट नि|अंधेरा रहता/i, "streetlight"],
+  [/sewer|sewage|सीवर|सीवेज|मैनहोल|manhole|chamber (overflow|blocked)|गटर का ढक्कन/i, "sewage"],
+  [/\bdrain|naali|nali\b|नाली|नाला|गटर|gutter|पानी (भर|जमा) (गया|रहता)|जलभराव|waterlog|गंदा पानी (बह|सड़क)|गाड़ भरीं/i, "drain"],
+  [/electric|bijli|bijuli|बिजली|बिजुली|बिजलि|power ?cut|no power|current (nahi|nhi|gaya)|करंट|वोल्टेज|voltage|तार (टूट|लटक|गिर)|wire (hanging|broken|fallen)|meter|मीटर/i, "electricity"],
+  [/water supply|no water|पानी (नहीं|नही|नि|न) (आ|ऐ)|pani (nahi|nhi|na) (aa|aya)|पाणी|पानी की (सप्लाई|किल्लत)|नल (में|सूख|से)|\bnal\b|tap (dry|water)|pipe ?line|पाइप ?लाइन|पाइप फट|टंकी|jal sansthan|जल संस्थान|leak|लीक|गंदा पानी (आ|नल)|पीने का पानी/i, "water"],
+  [/garbage|trash|rubbish|waste|kooda|kachra|kachara|कूड़ा|कूडा|कूड़े|कूड़ू|कचरा|कचरु|गंदगी|gandagi|dump(ing)?|कूड़ादान|dustbin|सफाई नहीं|सफै नि/i, "garbage"],
+  [/pot ?hole|gaddha|gadda|खड्ड|गड्ढ|गड्डा|गढ्ढा|खाड़ु|khadda/i, "pothole"],
+  [/road (broken|damaged|crack|washed)|broken road|सड़क (टूट|धँस|धस|उखड़|खराब|फट)|sadak (tut|toot|kharab|ukhad)|बाटु (टूट|खराब)|बाटो (टूट|खराब)|डामर उखड़|crack(ed)? road|पुलिया टूट|bridge (broken|damaged)/i, "road_damage"],
+  [/\btree|branch|पेड़|पेड|ped\b|डाल(ी)? (टूट|गिर)|डाळ|डाळु|बोट (ढळ|गिर)|रूख|लकड़ी गिर|fallen trunk/i, "tree"],
+  [/noise|loud ?speaker|\bdj\b|शोर|हल्ला|लाउडस्पीकर|ध्वनि|शोरगुल|horn/i, "noise"],
+  [/mosquito|dengue|malaria|मच्छर|डेंगू|मलेरिया|dead (animal|dog|cow)|मरा (हुआ )?(जानवर|कुत्ता|गाय)|मर्यूं|बीमारी फैल|epidemic|health hazard|स्वास्थ्य खतरा|rabid|पागल कुत्ता/i, "health_hazard"],
 ];
 
 /** Rule-based category guess with an explicit, honest confidence and reason. */
 export function classifyText(text: string): { category: string; confidence: number; reason: string; method: "rules" } {
   for (const [re, cat] of CATEGORY_RULES) {
     const m = text.match(re);
-    if (m) return { category: cat, confidence: 0.6, reason: `keyword "${m[0]}" matched`, method: "rules" };
+    if (m) return { category: cat, confidence: 0.6, reason: `keyword "${m[0].trim()}" matched`, method: "rules" };
   }
   return { category: "other", confidence: 0.2, reason: "no keyword matched — needs officer review", method: "rules" };
 }

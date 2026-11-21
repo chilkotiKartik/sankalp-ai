@@ -11,7 +11,7 @@ describe("P1.7 hash-chained audit log", () => {
 
   it("a clean chain verifies, with gap-free sequence numbers", () => {
     seed();
-    expect(storage.verifyAuditChain()).toEqual({ ok: true, checked: 5 });
+    expect(storage.verifyAuditChain()).toEqual({ ok: true, checked: 5, legacyUnchained: 0 });
     expect(storage.s.auditLogs.map(l => l.seq)).toEqual([1, 2, 3, 4, 5]);
   });
 

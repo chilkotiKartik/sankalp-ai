@@ -82,6 +82,13 @@ function setupBody(app: Express) {
   const large = express.json({ limit: "22mb" });
   app.use((req, res, next) => (LARGE_BODY.test(req.path) ? large : small)(req, res, next));
   app.use(express.urlencoded({ extended: false, limit: "100kb" }));
+  // review P1-C2: NUL characters are never valid user input and poison Postgres jsonb — reject the request.
+  app.use((req, _res, next) => {
+    const bad = (v: unknown, d = 0): boolean => d < 8 && (typeof v === "string" ? v.includes("\u0000")
+      : Array.isArray(v) ? v.some(x => bad(x, d + 1)) : !!v && typeof v === "object" && Object.values(v).some(x => bad(x, d + 1)));
+    if (req.body && bad(req.body)) return next(new AppError(400, "INVALID_CHARACTERS", "Request contains invalid characters"));
+    next();
+  });
 }
 
 function setupRequestLog(app: Express) {

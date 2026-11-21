@@ -68,15 +68,15 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] m18 dependency hygiene — unused deps removed, deps:audit allow-list
 - [x] m19 OpenAPI — docs/openapi.json generated from zod (131 paths)
 - [~] m20 repo docs — SECURITY/DATA_RESIDENCY/CONTRIBUTING/CHANGELOG/.env.example done; LICENSE conflict needs owner (D-019)
-- [ ] P1.gate
+- [x] P1.gate — gate green; independent review: C1, C2, H1–H4, M1–M7, L1–L4 fixed with regression tests (docs/reports/phase-1.md)
 
 ## Phase 2 — Sovereign AI
-- [ ] P2.1 gateway resilience
-- [ ] P2.2 providers
-- [ ] P2.3 PII masking
-- [ ] P2.4 versioned prompts
-- [ ] P2.5 eval set + npm run eval
-- [ ] P2.6 explainability
+- [x] P2.1 gateway resilience — circuit breaker, 8 s timeout, 1 retry, metrics
+- [x] P2.2 providers — sarvam | selfhosted | rules; vision self-hosted only
+- [x] P2.3 PII masking — phone/Aadhaar/e-mail/address, English + Devanagari
+- [x] P2.4 versioned prompts — server/ai/prompts with zod output schemas
+- [x] P2.5 eval set + npm run eval — eval/ set, rules baseline 78.2%
+- [x] P2.6 explainability — aiDecisions on complaints; routing reason in dept portal
 - [ ] P2.7 egress enforcement
 - [ ] P2.gate
 

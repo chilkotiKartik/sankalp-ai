@@ -103,7 +103,7 @@ function RTIPortal() {
     try{
       const r=await fetch(`${API}/api/auth/login`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:loginPhone.trim(),pin:loginPin})});
       const d=await r.json();
-      if(r.ok&&d.token){setToken(d.token);setTokenState(d.token);loadRTIs(d.token);}
+      if(r.ok&&d.token){setToken(d.token);try{if(d.refreshToken)localStorage.setItem("sankalp_refresh",d.refreshToken);}catch{}setTokenState(d.token);loadRTIs(d.token);}
       else setLoginErr(d.message||"Sign-in failed");
     } catch {setLoginErr("Network error");}
   };
@@ -112,7 +112,7 @@ function RTIPortal() {
     try{
       const r=await fetch(`${API}/api/rti`,{headers:headers(t)});
       if(r.status===401){
-        localStorage.removeItem("sankalp_token");
+        localStorage.removeItem("sankalp_token");localStorage.removeItem("sankalp_refresh");
         TOKEN=null;
         setTokenState(null);
         return;

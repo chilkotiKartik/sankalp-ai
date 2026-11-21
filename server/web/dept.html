@@ -227,6 +227,7 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
         <div>
           <div style={{fontSize:18,fontWeight:700,color:'var(--orange)',fontFamily:'monospace'}}>{c.ticketId||c.id?.slice(0,8).toUpperCase()}</div>
           <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{fmtDate(c.submittedAt)}</div>
+          {c.aiRouting&&<div style={{fontSize:11,color:'var(--muted)',marginTop:4}} title={c.aiRouting.method}>🤖 Routed {c.aiRouting.method&&c.aiRouting.method.startsWith('model')?'by AI model':'by rules'}: {c.aiRouting.reason}</div>}
         </div>
         <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
       </div>

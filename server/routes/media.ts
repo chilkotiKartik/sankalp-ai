@@ -1,8 +1,9 @@
-import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
+import { getDeptIdForCategory } from "../data/reference";
+import { isStateUser, isDistrictAdmin } from "../auth/roles";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage, type AppUser } from "../storage";
-import { route, none, type Actor } from "../lib/route";
+import { route, none, emergencyDistrict, type Actor } from "../lib/route";
 import { storeMedia, privatePath, publicPathExists, originalPath, signMediaUrl, verifyMediaSignature, SIGNED_URL_TTL_S } from "../lib/media";
 import { currentTenantId, hasTenant, runInTenant } from "../tenancy";
 import { forbidden, notFound, unprocessable, unauthorized } from "../lib/errors";
@@ -32,11 +33,32 @@ export function resolveImage(input: string | undefined, owner: string, opts: { p
 
 /** M3: owner, district admin of the linked SOS, super admin, or police/USDMA department. */
 export function canAccessEvidence(actor: Actor, rec: { ownerId: string; sosId?: string }): boolean {
-  if (actor.deptId === "police" || actor.deptId === "usdma") return true;
+  if (actor.deptId === "police" || actor.deptId === "usdma") {
+    const d = emergencyDistrict(actor);
+    if (!d) return true;
+    return !!rec.sosId && storage.getSOSAlert(rec.sosId)?.district === d;
+  }
   const u: AppUser | undefined = actor.user;
   if (!u) return false;
   if (u.id === rec.ownerId || isStateUser(u)) return true;
   if (isDistrictAdmin(u) && rec.sosId) return storage.getSOSAlert(rec.sosId)?.district === u.district;
+  return false;
+}
+
+/** Originals (with EXIF/GPS): state staff; district admin of the case's district; the case's own department. */
+export function canAccessOriginal(actor: Actor, rec: { sosId?: string; complaintId?: string }): boolean {
+  const u = actor.user;
+  if (u && isStateUser(u)) return true;
+  if (rec.sosId) {
+    if (actor.deptId === "police" || actor.deptId === "usdma") { const d = emergencyDistrict(actor); return !d || storage.getSOSAlert(rec.sosId)?.district === d; }
+    return !!u && isDistrictAdmin(u) && storage.getSOSAlert(rec.sosId)?.district === u.district;
+  }
+  if (!rec.complaintId) return false;
+  const c = storage.getComplaint(rec.complaintId);
+  if (!c) return false;
+  if (actor.deptId) return actor.deptId === getDeptIdForCategory(c.category);
+  if (u && isDistrictAdmin(u)) return c.district === u.district;
+  if (u && u.departmentId && (u.role === "officer" || u.role === "dept_admin")) return u.departmentId === getDeptIdForCategory(c.category);
   return false;
 }
 
@@ -79,12 +101,12 @@ export function registerMediaRoutes(app: Express) {
       const rec = storage.getMediaByFile(params.file);
       if (!rec) throw notFound("Media not found");
       if (query.variant === "original") {
-        // Originals keep EXIF/GPS: staff only (verification), never the public.
-        if (!(isAdminUser(actor.user) || actor.deptId)) throw forbidden("Only staff can access original photos");
+        // Originals keep EXIF/GPS: only staff responsible for the linked case (review P1-M2), never the public.
+        if (!canAccessOriginal(actor, rec)) throw forbidden("Only staff responsible for this case can access the original photo");
         if (!originalPath(params.file)) throw notFound("Original not stored");
       } else if (!canAccessEvidence(actor, rec)) throw forbidden("You are not allowed to access this evidence");
       storage.addAuditLog("signed_url_issued", actor.user?.id ?? `dept:${actor.deptId}`, actor.user ? actor.user.role : `dept:${actor.deptId}`, `Signed link for ${rec.id} (${query.variant ?? "private"})`, rec.sosId);
-      const url = signMediaUrl(params.file, currentTenantId()) + (query.variant === "original" ? "&v=original" : "");
+      const url = signMediaUrl(params.file, currentTenantId(), SIGNED_URL_TTL_S, query.variant ?? "private");
       return { url, expiresInSeconds: SIGNED_URL_TTL_S };
     },
   });
@@ -95,7 +117,7 @@ export function registerMediaRoutes(app: Express) {
     query: z.object({ t: z.string().max(60), exp: z.coerce.number().int(), sig: z.string().max(100), v: z.enum(["original"]).optional() }), body: none,
     handler: ({ params, query, res }) => {
       // The tenant is part of the signature, so the link works without an X-Tenant header (e.g. <audio src>).
-      if (!hasTenant(query.t) || !verifyMediaSignature(params.file, query.t, query.exp, query.sig)) throw forbidden("Link expired or invalid");
+      if (!hasTenant(query.t) || !verifyMediaSignature(params.file, query.t, query.exp, query.sig, query.v ?? "private")) throw forbidden("Link expired or invalid");
       const rec = runInTenant(query.t, () => {
         const r = storage.getMediaByFile(params.file);
         if (r) storage.addAuditLog("signed_url_used", "signed-link", "signed-link", `Signed link used for ${r.id}`, r.sosId);

@@ -9,6 +9,7 @@ import {
 } from "./data/reference";
 import { tenant, currentTenantId, defaultTenant } from "./tenancy";
 import { hoursBetween } from "./lib/time";
+import { mediaDriver } from "./lib/media";
 import { signAccess, verifyAccess, newRefreshToken, hashToken, newSessionId, ACCESS_TTL_S, REFRESH_TTL_MS } from "./auth/tokens";
 import {
   type ComplaintState, legacyStatus, applyPath, pathToInProgress, pathToVerifying,
@@ -291,6 +292,14 @@ export class AppStorage {
     return { accessToken: next.accessToken, refreshToken: next.refreshToken, expiresIn: next.expiresIn, user };
   }
 
+  /** Revoke the session a refresh token belongs to (logout with an expired access token — review P1-H1). */
+  revokeByRefresh(raw: string): boolean {
+    const rt = this.s.refreshTokens.find(x => x.hash === hashToken(raw));
+    if (!rt) return false;
+    this.revokeSession(rt.sid);
+    return true;
+  }
+
   revokeSession(sid: string) {
     const sess = this.s.sessions.find(x => x.sid === sid);
     if (sess && !sess.revokedAt) { sess.revokedAt = Date.now(); this.touch(); }
@@ -307,7 +316,12 @@ export class AppStorage {
 
   private pruneSessions() {
     const t = Date.now();
-    if (this.s.refreshTokens.length > 2000) this.s.refreshTokens = this.s.refreshTokens.filter(x => x.expiresAt > t && !x.usedAt);
+    // Used tokens are kept for 7 days after use so a replayed (stolen) token is still detected and revokes the
+    // session family (review P1-L3). Tokens of revoked sessions can go: they are useless either way.
+    if (this.s.refreshTokens.length > 2000) {
+      const revoked = new Set(this.s.sessions.filter(x => x.revokedAt).map(x => x.sid));
+      this.s.refreshTokens = this.s.refreshTokens.filter(x => x.expiresAt > t && !revoked.has(x.sid) && (!x.usedAt || t - x.usedAt < 7 * 86400000));
+    }
     if (this.s.sessions.length > 2000) this.s.sessions = this.s.sessions.filter(x => x.expiresAt > t - SOS_SESSION_GRACE_MS);
   }
 
@@ -317,9 +331,13 @@ export class AppStorage {
     const t = Date.now();
     const prev = this.s.otps.find(o => o.phone === phone);
     if (prev && t - prev.sentAt < 30_000) return null;
+    // Failed attempts carry over to a re-issued code while the previous one is live (review P1-M1):
+    // re-requesting does not buy fresh guesses, and 5 failures lock the number until that code expires.
+    const carried = prev && prev.expiresAt > t ? prev.attempts : 0;
+    if (carried >= 5) return null;
     const code = String(100000 + (randomBytes(4).readUInt32BE() % 900000));
     this.s.otps = this.s.otps.filter(o => o.phone !== phone && o.expiresAt > t);
-    this.s.otps.push({ phone, codeHash: hmac(config().JWT_SECRET, `otp:${phone}:${code}`), expiresAt: t + 5 * 60_000, attempts: 0, sentAt: t });
+    this.s.otps.push({ phone, codeHash: hmac(config().JWT_SECRET, `otp:${phone}:${code}`), expiresAt: t + 5 * 60_000, attempts: carried, sentAt: t });
     this.touch();
     return code;
   }
@@ -360,6 +378,15 @@ export class AppStorage {
       rtis: this.s.rtis.filter(r => r.filedByPhone === u.phone),
       consents: this.s.consents.filter(c => c.userId === userId),
       media: this.s.media.filter(m => m.ownerId === userId).map(m => ({ id: m.id, kind: m.kind, createdAt: m.createdAt })),
+      // Review P1-H2: everything else that names or identifies the person.
+      chatMessages: this.s.chatMessages.filter(m => m.senderId === userId),
+      safetyReports: this.s.safetyIncidents.filter(i => i.citizenId === userId),
+      nightSafetyReports: this.s.nightSafetyZones.filter(z => z.reporterId === userId).map(z => ({ ...z })),
+      pollsVoted: this.s.polls.filter(p => p.voterIds.includes(userId)).map(p => ({ id: p.id })),
+      petitionsSigned: this.s.petitions.filter(p => p.signerIds.includes(userId)).map(p => ({ id: p.id, title: p.title })),
+      eventsRsvped: this.s.civicEvents.filter(e => e.rsvpIds.includes(userId)).map(e => ({ id: e.id, title: e.title })),
+      complaintsUpvoted: this.s.complaints.filter(c => c.upvotedBy.includes(userId)).map(c => ({ id: c.id })),
+      workerProfile: this.s.workers.filter(w => w.userId === userId || w.phone === u.phone),
     };
   }
 
@@ -376,11 +403,38 @@ export class AppStorage {
   eraseUser(userId: string, decidedBy: string): void {
     const u = this.getUserById(userId);
     if (!u) return;
+    const own = new Set(this.s.complaints.filter(x => x.userId === userId).map(x => x.id));
     for (const c of this.s.complaints.filter(x => x.userId === userId)) {
       c.userId = undefined; c.submittedBy = "Erased citizen"; c.submittedByPhone = undefined; c.feedback = undefined;
     }
     for (const r of this.s.rtis.filter(x => x.filedByPhone === u.phone)) { r.filedBy = "Erased citizen"; r.filedByPhone = ""; }
-    for (const m of this.s.chatMessages) if (m.senderName === u.name && m.senderRole === "citizen") m.senderName = "Erased citizen";
+    // Review P1-H2: match by id (or, for legacy rows without senderId, citizen messages on the person's OWN complaints).
+    for (const m of this.s.chatMessages) {
+      if (m.senderId === userId || (!m.senderId && m.senderRole === "citizen" && m.senderName === u.name && own.has(m.complaintId))) {
+        m.senderName = "Erased citizen"; m.senderId = undefined; m.message = "[removed at the citizen's request]";
+      }
+    }
+    for (const c of this.s.complaints) {
+      c.upvotedBy = c.upvotedBy.filter(x => x !== userId);
+      if (c.rejectedBy) c.rejectedBy = c.rejectedBy.filter(x => x !== userId);
+      if (c.assignedWorkerPhone === u.phone) { c.assignedWorkerName = "Erased worker"; c.assignedWorkerPhone = undefined; }
+    }
+    for (const e of this.s.complaintEvents) if (e.actorId === userId) e.actorId = `erased:${pseudoRef(userId)}`;
+    for (const p of this.s.polls) p.voterIds = p.voterIds.filter(x => x !== userId);
+    for (const p of this.s.petitions) p.signerIds = p.signerIds.filter(x => x !== userId);
+    for (const e of this.s.civicEvents) e.rsvpIds = e.rsvpIds.filter(x => x !== userId);
+    for (const i of this.s.safetyIncidents) if (i.citizenId === userId) { i.citizenName = "Erased citizen"; i.citizenId = undefined; }
+    for (const z of this.s.nightSafetyZones) if (z.reporterId === userId) { z.reporterName = "Erased citizen"; z.reporterId = undefined; }
+    this.s.workers = this.s.workers.filter(w => !(w.userId === userId || w.phone === u.phone));
+    this.s.workerPins = this.s.workerPins.filter(p => p.phone !== u.phone);
+    this.s.otps = this.s.otps.filter(o => o.phone !== u.phone);
+    // Originals keep EXIF/GPS: delete them. The stripped public copy stays with the (pseudonymised) complaint.
+    const drv = mediaDriver();
+    for (const m of this.s.media.filter(x => x.ownerId === userId)) {
+      drv.remove("originals", m.fileName);
+      if (m.visibility === "private" && !m.sosId) drv.remove("private", m.fileName);
+      m.ownerId = `erased:${pseudoRef(userId)}`;
+    }
     const sids = new Set(this.s.sessions.filter(x => x.userId === userId).map(x => x.sid));
     this.s.sessions = this.s.sessions.filter(x => !sids.has(x.sid));
     this.s.refreshTokens = this.s.refreshTokens.filter(x => !sids.has(x.sid));
@@ -402,38 +456,49 @@ export class AppStorage {
     return req;
   }
 
-  /** Retention purge (P1.9). Returns counts. Media files are removed through the media driver by the caller. */
-  purgeExpired(at = Date.now()): { complaints: number; media: string[]; sosEvidence: string[] } {
+  /**
+   * Retention (P1.9). Review P1-M7:
+   *  - while the tenant's `retention.needsLegalConfirmation` is true this is a DRY RUN: it reports what would be
+   *    purged (audited) and deletes nothing;
+   *  - SOS evidence is purged only for resolved alerts, never for open cases or ones on legal hold.
+   */
+  purgeExpired(at = Date.now()): { complaints: number; media: string[]; sosEvidence: string[]; dryRun: boolean } {
     const r = tenant().retention;
+    const dryRun = r.needsLegalConfirmation;
     const day = 86400000;
     const closedLong = (c: Complaint) => (c.state === "CLOSED" || c.state === "CANCELLED_BY_CITIZEN" || c.state === "AUTO_CLOSED_UNVERIFIED")
       && at - new Date(c.resolvedAt ?? c.submittedAt).getTime() > r.complaintsDays * day;
     const expired = new Set(this.s.complaints.filter(closedLong).map(c => c.id));
     const mediaCut = (c: Complaint) => (c.state === "CLOSED" || c.state === "CANCELLED_BY_CITIZEN") && at - new Date(c.resolvedAt ?? c.submittedAt).getTime() > r.mediaDaysAfterClosure * day;
+    const photoComplaints = this.s.complaints.filter(mediaCut);
     const mediaFiles = new Set<string>();
-    for (const c of this.s.complaints.filter(mediaCut)) {
+    for (const c of photoComplaints) {
       for (const url of [c.beforePhoto, c.proofPhoto, c.afterPhoto]) {
         const f = url?.match(/\/uploads\/([0-9a-f-]{36}\.\w+)$/)?.[1];
         if (f) mediaFiles.add(f);
       }
-      c.beforePhoto = c.proofPhoto = c.afterPhoto = undefined;
     }
-    const sosFiles: string[] = [];
-    for (const a of this.s.sosAlerts) {
-      if (a.legalHold || at - new Date(a.triggeredAt).getTime() <= r.sosEvidenceDays * day) continue;
-      for (const m of this.s.media.filter(x => x.sosId === a.id)) sosFiles.push(m.fileName);
-      a.audioChunks = []; a.audioRecordingUrl = undefined;
+    const sosExpired = this.s.sosAlerts.filter(a => !a.legalHold && a.status === "resolved"
+      && at - new Date(a.resolvedAt ?? a.triggeredAt).getTime() > r.sosEvidenceDays * day);
+    const sosIds = new Set(sosExpired.map(a => a.id));
+    const sosFiles = this.s.media.filter(x => x.sosId && sosIds.has(x.sosId)).map(m => m.fileName);
+    const result = { complaints: expired.size, media: [...mediaFiles], sosEvidence: sosFiles, dryRun };
+    if (!expired.size && !mediaFiles.size && !sosFiles.length) return result;
+    const summary = `${expired.size} complaints, ${mediaFiles.size} photos, ${sosFiles.length} SOS evidence files`;
+    if (dryRun) {
+      this.addAuditLog("retention_dry_run", "system", "SANKALP System", `Would purge ${summary} — retention periods await legal confirmation; nothing deleted`);
+      return { complaints: 0, media: [], sosEvidence: [], dryRun, wouldPurge: { complaints: expired.size, media: mediaFiles.size, sosEvidence: sosFiles.length } } as typeof result;
     }
+    for (const c of photoComplaints) c.beforePhoto = c.proofPhoto = c.afterPhoto = undefined;
+    for (const a of sosExpired) { a.audioChunks = []; a.audioRecordingUrl = undefined; }
     this.s.complaints = this.s.complaints.filter(c => !expired.has(c.id));
     this.s.complaintEvents = this.s.complaintEvents.filter(e => !expired.has(e.complaintId));
     this.s.chatMessages = this.s.chatMessages.filter(m => !expired.has(m.complaintId));
     const gone = new Set([...mediaFiles, ...sosFiles]);
     this.s.media = this.s.media.filter(m => !gone.has(m.fileName));
-    if (expired.size || gone.size) {
-      this.addAuditLog("retention_purge", "system", "SANKALP System", `Purged ${expired.size} complaints, ${mediaFiles.size} photos, ${sosFiles.length} SOS evidence files`);
-      this.touch();
-    }
-    return { complaints: expired.size, media: [...mediaFiles], sosEvidence: sosFiles };
+    this.addAuditLog("retention_purge", "system", "SANKALP System", `Purged ${summary}`);
+    this.touch();
+    return result;
   }
 
   // ── DEPARTMENT CREDENTIALS (M5) ─────────────────────────────────────────────
@@ -485,7 +550,7 @@ export class AppStorage {
 
   createComplaint(
     data: Pick<Complaint, "category" | "description" | "location" | "geo" | "ward" | "wardNumber" | "district" | "priority"> &
-      Partial<Pick<Complaint, "beforePhoto" | "submittedBy" | "submittedByPhone" | "aiRouting" | "photoReview" | "isDemo" | "hasProof">>,
+      Partial<Pick<Complaint, "beforePhoto" | "submittedBy" | "submittedByPhone" | "aiRouting" | "aiDecisions" | "photoReview" | "isDemo" | "hasProof">>,
     user: Pick<AppUser, "id" | "name" | "phone">,
   ): Complaint {
     const state: ComplaintState = "NEW";
@@ -966,8 +1031,8 @@ export class AppStorage {
 
   // ── CHAT ────────────────────────────────────────────────────────────────────
   getChatMessages(complaintId: string): ChatMessage[] { return this.s.chatMessages.filter(m => m.complaintId === complaintId); }
-  addChatMessage(complaintId: string, message: string, senderName: string, senderRole: ChatMessage["senderRole"]): ChatMessage {
-    const msg: ChatMessage = { ...demoFlag(), id: genId(), complaintId, message, senderName, senderRole, sentAt: now() };
+  addChatMessage(complaintId: string, message: string, senderName: string, senderRole: ChatMessage["senderRole"], senderId?: string): ChatMessage {
+    const msg: ChatMessage = { ...demoFlag(), id: genId(), complaintId, message, senderName, senderId, senderRole, sentAt: now() };
     this.s.chatMessages.push(msg);
     this.touch();
     bus.emit("chat", { type: "chat_message", complaintId, message: msg });
@@ -1035,18 +1100,26 @@ export class AppStorage {
   }
 
   /** P1.7: recompute the chain. Returns the first broken seq, if any. */
-  verifyAuditChain(): { ok: boolean; checked: number; brokenAt?: number; reason?: string } {
+  verifyAuditChain(): { ok: boolean; checked: number; legacyUnchained: number; brokenAt?: number; reason?: string } {
     let prev = this.s.auditAnchor?.hash ?? AUDIT_GENESIS;
     let expectedSeq = (this.s.auditAnchor?.seq ?? 0) + 1;
+    let legacyUnchained = 0;
+    let chained = false;
     for (const e of this.s.auditLogs) {
-      if (e.seq === undefined || e.hash === undefined) continue; // pre-chain legacy entries
-      if (e.seq !== expectedSeq) return { ok: false, checked: expectedSeq - 1, brokenAt: e.seq, reason: "sequence gap (entry deleted or reordered)" };
-      if (e.prevHash !== prev) return { ok: false, checked: expectedSeq - 1, brokenAt: e.seq, reason: "prevHash mismatch" };
-      if (auditHash(prev, e) !== e.hash) return { ok: false, checked: expectedSeq - 1, brokenAt: e.seq, reason: "content changed after it was written" };
+      if (e.seq === undefined || e.hash === undefined) {
+        // Pre-chain entries are reported (review P1-L2). An unchained entry AFTER the chain started is tampering.
+        if (chained) return { ok: false, checked: expectedSeq - 1, legacyUnchained, reason: "unchained entry inserted after the chain began" };
+        legacyUnchained++;
+        continue;
+      }
+      chained = true;
+      if (e.seq !== expectedSeq) return { ok: false, checked: expectedSeq - 1, legacyUnchained, brokenAt: e.seq, reason: "sequence gap (entry deleted or reordered)" };
+      if (e.prevHash !== prev) return { ok: false, checked: expectedSeq - 1, legacyUnchained, brokenAt: e.seq, reason: "prevHash mismatch" };
+      if (auditHash(prev, e) !== e.hash) return { ok: false, checked: expectedSeq - 1, legacyUnchained, brokenAt: e.seq, reason: "content changed after it was written" };
       prev = e.hash;
       expectedSeq++;
     }
-    return { ok: true, checked: expectedSeq - 1 - (this.s.auditAnchor?.seq ?? 0) };
+    return { ok: true, checked: expectedSeq - 1 - (this.s.auditAnchor?.seq ?? 0), legacyUnchained };
   }
 
   getAuditLogs(complaintId?: string): AuditLog[] {
@@ -1092,11 +1165,11 @@ export class AppStorage {
     return list.sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
   }
 
-  createSafetyIncident(data: { citizenName: string; district: string; location: string; lat: number; lng: number }): SafetyIncident {
+  createSafetyIncident(data: { citizenName: string; citizenId?: string; district: string; location: string; lat: number; lng: number }): SafetyIncident {
     const van = this.s.patrolVans.find(v => v.status === "active_patrol" && v.district === data.district);
     const incident: SafetyIncident = {
       ...demoFlag(),
-      id: genId(), citizenName: data.citizenName, district: data.district, location: data.location,
+      id: genId(), citizenName: data.citizenName, citizenId: data.citizenId, district: data.district, location: data.location,
       geo: { lat: data.lat, lng: data.lng }, status: van ? "patrol_dispatched" : "active", reportedAt: now(), escalationLevel: 1,
       assignedPatrolVan: van?.vanNumber, assignedPatrolOfficer: van?.officerInCharge, assignedPatrolPhone: van?.officerPhone,
       updates: [{ time: now(), message: `SOS received at ${data.location}`, actor: "SYSTEM" }],
@@ -1142,7 +1215,7 @@ export class AppStorage {
     return [...this.s.nightSafetyZones].sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
   }
 
-  createNightSafetyZone(data: { location: string; district: string; description: string; riskType: NightSafetyZone["riskType"]; geo: GeoPoint | null; reporterName: string }): NightSafetyZone {
+  createNightSafetyZone(data: { location: string; district: string; description: string; riskType: NightSafetyZone["riskType"]; geo: GeoPoint | null; reporterName: string; reporterId?: string }): NightSafetyZone {
     const z: NightSafetyZone = { ...demoFlag(), ...data, id: genId(), reportedAt: now(), status: "active", patrolVisits: 0 };
     this.s.nightSafetyZones.unshift(z);
     this.touch();

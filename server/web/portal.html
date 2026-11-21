@@ -206,6 +206,7 @@ function Toast({toasts}){
 function Spinner({size}){size=size||18;return <div style={{width:size,height:size,border:'2px solid var(--border)',borderTop:'2px solid var(--orange)',borderRadius:'50%'}} className="spin"/>;}
 
 /* ── LIVE ANNOUNCEMENTS TICKER ───────────────────────────────────────────────── */
+const HELPLINES=[{id:'h1',title:'🆘 Emergency: 112 · Police 100 · Ambulance 108 · Fire 101 · Women Helpline 1090',priority:'urgent'}];
 function LiveTicker({token}){
   const [items,setItems]=useState([]);
   const [lastRefresh,setLastRefresh]=useState(Date.now());
@@ -214,21 +215,11 @@ function LiveTicker({token}){
     const url='/api/announcements'+(token?'':'');
     const headers=token?{Authorization:'Bearer '+token}:{};
     fetch(url,{headers}).then(r=>r.json()).then(d=>{
+      // No invented announcements (rule: no fake data). Without real items we show only official helplines.
       if(Array.isArray(d)&&d.length>0)setItems(d.slice(0,10));
-      else{
-        setItems([
-          {id:'a1',title:'📢 SANKALP AI — Uttarakhand Civic Portal is LIVE',priority:'normal'},
-          {id:'a2',title:'🌐 File complaints, track status & get real-time updates across 8 departments',priority:'normal'},
-          {id:'a3',title:'🆘 SOS Emergency? Call 112 immediately · Women Safety: 1090',priority:'urgent'},
-          {id:'a4',title:'📊 All 13 Uttarakhand districts connected · Live complaint tracking active',priority:'normal'},
-        ]);
-      }
+      else setItems(HELPLINES);
     }).catch(()=>{
-      setItems([
-        {id:'f1',title:'📢 SANKALP AI — Real-time governance for Uttarakhand',priority:'normal'},
-        {id:'f2',title:'🆘 Emergency services: Police 100 · Ambulance 108 · Fire 101 · SDRF 1070',priority:'urgent'},
-        {id:'f3',title:'📝 Submit civic complaints and track resolution in real-time across all 8 departments',priority:'normal'},
-      ]);
+      setItems(HELPLINES);
     });
     setLastRefresh(Date.now());
   },[token]);
@@ -2564,8 +2555,10 @@ function App(){
   }
 
   function logout(){
+    const rt=session&&session.refreshToken;
+    if(rt||session?.token)fetch('/api/auth/logout',{method:'POST',headers:{'Content-Type':'application/json',...(session?.token?{Authorization:'Bearer '+session.token}:{})},body:JSON.stringify({refreshToken:rt||undefined})}).catch(()=>{});
     setSession(null);
-    try{localStorage.removeItem('portal_session');}catch{}
+    try{localStorage.removeItem('portal_session');localStorage.removeItem('sankalp_refresh');}catch{}
   }
 
   const role=session?.user?.role;

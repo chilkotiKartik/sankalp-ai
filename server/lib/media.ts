@@ -83,21 +83,48 @@ export function mediaDriver(): MediaDriver {
 
 // ── Metadata stripping (P1.6): public copies never carry EXIF/GPS/device identifiers ─
 /** JPEG: drop APP1–APP15 (EXIF, XMP, ICC, maker notes) and COM segments; keep APP0 (JFIF) and image data. */
+export class MediaStripError extends Error {}
+
+/**
+ * JPEG: drop APP1–APP15 (EXIF, XMP, ICC-with-GPS vendors…) and COM segments everywhere in the file,
+ * including between the scans of a progressive JPEG. Fill bytes (0xFF 0xFF…) are skipped.
+ * Fails CLOSED (review P1-M3): anything we cannot parse throws, and the upload is rejected.
+ */
 export function stripJpeg(buf: Buffer): Buffer {
-  if (buf[0] !== 0xff || buf[1] !== 0xd8) return buf;
+  if (buf[0] !== 0xff || buf[1] !== 0xd8) throw new MediaStripError("not a JPEG");
   const out: Buffer[] = [buf.subarray(0, 2)];
   let i = 2;
-  while (i + 4 <= buf.length) {
-    if (buf[i] !== 0xff) return buf; // malformed → keep original bytes (still validated as JPEG)
+  const isStandalone = (m: number) => m === 0x01 || (m >= 0xd0 && m <= 0xd7);
+  while (i < buf.length) {
+    if (buf[i] !== 0xff) throw new MediaStripError("malformed JPEG segment");
+    while (buf[i + 1] === 0xff) i++; // fill bytes
+    if (i + 1 >= buf.length) throw new MediaStripError("truncated JPEG");
     const marker = buf[i + 1];
-    if (marker === 0xda) { out.push(buf.subarray(i)); return Buffer.concat(out); } // start of scan: rest is image data
-    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { out.push(buf.subarray(i, i + 2)); i += 2; continue; }
+    if (marker === 0xd9) { out.push(buf.subarray(i, i + 2)); return Buffer.concat(out); } // EOI
+    if (isStandalone(marker)) { out.push(buf.subarray(i, i + 2)); i += 2; continue; }
+    if (i + 4 > buf.length) throw new MediaStripError("truncated JPEG");
     const len = buf.readUInt16BE(i + 2);
+    if (len < 2 || i + 2 + len > buf.length) throw new MediaStripError("bad JPEG segment length");
     const seg = buf.subarray(i, i + 2 + len);
     const drop = (marker >= 0xe1 && marker <= 0xef) || marker === 0xfe;
     if (!drop) out.push(seg);
     i += 2 + len;
+    if (marker === 0xda) {
+      // Entropy-coded data runs until the next real marker (0xFF not followed by 0x00, RSTn or a fill byte).
+      const dataStart = i;
+      while (i < buf.length) {
+        if (buf[i] === 0xff) {
+          const n = buf[i + 1];
+          if (n === 0x00 || (n >= 0xd0 && n <= 0xd7)) { i += 2; continue; }
+          if (n === 0xff) { i++; continue; }
+          break;
+        }
+        i++;
+      }
+      out.push(buf.subarray(dataStart, i));
+    }
   }
+  // No EOI: many cameras/phones still write valid images this way; everything was parsed, so keep what we have.
   return Buffer.concat(out);
 }
 
@@ -109,6 +136,7 @@ export function stripPng(buf: Buffer): Buffer {
   while (i + 12 <= buf.length) {
     const len = buf.readUInt32BE(i);
     const type = buf.subarray(i + 4, i + 8).toString("ascii");
+    if (i + 12 + len > buf.length) throw new MediaStripError("bad PNG chunk length");
     const chunk = buf.subarray(i, i + 12 + len);
     if (!["tEXt", "zTXt", "iTXt", "eXIf", "tIME"].includes(type)) out.push(chunk);
     i += 12 + len;
@@ -125,7 +153,8 @@ export function stripWebp(buf: Buffer): Buffer {
     const type = buf.subarray(i, i + 4).toString("ascii");
     const size = buf.readUInt32LE(i + 4);
     const total = 8 + size + (size % 2);
-    let c = Buffer.from(buf.subarray(i, i + total));
+    if (i + 8 + size > buf.length) throw new MediaStripError("bad WebP chunk size");
+    const c = Buffer.from(buf.subarray(i, i + total));
     if (type === "VP8X" && c.length > 8) { c[8] &= ~(0x08 | 0x04); } // clear EXIF (0x08) and XMP (0x04) flags
     if (type !== "EXIF" && type !== "XMP ") chunks.push(c);
     i += total;
@@ -158,7 +187,11 @@ export function storeMedia(payload: string, expected: MediaKind): StoredFile {
   const fileName = `${id}.${s.ext}`;
   const drv = mediaDriver();
   if (expected === "image") {
-    const clean = stripMetadata(buf, s.ext);
+    let clean: Buffer;
+    try { clean = stripMetadata(buf, s.ext); } catch (err) {
+      if (err instanceof MediaStripError) throw unprocessable("UNSUPPORTED_MEDIA", "This image could not be processed safely. Please re-save it as JPEG or PNG and try again.");
+      throw err;
+    }
     drv.put("public", fileName, clean);
     drv.put("originals", fileName, buf);
     return { id, fileName, mime: s.mime, kind: s.kind, size: clean.length, visibility: "public", hasOriginal: true };
@@ -183,15 +216,19 @@ export function publicPathExists(fileName: string): boolean {
 // ── Signed URLs (P1.6): 5-minute, file-bound, tenant-bound HMAC links for <audio>/<img> of private media ─
 export const SIGNED_URL_TTL_S = 300;
 
-export function signMediaUrl(fileName: string, tenantId: string, ttlS = SIGNED_URL_TTL_S): string {
+/** The variant is part of the signature (review P1-M2): a "private" link can never be turned into an "original" one. */
+const mediaSig = (fileName: string, tenantId: string, exp: number, variant: "private" | "original") =>
+  createHmac("sha256", config().JWT_SECRET).update(`media:${tenantId}:${fileName}:${exp}:${variant}`).digest("base64url");
+
+export function signMediaUrl(fileName: string, tenantId: string, ttlS = SIGNED_URL_TTL_S, variant: "private" | "original" = "private"): string {
   const exp = Math.floor(Date.now() / 1000) + ttlS;
-  const sig = createHmac("sha256", config().JWT_SECRET).update(`media:${tenantId}:${fileName}:${exp}`).digest("base64url");
-  return `/api/media/signed/${fileName}?t=${encodeURIComponent(tenantId)}&exp=${exp}&sig=${sig}`;
+  const sig = mediaSig(fileName, tenantId, exp, variant);
+  return `/api/media/signed/${fileName}?t=${encodeURIComponent(tenantId)}&exp=${exp}&sig=${sig}${variant === "original" ? "&v=original" : ""}`;
 }
 
-export function verifyMediaSignature(fileName: string, tenantId: string, exp: number, sig: string): boolean {
+export function verifyMediaSignature(fileName: string, tenantId: string, exp: number, sig: string, variant: "private" | "original" = "private"): boolean {
   if (!Number.isFinite(exp) || exp < Math.floor(Date.now() / 1000)) return false;
-  const expected = createHmac("sha256", config().JWT_SECRET).update(`media:${tenantId}:${fileName}:${exp}`).digest("base64url");
+  const expected = mediaSig(fileName, tenantId, exp, variant);
   const a = Buffer.from(sig), b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
 }

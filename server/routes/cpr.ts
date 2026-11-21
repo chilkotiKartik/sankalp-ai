@@ -4,7 +4,7 @@ import { currentTenantId } from "../tenancy";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage, cprEmitter, type SafetyIncident } from "../storage";
-import { route, none, idParams, type Actor } from "../lib/route";
+import { route, none, idParams, emergencyDistrict, type Actor } from "../lib/route";
 import { forbidden, notFound, unauthorized } from "../lib/errors";
 import { writeLimiter } from "./limits";
 import { district, geo, text, tenantDistrict } from "./common";
@@ -15,8 +15,7 @@ import { toPublicVan } from "./dto";
  * department token or an admin account. Admin users are scoped to their district.
  */
 function districtScope(actor: Actor, requested?: string): string | undefined {
-  if (actor.user && isDistrictAdmin(actor.user)) return actor.user.district;
-  return requested;
+  return emergencyDistrict(actor) ?? requested;
 }
 
 export function registerCprRoutes(app: Express) {
@@ -25,7 +24,7 @@ export function registerCprRoutes(app: Express) {
     method: "get", path: "/api/cpr/patrols", auth: "optional", permission: "cpr.patrols_read",
     params: none, query: z.object({ district: district.optional() }), body: none,
     handler: ({ query, actor }) => {
-      if (actor.deptId === "police" || actor.deptId === "usdma") return storage.getPatrolVans(query.district);
+      if (actor.deptId === "police" || actor.deptId === "usdma") return storage.getPatrolVans(districtScope(actor, query.district));
       if (!actor.user) throw unauthorized();
       const user = actor.user;
       const staff = isAdminUser(user);
@@ -111,7 +110,7 @@ export function registerCprRoutes(app: Express) {
     body: z.object({ location: z.string().trim().min(2).max(300), lat: z.number().optional(), lng: z.number().optional(), reason: text(500).optional() }),
     handler: ({ body, user, res }) => {
       const c = storage.getDistrictCenter(user.district);
-      const incident = storage.createSafetyIncident({ citizenName: user.name, district: user.district, location: body.location, lat: body.lat ?? c.lat, lng: body.lng ?? c.lng });
+      const incident = storage.createSafetyIncident({ citizenName: user.name, citizenId: user.id, district: user.district, location: body.location, lat: body.lat ?? c.lat, lng: body.lng ?? c.lng });
       res.status(201);
       return { success: true, incidentId: incident.id, status: incident.status, message: incident.assignedPatrolVan ? "Help requested. A patrol unit has been notified." : "Help requested. The control room has been notified." };
     },
@@ -122,7 +121,7 @@ export function registerCprRoutes(app: Express) {
     params: none, query: none, body: none,
     handler: ({ actor }) => {
       const zones = storage.getNightSafetyZones().map(z => ({ ...z, reporterName: undefined }));
-      if (actor.deptId === "police" || actor.deptId === "usdma") return zones;
+      if (actor.deptId === "police" || actor.deptId === "usdma") { const d = emergencyDistrict(actor); return d ? zones.filter(z => z.district === d) : zones; }
       if (!actor.user) throw unauthorized();
       const u = actor.user;
       return zones.filter(z => isStateUser(u) || z.district === u.district);
@@ -136,7 +135,7 @@ export function registerCprRoutes(app: Express) {
     body: z.object({ location: z.string().trim().min(2).max(300), description: text(1000).optional(), riskType: z.enum(["crime", "accident", "harassment", "lighting", "general"]).optional(), geo: geo.nullish() }).passthrough(),
     handler: ({ body, user, res }) => {
       const zone = storage.createNightSafetyZone({ location: body.location, district: user.district, description: body.description || "",
-        riskType: body.riskType || "general", geo: body.geo ?? null, reporterName: user.name });
+        riskType: body.riskType || "general", geo: body.geo ?? null, reporterName: user.name, reporterId: user.id });
       cprEmitter.emit("event", { type: "night_safety_new", zone, district: user.district });
       res.status(201);
       return { ...zone, reporterName: undefined };
@@ -171,7 +170,7 @@ export function registerCprRoutes(app: Express) {
     allowQueryToken: true,
     params: none, query: none, body: none,
     handler: ({ actor, req, res }) => {
-      const scoped = actor.user && isDistrictAdmin(actor.user) ? actor.user.district : undefined;
+      const scoped = emergencyDistrict(actor);
       const send = openSse(req, res, sseKey(actor));
       const tid = currentTenantId();
       const listener = (ev: { tenantId?: string; district?: string; incident?: { district?: string }; alert?: { district?: string } }) => {

@@ -1,4 +1,5 @@
 import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
+import { isStateWide } from "../data/reference";
 import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z, type ZodTypeAny } from "zod";
@@ -6,6 +7,7 @@ import { config } from "../config";
 import { storage, type AppUser, DEPARTMENTS, SOS_SESSION_GRACE_MS } from "../storage";
 import { unauthorized, forbidden, AppError } from "./errors";
 import { permits, type Principal } from "../auth/permissions";
+import { currentTenantId } from "../tenancy";
 import { isJwtShape } from "../auth/tokens";
 
 /**
@@ -91,7 +93,7 @@ export const idParams = z.object({ id: z.string().min(1).max(100) });
 
 // ── Department tokens (HMAC, timing-safe, revoked on code rotation) ──────────
 export function signDeptToken(departmentId: string): string {
-  const payload = { departmentId, type: "dept", v: storage.deptCredentialVersion(departmentId), exp: Date.now() + 12 * 3600 * 1000 };
+  const payload = { departmentId, type: "dept", tid: currentTenantId(), v: storage.deptCredentialVersion(departmentId), exp: Date.now() + 12 * 3600 * 1000 };
   const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const sig = createHmac("sha256", config().DEPT_JWT_SECRET).update(encoded).digest("base64url");
   return `${encoded}.${sig}`;
@@ -106,6 +108,7 @@ export function verifyDeptToken(token: string): { departmentId: string } | null 
   try {
     const p = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
     if (p.type !== "dept" || !DEPARTMENTS[p.departmentId] || typeof p.exp !== "number" || p.exp < Date.now()) return null;
+    if (p.tid !== currentTenantId()) return null; // review P1-C1: tokens never cross tenants
     if (p.v !== storage.deptCredentialVersion(p.departmentId)) return null;
     return { departmentId: p.departmentId };
   } catch {
@@ -134,6 +137,28 @@ export function resolveActor(req: Request, allowQuery = false, graceMs = 0): Act
   if ((user.role === "officer" || user.role === "dept_admin") && user.departmentId) return { user, deptId: user.departmentId };
   if (user.role === "police") return { user, deptId: "police" };
   return { user };
+}
+
+/**
+ * Long-lived streams (SSE/WebSocket) are re-checked on every heartbeat (review P1-M4): the stream closes once its
+ * session is revoked (logout, refresh-token reuse), the account is erased, or a department code is rotated.
+ * Access-token expiry is not re-applied (the stream was authorised when opened), up to the SOS grace window.
+ */
+export function streamStillAuthorized(req: Request): boolean {
+  const a = resolveActor(req, true, SOS_SESSION_GRACE_MS);
+  return !!(a.user || a.deptId);
+}
+
+/**
+ * Emergency (SOS / command) scope — review P1-M5. The state control-room access code (police/USDMA department token)
+ * covers the whole state. A personal police account covers only its own district unless it is posted state-wide.
+ * Returns the district to restrict to, or undefined for state-wide.
+ */
+export function emergencyDistrict(actor: Actor): string | undefined {
+  const u = actor.user;
+  if (!u) return undefined;
+  if (u.role === "police" || isDistrictAdmin(u)) return isStateWide(u.district) ? undefined : u.district;
+  return undefined;
 }
 
 const isAdmin = (u?: AppUser) => isAdminUser(u);

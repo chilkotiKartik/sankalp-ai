@@ -1,7 +1,7 @@
 import { isAdminUser, isStateUser, isDistrictAdmin } from "./auth/roles";
 import type { Server, IncomingMessage } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
-import { storage, bus, type AppUser, type Complaint, type SOSAlert, type Announcement } from "./storage";
+import { storage, bus, SOS_SESSION_GRACE_MS, type AppUser, type Complaint, type SOSAlert, type Announcement } from "./storage";
 import { currentTenantId, resolveTenantFromRequest, runInTenant } from "./tenancy";
 import { resolveActor } from "./lib/route";
 import { toStaffComplaint } from "./routes/dto";
@@ -13,7 +13,7 @@ import { toStaffComplaint } from "./routes/dto";
  *  - announcements → users in the target district.
  *  - emergency broadcast → users in the sender's district (all districts for super admin).
  */
-interface Client { ws: WebSocket; user: AppUser; tenantId: string; alive: boolean }
+interface Client { ws: WebSocket; user: AppUser; tenantId: string; alive: boolean; token: string }
 
 const MAX_SOCKETS_PER_USER = 5;
 let clients: Client[] = [];
@@ -28,9 +28,9 @@ function send(c: Client, payload: unknown) {
   if (c.ws.readyState === WebSocket.OPEN) c.ws.send(JSON.stringify(payload));
 }
 
-function resolveActorFromToken(tok: string | null): AppUser | null {
+function resolveActorFromToken(tok: string | null, graceMs = 0): AppUser | null {
   if (!tok) return null;
-  return resolveActor({ headers: { authorization: `Bearer ${tok}` }, query: {} } as never).user ?? null;
+  return resolveActor({ headers: { authorization: `Bearer ${tok}` }, query: {} } as never, false, graceMs).user ?? null;
 }
 
 /** Deliver only to clients of the tenant the event belongs to (P1.3). */
@@ -92,7 +92,7 @@ export function attachRealtime(server: Server) {
     }
     const mine = clients.filter(c => c.user.id === user.id);
     if (mine.length >= MAX_SOCKETS_PER_USER) mine[0].ws.close(4008, "Too many connections");
-    const client: Client = { ws, user, tenantId, alive: true };
+    const client: Client = { ws, user, tenantId, alive: true, token: url.searchParams.get("token")! };
     clients.push(client);
     ws.on("pong", () => { client.alive = true; });
     ws.on("message", () => { /* server → client only */ });
@@ -104,6 +104,10 @@ export function attachRealtime(server: Server) {
   heartbeat = setInterval(() => {
     for (const c of clients) {
       if (!c.alive) { c.ws.terminate(); continue; }
+      // Re-validate the session behind the socket (review P1-M4): logout, erasure or role change takes effect here.
+      const fresh = runInTenant(c.tenantId, () => resolveActorFromToken(c.token, SOS_SESSION_GRACE_MS));
+      if (!fresh) { c.ws.close(4001, "Session ended"); continue; }
+      c.user = fresh;
       c.alive = false;
       try { c.ws.ping(); } catch { c.ws.terminate(); }
     }

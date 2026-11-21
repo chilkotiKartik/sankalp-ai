@@ -68,10 +68,41 @@ describe("P1.6 signed URLs for private media", () => {
     const citizen = await makeUser();
     const up = await request(app()).post("/api/upload").set(auth(citizen.token)).send({ image: jpegWithExif().toString("base64") });
     expect((await request(app()).post(`/api/media/${up.body.filename}/sign?variant=original`).set(auth(citizen.token))).status).toBe(403);
+    // Not linked to any case: a district admin cannot open it (review P1-M2); state staff can.
     const admin = await makeUser("admin");
-    const s = await request(app()).post(`/api/media/${up.body.filename}/sign?variant=original`).set(auth(admin.token));
+    expect((await request(app()).post(`/api/media/${up.body.filename}/sign?variant=original`).set(auth(admin.token))).status).toBe(403);
+    const state = await makeUser("state_admin");
+    const s = await request(app()).post(`/api/media/${up.body.filename}/sign?variant=original`).set(auth(state.token));
     expect(s.status).toBe(200);
     const got = await request(app()).get(s.body.url);
     expect(Buffer.from(got.body).includes(Buffer.from("GPSLatitude"))).toBe(true);
+    // The variant is signed: a private link cannot be upgraded to the original, nor the reverse.
+    expect((await request(app()).get(s.body.url.replace("&v=original", ""))).status).toBe(403);
+  });
+
+  it("district admin can open originals for a complaint in their own district only", async () => {
+    const citizen = await makeUser("citizen", "Dehradun");
+    const up = await request(app()).post("/api/upload").set(auth(citizen.token)).send({ image: jpegWithExif().toString("base64") });
+    const c = await request(app()).post("/api/complaints").set(auth(citizen.token))
+      .send({ category: "pothole", description: "Large pothole near the bus stand", location: "Rajpur Road", geo: { lat: 30.33, lng: 78.06 }, images: [up.body.url] });
+    expect(c.status).toBe(201);
+    const rec = storage.getMediaByFile(up.body.filename)!;
+    if (!rec.complaintId) storage.linkMedia(rec.id, { complaintId: c.body.id });
+    const local = await makeUser("admin", "Dehradun");
+    const other = await makeUser("admin", "Haridwar");
+    expect((await request(app()).post(`/api/media/${up.body.filename}/sign?variant=original`).set(auth(local.token))).status).toBe(200);
+    expect((await request(app()).post(`/api/media/${up.body.filename}/sign?variant=original`).set(auth(other.token))).status).toBe(403);
+  });
+
+  it("JPEG stripping removes metadata after fill bytes and between progressive scans, and fails closed on garbage", () => {
+    const exif = (txt: string) => { const p = Buffer.from(`Exif\0\0${txt}`); return Buffer.concat([Buffer.from([0xff, 0xe1, 0, p.length + 2]), p]); };
+    const sos = Buffer.from([0xff, 0xda, 0, 8, 1, 1, 0, 0, 0x3f, 0, 0x12, 0xff, 0x00, 0x34]);
+    const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xff]), exif("GPS-A"), sos, exif("GPS-B"), sos, Buffer.from([0xff, 0xd9])]);
+    const out = stripJpeg(jpg);
+    expect(out.includes(Buffer.from("GPS-A"))).toBe(false);
+    expect(out.includes(Buffer.from("GPS-B"))).toBe(false);
+    expect(out.subarray(-2).toString("hex")).toBe("ffd9");
+    expect(() => stripJpeg(Buffer.from([0xff, 0xd8, 0x12, 0x34, 0x56]))).toThrow();
+    expect(() => stripJpeg(Buffer.from([0xff, 0xd8, 0xff, 0xe1, 0xff, 0xff, 0x00]))).toThrow();
   });
 });
