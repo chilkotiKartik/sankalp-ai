@@ -3,7 +3,7 @@
  *
  * NEW → ASSIGNED → IN_PROGRESS → PROOF_SUBMITTED → VERIFYING
  * VERIFYING → CITIZEN_VERIFIED → CLOSED
- * VERIFYING → NEEDS_REVIEW → (reviewer) CITIZEN_VERIFIED | REOPENED
+ * VERIFYING → NEEDS_REVIEW → (reviewer) CITIZEN_VERIFIED (citizen already said yes) | VERIFYING | REOPENED
  * VERIFYING → REJECTED_BY_CITIZEN → REOPENED (count++); count ≥ 3 → ESCALATED
  * PROOF_SUBMITTED + 7 days no response + checks pass → AUTO_CLOSED_UNVERIFIED (tenant opt-in; disabled by default)
  * NEW → CANCELLED_BY_CITIZEN (only before ASSIGNED)
@@ -24,7 +24,9 @@ const TRANSITIONS: Record<ComplaintState, Partial<Record<ComplaintState, ActorKi
   IN_PROGRESS: { PROOF_SUBMITTED: ["officer", "worker"] },
   PROOF_SUBMITTED: { VERIFYING: ["system"], AUTO_CLOSED_UNVERIFIED: ["system"] },
   VERIFYING: { CITIZEN_VERIFIED: ["citizen_owner"], NEEDS_REVIEW: ["system"], REJECTED_BY_CITIZEN: ["citizen_owner"] },
-  NEEDS_REVIEW: { CITIZEN_VERIFIED: ["reviewer"], REOPENED: ["reviewer"] },
+  // P3.7: a reviewer may accept the proof (→ VERIFYING, still awaiting the citizen) or reopen. CITIZEN_VERIFIED by a
+  // reviewer is allowed only when the citizen already said "yes" (enforced in storage.reviewDecision — rule 4).
+  NEEDS_REVIEW: { CITIZEN_VERIFIED: ["reviewer"], VERIFYING: ["reviewer"], REOPENED: ["reviewer"], REJECTED_BY_CITIZEN: ["citizen_owner"] },
   CITIZEN_VERIFIED: { CLOSED: ["system"] },
   REJECTED_BY_CITIZEN: { REOPENED: ["system"], ESCALATED: ["system"] },
   REOPENED: { ASSIGNED: ["officer", "system"], IN_PROGRESS: ["officer", "worker"] },

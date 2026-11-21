@@ -8,7 +8,7 @@ import { logger } from "../lib/logger";
  * resolves against the API with the user's own permissions.
  * Drivers: "none" | "console" (dev) | "expo" (requires exp.host in EGRESS_ALLOWLIST — foreign service, opt-in).
  */
-export interface PushRef { kind: "complaint" | "sos" | "announcement"; id: string; ref: string }
+export interface PushRef { kind: "complaint" | "sos" | "announcement" | "neighbour_check"; id: string; ref: string }
 
 export function buildPayload(r: PushRef) {
   return { title: "Sankalp", body: `Update on #${r.ref}`, data: { kind: r.kind, id: r.id } };

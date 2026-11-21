@@ -1,5 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { Platform } from "react-native";
+import * as Location from "expo-location";
 
 /**
  * Capture a proof photo for "mark fixed" (rule 4: proof before closure).
@@ -27,4 +28,19 @@ export async function captureProofPhoto(): Promise<string | null> {
   const r = await ImagePicker.launchCameraAsync({ quality: 0.6, base64: true, exif: false, allowsEditing: false });
   if (r.canceled || !r.assets[0]?.base64) return null;
   return `data:image/jpeg;base64,${r.assets[0].base64}`;
+}
+
+/** P3.1: device GPS at the moment of capture (best effort, never blocks the upload for more than ~6 s). */
+export async function proofLocation(): Promise<{ lat: number; lng: number } | undefined> {
+  try {
+    const perm = await Location.requestForegroundPermissionsAsync();
+    if (!perm.granted) return undefined;
+    const pos = await Promise.race([
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
+      new Promise<null>(r => setTimeout(() => r(null), 6000)),
+    ]);
+    return pos ? { lat: pos.coords.latitude, lng: pos.coords.longitude } : undefined;
+  } catch {
+    return undefined;
+  }
 }

@@ -48,9 +48,10 @@ describe("route inventory (M14)", () => {
     expect(pub).toEqual([
       "GET /api/cpr/emergency-locations", "GET /api/cpr/emergency-services", "GET /api/dept/list", "GET /api/health", "GET /api/media/signed/:file",
       "GET /api/public/announcements", "GET /api/public/anomalies", "GET /api/public/budget", "GET /api/public/config",
-      "GET /api/public/department-report", "GET /api/public/district-stats", "GET /api/public/privacy-notice", "GET /api/public/stats", "GET /api/public/ward-health",
+      "GET /api/public/department-report", "GET /api/public/district-stats", "GET /api/public/privacy-notice", "GET /api/public/resolution-rate", "GET /api/public/stats", "GET /api/public/ward-health",
       "GET /healthz", "GET /readyz", "POST /api/auth/login", "POST /api/auth/logout", "POST /api/auth/otp/request", "POST /api/auth/otp/verify", "POST /api/auth/refresh",
       "POST /api/auth/register", "POST /api/auth/worker-login", "POST /api/dept/login",
+      "POST /api/verification/ivr/:token", "POST /api/verification/sms-inbound",
       "PUT /api/complaints/:id/proof",
     ]);
   });

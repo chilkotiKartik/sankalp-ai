@@ -62,11 +62,17 @@ export const TenantConfigSchema = z.object({
   }),
   verification: z.object({
     proofRadiusM: z.number().positive().default(50),
-    weights: z.object({ geo: z.number(), reuse: z.number(), scene: z.number(), change: z.number(), citizen: z.number() })
-      .default({ geo: 0.25, reuse: 0.2, scene: 0.15, change: 0.15, citizen: 0.25 }),
+    weights: z.object({ geo: z.number(), reuse: z.number(), scene: z.number(), change: z.number(), citizen: z.number(), neighbour: z.number().default(0.1) })
+      .default({ geo: 0.25, reuse: 0.2, scene: 0.15, change: 0.15, citizen: 0.25, neighbour: 0.1 }),
     verifiedThreshold: z.number().default(0.7),
     rejectThreshold: z.number().default(0.35),
-  }).default({ proofRadiusM: 50, weights: { geo: 0.25, reuse: 0.2, scene: 0.15, change: 0.15, citizen: 0.25 }, verifiedThreshold: 0.7, rejectThreshold: 0.35 }),
+    /** P3.5/P3.6 confirmation channels. */
+    smsReminderAfterHours: z.number().nonnegative().default(2),
+    voiceCallbackAfterHours: z.number().nonnegative().default(24),
+    neighbourRadiusM: z.number().positive().default(200),
+    neighbourMax: z.number().int().min(0).max(5).default(3),
+  }).default({ proofRadiusM: 50, weights: { geo: 0.25, reuse: 0.2, scene: 0.15, change: 0.15, citizen: 0.25, neighbour: 0.1 }, verifiedThreshold: 0.7, rejectThreshold: 0.35,
+    smsReminderAfterHours: 2, voiceCallbackAfterHours: 24, neighbourRadiusM: 200, neighbourMax: 3 }),
 }).superRefine((t, ctx) => {
   const names = new Set(t.districts.map(d => d.district));
   if (!names.has(t.defaultDistrict)) ctx.addIssue({ code: "custom", message: `defaultDistrict ${t.defaultDistrict} is not in districts`, path: ["defaultDistrict"] });

@@ -13,6 +13,7 @@ describe("complaint state machine (M7)", () => {
     ["PROOF_SUBMITTED", "VERIFYING", "system"], ["VERIFYING", "CITIZEN_VERIFIED", "citizen_owner"],
     ["VERIFYING", "NEEDS_REVIEW", "system"], ["VERIFYING", "REJECTED_BY_CITIZEN", "citizen_owner"],
     ["NEEDS_REVIEW", "CITIZEN_VERIFIED", "reviewer"], ["NEEDS_REVIEW", "REOPENED", "reviewer"],
+    ["NEEDS_REVIEW", "VERIFYING", "reviewer"], ["NEEDS_REVIEW", "REJECTED_BY_CITIZEN", "citizen_owner"],
     ["CITIZEN_VERIFIED", "CLOSED", "system"], ["REJECTED_BY_CITIZEN", "REOPENED", "system"],
     ["REJECTED_BY_CITIZEN", "ESCALATED", "system"], ["REOPENED", "IN_PROGRESS", "officer"], ["ESCALATED", "ASSIGNED", "officer"],
     ["PROOF_SUBMITTED", "AUTO_CLOSED_UNVERIFIED", "system"],

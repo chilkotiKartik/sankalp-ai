@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { captureProofPhoto } from "@/lib/proof";
+import { captureProofPhoto, proofLocation } from "@/lib/proof";
 import { useApp, type Complaint } from "@/context/AppContext";
 import Colors from "@/constants/colors";
 
@@ -188,7 +188,8 @@ export default function AdminReports() {
   const handleResolve = useCallback(async (id: string) => {
     const proofPhoto = await captureProofPhoto();
     if (!proofPhoto) return;
-    await updateComplaintStatus(id, "resolved", { proofPhoto, proofNote: "Proof captured by officer" });
+    const proofGeo = await proofLocation();
+      await updateComplaintStatus(id, "resolved", { proofPhoto, proofNote: "Proof captured by officer", proofGeo });
     setSelectedC(null);
   }, [updateComplaintStatus]);
 

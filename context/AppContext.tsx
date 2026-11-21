@@ -240,7 +240,7 @@ interface AppContextType {
   upvoteComplaint: (id: string) => Promise<void>;
   resolveComplaint: (id: string, rating?: number, feedback?: string) => Promise<void>;
   cancelComplaint: (id: string) => Promise<void>;
-  updateComplaintStatus: (id: string, status: "in_progress" | "resolved", extra?: { proofPhoto?: string; proofNote?: string; adminNote?: string }) => Promise<void>;
+  updateComplaintStatus: (id: string, status: "in_progress" | "resolved", extra?: { proofPhoto?: string; proofNote?: string; adminNote?: string; proofGeo?: { lat: number; lng: number } }) => Promise<void>;
   rejectComplaint: (id: string) => Promise<void>;
   triggerSOS: (data: Partial<SOSAlert>) => Promise<SOSAlert>;
   triggerWomenSafetySOS: (geo: GeoPoint | null, location: string, audioUrl?: string) => Promise<{ alert: SOSAlert; nearestStations: PoliceStation[] }>;
@@ -477,7 +477,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /** Officer status change. "resolved" requires a proof photo (data URL or /uploads URL). Officers can never close. */
-  const updateComplaintStatus = useCallback(async (id: string, status: "in_progress" | "resolved", extra: { proofPhoto?: string; proofNote?: string; adminNote?: string } = {}) => {
+  const updateComplaintStatus = useCallback(async (id: string, status: "in_progress" | "resolved", extra: { proofPhoto?: string; proofNote?: string; adminNote?: string; proofGeo?: { lat: number; lng: number } } = {}) => {
     const apiCall = makeApiCall(tokenRef.current);
     const result = await apiCall(`/api/admin/complaints/${id}`, "PUT", { status, ...extra });
     setComplaints(prev => prev.map(c => c.id === id ? { ...c, ...result } : c));

@@ -2574,6 +2574,25 @@
                   "proofNote": {
                     "type": "string",
                     "maxLength": 1000
+                  },
+                  "proofGeo": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
                   }
                 },
                 "required": [
@@ -2861,6 +2880,25 @@
                   "proofNote": {
                     "type": "string",
                     "maxLength": 1000
+                  },
+                  "proofGeo": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
                   }
                 }
               }
@@ -3032,6 +3070,25 @@
                   "proofNote": {
                     "type": "string",
                     "maxLength": 1000
+                  },
+                  "proofGeo": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
                   }
                 }
               }
@@ -9368,6 +9425,549 @@
                 ]
               }
             }
+          }
+        }
+      }
+    },
+    "/api/verification/ivr/{token}": {
+      "post": {
+        "operationId": "post_api_verification_ivr_token",
+        "summary": "verification.ivr_callback",
+        "x-permission": "verification.ivr_callback",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 400
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "digit": {
+                    "type": "string",
+                    "maxLength": 4
+                  }
+                },
+                "required": [
+                  "digit"
+                ],
+                "additionalProperties": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/verification/sms-inbound": {
+      "post": {
+        "operationId": "post_api_verification_sms_inbound",
+        "summary": "verification.sms_inbound",
+        "x-permission": "verification.sms_inbound",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "from",
+                  "text"
+                ],
+                "additionalProperties": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/neighbour-opt-in": {
+      "put": {
+        "operationId": "put_api_me_neighbour_opt_in",
+        "summary": "verification.neighbour_optin",
+        "x-permission": "verification.neighbour_optin",
+        "x-allowed-principals": [
+          "citizen",
+          "worker"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "optIn": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "optIn"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/complaints/{id}/neighbour-answer": {
+      "post": {
+        "operationId": "post_api_complaints_id_neighbour_answer",
+        "summary": "verification.neighbour_answer",
+        "x-permission": "verification.neighbour_answer",
+        "x-allowed-principals": [
+          "citizen",
+          "worker"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fixed": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "fixed"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/admin/review-queue": {
+      "get": {
+        "operationId": "get_api_v2_admin_review_queue",
+        "summary": "complaints.review",
+        "x-permission": "complaints.review",
+        "x-allowed-principals": [
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/admin/review-queue": {
+      "get": {
+        "operationId": "get_api_admin_review_queue",
+        "summary": "complaints.review",
+        "x-permission": "complaints.review",
+        "x-allowed-principals": [
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/dept/review-queue": {
+      "get": {
+        "operationId": "get_api_dept_review_queue",
+        "summary": "dept.review",
+        "x-permission": "dept.review",
+        "x-allowed-principals": [
+          "dept_token",
+          "officer",
+          "dept_admin"
+        ],
+        "security": [
+          {
+            "deptToken": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/dept/complaints/{id}/review": {
+      "put": {
+        "operationId": "put_api_dept_complaints_id_review",
+        "summary": "dept.review",
+        "x-permission": "dept.review",
+        "x-allowed-principals": [
+          "dept_token",
+          "officer",
+          "dept_admin"
+        ],
+        "security": [
+          {
+            "deptToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "verify",
+                      "reopen"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "decision"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/resolution-rate": {
+      "get": {
+        "operationId": "get_api_public_resolution_rate",
+        "summary": "public.resolution_rate",
+        "x-permission": "public.resolution_rate",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "department",
+              "type": "string",
+              "enum": [
+                "department",
+                "ward"
+              ]
+            }
+          },
+          {
+            "name": "district",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 60
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
           }
         }
       }

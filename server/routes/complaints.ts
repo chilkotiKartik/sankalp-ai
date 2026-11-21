@@ -1,3 +1,6 @@
+import { logger } from "../lib/logger";
+import { verifyProof } from "../verification";
+import { inviteNeighbours } from "../verification/confirm";
 import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import { defaultDistrict } from "../data/reference";
 import type { Express } from "express";
@@ -51,10 +54,24 @@ const officerUpdate = z.object({
   adminNote: text(1000).optional(),
   proofPhoto: z.string().max(22 * 1024 * 1024).optional(),
   proofNote: text(1000).optional(),
+  /** P3.1: device GPS at the moment the proof photo was taken. */
+  proofGeo: geo.optional(),
 });
 
 /** Shared officer status handler for admin + department routes (rule 4: no closure without proof). */
-function applyOfficerUpdate(c: Complaint, body: z.infer<typeof officerUpdate>, actorId: string, actorName: string): Complaint {
+/** P3: run proof-of-fix verification and store the engine's decision (flags → human review). Fails closed. */
+async function runVerification(c: Complaint, proofGeo?: { lat: number; lng: number }) {
+  try {
+    storage.applyVerification(c.id, await verifyProof(c, { proofGeo }));
+    if (c.state === "VERIFYING") inviteNeighbours(c);
+  } catch (err) {
+    // Verification error → a human looks at it (rule 7).
+    logger.error("proof_verification_failed", { complaint: c.id, err: (err as Error).message });
+    storage.applyVerification(c.id, { engineVersion: "error", signals: [], flags: ["verification_error"], score: null, coverage: 0, decision: "NEEDS_REVIEW", at: new Date().toISOString() });
+  }
+}
+
+async function applyOfficerUpdate(c: Complaint, body: z.infer<typeof officerUpdate>, actorId: string, actorName: string): Promise<Complaint> {
   if (body.status === "closed" || body.status === "pending") {
     throw unprocessable("CITIZEN_CONFIRMATION_REQUIRED", body.status === "closed"
       ? "Only the citizen can close a complaint, by confirming the fix"
@@ -63,7 +80,8 @@ function applyOfficerUpdate(c: Complaint, body: z.infer<typeof officerUpdate>, a
   if (body.status === "resolved" && !body.proofPhoto) throw unprocessable("PROOF_REQUIRED", "Upload a proof photo of the completed work to mark it resolved");
   if (body.status === "resolved") {
     const url = resolveImage(body.proofPhoto, actorId, { proofFor: c })!;
-    domain(() => storage.submitProof(c.id, { photoUrl: url, note: body.proofNote }, "officer", actorId));
+    domain(() => storage.submitProof(c.id, { photoUrl: url, note: body.proofNote, geo: body.proofGeo }, "officer", actorId));
+    await runVerification(c, body.proofGeo);
   }
   if (body.status === "in_progress" || body.status === "acknowledged") domain(() => storage.startWork(c.id, "officer", actorId));
   if (body.adminNote !== undefined) storage.setAdminNote(c.id, body.adminNote);
@@ -271,12 +289,13 @@ export function registerComplaintRoutes(app: Express) {
     method: "put", path: "/api/complaints/:id/proof", auth: "public", permission: "worker.submit_proof",
     middleware: [authLimiter, phoneLimiter],
     params: idParams, query: none,
-    body: z.object({ phone: phone10, pin: z.string().regex(/^\d{6}$/), proofPhoto: z.string().min(16).max(22 * 1024 * 1024), proofNote: text(1000).optional() }),
-    handler: ({ params, body }) => {
+    body: z.object({ phone: phone10, pin: z.string().regex(/^\d{6}$/), proofPhoto: z.string().min(16).max(22 * 1024 * 1024), proofNote: text(1000).optional(), proofGeo: geo.optional() }),
+    handler: async ({ params, body }) => {
       if (!storage.verifyWorkerPin(body.phone, body.pin, params.id)) throw unauthorized("Invalid worker credentials");
       const c = mustComplaint(params.id);
       const url = resolveImage(body.proofPhoto, `worker:${c.id}`, { proofFor: c })!;
-      domain(() => storage.submitProof(c.id, { photoUrl: url, note: body.proofNote }, "worker", `worker:${c.assignedWorkerName ?? "unknown"}`));
+      domain(() => storage.submitProof(c.id, { photoUrl: url, note: body.proofNote, geo: body.proofGeo }, "worker", `worker:${c.assignedWorkerName ?? "unknown"}`));
+      await runVerification(c, body.proofGeo);
       storage.addAuditLog("proof_submitted", "worker", c.assignedWorkerName || "worker", `Proof submitted for ${c.ticketId}`, c.id);
       notifyOwner(c);
       emitDept("complaint_resolved_proof", c);
@@ -303,10 +322,10 @@ export function registerComplaintRoutes(app: Express) {
   route(app, {
     method: "put", path: "/api/admin/complaints/:id", auth: "admin", permission: "complaints.officer_update",
     params: idParams, query: none, body: officerUpdate,
-    handler: ({ actor, params, body, user }) => {
+    handler: async ({ actor, params, body, user }) => {
       const c = mustComplaint(params.id);
       if (!staffFor(actor, c)) throw forbidden("This complaint is outside your district");
-      return toStaffComplaint(applyOfficerUpdate(c, body, user.id, user.name));
+      return toStaffComplaint(await applyOfficerUpdate(c, body, user.id, user.name));
     },
   });
 
@@ -327,10 +346,10 @@ export function registerComplaintRoutes(app: Express) {
   route(app, {
     method: "put", path: "/api/dept/complaints/:id", auth: "dept", permission: "complaints.officer_update",
     params: idParams, query: none, body: officerUpdate,
-    handler: ({ actor, params, body }) => {
+    handler: async ({ actor, params, body }) => {
       const c = mustComplaint(params.id);
       if (!staffFor(actor, c)) throw forbidden("This complaint belongs to another department");
-      return toStaffComplaint(applyOfficerUpdate(c, body, `dept:${actor.deptId}`, `dept:${actor.deptId}`));
+      return toStaffComplaint(await applyOfficerUpdate(c, body, `dept:${actor.deptId}`, `dept:${actor.deptId}`));
     },
   });
 

@@ -81,14 +81,14 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P2.gate — gate green; review findings 1–11 fixed (docs/reports/phase-2.md)
 
 ## Phase 3 — Proof-of-Fix 2.0
-- [ ] P3.1 geo check
-- [ ] P3.2 pHash reuse
-- [ ] P3.3 same scene
-- [ ] P3.4 change check
-- [ ] P3.5 citizen confirmation channels
-- [ ] P3.6 neighbour confirmation
-- [ ] P3.7 decision engine + reviewer queue
-- [ ] P3.8 Real Resolution Rate (Wilson)
+- [x] P3.1 geo check — EXIF GPS + device GPS vs complaint, 50 m (tenant proofRadiusM); app proof is camera-only + sends GPS
+- [x] P3.2 pHash reuse — 64-bit DCT pHash at upload, Hamming ≤ 8 vs all tenant media → flag
+- [x] P3.3 same scene — periphery (background) hash before vs after; ORB/embeddings not available without a self-hosted model
+- [x] P3.4 change check — category question to self-hosted vision only; unknown otherwise
+- [x] P3.5 citizen confirmation channels — in-app, SMS reminder + inbound webhook, IVR voice callback (Sarvam TTS) with signed token
+- [x] P3.6 neighbour confirmation — up to 3 opted-in nearby users; identities never exposed
+- [x] P3.7 decision engine + reviewer queue — weighted, unknown ≠ pass, tenant weights; dept portal Proof Review page
+- [x] P3.8 Real Resolution Rate (Wilson) — GET /api/public/resolution-rate, Wilson 95% CI + n beside official rate
 - [ ] P3.gate
 
 ## Phase 4 — Agentic workflows

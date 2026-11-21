@@ -32,7 +32,9 @@ export const PERMISSIONS: Record<string, Principal[]> = {
   "complaints.citizen_confirm": USERS, "complaints.citizen_reject": USERS, "complaints.citizen_cancel": USERS,
   "complaints.chat_read": USERS, "complaints.chat_write": USERS, "complaints.audit_read": USERS,
   "complaints.events": [...USERS, ...DEPT],
-  "complaints.admin_list": ADMINS, "complaints.review": ADMINS,
+  "complaints.admin_list": ADMINS, "complaints.review": ADMINS, "dept.review": DEPT,
+  "verification.ivr_callback": PUBLIC, "verification.sms_inbound": PUBLIC, "public.resolution_rate": PUBLIC,
+  "verification.neighbour_answer": CITIZENS, "verification.neighbour_optin": CITIZENS,
   "complaints.officer_update": [...ADMINS, ...DEPT], "complaints.assign_worker": DEPT,
   // SOS (rule 9: every signed-in person can raise SOS)
   "sos.create": USERS, "sos.create_women_safety": USERS, "sos.create_forest_fire": USERS, "sos.update_location": USERS,

@@ -9,6 +9,7 @@ import {
 } from "./data/reference";
 import { tenant, currentTenantId, defaultTenant } from "./tenancy";
 import { hoursBetween } from "./lib/time";
+import { evaluate } from "./verification/evaluate";
 import { mediaDriver } from "./lib/media";
 import { signAccess, verifyAccess, newRefreshToken, hashToken, newSessionId, ACCESS_TTL_S, REFRESH_TTL_MS } from "./auth/tokens";
 import {
@@ -16,7 +17,7 @@ import {
   citizenConfirm as smConfirm, citizenReject as smReject, TERMINAL, type TransitionStep, type ActorKind,
 } from "./domain/complaintState";
 import type {
-  AppUser, AuthToken, Complaint, ComplaintCategory, SOSAlert, Ward, Worker, PoliceStation, GeoPoint, RiskZone,
+  AppUser, AuthToken, Complaint, ProofVerification, ComplaintCategory, SOSAlert, Ward, Worker, PoliceStation, GeoPoint, RiskZone,
   Announcement, Poll, Petition, RTIRequest, NightSafetyZone, PatrolVan, SafetyIncident, CivicEvent, ChatMessage,
   BudgetItem, AuditLog, EmergencyService, PredictiveAlert, MediaRecord, ComplaintEvent, ReviewTask, DeptCredential,
   ConsentRecord, ErasureRequest,
@@ -101,7 +102,7 @@ export class StateError extends Error {
   constructor(public code: string, message: string) { super(message); this.name = "StateError"; }
 }
 
-export interface ProofInput { photoUrl: string; note?: string }
+export interface ProofInput { photoUrl: string; note?: string; geo?: GeoPoint }
 export type PushEntry = { token: string; platform: string; userId: string; role: string; district: string };
 
 /** Everything that is persisted in the snapshot (M8). Reference data is not persisted. */
@@ -625,27 +626,67 @@ export class AppStorage {
     c.proofNote = proof.note;
     c.proofSubmittedAt = now();
     c.hasProof = true;
+    // A new proof starts a new verification round: earlier answers were about the previous attempt.
+    c.proofGeo = proof.geo;
+    c.verification = undefined;
+    c.citizenAnswer = undefined; c.citizenAnswerChannel = undefined; c.citizenAnsweredAt = undefined;
+    c.confirmReminders = []; c.neighbourInvites = []; c.neighbourAnswers = [];
     this.commit(c, steps, actorId, proof.note);
     return c;
   }
 
-  /** Only the complaint owner may confirm; awards +5 once. */
-  citizenConfirm(id: string, userId: string, rating?: number, feedback?: string): Complaint {
+  /** P3.7: store the engine result; machine flags send the case to a human reviewer (never closes, never rejects). */
+  applyVerification(id: string, v: ProofVerification): Complaint {
     const c = this.mustGet(id);
-    if (c.userId !== userId) throw new StateError("FORBIDDEN", "Only the citizen who filed this complaint can confirm the fix");
-    const steps = smConfirm(c);
-    if (rating !== undefined) c.rating = rating;
-    if (feedback) c.feedback = feedback;
-    const u = this.getUserById(userId);
-    if (u) u.points += 5;
-    this.commit(c, steps, userId, feedback);
+    c.verification = v;
+    this.addAuditLog("proof_verified", "system", "SANKALP Verification", `${c.ticketId}: ${v.decision} (score ${v.score ?? "n/a"}, coverage ${v.coverage}${v.flags.length ? `, flags ${v.flags.join(", ")}` : ""})`, c.id);
+    if (v.decision === "NEEDS_REVIEW" && c.state === "VERIFYING") this.toReview(c, v);
+    else this.touch();
     return c;
   }
 
-  citizenReject(id: string, userId: string, reason?: string): Complaint {
+  private toReview(c: Complaint, v: ProofVerification) {
+    const steps = applyPath(c, [["NEEDS_REVIEW", "system"]]);
+    if (!this.s.reviewTasks.some(t => t.complaintId === c.id && t.kind === "proof_review" && t.status === "open")) {
+      this.createReviewTask({ kind: "proof_review", complaintId: c.id, reason: v.flags.length ? `Proof flagged: ${v.flags.join(", ")}` : `Verification score ${v.score ?? "n/a"} below threshold` });
+    }
+    this.commit(c, steps, "system", "Sent to human review by the verification engine");
+  }
+
+  private recordAnswer(c: Complaint, answer: "yes" | "no", channel: "app" | "voice" | "sms") {
+    c.citizenAnswer = answer; c.citizenAnswerChannel = channel; c.citizenAnsweredAt = now();
+    c.verification = evaluate(c);
+    this.addAuditLog("citizen_answer", "citizen", "Citizen", `${c.ticketId}: citizen said ${answer} via ${channel} → ${c.verification.decision}`, c.id);
+  }
+
+  /** Only the complaint owner may confirm; awards +5 once. */
+  /**
+   * The owner confirms the fix (app, voice callback or SMS). P3.7: the case closes only if the engine says VERIFIED;
+   * a flagged proof goes to a human reviewer with the citizen's "yes" recorded. Awards +5 once.
+   */
+  citizenConfirm(id: string, userId: string, rating?: number, feedback?: string, channel: "app" | "voice" | "sms" = "app"): Complaint {
+    const c = this.mustGet(id);
+    if (c.userId !== userId) throw new StateError("FORBIDDEN", "Only the citizen who filed this complaint can confirm the fix");
+    if (c.state !== "VERIFYING" && c.state !== "NEEDS_REVIEW") smConfirm({ ...c }); // throws the precise TransitionError
+    const first = c.citizenAnswer !== "yes";
+    this.recordAnswer(c, "yes", channel);
+    if (rating !== undefined) c.rating = rating;
+    if (feedback) c.feedback = feedback;
+    const u = this.getUserById(userId);
+    if (u && first) u.points += 5;
+    if (c.state === "VERIFYING") {
+      if (c.verification!.decision === "VERIFIED") this.commit(c, smConfirm(c), userId, feedback);
+      else this.toReview(c, c.verification!);
+    } else this.touch();
+    return c;
+  }
+
+  citizenReject(id: string, userId: string, reason?: string, channel: "app" | "voice" | "sms" = "app"): Complaint {
     const c = this.mustGet(id);
     if (c.userId !== userId) throw new StateError("FORBIDDEN", "Only the citizen who filed this complaint can reject the fix");
     const steps = smReject(c);
+    this.recordAnswer(c, "no", channel);
+    for (const t of this.s.reviewTasks) if (t.complaintId === c.id && t.kind === "proof_review") t.status = "done";
     c.rejectedBy = [...(c.rejectedBy || []), userId];
     this.commit(c, steps, userId, reason);
     return c;
@@ -660,11 +701,18 @@ export class AppStorage {
   }
 
   /** Reviewer decision for NEEDS_REVIEW (manual-review queue). */
+  /**
+   * Reviewer decision for NEEDS_REVIEW. "verify" accepts the proof: the case closes only if the citizen already
+   * said yes; otherwise it returns to VERIFYING and waits for the citizen (rule 4). "reopen" sends the work back.
+   */
   reviewDecision(id: string, decision: "verify" | "reopen", reviewerId: string, note?: string): Complaint {
     const c = this.mustGet(id);
-    const steps = applyPath(c, [[decision === "verify" ? "CITIZEN_VERIFIED" : "REOPENED", "reviewer" as ActorKind]]);
-    const extra = decision === "verify" ? applyPath(c, [["CLOSED", "system"]]) : [];
-    this.commit(c, [...steps, ...extra], reviewerId, note);
+    let steps: TransitionStep[];
+    if (decision === "reopen") steps = applyPath(c, [["REOPENED", "reviewer" as ActorKind]]);
+    else if (c.citizenAnswer === "yes") steps = applyPath(c, [["CITIZEN_VERIFIED", "reviewer" as ActorKind], ["CLOSED", "system"]]);
+    else steps = applyPath(c, [["VERIFYING", "reviewer" as ActorKind]]);
+    for (const t of this.s.reviewTasks) if (t.complaintId === c.id && t.kind === "proof_review") t.status = "done";
+    this.commit(c, steps, reviewerId, note);
     return c;
   }
 

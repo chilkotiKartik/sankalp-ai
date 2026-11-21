@@ -11,8 +11,14 @@ export function toPublicUser(u: AppUser): PublicUser {
   return { id: u.id, name: u.name, phone: u.phone, role: u.role, district: u.district, points: u.points, badges: u.badges, level: u.level };
 }
 
+/** P3.6: neighbours' identities are never exposed — only how many were asked and how they answered. */
+const neighbourSummary = (c: Complaint) => ({
+  neighbourInvites: undefined, neighbourAnswers: undefined,
+  neighbours: { asked: c.neighbourInvites?.length ?? 0, answered: c.neighbourAnswers?.length ?? 0, fixed: (c.neighbourAnswers ?? []).filter(a => a.fixed).length },
+});
+
 export function toStaffComplaint(c: Complaint): Complaint {
-  return { ...c, upvotedBy: [] };
+  return { ...c, upvotedBy: [], ...neighbourSummary(c) } as Complaint;
 }
 
 export function toCitizenComplaint(c: Complaint, viewer: AppUser): Partial<Complaint> & { isMine: boolean; hasUpvoted: boolean } {
@@ -25,9 +31,12 @@ export function toCitizenComplaint(c: Complaint, viewer: AppUser): Partial<Compl
     rejectedBy: undefined,
     assignedWorkerPhone: undefined,
     adminNote: mine ? c.adminNote : undefined,
+    ...neighbourSummary(c),
+    confirmReminders: undefined,
   };
   if (mine) return base;
-  return { ...base, userId: undefined, submittedBy: "Citizen", submittedByPhone: undefined, feedback: undefined, proofNote: undefined };
+  return { ...base, userId: undefined, submittedBy: "Citizen", submittedByPhone: undefined, feedback: undefined, proofNote: undefined,
+    proofGeo: undefined, citizenAnswer: undefined, citizenAnswerChannel: undefined, citizenAnsweredAt: undefined, verification: undefined };
 }
 
 export function complaintFor(viewer: AppUser | undefined, c: Complaint, staff: boolean) {

@@ -201,7 +201,10 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
     setSaving(true);
     try{
       if(status==='resolved'&&!proof){addToast('Attach a proof photo first','error');setSaving(false);return;}
-      await api.put(`/api/dept/complaints/${c.id}`,status==='resolved'?{status,proofPhoto:proof,proofNote:proofNote||undefined}:{status},token);
+      // P3.1: device GPS at upload time (best effort, 5 s) — checked against the complaint location.
+      const proofGeo=status==='resolved'?await new Promise(res=>{if(!navigator.geolocation)return res(undefined);navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(undefined),{enableHighAccuracy:true,timeout:5000,maximumAge:60000});}):undefined;
+      const r=await api.put(`/api/dept/complaints/${c.id}`,status==='resolved'?{status,proofPhoto:proof,proofNote:proofNote||undefined,proofGeo}:{status},token);
+      if(r&&r.state==='NEEDS_REVIEW')addToast('Proof flagged for review: '+((r.verification&&r.verification.flags||[]).join(', ').replace(/_/g,' ')||'needs a check'),'error');
       addToast('Complaint updated','success');
       onRefresh();onClose();
     }catch(e){addToast(e.message,'error');}
@@ -700,6 +703,72 @@ function WorkersPage({token,dept}){
 }
 
 /* ── SOS ALERTS PAGE ─────────────────────────────────────────────────────── */
+/* ── PROOF REVIEW QUEUE (Phase 3.7) ─────────────────────────────────────────── */
+function ReviewPage({token,dept,addToast}){
+  const [items,setItems]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [busy,setBusy]=useState(null);
+  const [notes,setNotes]=useState({});
+  const load=useCallback(()=>{
+    setLoading(true);
+    api.get('/api/dept/review-queue',token).then(d=>setItems(Array.isArray(d)?d:[])).catch(()=>setItems([])).finally(()=>setLoading(false));
+  },[token]);
+  useEffect(()=>{load();},[load]);
+  const decide=async(c,decision)=>{
+    setBusy(c.id);
+    try{
+      const r=await api.put(`/api/dept/complaints/${c.id}/review`,{decision,note:notes[c.id]||undefined},token);
+      addToast(decision==='reopen'?'Sent back for rework':r.state==='CLOSED'?'Proof accepted — case closed (citizen had confirmed)':'Proof accepted — waiting for the citizen to confirm','success');
+      load();
+    }catch(e){addToast(e.message||'Failed','error');}
+    finally{setBusy(null);}
+  };
+  const pct=x=>x==null?'—':Math.round(x*100)+'%';
+  const label={geo:'📍 Location',reuse:'🔁 Photo reuse',scene:'🏞️ Same place',change:'🔧 Fixed (vision)',citizen:'🙋 Citizen',neighbour:'🏘️ Neighbours'};
+  return <div className="page">
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+      <div>
+        <h2 style={{margin:0,fontSize:18}}>🔍 Proof review queue</h2>
+        <div style={{fontSize:12,color:'var(--muted)'}}>Cases the verification engine could not accept on its own. A case closes only when the citizen has also said it is fixed.</div>
+      </div>
+      <button className="btn btn-ghost btn-sm" onClick={load}>↺ Refresh</button>
+    </div>
+    {loading?<div style={{padding:30,textAlign:'center'}}><Spinner/></div>
+    :items.length===0?<div className="card" style={{padding:24,textAlign:'center',color:'var(--muted)'}}>Nothing to review 🎉</div>
+    :items.map(c=>{
+      const v=c.verification||{signals:[],flags:[]};
+      return <div key={c.id} className="card" style={{padding:16,marginBottom:12}}>
+        <div style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+          <div>
+            <div style={{fontWeight:700}}>{c.ticketId} · {c.category}</div>
+            <div style={{fontSize:12,color:'var(--muted)'}}>{c.location} · {c.district}</div>
+          </div>
+          <div style={{textAlign:'right',fontSize:12}}>
+            <div>Score <b>{pct(v.score)}</b> · coverage {pct(v.coverage)}</div>
+            <div style={{color:c.citizenAnswer==='yes'?'var(--green)':'var(--muted)'}}>{c.citizenAnswer==='yes'?'Citizen said fixed ('+(c.citizenAnswerChannel||'app')+')':'Citizen has not confirmed yet'}</div>
+          </div>
+        </div>
+        {v.flags.length>0&&<div style={{margin:'10px 0',display:'flex',gap:6,flexWrap:'wrap'}}>
+          {v.flags.map(f=><span key={f} style={{background:'rgba(218,54,51,.15)',color:'#ff7b72',border:'1px solid rgba(218,54,51,.4)',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:700}}>⚠ {f.replace(/_/g,' ')}</span>)}
+        </div>}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:8,margin:'10px 0'}}>
+          {v.signals.map(sg=><div key={sg.name} style={{background:'rgba(255,255,255,.03)',border:'1px solid var(--border)',borderRadius:8,padding:8,fontSize:12}}>
+            <div style={{display:'flex',justifyContent:'space-between'}}><b>{label[sg.name]||sg.name}</b><span>{sg.score==null?'unknown':pct(sg.score)}</span></div>
+            <div style={{color:'var(--muted)',marginTop:2}}>{sg.detail}</div>
+          </div>)}
+        </div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
+          {c.beforePhoto&&<a href={c.beforePhoto} target="_blank" rel="noopener noreferrer" style={{fontSize:12}}>Before photo ↗</a>}
+          {c.proofPhoto&&<a href={c.proofPhoto} target="_blank" rel="noopener noreferrer" style={{fontSize:12}}>Proof photo ↗</a>}
+          <input className="input" aria-label="Review note" placeholder="Note (optional)" value={notes[c.id]||''} onChange={e=>setNotes({...notes,[c.id]:e.target.value})} style={{flex:1,minWidth:160}}/>
+          <button className="btn btn-sm" disabled={busy===c.id} onClick={()=>decide(c,'verify')} style={{background:'var(--green)',color:'#fff'}}>✓ Proof OK</button>
+          <button className="btn btn-ghost btn-sm" disabled={busy===c.id} onClick={()=>decide(c,'reopen')}>↩ Reopen</button>
+        </div>
+      </div>;
+    })}
+  </div>;
+}
+
 function SOSPage({token,dept,addToast}){
   const [alerts,setAlerts]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -1170,6 +1239,7 @@ function Dashboard({token,dept,onLogout}){
   const navItems=[
     {id:'dashboard',icon:'🏠',label:'Dashboard'},
     {id:'complaints',icon:'📋',label:'Complaints',badge:newIds.size||null},
+    {id:'review',icon:'🔍',label:'Proof Review'},
     {id:'workers',icon:'👥',label:'Workers'},
     {id:'sos',icon:'🆘',label:'SOS Alerts',badge:sosCount||null},
     {id:'announcements',icon:'📢',label:'Announcements',badge:newAnnCount||null},
@@ -1230,6 +1300,7 @@ function Dashboard({token,dept,onLogout}){
 
       {page==='dashboard'&&<DashboardPage token={token} dept={dept} complaints={complaints} stats={stats} workers={workers} newIds={newIds} onRefresh={loadData} addToast={addToast}/>}
       {page==='complaints'&&<ComplaintsPage token={token} dept={dept} complaints={complaints} newIds={newIds} onRefresh={loadData} addToast={addToast}/>}
+      {page==='review'&&<ReviewPage token={token} dept={dept} addToast={addToast}/>}
       {page==='workers'&&<WorkersPage token={token} dept={dept}/>}
       {page==='sos'&&<SOSPage token={token} dept={dept} addToast={addToast}/>}
       {page==='announcements'&&<AnnouncementsPage token={token} dept={dept} announcements={announcements} onRefresh={()=>{api.get(`/api/dept/${dept.id}/announcements`,token).then(d=>{setAnnouncements(Array.isArray(d)?d:[]);setNewAnnCount(0);}).catch(()=>{});}} addToast={addToast}/>}

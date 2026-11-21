@@ -26,6 +26,8 @@ export interface AppUser {
   badges: string[];
   level: number;
   createdAt: string;
+  /** P3.6: may be asked whether nearby repairs were really done. Off unless the user opts in. */
+  neighbourOptIn?: boolean;
 }
 
 export interface GeoPoint { lat: number; lng: number; }
@@ -80,6 +82,18 @@ export interface Complaint {
   assignedWorkerPhone?: string;
   proofPhoto?: string;
   proofNote?: string;
+  /** P3: device GPS sent with the proof (worker app / officer upload). */
+  proofGeo?: GeoPoint;
+  verification?: ProofVerification;
+  /** P3.5: the citizen's answer and the channel it came from. "yes" alone never closes a flagged case. */
+  citizenAnswer?: "yes" | "no";
+  citizenAnswerChannel?: "app" | "voice" | "sms";
+  citizenAnsweredAt?: string;
+  /** P3.5 reminders already sent while VERIFYING. */
+  confirmReminders?: Array<{ channel: "sms" | "voice"; at: string; ok: boolean }>;
+  /** P3.6 neighbour confirmation: invited user ids and their answers. */
+  neighbourInvites?: string[];
+  neighbourAnswers?: Array<{ userId: string; fixed: boolean; at: string }>;
   proofSubmittedAt?: string;
 }
 
@@ -379,9 +393,29 @@ export interface PredictiveAlert {
   method: string;
 }
 
+/** P3: one verification signal. score null = unknown (not measurable) — never counted as a pass. */
+export interface VerificationSignal {
+  name: "geo" | "reuse" | "scene" | "change" | "citizen" | "neighbour";
+  score: number | null;
+  method: string;
+  detail: string;
+}
+export interface ProofVerification {
+  engineVersion: string;
+  signals: VerificationSignal[];
+  flags: string[];
+  score: number | null;
+  coverage: number;
+  decision: "VERIFIED" | "NEEDS_REVIEW" | "REJECTED" | "PENDING_CITIZEN";
+  at: string;
+}
+
 export interface MediaRecord {
   id: string;
   fileName: string;
+  /** P3.2 perceptual hash and P3.3 background (periphery) hash — absent when the image cannot be fingerprinted. */
+  phash?: string;
+  sceneHash?: string;
   mime: string;
   kind: "image" | "audio";
   size: number;

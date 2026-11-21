@@ -8,7 +8,7 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
-import { captureProofPhoto } from "@/lib/proof";
+import { captureProofPhoto, proofLocation } from "@/lib/proof";
 import { useApp, type Complaint, type RiskZone, type PoliceStation, type Worker } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
@@ -789,7 +789,8 @@ function DistrictAdminDashboard() {
     try {
       const proofPhoto = await captureProofPhoto();
       if (!proofPhoto) return;
-      await updateComplaintStatus(id, "resolved", { proofPhoto, proofNote: "Proof captured by officer" });
+      const proofGeo = await proofLocation();
+      await updateComplaintStatus(id, "resolved", { proofPhoto, proofNote: "Proof captured by officer", proofGeo });
       setSelectedComplaint(null);
     } catch (e: any) {
       Alert.alert("Error", e.message);

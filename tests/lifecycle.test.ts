@@ -59,13 +59,29 @@ describe("end-to-end complaint lifecycle", () => {
     expect((await request(app()).put(`/api/complaints/${c2.id}/cancel`).set(auth(citizen.token))).status).toBe(409);
   });
 
-  it("reviewer can resolve a NEEDS_REVIEW case", async () => {
+  it("a reviewer can accept proof but never close without the citizen (rule 4)", async () => {
     const citizen = await makeUser();
     const admin = await makeUser("admin");
     const c = await fileComplaint(citizen.token);
     await request(app()).put(`/api/admin/complaints/${c.id}`).set(auth(admin.token)).send({ status: "resolved", proofPhoto: PNG_1PX });
     const raw = storage.getComplaint(c.id)!;
     raw.state = "NEEDS_REVIEW";
+    const r = await request(app()).put(`/api/admin/complaints/${c.id}/review`).set(auth(admin.token)).send({ decision: "verify" });
+    expect(r.body.state).toBe("VERIFYING");
+    const ok = await request(app()).put(`/api/complaints/${c.id}/confirm`).set(auth(citizen.token)).send({});
+    expect(ok.body.state ?? storage.getComplaint(c.id)!.state).toBe("CLOSED");
+  });
+
+  it("citizen 'yes' on a flagged case goes to review; the reviewer can then close it", async () => {
+    const citizen = await makeUser();
+    const admin = await makeUser("admin");
+    const c = await fileComplaint(citizen.token);
+    await request(app()).put(`/api/admin/complaints/${c.id}`).set(auth(admin.token)).send({ status: "resolved", proofPhoto: PNG_1PX });
+    const raw = storage.getComplaint(c.id)!;
+    raw.verification = { ...raw.verification!, flags: ["reused_photo"] };
+    await request(app()).put(`/api/complaints/${c.id}/confirm`).set(auth(citizen.token)).send({});
+    expect(storage.getComplaint(c.id)!.state).toBe("NEEDS_REVIEW");
+    expect(storage.getReviewTasks("open").some(t => t.complaintId === c.id && t.kind === "proof_review")).toBe(true);
     const r = await request(app()).put(`/api/admin/complaints/${c.id}/review`).set(auth(admin.token)).send({ decision: "verify" });
     expect(r.body.state).toBe("CLOSED");
   });

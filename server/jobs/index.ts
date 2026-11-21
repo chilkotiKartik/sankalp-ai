@@ -7,6 +7,7 @@ import { runRetention } from "../routes/privacy";
 import { readiness } from "../health";
 import { sendSms } from "../notify/sms";
 import { safeFetch } from "../lib/safeFetch";
+import { runConfirmationReminders } from "../verification/confirm";
 
 /** P1.10 downtime alert hook: notify ops (SMS to ALERT_PHONES and/or ALERT_WEBHOOK_URL) on state changes. No PII. */
 let lastReady = true;
@@ -54,6 +55,8 @@ export function startJobs() {
   timers.push(setInterval(eachTenant("sla_job", () => { runSlaCheck(); }), 5 * 60 * 1000));
   timers.push(setInterval(eachTenant("retention_job", () => { runRetention(); }), 24 * 3600 * 1000));
   timers.push(setInterval(() => { void watchReadiness(); }, 60_000));
+  // P3.5: SMS reminder / voice callback for citizens who have not answered "was it fixed?".
+  timers.push(setInterval(() => { for (const id of tenantIds()) void runInTenant(id, () => runConfirmationReminders()).catch(err => logger.error("confirm_reminders_failed", { tenant: id, err })); }, 10 * 60 * 1000));
   if (config().DEMO_MODE) timers.push(setInterval(eachTenant("demo_workers", () => storeFor(storage.tenantId).simulateDemoWorkerMovement()), 8000));
   timers.forEach(t => unref(t));
 }
