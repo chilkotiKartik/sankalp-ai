@@ -271,6 +271,12 @@ export function registerAdminRoutes(app: Express) {
   });
 
   route(app, {
+    method: "get", path: "/api/admin/audit/verify", auth: "admin", permission: "audit.verify",
+    params: none, query: none, body: none,
+    handler: () => storage.verifyAuditChain(),
+  });
+
+  route(app, {
     method: "get", path: "/api/departments", auth: "user", permission: "departments.summary",
     params: none, query: none, body: none,
     handler: ({ actor }) => {

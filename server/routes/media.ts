@@ -3,7 +3,8 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage, type AppUser } from "../storage";
 import { route, none, type Actor } from "../lib/route";
-import { storeMedia, privatePath, publicPathExists } from "../lib/media";
+import { storeMedia, privatePath, publicPathExists, originalPath, signMediaUrl, verifyMediaSignature, SIGNED_URL_TTL_S } from "../lib/media";
+import { currentTenantId, hasTenant, runInTenant } from "../tenancy";
 import { forbidden, notFound, unprocessable, unauthorized } from "../lib/errors";
 import { uploadLimiter } from "./limits";
 
@@ -66,6 +67,47 @@ export function registerMediaRoutes(app: Express) {
       storage.addMedia({ ...f, ownerId: user.id, sosId: body.sosId });
       storage.addAuditLog("sos_audio_uploaded", user.id, "citizen", `SOS audio evidence stored (${f.id})`);
       return { url: `/api/media/audio/${f.fileName}`, filename: f.fileName, mediaId: f.id };
+    },
+  });
+
+  // P1.6: short-lived signed links (for <audio>/<img> tags that cannot send headers). Issuance is audited.
+  route(app, {
+    method: "post", path: "/api/media/:file/sign", auth: "optional", permission: "media.read_evidence",
+    params: z.object({ file: z.string().max(60) }), query: z.object({ variant: z.enum(["private", "original"]).optional() }), body: none,
+    handler: ({ params, query, actor }) => {
+      if (!actor.user && !actor.deptId) throw unauthorized();
+      const rec = storage.getMediaByFile(params.file);
+      if (!rec) throw notFound("Media not found");
+      if (query.variant === "original") {
+        // Originals keep EXIF/GPS: staff only (verification), never the public.
+        if (!(isAdminUser(actor.user) || actor.deptId)) throw forbidden("Only staff can access original photos");
+        if (!originalPath(params.file)) throw notFound("Original not stored");
+      } else if (!canAccessEvidence(actor, rec)) throw forbidden("You are not allowed to access this evidence");
+      storage.addAuditLog("signed_url_issued", actor.user?.id ?? `dept:${actor.deptId}`, actor.user ? actor.user.role : `dept:${actor.deptId}`, `Signed link for ${rec.id} (${query.variant ?? "private"})`, rec.sosId);
+      const url = signMediaUrl(params.file, currentTenantId()) + (query.variant === "original" ? "&v=original" : "");
+      return { url, expiresInSeconds: SIGNED_URL_TTL_S };
+    },
+  });
+
+  route(app, {
+    method: "get", path: "/api/media/signed/:file", auth: "public", permission: "media.signed_read",
+    params: z.object({ file: z.string().max(60) }),
+    query: z.object({ t: z.string().max(60), exp: z.coerce.number().int(), sig: z.string().max(100), v: z.enum(["original"]).optional() }), body: none,
+    handler: ({ params, query, res }) => {
+      // The tenant is part of the signature, so the link works without an X-Tenant header (e.g. <audio src>).
+      if (!hasTenant(query.t) || !verifyMediaSignature(params.file, query.t, query.exp, query.sig)) throw forbidden("Link expired or invalid");
+      const rec = runInTenant(query.t, () => {
+        const r = storage.getMediaByFile(params.file);
+        if (r) storage.addAuditLog("signed_url_used", "signed-link", "signed-link", `Signed link used for ${r.id}`, r.sosId);
+        return r;
+      });
+      const p = query.v === "original" ? originalPath(params.file) : privatePath(params.file);
+      if (!rec || !p) throw notFound("Media not found");
+      res.setHeader("Content-Type", rec.mime);
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.sendFile(p);
+      return undefined;
     },
   });
 

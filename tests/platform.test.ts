@@ -46,7 +46,7 @@ describe("route inventory (M14)", () => {
   it("public routes are an explicit, reviewed allow-list", () => {
     const pub = registry.filter(r => r.auth === "public").map(r => `${r.method.toUpperCase()} ${r.path}`).sort();
     expect(pub).toEqual([
-      "GET /api/cpr/emergency-locations", "GET /api/cpr/emergency-services", "GET /api/dept/list", "GET /api/health",
+      "GET /api/cpr/emergency-locations", "GET /api/cpr/emergency-services", "GET /api/dept/list", "GET /api/health", "GET /api/media/signed/:file",
       "GET /api/public/announcements", "GET /api/public/anomalies", "GET /api/public/budget", "GET /api/public/config",
       "GET /api/public/department-report", "GET /api/public/district-stats", "GET /api/public/stats", "GET /api/public/ward-health",
       "GET /healthz", "POST /api/auth/login", "POST /api/auth/otp/request", "POST /api/auth/otp/verify", "POST /api/auth/refresh",

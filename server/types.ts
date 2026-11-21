@@ -338,6 +338,10 @@ export interface AuditLog {
   actorPhone?: string;
   actorName?: string;
   referenceId?: string;
+  /** P1.7 hash chain: seq is gap-free per tenant; hash = sha256(prevHash + canonical_json(entry without hash)). */
+  seq?: number;
+  prevHash?: string;
+  hash?: string;
 }
 
 export interface EmergencyService {

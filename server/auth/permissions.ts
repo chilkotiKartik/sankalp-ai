@@ -39,7 +39,7 @@ export const PERMISSIONS: Record<string, Principal[]> = {
   "sos.attach_audio": USERS, "sos.list": [...USERS, "dept_token"],
   "sos.resolve": [...ADMINS, ...POLICE, ...DEPT], "sos.read_evidence": [...ADMINS, ...POLICE, ...DEPT],
   // media
-  "media.upload_image": [...USERS], "media.upload_audio": USERS, "media.read_evidence": [...USERS, ...POLICE, "dept_token"],
+  "media.upload_image": [...USERS], "media.signed_read": PUBLIC, "media.upload_audio": USERS, "media.read_evidence": [...USERS, ...POLICE, "dept_token"],
   // CPR / police command
   "cpr.command_read": POLICE, "cpr.command_stream": POLICE, "cpr.incident_create": POLICE, "cpr.incident_update": POLICE,
   "cpr.patrol_location": POLICE, "cpr.patrols_read": [...USERS, ...POLICE], "cpr.citizen_request": USERS,

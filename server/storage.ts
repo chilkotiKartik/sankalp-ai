@@ -1,5 +1,5 @@
 import { isAdminUser, isStateUser, isDistrictAdmin } from "./auth/roles";
-import { randomUUID, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { randomUUID, createHmac, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { EventEmitter } from "node:events";
 import bcrypt from "bcrypt";
 import { config } from "./config";
@@ -48,6 +48,20 @@ const SOS_DEDUP_WINDOW_MS = 2 * 60 * 1000;
 export const SOS_SESSION_GRACE_MS = 30 * 24 * 3600 * 1000;
 
 const genId = () => randomUUID();
+export const AUDIT_GENESIS = "0".repeat(64);
+
+/** Deterministic JSON: keys sorted at every level, undefined dropped. */
+export function canonicalJson(v: unknown): string {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return `[${v.map(canonicalJson).join(",")}]`;
+  const o = v as Record<string, unknown>;
+  return `{${Object.keys(o).filter(k => o[k] !== undefined).sort().map(k => `${JSON.stringify(k)}:${canonicalJson(o[k])}`).join(",")}}`;
+}
+
+export function auditHash(prevHash: string, entry: AuditLog): string {
+  const { hash: _h, ...rest } = entry;
+  return createHash("sha256").update(prevHash + canonicalJson(rest)).digest("hex");
+}
 /** M2 (review): everything created while DEMO_MODE is on is demo data and is purged when it is off. */
 const demoFlag = (): { isDemo?: true } => (config().DEMO_MODE ? { isDemo: true } : {});
 const now = () => new Date().toISOString();
@@ -110,6 +124,7 @@ interface State {
   reviewTasks: ReviewTask[];
   pushTokens: PushEntry[];
   demoRiskZones: RiskZone[];
+  auditAnchor?: { seq: number; hash: string };
 }
 
 const emptyState = (): State => ({
@@ -172,7 +187,6 @@ export class AppStorage {
     this.s.nightSafetyZones = drop(this.s.nightSafetyZones);
     this.s.chatMessages = drop(this.s.chatMessages).filter(m => ids.has(m.complaintId));
     this.s.reviewTasks = this.s.reviewTasks.filter(t => !t.complaintId || ids.has(t.complaintId));
-    this.s.auditLogs = this.s.auditLogs.filter(l => !l.complaintId || ids.has(l.complaintId));
     this.s.workerPins = this.s.workerPins.filter(w => ids.has(w.complaintId));
     this.touch();
     return before - (this.s.users.length + this.s.complaints.length + this.s.sosAlerts.length + this.s.workers.length);
@@ -894,12 +908,35 @@ export class AppStorage {
 
   // ── AUDIT ───────────────────────────────────────────────────────────────────
   addAuditLog(action: string, actorId: string, actorName: string, details: string, complaintId?: string): AuditLog {
-    const log: AuditLog = { id: genId(), action, userId: actorId, userName: actorName, details, timestamp: now(), complaintId,
-      actorName, referenceId: complaintId || undefined };
-    this.s.auditLogs.push(log);
-    if (this.s.auditLogs.length > 20000) this.s.auditLogs.shift();
+    const last = this.s.auditLogs[this.s.auditLogs.length - 1];
+    const prevHash = last?.hash ?? this.s.auditAnchor?.hash ?? AUDIT_GENESIS;
+    const seq = (last?.seq ?? this.s.auditAnchor?.seq ?? 0) + 1;
+    const entry: AuditLog = { id: genId(), action, userId: actorId, userName: actorName, details, timestamp: now(), complaintId,
+      actorName, referenceId: complaintId || undefined, seq, prevHash };
+    entry.hash = auditHash(prevHash, entry);
+    this.s.auditLogs.push(entry);
+    // Bounded memory: archive the oldest entry as the chain anchor (verification continues from it).
+    if (this.s.auditLogs.length > 50000) {
+      const dropped = this.s.auditLogs.shift()!;
+      this.s.auditAnchor = { seq: dropped.seq!, hash: dropped.hash! };
+    }
     this.touch();
-    return log;
+    return entry;
+  }
+
+  /** P1.7: recompute the chain. Returns the first broken seq, if any. */
+  verifyAuditChain(): { ok: boolean; checked: number; brokenAt?: number; reason?: string } {
+    let prev = this.s.auditAnchor?.hash ?? AUDIT_GENESIS;
+    let expectedSeq = (this.s.auditAnchor?.seq ?? 0) + 1;
+    for (const e of this.s.auditLogs) {
+      if (e.seq === undefined || e.hash === undefined) continue; // pre-chain legacy entries
+      if (e.seq !== expectedSeq) return { ok: false, checked: expectedSeq - 1, brokenAt: e.seq, reason: "sequence gap (entry deleted or reordered)" };
+      if (e.prevHash !== prev) return { ok: false, checked: expectedSeq - 1, brokenAt: e.seq, reason: "prevHash mismatch" };
+      if (auditHash(prev, e) !== e.hash) return { ok: false, checked: expectedSeq - 1, brokenAt: e.seq, reason: "content changed after it was written" };
+      prev = e.hash;
+      expectedSeq++;
+    }
+    return { ok: true, checked: expectedSeq - 1 - (this.s.auditAnchor?.seq ?? 0) };
   }
 
   getAuditLogs(complaintId?: string): AuditLog[] {
