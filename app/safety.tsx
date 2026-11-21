@@ -87,8 +87,8 @@ export default function SafetyScreen() {
       <Text style={st.h2}>Check-in timer</Text>
       {checkIn ? (
         <View>
-          <Text style={st.p}>Due by {new Date(checkIn.dueAt).toLocaleTimeString()}. If you don't confirm, your contacts are alerted.</Text>
-          <Pressable style={[st.btn, { backgroundColor: "#15803D" }]} onPress={safe} accessibilityRole="button"><Text style={st.btnT}>✓ I'm safe</Text></Pressable>
+          <Text style={st.p}>{`Due by ${new Date(checkIn.dueAt).toLocaleTimeString()}. If you do not confirm, your contacts are alerted.`}</Text>
+          <Pressable style={[st.btn, { backgroundColor: "#15803D" }]} onPress={safe} accessibilityRole="button"><Text style={st.btnT}>{"✓ I am safe"}</Text></Pressable>
         </View>
       ) : (
         <View style={st.row}>
