@@ -1,3 +1,4 @@
+import { currentTenantId } from "../tenancy";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage, DEPARTMENTS, getDeptIdForCategory, deptEmitter } from "../storage";
@@ -113,7 +114,9 @@ export function registerDeptRoutes(app: Express) {
       res.setHeader("Connection", "keep-alive");
       res.flushHeaders();
       const hb = setInterval(() => res.write(`: ping\n\n`), 25_000);
-      const listener = (ev: { type: string; departmentId?: string }) => {
+      const tid = currentTenantId();
+      const listener = (ev: { type: string; departmentId?: string; tenantId?: string }) => {
+        if (ev.tenantId !== tid) return;
         const own = ev.departmentId === deptId;
         if ((["complaint_new", "complaint_updated", "complaint_resolved_proof", "worker_assigned"].includes(ev.type) && own)
           || (ev.type === "sos_alert" && own)

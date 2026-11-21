@@ -1,3 +1,4 @@
+import { stateLabel } from "../data/reference";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage, assignDepartment } from "../storage";
@@ -26,10 +27,10 @@ function liveStats(district?: string) {
 
 function systemPrompt(name?: string, district?: string): string {
   const s = liveStats(district);
-  return `You are Sankalp, a warm civic assistant for the Government of Uttarakhand's SANKALP AI platform.
+  return `You are Sankalp, a warm civic assistant for the Government of ${stateLabel()}'s SANKALP AI platform.
 Reply in the user's language (Hindi or English), concisely (under 200 words), kindly and accurately.
 Never invent statistics. If someone is in danger, give the emergency number first: Police/All emergencies 112, Women helpline 1090, Ambulance 108, Disaster 1070.
-Recorded data for ${district || "Uttarakhand"}: ${s.total} complaints, ${s.resolved} closed with citizen confirmation, ${s.pending} pending, ${s.activeSos} active SOS.
+Recorded data for ${district || stateLabel()}: ${s.total} complaints, ${s.resolved} closed with citizen confirmation, ${s.pending} pending, ${s.activeSos} active SOS.
 ${name ? `The user's first name is ${name.split(" ")[0]}.` : ""}`;
 }
 
@@ -100,11 +101,11 @@ export function registerAiRoutes(app: Express) {
     handler: async ({ body }) => {
       const result = await chat([
         { role: "system", content: "You draft formal RTI applications under the RTI Act 2005 (India). Output only the application text." },
-        { role: "user", content: `Topic: ${body.topic}\nDepartment: ${body.targetDepartment || "Concerned Department"}\nDistrict: ${body.district || "Uttarakhand"}` },
+        { role: "user", content: `Topic: ${body.topic}\nDepartment: ${body.targetDepartment || "Concerned Department"}\nDistrict: ${body.district || stateLabel()}` },
       ], { maxTokens: 600 });
       if (result) return { text: result.text, powered_by: result.provider };
       const dept = body.targetDepartment || "Concerned Department";
-      return { powered_by: "template", text: `To,\nThe Public Information Officer,\n${dept},\n${body.district || "Uttarakhand"}\n\nSub: Application for Information under the Right to Information Act, 2005\n\nRespected Sir/Madam,\n\nI request the following information under Section 6 of the RTI Act, 2005:\n\n${body.topic}\n\n1. Complete details regarding the above\n2. Copies of relevant documents, records and files\n3. Names and designations of responsible officials\n4. Status of any pending action or decision\n5. Copies of orders, circulars or notices issued in this regard\n\nThe prescribed fee of ₹10 is enclosed (BPL applicants are exempt). Please provide the information within 30 days as required by Section 7(1). If it is held by another public authority, please transfer this application under Section 6(3) within 5 days.\n\nThank you,\n[Your Name]\n[Address]\n[Phone/Email]\n[Date]` };
+      return { powered_by: "template", text: `To,\nThe Public Information Officer,\n${dept},\n${body.district || stateLabel()}\n\nSub: Application for Information under the Right to Information Act, 2005\n\nRespected Sir/Madam,\n\nI request the following information under Section 6 of the RTI Act, 2005:\n\n${body.topic}\n\n1. Complete details regarding the above\n2. Copies of relevant documents, records and files\n3. Names and designations of responsible officials\n4. Status of any pending action or decision\n5. Copies of orders, circulars or notices issued in this regard\n\nThe prescribed fee of ₹10 is enclosed (BPL applicants are exempt). Please provide the information within 30 days as required by Section 7(1). If it is held by another public authority, please transfer this application under Section 6(3) within 5 days.\n\nThank you,\n[Your Name]\n[Address]\n[Phone/Email]\n[Date]` };
     },
   });
 }

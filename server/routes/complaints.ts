@@ -1,3 +1,4 @@
+import { defaultDistrict } from "../data/reference";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage, getDeptIdForCategory, type Complaint, type AppUser } from "../storage";
@@ -109,7 +110,7 @@ export function registerComplaintRoutes(app: Express) {
       beforePhoto: z.string().max(22 * 1024 * 1024).optional(),
     }).passthrough(),
     handler: ({ body, user, res }) => {
-      const district = user.district || "Dehradun";
+      const district = user.district || defaultDistrict();
       const photoUrl = resolveImage(body.beforePhoto, user.id);
       const guess = classifyText(body.description);
       const complaint = storage.createComplaint({

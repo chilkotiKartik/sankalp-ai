@@ -1,12 +1,12 @@
+import { currentTenantId } from "../tenancy";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage, cprEmitter, type SafetyIncident } from "../storage";
 import { route, none, idParams, type Actor } from "../lib/route";
 import { forbidden, notFound, unauthorized } from "../lib/errors";
 import { writeLimiter } from "./limits";
-import { district, geo, text } from "./common";
+import { district, geo, text, tenantDistrict } from "./common";
 import { toPublicVan } from "./dto";
-import { DISTRICT_NAMES } from "../data/reference";
 
 /**
  * CPR / PCR Safety Command (audit C2). All operational routes require a police/USDMA
@@ -56,7 +56,7 @@ export function registerCprRoutes(app: Express) {
   route(app, {
     method: "post", path: "/api/cpr/incidents", auth: "police", permission: "cpr.incident_create",
     params: none, query: none,
-    body: z.object({ citizenName: z.string().trim().min(1).max(80), district: z.enum(DISTRICT_NAMES as [string, ...string[]]), location: z.string().trim().min(2).max(300), lat: z.number().optional(), lng: z.number().optional() }),
+    body: z.object({ citizenName: z.string().trim().min(1).max(80), district: tenantDistrict, location: z.string().trim().min(2).max(300), lat: z.number().optional(), lng: z.number().optional() }),
     handler: ({ actor, body, res }) => {
       const d = districtScope(actor, body.district) ?? body.district;
       const c = storage.getDistrictCenter(d);
@@ -180,7 +180,9 @@ export function registerCprRoutes(app: Express) {
       const scoped = actor.user?.role === "admin" ? actor.user.district : undefined;
       sse(res);
       const hb = setInterval(() => res.write(`: ping\n\n`), 25_000);
-      const listener = (ev: { district?: string; incident?: { district?: string }; alert?: { district?: string } }) => {
+      const tid = currentTenantId();
+      const listener = (ev: { tenantId?: string; district?: string; incident?: { district?: string }; alert?: { district?: string } }) => {
+        if (ev.tenantId !== tid) return;
         const d = ev.district ?? ev.incident?.district ?? ev.alert?.district;
         if (scoped && d && d !== scoped) return;
         res.write(`data: ${JSON.stringify(ev)}\n\n`);

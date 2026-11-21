@@ -79,25 +79,10 @@ export interface Complaint {
   proofSubmittedAt?: string;
 }
 
-// Department routing: AI maps complaint category → responsible government dept
-export function assignDepartment(category: string): string {
-  const map: Record<string, string> = {
-    electricity:   "UPCL (Uttarakhand Power Corporation Ltd)",
-    transformer:   "UPCL (Uttarakhand Power Corporation Ltd)",
-    streetlight:   "UPCL (Uttarakhand Power Corporation Ltd)",
-    water:         "Jal Sansthan (Uttarakhand Jal Sansthan)",
-    drain:         "ULB (Urban Local Bodies / Nagar Palika)",
-    sewage:        "ULB (Urban Local Bodies / Nagar Palika)",
-    garbage:       "ULB (Urban Local Bodies / Nagar Palika)",
-    pothole:       "PWD (Public Works Department)",
-    road_damage:   "PWD (Public Works Department)",
-    tree:          "Forest Department",
-    noise:         "Uttarakhand Police",
-    health_hazard: "Health & Family Welfare Department",
-    disaster:      "USDMA (Disaster Management Authority)",
-    other:         "PWD (Public Works Department)",
-  };
-  return map[category] || "PWD (Public Works Department)";
+export interface DeptConfig {
+  id: string; name: string; nameHindi: string;
+  icon: string; color: string; helpline: string;
+  slaHours: number; categories: string[];
 }
 
 export interface SOSAlert {

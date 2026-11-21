@@ -1,3 +1,4 @@
+import { stateLabel } from "../data/reference";
 /**
  * Deterministic rules engine — always available, never leaves the server.
  * Used when no Indian AI provider is configured, or when one fails (rule 1).
@@ -30,7 +31,7 @@ export function rulesReply(message: string, history: ChatTurn[] = [], userName?:
   const msg = message.toLowerCase().trim();
   const firstName = userName ? userName.split(" ")[0] : "";
   const name = firstName ? `, ${firstName}` : "";
-  const district = userDistrict || "Uttarakhand";
+  const district = userDistrict || stateLabel();
   // Check if user has mentioned a specific topic in the last turn for context
   void history; const _lastBotMsg = history.filter(h => h.role === "ai" || h.role === "assistant").pop()?.content?.toLowerCase() || "";
 

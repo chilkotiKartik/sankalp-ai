@@ -41,6 +41,9 @@ const schema = z.object({
   PUSH_DRIVER: z.enum(["none", "console", "expo"]).default("console"),
   EXPO_ACCESS_TOKEN: z.string().optional(),
   SNAPSHOT_INTERVAL_MS: z.coerce.number().int().min(1000).default(30_000),
+  STORAGE_DRIVER: z.enum(["snapshot", "postgres"]).default("snapshot"),
+  DATABASE_URL: z.string().optional(),
+  DEFAULT_TENANT: z.string().default("uttarakhand"),
   BOOTSTRAP_SUPER_ADMIN_PHONE: z.string().regex(/^\d{10}$/).optional(),
   BOOTSTRAP_SUPER_ADMIN_PIN: z.string().regex(/^\d{6}$/).optional(),
 });
@@ -60,6 +63,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     throw new Error(`Invalid configuration — refusing to start:\n${lines.join("\n")}`);
   }
   const c = parsed.data;
+  if (c.STORAGE_DRIVER === "postgres" && !c.DATABASE_URL) {
+    throw new Error("Invalid configuration — STORAGE_DRIVER=postgres requires DATABASE_URL");
+  }
   if (c.JWT_SECRET === c.DEPT_JWT_SECRET) {
     throw new Error("Invalid configuration — JWT_SECRET and DEPT_JWT_SECRET must differ");
   }

@@ -4,6 +4,7 @@ import { storage, DEPARTMENTS } from "../storage";
 import { DISTRICT_NAMES, SLA_HOURS } from "../data/reference";
 import { TERMINAL } from "../domain/complaintState";
 import { config } from "../config";
+import { tenant } from "../tenancy";
 import { aiStatus } from "../ai/gateway";
 import { route, none } from "../lib/route";
 
@@ -19,7 +20,11 @@ export function registerPublicRoutes(app: Express) {
   route(app, {
     method: "get", path: "/api/public/config", auth: "public", permission: "public.config",
     params: none, query: none, body: none,
-    handler: () => ({ demoMode: config().DEMO_MODE, mapTileUrl: config().mapTileUrl, ai: aiStatus(), districts: DISTRICT_NAMES, slaHours: SLA_HOURS }),
+    handler: () => {
+      const t = tenant();
+      return { demoMode: config().DEMO_MODE, mapTileUrl: config().mapTileUrl, ai: aiStatus(), districts: [...DISTRICT_NAMES], slaHours: { ...SLA_HOURS },
+        tenant: { id: t.id, name: t.name, nameLocal: t.nameLocal, languages: t.languages, helplines: t.helplines, mapBounds: t.mapBounds, grievanceOfficer: t.grievanceOfficer, features: t.features } };
+    },
   });
 
   route(app, {

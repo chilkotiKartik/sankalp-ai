@@ -1,6 +1,8 @@
+import { currentTenantId } from "../tenancy";
+import { isStateWide } from "../data/reference";
 import type { Express } from "express";
 import { z } from "zod";
-import { storage, bus } from "../storage";
+import { storage, bus, storeFor } from "../storage";
 import { config } from "../config";
 import { route, none, scopeDistrict } from "../lib/route";
 import { AppError } from "../lib/errors";
@@ -43,7 +45,7 @@ export function registerCitizenRoutes(app: Express) {
     params: none, query: z.object({ type: z.string().max(20).optional(), district: z.string().max(60).optional() }), body: none,
     handler: ({ query }) => storage.getEmergencyServices()
       .filter(s => !query.type || s.type === query.type)
-      .filter(s => !query.district || query.district === "Uttarakhand" || s.district === query.district),
+      .filter(s => !query.district || isStateWide(query.district) || s.district === query.district),
   });
 
   route(app, {
@@ -79,8 +81,10 @@ export function registerCitizenRoutes(app: Express) {
       res.flushHeaders();
       res.write(`data: ${JSON.stringify({ type: "initial", workers: storage.getWorkers(d), demo: config().DEMO_MODE })}\n\n`);
       const hb = setInterval(() => res.write(`: ping\n\n`), 25_000);
-      const listener = (ev: { updates: Array<{ id: string }> }) => {
-        const updates = d ? ev.updates.filter(u => storage.getWorkers(d).some(w => w.id === u.id)) : ev.updates;
+      const tid = currentTenantId();
+      const listener = (ev: { updates: Array<{ id: string }>; tenantId?: string }) => {
+        if (ev.tenantId !== tid) return;
+        const updates = d ? ev.updates.filter(u => storeFor(tid).getWorkers(d).some(w => w.id === u.id)) : ev.updates;
         if (updates.length) res.write(`data: ${JSON.stringify({ ...ev, updates })}\n\n`);
       };
       bus.on("worker", listener);

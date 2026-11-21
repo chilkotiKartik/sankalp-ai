@@ -1,6 +1,8 @@
 import type { Server, IncomingMessage } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage, bus, type AppUser, type Complaint, type SOSAlert, type Announcement } from "./storage";
+import { currentTenantId, resolveTenantFromRequest, runInTenant } from "./tenancy";
+import { resolveActor } from "./lib/route";
 import { toStaffComplaint } from "./routes/dto";
 
 /**
@@ -10,7 +12,7 @@ import { toStaffComplaint } from "./routes/dto";
  *  - announcements → users in the target district.
  *  - emergency broadcast → users in the sender's district (all districts for super admin).
  */
-interface Client { ws: WebSocket; user: AppUser; alive: boolean }
+interface Client { ws: WebSocket; user: AppUser; tenantId: string; alive: boolean }
 
 const MAX_SOCKETS_PER_USER = 5;
 let clients: Client[] = [];
@@ -25,8 +27,14 @@ function send(c: Client, payload: unknown) {
   if (c.ws.readyState === WebSocket.OPEN) c.ws.send(JSON.stringify(payload));
 }
 
-function deliver(pred: (u: AppUser) => boolean, payload: unknown) {
-  for (const c of clients) if (pred(c.user)) send(c, payload);
+function resolveActorFromToken(tok: string | null): AppUser | null {
+  if (!tok) return null;
+  return resolveActor({ headers: { authorization: `Bearer ${tok}` }, query: {} } as never).user ?? null;
+}
+
+/** Deliver only to clients of the tenant the event belongs to (P1.3). */
+function deliver(pred: (u: AppUser) => boolean, payload: unknown, tenantId = currentTenantId()) {
+  for (const c of clients) if (c.tenantId === tenantId && pred(c.user)) send(c, payload);
 }
 
 export function publishEmergencyBroadcast(sender: AppUser, message: string, severity: string) {
@@ -75,14 +83,15 @@ export function attachRealtime(server: Server) {
   wss = new WebSocketServer({ server, path: "/ws", maxPayload: 4096 });
   wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
     const url = new URL(req.url || "/", "http://localhost");
-    const user = storage.validateToken(url.searchParams.get("token"));
-    if (!user) {
+    const tenantId = resolveTenantFromRequest(url.searchParams.get("tenant") || undefined, req.headers.host);
+    const user = tenantId ? runInTenant(tenantId, () => resolveActorFromToken(url.searchParams.get("token"))) : null;
+    if (!user || !tenantId) {
       ws.close(4001, "Unauthorized");
       return;
     }
     const mine = clients.filter(c => c.user.id === user.id);
     if (mine.length >= MAX_SOCKETS_PER_USER) mine[0].ws.close(4008, "Too many connections");
-    const client: Client = { ws, user, alive: true };
+    const client: Client = { ws, user, tenantId, alive: true };
     clients.push(client);
     ws.on("pong", () => { client.alive = true; });
     ws.on("message", () => { /* server → client only */ });
@@ -103,8 +112,10 @@ export function attachRealtime(server: Server) {
     ["complaint", onComplaint], ["sos", onSos], ["announcement", onAnnouncement], ["chat", onChat], ["worker", onWorker],
   ];
   for (const [name, fn] of subs) {
-    bus.on(name, fn as (...a: unknown[]) => void);
-    unsubscribers.push(() => bus.off(name, fn as (...a: unknown[]) => void));
+    // Run each handler inside the event's tenant so storage/reference lookups resolve correctly.
+    const wrapped = (ev: { tenantId?: string }) => runInTenant(ev.tenantId || currentTenantId(), () => (fn as (e: unknown) => void)(ev));
+    bus.on(name, wrapped);
+    unsubscribers.push(() => bus.off(name, wrapped));
   }
 }
 

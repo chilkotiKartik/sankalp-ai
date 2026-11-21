@@ -2,11 +2,11 @@ import type { Express } from "express";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { storage, DEPARTMENTS } from "../storage";
-import { DISTRICT_NAMES } from "../data/reference";
+import { defaultDistrict, stateLabel } from "../data/reference";
 import { route, none, signDeptToken } from "../lib/route";
 import { AppError, unauthorized, badRequest, notFound } from "../lib/errors";
 import { authLimiter, phoneLimiter, registerLimiter } from "./limits";
-import { phone10, pin6 } from "./common";
+import { phone10, pin6, tenantDistrict, tenantDistrictOrState } from "./common";
 import { toPublicUser } from "./dto";
 
 const BCRYPT_ROUNDS = 12;
@@ -18,12 +18,12 @@ export function registerAuthRoutes(app: Express) {
     method: "post", path: "/api/auth/register", auth: "public", permission: "auth.register",
     middleware: [registerLimiter],
     params: none, query: none,
-    body: z.object({ name: z.string().trim().min(2).max(80), phone: phone10, pin: pin6, district: z.enum(DISTRICT_NAMES as [string, ...string[]]).optional() }),
+    body: z.object({ name: z.string().trim().min(2).max(80), phone: phone10, pin: pin6, district: tenantDistrict.optional() }),
     handler: async ({ body }) => {
       if (await storage.findUserByPhone(body.phone)) throw new AppError(409, "PHONE_TAKEN", "Phone number already registered");
       const user = await storage.createUser({
         name: body.name, phone: body.phone, pin: await bcrypt.hash(body.pin, BCRYPT_ROUNDS), role: "citizen",
-        district: body.district || "Dehradun", points: 0, badges: ["new_citizen"], level: 1,
+        district: body.district || defaultDistrict(), points: 0, badges: ["new_citizen"], level: 1,
       });
       return { user: toPublicUser(user), token: storage.createToken(user.id) };
     },
@@ -100,11 +100,11 @@ export function registerAuthRoutes(app: Express) {
     params: none, query: none,
     body: z.object({
       name: z.string().trim().min(2).max(80), phone: phone10, pin: pin6,
-      role: z.enum(["worker", "admin", "super_admin"]), district: z.enum(["Uttarakhand", ...DISTRICT_NAMES] as [string, ...string[]]),
+      role: z.enum(["worker", "admin", "super_admin"]), district: tenantDistrictOrState,
     }),
     handler: async ({ body, user }) => {
       if (await storage.findUserByPhone(body.phone)) throw new AppError(409, "PHONE_TAKEN", "Phone number already registered");
-      if (body.role !== "super_admin" && body.district === "Uttarakhand") throw badRequest("Pick a district for this role");
+      if (body.role !== "super_admin" && body.district === stateLabel()) throw badRequest("Pick a district for this role");
       const created = await storage.createUser({ name: body.name, phone: body.phone, pin: await bcrypt.hash(body.pin, BCRYPT_ROUNDS),
         role: body.role, district: body.district, points: 0, badges: [], level: 1 });
       storage.addAuditLog("staff_created", user.id, user.name, `Created ${body.role} account in ${body.district}`);

@@ -1,0 +1,137 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { z } from "zod";
+
+/**
+ * Multi-tenancy (P1.3) + tenant configuration (P1.8).
+ * Each Indian state (or ULB) is a tenant described by config/tenants/<id>.json.
+ * Isolation is structural: every tenant has its OWN store instance, so a request bound to tenant A
+ * physically cannot read tenant B's rows. The active tenant travels with the request via AsyncLocalStorage.
+ */
+const geo = z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) });
+
+export const TenantConfigSchema = z.object({
+  id: z.string().regex(/^[a-z][a-z0-9-]{1,40}$/),
+  name: z.string().min(2),
+  nameLocal: z.string().optional(),
+  ticketPrefix: z.string().regex(/^[A-Z]{2,4}$/),
+  hosts: z.array(z.string()).default([]),
+  languages: z.array(z.string().min(2).max(5)).min(1),
+  defaultDistrict: z.string(),
+  stateLabel: z.string(),
+  slaHours: z.record(z.string(), z.number().positive()),
+  mapBounds: z.object({ center: geo, zoom: z.number(), south: z.number(), west: z.number(), north: z.number(), east: z.number() }),
+  helplines: z.record(z.string(), z.string()),
+  grievanceOfficer: z.object({ name: z.string(), email: z.string(), phone: z.string(), address: z.string() }),
+  retention: z.object({ complaintsDays: z.number().int().positive(), mediaDaysAfterClosure: z.number().int().positive(), sosEvidenceDays: z.number().int().positive(), needsLegalConfirmation: z.boolean() }),
+  departments: z.record(z.string(), z.object({
+    id: z.string(), name: z.string(), nameHindi: z.string(), icon: z.string(), color: z.string(), helpline: z.string(),
+    slaHours: z.number(), categories: z.array(z.string()),
+  })),
+  categoryDepartment: z.record(z.string(), z.string()),
+  categoryDepartmentLabel: z.record(z.string(), z.string()),
+  fallbackDepartment: z.string(),
+  districts: z.array(z.object({ district: z.string(), center: geo })).min(1),
+  wards: z.array(z.object({ name: z.string(), number: z.number().int(), area: z.string(), district: z.string(), center: geo, pop: z.number() })),
+  policeStations: z.array(z.object({ id: z.string(), name: z.string(), address: z.string(), phone: z.string(), geo, ward: z.string(), district: z.string() })),
+  emergencyServices: z.array(z.object({
+    id: z.string(), type: z.enum(["police", "hospital", "fire", "ambulance", "disaster"]), name: z.string(), district: z.string(), address: z.string(),
+    phone: z.string(), phone2: z.string().optional(), beds: z.number().optional(), available: z.boolean().optional(), geo,
+  })),
+  features: z.object({
+    autoCloseUnverifiedDays: z.number().int().positive().nullable().default(null),
+    neighbourConfirmation: z.boolean().default(false),
+    disasterMode: z.boolean().default(false),
+    yatraMode: z.boolean().default(false),
+  }).default({ autoCloseUnverifiedDays: null, neighbourConfirmation: false, disasterMode: false, yatraMode: false }),
+  verification: z.object({
+    proofRadiusM: z.number().positive().default(50),
+    weights: z.object({ geo: z.number(), reuse: z.number(), scene: z.number(), change: z.number(), citizen: z.number() })
+      .default({ geo: 0.25, reuse: 0.2, scene: 0.15, change: 0.15, citizen: 0.25 }),
+    verifiedThreshold: z.number().default(0.7),
+    rejectThreshold: z.number().default(0.35),
+  }).default({ proofRadiusM: 50, weights: { geo: 0.25, reuse: 0.2, scene: 0.15, change: 0.15, citizen: 0.25 }, verifiedThreshold: 0.7, rejectThreshold: 0.35 }),
+}).superRefine((t, ctx) => {
+  const names = new Set(t.districts.map(d => d.district));
+  if (!names.has(t.defaultDistrict)) ctx.addIssue({ code: "custom", message: `defaultDistrict ${t.defaultDistrict} is not in districts`, path: ["defaultDistrict"] });
+  for (const [cat, dep] of Object.entries(t.categoryDepartment)) {
+    if (!t.departments[dep]) ctx.addIssue({ code: "custom", message: `category ${cat} maps to unknown department ${dep}`, path: ["categoryDepartment", cat] });
+  }
+  if (!t.departments[t.fallbackDepartment]) ctx.addIssue({ code: "custom", message: "fallbackDepartment is not a department", path: ["fallbackDepartment"] });
+  t.wards.forEach((w, i) => { if (!names.has(w.district)) ctx.addIssue({ code: "custom", message: `ward ${w.name} has unknown district ${w.district}`, path: ["wards", i] }); });
+});
+
+export type TenantConfig = z.infer<typeof TenantConfigSchema>;
+
+const configs = new Map<string, TenantConfig>();
+const als = new AsyncLocalStorage<string>();
+let defaultTenantId = "uttarakhand";
+
+export function parseTenantConfig(raw: unknown): TenantConfig {
+  const r = TenantConfigSchema.safeParse(raw);
+  if (!r.success) throw new Error(`Invalid tenant config: ${r.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ")}`);
+  return r.data;
+}
+
+/** Load every config/tenants/*.json (validated). Called once at boot and by tests. */
+export function loadTenants(dir = path.resolve(process.cwd(), "config", "tenants"), defaultId = process.env.DEFAULT_TENANT || "uttarakhand") {
+  configs.clear();
+  for (const f of fs.readdirSync(dir).filter(x => x.endsWith(".json")).sort()) {
+    const t = parseTenantConfig(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
+    if (`${t.id}.json` !== f) throw new Error(`Tenant file ${f} must be named ${t.id}.json`);
+    configs.set(t.id, t);
+  }
+  if (!configs.has(defaultId)) throw new Error(`DEFAULT_TENANT ${defaultId} has no config file`);
+  defaultTenantId = defaultId;
+}
+
+/** Register (or replace) a tenant at runtime — used by the onboarding wizard (P7.1) and tests. */
+export function registerTenant(t: TenantConfig) {
+  configs.set(t.id, parseTenantConfig(t));
+}
+
+export function tenantIds(): string[] {
+  ensureLoaded();
+  return [...configs.keys()];
+}
+
+function ensureLoaded() {
+  if (!configs.size) loadTenants();
+}
+
+export function defaultTenant(): string {
+  ensureLoaded();
+  return defaultTenantId;
+}
+
+export function currentTenantId(): string {
+  ensureLoaded();
+  return als.getStore() ?? defaultTenantId;
+}
+
+export function tenant(id = currentTenantId()): TenantConfig {
+  ensureLoaded();
+  const t = configs.get(id);
+  if (!t) throw new Error(`Unknown tenant ${id}`);
+  return t;
+}
+
+export function hasTenant(id: string): boolean {
+  ensureLoaded();
+  return configs.has(id);
+}
+
+export function runInTenant<T>(id: string, fn: () => T): T {
+  if (!hasTenant(id)) throw new Error(`Unknown tenant ${id}`);
+  return als.run(id, fn);
+}
+
+/** Resolve tenant from X-Tenant header, then Host, then the default. Unknown explicit tenants → null (404). */
+export function resolveTenantFromRequest(headerValue: string | undefined, host: string | undefined): string | null {
+  ensureLoaded();
+  if (headerValue) return configs.has(headerValue) ? headerValue : null;
+  const h = (host || "").split(":")[0].toLowerCase();
+  for (const t of configs.values()) if (t.hosts.includes(h)) return t.id;
+  return defaultTenantId;
+}

@@ -6,7 +6,7 @@ import { route, none, idParams, scopeDistrict } from "../lib/route";
 import { forbidden, notFound, badRequest } from "../lib/errors";
 import { publishEmergencyBroadcast } from "../realtime";
 import { writeLimiter } from "./limits";
-import { text } from "./common";
+import { text, tenantDistrict } from "./common";
 import { toStaffComplaint, toPublicWorker } from "./dto";
 
 const annBody = z.object({
@@ -77,7 +77,7 @@ export function registerAdminRoutes(app: Express) {
   route(app, {
     method: "post", path: "/api/superadmin/assign-task", auth: "superAdmin", permission: "admin.assign_task",
     params: none, query: none,
-    body: z.object({ district: z.enum(DISTRICT_NAMES as [string, ...string[]]), task: z.string().trim().min(5).max(2000) }),
+    body: z.object({ district: tenantDistrict, task: z.string().trim().min(5).max(2000) }),
     handler: ({ body, user }) => {
       const ann = storage.createAnnouncement({ title: "📋 Task Assigned by State Administration",
         body: `Directive from State Command:\n\n${body.task}\n\nPlease acknowledge and act.`, type: "emergency",

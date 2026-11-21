@@ -4,8 +4,9 @@ import bcrypt from "bcrypt";
 import { config } from "./config";
 import {
   DEPARTMENTS, getDeptIdForCategory, assignDepartment, DISTRICTS_DATA, WARDS_DATA, POLICE_STATIONS,
-  EMERGENCY_SERVICES, SLA_HOURS,
+  EMERGENCY_SERVICES, SLA_HOURS, isStateWide,
 } from "./data/reference";
+import { tenant, currentTenantId, defaultTenant } from "./tenancy";
 import {
   type ComplaintState, legacyStatus, applyPath, pathToInProgress, pathToVerifying,
   citizenConfirm as smConfirm, citizenReject as smReject, TERMINAL, type TransitionStep, type ActorKind,
@@ -27,6 +28,15 @@ cprEmitter.setMaxListeners(500);
 /** Domain events: ("complaint" | "sos" | "announcement" | "chat" | "worker", payload) */
 export const bus = new EventEmitter();
 bus.setMaxListeners(500);
+
+/** Every event carries the tenant it belongs to; listeners (WS/SSE) deliver only within that tenant (P1.3). */
+for (const em of [deptEmitter, cprEmitter, bus]) {
+  const orig = em.emit.bind(em);
+  em.emit = ((name: string | symbol, payload?: unknown, ...rest: unknown[]) => {
+    if (payload && typeof payload === "object" && !("tenantId" in (payload as object))) (payload as Record<string, unknown>).tenantId = currentTenantId();
+    return orig(name, payload, ...rest);
+  }) as typeof em.emit;
+}
 
 const SNAPSHOT_VERSION = 1;
 const TOKEN_TTL_MS = 7 * 24 * 3600 * 1000;
@@ -106,6 +116,7 @@ const emptyState = (): State => ({
 
 export class AppStorage {
   s: State = emptyState();
+  constructor(public readonly tenantId: string = defaultTenant()) {}
   private policeStations: PoliceStation[] = POLICE_STATIONS;
   private emergencyServices: EmergencyService[] = EMERGENCY_SERVICES;
   /** bumped on every mutation so the snapshot job only writes when needed */
@@ -257,7 +268,7 @@ export class AppStorage {
 
   // ── COMPLAINTS ──────────────────────────────────────────────────────────────
   getComplaints(district?: string): Complaint[] {
-    if (district && district !== "Uttarakhand") return this.s.complaints.filter(c => c.district === district);
+    if (district && !isStateWide(district)) return this.s.complaints.filter(c => c.district === district);
     return [...this.s.complaints];
   }
 
@@ -265,7 +276,7 @@ export class AppStorage {
 
   private newTicketId(): string {
     for (;;) {
-      const t = `UK-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+      const t = `${tenant().ticketPrefix}-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
       if (!this.s.complaints.some(c => c.ticketId === t)) return t;
     }
   }
@@ -439,7 +450,7 @@ export class AppStorage {
 
   // ── SOS ─────────────────────────────────────────────────────────────────────
   getSosAlerts(district?: string): SOSAlert[] {
-    if (district && district !== "Uttarakhand") return this.s.sosAlerts.filter(a => a.district === district);
+    if (district && !isStateWide(district)) return this.s.sosAlerts.filter(a => a.district === district);
     return [...this.s.sosAlerts];
   }
 
@@ -530,7 +541,7 @@ export class AppStorage {
    * With n = 0 the score is 100 and `n` = 0 is reported so clients can show "no data".
    */
   getWards(district?: string): (Ward & { n: number; scoreMethod: string })[] {
-    const list = WARDS_DATA.filter(w => !district || district === "Uttarakhand" || w.district === district);
+    const list = WARDS_DATA.filter(w => !district || isStateWide(district) || w.district === district);
     return list.map(w => {
       const wc = this.s.complaints.filter(c => c.district === w.district && c.wardNumber === w.number);
       const closed = wc.filter(c => c.state === "CLOSED");
@@ -561,7 +572,7 @@ export class AppStorage {
 
   // ── WORKERS (M1) ────────────────────────────────────────────────────────────
   getWorkers(district?: string): Worker[] {
-    if (district && district !== "Uttarakhand") return this.s.workers.filter(w => w.district === district);
+    if (district && !isStateWide(district)) return this.s.workers.filter(w => w.district === district);
     return [...this.s.workers];
   }
 
@@ -595,16 +606,16 @@ export class AppStorage {
 
   // ── GEO REFERENCE ───────────────────────────────────────────────────────────
   getDistrictCenter(district: string): GeoPoint {
-    return DISTRICTS_DATA.find(d => d.district === district)?.center ?? { lat: 30.0668, lng: 79.0193 };
+    return DISTRICTS_DATA.find(d => d.district === district)?.center ?? tenant().mapBounds.center;
   }
 
   getPoliceStations(district?: string): PoliceStation[] {
-    if (district && district !== "Uttarakhand") return this.policeStations.filter(p => p.district === district);
+    if (district && !isStateWide(district)) return this.policeStations.filter(p => p.district === district);
     return [...this.policeStations];
   }
 
   getNearestPoliceStations(geo: GeoPoint, count = 3, district?: string): (PoliceStation & { distance: number })[] {
-    const pool = district && district !== "Uttarakhand" ? this.policeStations.filter(p => p.district === district) : this.policeStations;
+    const pool = district && !isStateWide(district) ? this.policeStations.filter(p => p.district === district) : this.policeStations;
     const src = pool.length ? pool : this.policeStations;
     return src.map(p => ({ ...p, distance: parseFloat(distanceKm(geo, p.geo).toFixed(2)) }))
       .sort((a, b) => a.distance - b.distance).slice(0, count);
@@ -631,7 +642,7 @@ export class AppStorage {
         geo: { lat, lng }, radius: 2500, description: `${items.length} unresolved complaints (mostly ${top}) in this area`,
         complaintCount: items.length, district: items[0].district });
     });
-    const demo = this.s.demoRiskZones.filter(z => !district || district === "Uttarakhand" || z.district === district);
+    const demo = this.s.demoRiskZones.filter(z => !district || isStateWide(district) || z.district === district);
     return [...zones, ...demo];
   }
 
@@ -643,7 +654,7 @@ export class AppStorage {
 
   // ── ANNOUNCEMENTS ───────────────────────────────────────────────────────────
   getAnnouncements(district?: string): Announcement[] {
-    if (district && district !== "Uttarakhand") return this.s.announcements.filter(a => !a.targetDistrict || a.targetDistrict === "all" || a.targetDistrict === district);
+    if (district && !isStateWide(district)) return this.s.announcements.filter(a => !a.targetDistrict || a.targetDistrict === "all" || a.targetDistrict === district);
     return [...this.s.announcements];
   }
 
@@ -672,7 +683,7 @@ export class AppStorage {
 
   // ── POLLS / PETITIONS / EVENTS ──────────────────────────────────────────────
   getPolls(district?: string): Poll[] {
-    if (district && district !== "Uttarakhand") return this.s.polls.filter(p => !p.district || p.district === district);
+    if (district && !isStateWide(district)) return this.s.polls.filter(p => !p.district || p.district === district);
     return [...this.s.polls];
   }
   createPoll(data: Omit<Poll, "id">): Poll { const p = { ...demoFlag(), ...data, id: genId() }; this.s.polls.unshift(p); this.touch(); return p; }
@@ -688,7 +699,7 @@ export class AppStorage {
   }
 
   getPetitions(district?: string): Petition[] {
-    if (district && district !== "Uttarakhand") return this.s.petitions.filter(p => !p.district || p.district === district);
+    if (district && !isStateWide(district)) return this.s.petitions.filter(p => !p.district || p.district === district);
     return [...this.s.petitions];
   }
   createPetition(data: Omit<Petition, "id">): Petition { const p = { ...demoFlag(), ...data, id: genId() }; this.s.petitions.unshift(p); this.touch(); return p; }
@@ -704,7 +715,7 @@ export class AppStorage {
   }
 
   getEvents(district?: string): CivicEvent[] {
-    if (district && district !== "Uttarakhand") return this.s.civicEvents.filter(e => !e.district || e.district === district);
+    if (district && !isStateWide(district)) return this.s.civicEvents.filter(e => !e.district || e.district === district);
     return [...this.s.civicEvents];
   }
   createEvent(data: Omit<CivicEvent, "id" | "createdAt" | "rsvpIds">): CivicEvent {
@@ -722,14 +733,14 @@ export class AppStorage {
 
   // ── RTI ─────────────────────────────────────────────────────────────────────
   getRTIs(district?: string): RTIRequest[] {
-    if (district && district !== "Uttarakhand") return this.s.rtis.filter(r => r.district === district);
+    if (district && !isStateWide(district)) return this.s.rtis.filter(r => r.district === district);
     return [...this.s.rtis];
   }
   getRTI(id: string) { return this.s.rtis.find(r => r.id === id); }
   getRTIsByPhone(phone: string): RTIRequest[] { return this.s.rtis.filter(r => r.filedByPhone === phone); }
   createRTI(data: Omit<RTIRequest, "id" | "ticketId" | "filedAt" | "deadline" | "status">, actorId: string): RTIRequest {
     const filed = new Date();
-    const rti: RTIRequest = { ...demoFlag(), ...data, id: genId(), ticketId: `RTI-UK-${randomUUID().slice(0, 8).toUpperCase()}`,
+    const rti: RTIRequest = { ...demoFlag(), ...data, id: genId(), ticketId: `RTI-${tenant().ticketPrefix}-${randomUUID().slice(0, 8).toUpperCase()}`,
       filedAt: filed.toISOString(), deadline: new Date(filed.getTime() + 30 * 86400000).toISOString(), status: "filed" };
     this.s.rtis.unshift(rti);
     this.addAuditLog("rti_filed", actorId, "citizen", `RTI ${rti.ticketId} filed`, rti.id);
@@ -763,7 +774,7 @@ export class AppStorage {
 
   // ── BUDGET ──────────────────────────────────────────────────────────────────
   getBudgetItems(district?: string): BudgetItem[] {
-    if (district && district !== "Uttarakhand") return this.s.budgetItems.filter(b => b.district === district);
+    if (district && !isStateWide(district)) return this.s.budgetItems.filter(b => b.district === district);
     return [...this.s.budgetItems];
   }
 
@@ -847,12 +858,12 @@ export class AppStorage {
 
   // ── CPR / PATROL ────────────────────────────────────────────────────────────
   getPatrolVans(district?: string): PatrolVan[] {
-    if (district && district !== "Uttarakhand") return this.s.patrolVans.filter(v => v.district === district);
+    if (district && !isStateWide(district)) return this.s.patrolVans.filter(v => v.district === district);
     return [...this.s.patrolVans];
   }
 
   getSafetyIncidents(district?: string): SafetyIncident[] {
-    const list = district && district !== "Uttarakhand" ? this.s.safetyIncidents.filter(i => i.district === district) : [...this.s.safetyIncidents];
+    const list = district && !isStateWide(district) ? this.s.safetyIncidents.filter(i => i.district === district) : [...this.s.safetyIncidents];
     return list.sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
   }
 
@@ -928,4 +939,29 @@ export class AppStorage {
 }
 
 export type { ComplaintCategory };
-export const storage = new AppStorage();
+
+// ── Tenant registry: one isolated store per tenant (P1.3) ─────────────────────
+const stores = new Map<string, AppStorage>();
+
+export function storeFor(tenantId: string): AppStorage {
+  let s = stores.get(tenantId);
+  if (!s) { s = new AppStorage(tenantId); stores.set(tenantId, s); }
+  return s;
+}
+
+export function allStores(): AppStorage[] {
+  return [...stores.values()];
+}
+
+/**
+ * `storage` is the store of the tenant bound to the current request (AsyncLocalStorage).
+ * Code outside a request (jobs, scripts) runs inside runInTenant(...) or gets the default tenant.
+ */
+export const storage: AppStorage = new Proxy({} as AppStorage, {
+  get(_t, p) {
+    const s = storeFor(currentTenantId());
+    const v = Reflect.get(s, p, s);
+    return typeof v === "function" ? v.bind(s) : v;
+  },
+  set(_t, p, v) { return Reflect.set(storeFor(currentTenantId()), p, v); },
+});

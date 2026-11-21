@@ -5,6 +5,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as http from "node:http";
 import { config } from "./config";
+import { resolveTenantFromRequest, runInTenant } from "./tenancy";
 import { errorHandler, AppError } from "./lib/errors";
 import { logger } from "./lib/logger";
 import { dirs } from "./lib/media";
@@ -197,6 +198,13 @@ export function createApp(): Built {
   app.use((_req, res, next) => {
     if (config().DEMO_MODE) res.setHeader("X-Sankalp-Demo", "true");
     next();
+  });
+  // P1.3: bind every request to exactly one tenant (X-Tenant header → Host → default).
+  app.use((req, res, next) => {
+    const id = resolveTenantFromRequest(req.header("x-tenant") || undefined, req.header("host") || undefined);
+    if (!id) return res.status(404).json({ code: "UNKNOWN_TENANT", message: "Unknown tenant" });
+    res.setHeader("X-Tenant", id);
+    runInTenant(id, () => next());
   });
 
   registry.length = 0;
