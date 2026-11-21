@@ -1,3 +1,4 @@
+import { startContactDeliveries } from "../safety/sos";
 import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import type { Express } from "express";
 import { z } from "zod";
@@ -77,9 +78,11 @@ export function registerSosRoutes(app: Express) {
         category: body.category, description: body.description || "Emergency reported via SANKALP AI",
         location: body.location || loc(g), geo: g, ward: body.ward || `${user.district} Block`, wardNumber: body.wardNumber ?? 1,
         district: user.district, status: "active", triggeredBy: user.name, triggeredByPhone: user.phone,
-        nearestPoliceStation: near?.name, policeDistance: near?.distance, isWomenSafety: body.category === "women_safety",
+        // P6.4: routed to the nearest police station(s) from the tenant list
+        nearestPoliceStation: near?.name, nearestPolicePhone: near?.phone, policeDistance: near?.distance, isWomenSafety: body.category === "women_safety",
+        notifiedStations: near ? [{ name: near.name, phone: near.phone, distance: near.distance, address: near.address }] : undefined,
       }, user.id);
-      if (!deduplicated) alertStaff(alert, "sos_new");
+      if (!deduplicated) { alertStaff(alert, "sos_new"); startContactDeliveries(alert, user); }
       res.status(deduplicated ? 200 : 201);
       return { ...alert, deduplicated };
     },
@@ -104,6 +107,7 @@ export function registerSosRoutes(app: Express) {
       let cprIncident = undefined;
       if (!deduplicated) {
         alertStaff(alert, "women_safety_sos");
+        startContactDeliveries(alert, user);
         cprIncident = storage.createSafetyIncident({ citizenName: user.name, citizenId: user.id, district: user.district, location: alert.location, lat: g.lat, lng: g.lng });
         alert.cprRequestId = cprIncident.id;
       }
@@ -123,7 +127,7 @@ export function registerSosRoutes(app: Express) {
         location: body.location || loc(g), geo: g, ward: user.district, wardNumber: 1, district: user.district,
         status: "active", triggeredBy: user.name, triggeredByPhone: user.phone, isWomenSafety: false,
       }, user.id);
-      if (!deduplicated) alertStaff(alert, "forest_fire_sos");
+      if (!deduplicated) { alertStaff(alert, "forest_fire_sos"); startContactDeliveries(alert, user); }
       res.status(deduplicated ? 200 : 201);
       return { alert, deduplicated };
     },

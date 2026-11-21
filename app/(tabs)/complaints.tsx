@@ -182,7 +182,7 @@ type SortKey = "latest" | "priority" | "upvotes" | "ai_score";
 export default function ComplaintsScreen() {
   const insets = useSafeAreaInsets();
   const { complaints, submitComplaint, upvoteComplaint, resolveComplaint, rejectComplaint, cancelComplaint, isLoading, refresh } = useApp();
-  const { user, token } = useAuth();
+  const { user, token, refreshSession } = useAuth();
   const { t } = useI18n();
 
   const [search, setSearch] = useState("");
@@ -529,7 +529,7 @@ export default function ComplaintsScreen() {
       </View>
 
       {/* m14 / P5.1: reports waiting in the offline outbox */}
-      <OfflineBanner token={token} onSent={refresh} />
+      <OfflineBanner token={token} userId={user?.id ?? null} refresh={refreshSession} onSent={refresh} />
       {/* List */}
       <FlatList
         data={filtered}

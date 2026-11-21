@@ -1,3 +1,4 @@
+import { requireConsent } from "./privacy";
 import { decodeBase64Payload, sniff } from "../lib/media";
 import { maskPII } from "../ai/pii";
 import { stateLabel } from "../data/reference";
@@ -51,7 +52,8 @@ export function registerAiRoutes(app: Express) {
     middleware: [aiLimiter],
     params: none, query: none,
     body: z.object({ audioBase64: z.string().min(16).max(8 * 1024 * 1024), lang: z.enum(["hi-IN", "en-IN"]).default("hi-IN") }),
-    handler: async ({ body }) => {
+    handler: async ({ body, user }) => {
+      requireConsent(user); // review P5 low: no voice goes to the speech provider before the notice is accepted
       const buf = decodeBase64Payload(body.audioBase64, 6 * 1024 * 1024);
       const kind = sniff(buf);
       if (!kind || kind.kind !== "audio") throw new AppError(422, "UNSUPPORTED_MEDIA", "Only M4A, AAC, WebM, Ogg or WAV audio is accepted");

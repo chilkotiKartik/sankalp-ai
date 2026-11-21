@@ -1,4 +1,4 @@
-import { randomUUID, createHmac, timingSafeEqual } from "node:crypto";
+import { randomUUID, createHmac, timingSafeEqual, randomBytes, createCipheriv, createDecipheriv, hkdfSync } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { config } from "../config";
@@ -61,7 +61,7 @@ export const localDriver: MediaDriver = {
     const d = dirs();
     const dir = area === "public" ? d.publicDir : area === "private" ? d.privateDir : d.originalsDir;
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, fileName), data, { mode: 0o600 });
+    fs.writeFileSync(path.join(dir, fileName), area === "public" ? data : sealEvidence(data), { mode: 0o600 });
   },
   path(area, fileName) {
     if (!/^[0-9a-f-]{36}\.[a-z0-9]{2,4}$/.test(fileName)) return null;
@@ -74,6 +74,45 @@ export const localDriver: MediaDriver = {
     if (p) fs.rmSync(p, { force: true });
   },
 };
+
+// ── P6.2 evidence vault: AES-256-GCM at rest for "private" (SOS audio/evidence) and "originals" (EXIF/GPS) ──
+const VAULT_MAGIC = Buffer.from("SKV1");
+let warnedDerived = false;
+function vaultKey(): Buffer {
+  const k = config().EVIDENCE_ENC_KEY;
+  if (k) {
+    const b = /^[0-9a-f]{64}$/i.test(k) ? Buffer.from(k, "hex") : Buffer.from(k, "base64");
+    if (b.length !== 32) throw new Error("EVIDENCE_ENC_KEY must be 32 bytes (64 hex characters or base64)");
+    return b;
+  }
+  if (!warnedDerived && config().NODE_ENV === "production") { warnedDerived = true; console.warn("EVIDENCE_ENC_KEY not set — evidence key derived from JWT_SECRET; set it before rotating JWT_SECRET"); }
+  return Buffer.from(hkdfSync("sha256", config().JWT_SECRET, "sankalp-evidence-vault", "aes-256-gcm", 32));
+}
+
+export function sealEvidence(plain: Buffer): Buffer {
+  const iv = randomBytes(12);
+  const c = createCipheriv("aes-256-gcm", vaultKey(), iv);
+  const body = Buffer.concat([c.update(plain), c.final()]);
+  return Buffer.concat([VAULT_MAGIC, iv, c.getAuthTag(), body]);
+}
+
+/** Decrypts vault files; files written before P6.2 (no header) are returned as they are. Throws on tampering. */
+export function openEvidence(data: Buffer): Buffer {
+  if (data.length < 32 || !data.subarray(0, 4).equals(VAULT_MAGIC)) return data;
+  const d = createDecipheriv("aes-256-gcm", vaultKey(), data.subarray(4, 16));
+  d.setAuthTag(data.subarray(16, 32));
+  return Buffer.concat([d.update(data.subarray(32)), d.final()]);
+}
+
+const sealed = (area: "public" | "private" | "originals") => area !== "public";
+
+/** Read a stored file (decrypting vault areas). null if missing. */
+export function readStored(area: "public" | "private" | "originals", fileName: string): Buffer | null {
+  const p = mediaDriver().path(area, fileName);
+  if (!p) return null;
+  const raw = fs.readFileSync(p);
+  return sealed(area) ? openEvidence(raw) : raw;
+}
 
 export function mediaDriver(): MediaDriver {
   const d = process.env.MEDIA_DRIVER || "local";

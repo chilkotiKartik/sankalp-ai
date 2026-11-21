@@ -4,9 +4,8 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage, type AppUser } from "../storage";
 import { route, none, emergencyDistrict, type Actor } from "../lib/route";
-import * as fs from "node:fs";
 import { fingerprintLater } from "../verification/fingerprint";
-import { storeMedia, type StoredFile, privatePath, publicPathExists, originalPath, signMediaUrl, verifyMediaSignature, SIGNED_URL_TTL_S } from "../lib/media";
+import { storeMedia, type StoredFile, readStored, publicPathExists, originalPath, signMediaUrl, verifyMediaSignature, SIGNED_URL_TTL_S } from "../lib/media";
 import { currentTenantId, hasTenant, runInTenant } from "../tenancy";
 import { forbidden, notFound, unprocessable, unauthorized } from "../lib/errors";
 import { uploadLimiter } from "./limits";
@@ -37,10 +36,9 @@ export function resolveImage(input: string | undefined, owner: string, opts: { p
 /** Register an uploaded image and fingerprint it off-thread (P3.2/P3.3, review P3-2). */
 function addImage(f: StoredFile, owner: string) {
   const rec = storage.addMedia({ ...f, ownerId: owner });
-  const p = originalPath(f.fileName);
-  if (!p) return;
-  let buf: Buffer;
-  try { buf = fs.readFileSync(p); } catch { return; }
+  let buf: Buffer | null;
+  try { buf = readStored("originals", f.fileName); } catch { return; }
+  if (!buf) return;
   fingerprintLater(rec, buf, () => storage.touch());
 }
 
@@ -135,12 +133,12 @@ export function registerMediaRoutes(app: Express) {
         if (r) storage.addAuditLog("signed_url_used", "signed-link", "signed-link", `Signed link used for ${r.id}`, r.sosId);
         return r;
       });
-      const p = query.v === "original" ? originalPath(params.file) : privatePath(params.file);
+      const p = query.v === "original" ? readStored("originals", params.file) : readStored("private", params.file);
       if (!rec || !p) throw notFound("Media not found");
       res.setHeader("Content-Type", rec.mime);
       res.setHeader("Cache-Control", "private, no-store");
       res.setHeader("X-Content-Type-Options", "nosniff");
-      res.sendFile(p);
+      res.send(p);
       return undefined;
     },
   });
@@ -152,14 +150,15 @@ export function registerMediaRoutes(app: Express) {
     handler: ({ params, actor, res }) => {
       if (!actor.user && !actor.deptId) throw unauthorized();
       const rec = storage.getMediaByFile(params.file);
-      const p = privatePath(params.file);
-      if (!rec || !p) throw notFound("Evidence not found");
+      if (!rec) throw notFound("Evidence not found");
       if (!canAccessEvidence(actor, rec)) throw forbidden("You are not allowed to access this evidence");
+      const p = readStored("private", params.file);
+      if (!p) throw notFound("Evidence not found");
       storage.addAuditLog("evidence_viewed", actor.user?.id ?? actor.deptId!, actor.user ? actor.user.role : `dept:${actor.deptId}`, `Viewed evidence ${rec.id}`, rec.sosId);
       res.setHeader("Content-Type", rec.mime);
       res.setHeader("Cache-Control", "private, no-store");
       res.setHeader("Content-Disposition", `attachment; filename="${rec.fileName}"`);
-      res.sendFile(p);
+      res.send(p);
       return undefined;
     },
   });

@@ -26,10 +26,23 @@ function noticeUrl() {
   return `${config().PUBLIC_BASE_URL || ""}/web/privacy`;
 }
 
-/** Find (or create, for a first-time sender) the citizen account for a phone number in this tenant. */
+/**
+ * The account for a phone number in this tenant (review P5-6): any existing account is reused — never a second one
+ * for the same number. Staff accounts cannot file by SMS (they use the app). A new citizen account is created only
+ * when the person actually files (SANKALP … / IVR), never for a stray message.
+ */
+export function userForPhone(phone: string): AppUser | undefined {
+  return storage.s.users.find(u => u.phone === phone);
+}
+
+export class StaffChannelError extends Error {}
+
 export async function citizenForPhone(phone: string): Promise<AppUser> {
-  const existing = storage.s.users.find(u => u.phone === phone && u.role === "citizen");
-  if (existing) return existing;
+  const existing = userForPhone(phone);
+  if (existing) {
+    if (existing.role !== "citizen") throw new StaffChannelError("staff accounts use the app");
+    return existing;
+  }
   return storage.createUser({
     name: "Citizen", phone, pin: await bcrypt.hash(randomBytes(16).toString("hex"), 10), role: "citizen",
     district: defaultDistrict(), points: 0, badges: [], level: 1,
@@ -44,17 +57,24 @@ export async function handleCommand(phone: string, text: string, channel: "sms" 
 
   if (cmd === "STATUS") {
     const ticket = (rest[0] ?? "").toUpperCase();
-    const user = storage.s.users.find(u => u.phone === phone);
-    const c = user && storage.getComplaints().find(x => x.userId === user.id && x.ticketId.toUpperCase() === ticket);
+    const ids = new Set(storage.s.users.filter(u => u.phone === phone).map(u => u.id));
+    const c = storage.getComplaints().find(x => !!x.userId && ids.has(x.userId) && x.ticketId.toUpperCase() === ticket);
     if (!c) return { template: "channel_help", vars: [] };
     return { template: "status_reply", vars: [c.ticketId, STATE_WORDS[legacyStatus(c.state)] ?? c.state.toLowerCase()] };
   }
 
-  const user = await citizenForPhone(phone);
-  if (cmd === "AGREE" || cmd === "HAAN" || cmd === "सहमत") {
+  const isFile = cmd === "SANKALP" || cmd === "संकल्प";
+  const isAgree = cmd === "AGREE" || cmd === "HAAN" || cmd === "सहमत";
+  if (!isFile && !isAgree) return { template: "channel_help", vars: [] };
+  const existing = userForPhone(phone);
+  if (existing && existing.role !== "citizen") return { template: "channel_help", vars: [] };
+  if (isAgree && !existing) return { template: "channel_help", vars: [] }; // nothing pending for an unknown number
+  const user = existing ?? await citizenForPhone(phone);
+  if (isAgree) {
     if (!storage.hasConsent(user.id)) storage.recordConsent(user.id, tenant().privacy.noticeVersion, channel === "sms" ? "sms" : "whatsapp");
-    const pendingText = user.pendingChannelText;
-    user.pendingChannelText = undefined;
+    // Pending text expires after 24 h (review P5-6 low).
+    const pendingText = user.pendingChannelAt && Date.now() - new Date(user.pendingChannelAt).getTime() < 86400000 ? user.pendingChannelText : undefined;
+    user.pendingChannelText = undefined; user.pendingChannelAt = undefined;
     storage.touch();
     if (pendingText) return fileFromText(user, pendingText, channel);
     return { template: "channel_help", vars: [] };
@@ -66,6 +86,7 @@ export async function handleCommand(phone: string, text: string, channel: "sms" 
     // DPDP: consent first (D-031). The text is kept until the citizen replies AGREE, then filed.
     if (!storage.hasConsent(user.id)) {
       user.pendingChannelText = body.slice(0, 1000);
+      user.pendingChannelAt = new Date().toISOString();
       storage.touch();
       return { template: "consent_request", vars: [noticeUrl()] };
     }

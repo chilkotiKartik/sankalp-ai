@@ -5,15 +5,15 @@ import { storage } from "../storage";
 import { route, none } from "../lib/route";
 import { forbidden, AppError } from "../lib/errors";
 import { currentTenantId, tenant } from "../tenancy";
-import { handleCommand, citizenForPhone } from "../channels/commands";
+import { handleCommand, citizenForPhone, StaffChannelError } from "../channels/commands";
 import { sendSms } from "../notify/sms";
 import { sendWhatsApp } from "../notify/whatsapp";
 import { stt } from "../ai/gateway";
 import { storeMedia } from "../lib/media";
 import { classifyText } from "../ai/rules";
 import { fileComplaintFor } from "./complaints";
-import { CATEGORIES } from "./common";
-import { writeLimiter } from "./limits";
+import { CATEGORIES, normalizeIndianMobile } from "./common";
+import { channelLimiter } from "./limits";
 
 /**
  * P5.2/P5.3 basic-phone and WhatsApp channels. Webhooks are authenticated with a per-tenant shared secret
@@ -26,18 +26,21 @@ export function checkSecret(req: Request, name: string) {
   if (got.length !== want.length || !timingSafeEqual(got, want)) throw forbidden("Bad webhook secret");
 }
 
-const phone10 = (from: string) => from.replace(/\D/g, "").slice(-10);
-const valid = (p: string) => /^[6-9]\d{9}$/.test(p);
+/** Review P5-1: only Indian numbers (+91 / 91 / 0 / bare 10 digits). A foreign number is never cut down to 10 digits. */
+export const senderPhone = (from: string): string | null => {
+  const n = normalizeIndianMobile(from.replace(/[^\d+]/g, ""));
+  return typeof n === "string" && /^[6-9]\d{9}$/.test(n) ? n : null;
+};
 
 export function registerChannelRoutes(app: Express) {
   route(app, {
     method: "post", path: "/api/channels/whatsapp/inbound", auth: "public", permission: "channels.whatsapp_inbound",
-    middleware: [writeLimiter],
+    middleware: [channelLimiter],
     params: none, query: none, body: z.object({ from: z.string().max(20), text: z.string().max(1000) }).passthrough(),
     handler: async ({ req, body }) => {
       checkSecret(req, "WHATSAPP_WEBHOOK_SECRET");
-      const phone = phone10(body.from);
-      if (!valid(phone)) return { accepted: false };
+      const phone = senderPhone(body.from);
+      if (!phone) return { accepted: false, reason: "not an Indian mobile number" };
       const reply = await handleCommand(phone, body.text, "whatsapp");
       await sendWhatsApp(phone, reply.template, reply.vars);
       return { accepted: true, reply: reply.template };
@@ -47,7 +50,7 @@ export function registerChannelRoutes(app: Express) {
   // Missed call → the IVR calls back, plays the notice ("press 1 to agree"), records the complaint and posts it here.
   route(app, {
     method: "post", path: "/api/channels/ivr/recording", auth: "public", permission: "channels.ivr_recording",
-    middleware: [writeLimiter],
+    middleware: [channelLimiter],
     params: none, query: none,
     body: z.object({
       from: z.string().max(20), audioBase64: z.string().min(16).max(12 * 1024 * 1024),
@@ -55,10 +58,14 @@ export function registerChannelRoutes(app: Express) {
     }),
     handler: async ({ req, body, res }) => {
       checkSecret(req, "IVR_WEBHOOK_SECRET");
-      const phone = phone10(body.from);
-      if (!valid(phone)) throw new AppError(400, "INVALID_PHONE", "Invalid caller number");
+      const phone = senderPhone(body.from);
+      if (!phone) throw new AppError(400, "INVALID_PHONE", "Invalid caller number");
       if (!body.consent) throw new AppError(428, "CONSENT_REQUIRED", "The caller did not accept the privacy notice");
-      const user = await citizenForPhone(phone);
+      let user;
+      try { user = await citizenForPhone(phone); } catch (err) {
+        if (err instanceof StaffChannelError) throw new AppError(409, "STAFF_NUMBER", "This number belongs to a staff account; use the app");
+        throw err;
+      }
       if (!storage.hasConsent(user.id)) storage.recordConsent(user.id, tenant().privacy.noticeVersion, "ivr");
       const audio = storeMedia(body.audioBase64, "audio");
       storage.addMedia({ ...audio, ownerId: user.id });

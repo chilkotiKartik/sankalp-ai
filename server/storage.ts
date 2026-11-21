@@ -394,7 +394,7 @@ export class AppStorage {
   /** SOS / police cases must be retained (legal hold) — erasure then needs a state-level decision. */
   legalHoldReason(userId: string): string | null {
     const sos = this.s.sosAlerts.filter(a => a.userId === userId);
-    if (sos.some(a => a.status !== "resolved")) return "An SOS case is still open";
+    if (sos.some(a => a.status !== "resolved" && a.status !== "cancelled")) return "An SOS case is still open";
     if (sos.some(a => a.legalHold)) return "SOS evidence is under legal hold";
     if (sos.length) return "SOS records are retained for police investigation for the retention period";
     return null;
@@ -479,7 +479,7 @@ export class AppStorage {
         if (f) mediaFiles.add(f);
       }
     }
-    const sosExpired = this.s.sosAlerts.filter(a => !a.legalHold && a.status === "resolved"
+    const sosExpired = this.s.sosAlerts.filter(a => !a.legalHold && (a.status === "resolved" || a.status === "cancelled")
       && at - new Date(a.resolvedAt ?? a.triggeredAt).getTime() > r.sosEvidenceDays * day);
     const sosIds = new Set(sosExpired.map(a => a.id));
     const sosFiles = this.s.media.filter(x => x.sosId && sosIds.has(x.sosId)).map(m => m.fileName);
@@ -783,7 +783,7 @@ export class AppStorage {
   /** Rule 9: never blocked — duplicates within 2 min (same user + category, still active) return the existing alert. */
   createSos(data: Omit<SOSAlert, "id" | "triggeredAt" | "userId">, userId: string): { alert: SOSAlert; deduplicated: boolean } {
     const t = Date.now();
-    const dup = this.s.sosAlerts.find(a => a.userId === userId && a.category === data.category && a.status !== "resolved"
+    const dup = this.s.sosAlerts.find(a => a.userId === userId && a.category === data.category && a.status !== "resolved" && a.status !== "cancelled"
       && t - new Date(a.triggeredAt).getTime() < SOS_DEDUP_WINDOW_MS);
     if (dup) { dup.liveGeo = data.geo; dup.liveUpdatedAt = now(); this.touch(); return { alert: dup, deduplicated: true }; }
     const alert: SOSAlert = { ...demoFlag(), ...data, id: genId(), userId, triggeredAt: now() };

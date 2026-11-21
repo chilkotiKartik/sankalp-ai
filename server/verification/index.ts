@@ -1,9 +1,8 @@
-import * as fs from "node:fs";
 import { z } from "zod";
 import type { Complaint, ProofVerification, VerificationSignal } from "../types";
 import { storage } from "../storage";
 import { tenant } from "../tenancy";
-import { originalPath, mediaDriver } from "../lib/media";
+import { readStored } from "../lib/media";
 import { vision, extractJson } from "../ai/gateway";
 import { readExif, haversineM, hamming } from "./image";
 import { evaluate } from "./evaluate";
@@ -21,8 +20,7 @@ const fileOf = (url?: string) => url?.match(/\/uploads\/([0-9a-f-]{36}\.\w+)$/)?
 
 function originalBytes(file?: string): Buffer | null {
   if (!file) return null;
-  const p = originalPath(file) ?? mediaDriver().path("public", file);
-  try { return p ? fs.readFileSync(p) : null; } catch { return null; }
+  try { return readStored("originals", file) ?? readStored("public", file); } catch { return null; }
 }
 
 /** EXIF times have no zone; phones in India write IST. */

@@ -34,7 +34,7 @@ export const PERMISSIONS: Record<string, Principal[]> = {
   "complaints.events": [...USERS, ...DEPT],
   "complaints.admin_list": ADMINS, "complaints.review": ADMINS, "dept.review": DEPT,
   "agents.unmerge": [...ADMINS, ...DEPT], "agents.sla_snooze": [...ADMINS, "dept_admin"], "agents.suggest_assignee": [...ADMINS, ...DEPT],
-  "agents.briefing": ADMINS, "channels.whatsapp_inbound": PUBLIC, "channels.ivr_recording": PUBLIC, "agents.trends": ADMINS,
+  "agents.briefing": ADMINS, "safety.contacts": USERS, "sos.cancel": USERS, "safety.delivery_receipt": PUBLIC, "safety.shared_location": PUBLIC, "channels.whatsapp_inbound": PUBLIC, "channels.ivr_recording": PUBLIC, "agents.trends": ADMINS,
   "verification.ivr_callback": PUBLIC, "verification.sms_inbound": PUBLIC, "public.resolution_rate": PUBLIC,
   "verification.neighbour_answer": CITIZENS, "verification.neighbour_optin": CITIZENS,
   "complaints.officer_update": [...ADMINS, ...DEPT], "complaints.assign_worker": DEPT,

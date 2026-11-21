@@ -12,7 +12,7 @@ import { logger } from "../lib/logger";
  * Messages use DLT templates with variables only — never names, addresses or locations (rule 2).
  */
 export type SmsTemplate = "otp" | "status_update" | "sos_fallback" | "checkin_alert" | "verify_request" | "ops_alert"
-  | "complaint_received" | "consent_request" | "status_reply" | "channel_help" | "voice_received";
+  | "complaint_received" | "consent_request" | "status_reply" | "channel_help" | "voice_received" | "sos_contact" | "sos_cancelled";
 
 export const TEMPLATES: Record<SmsTemplate, string> = {
   otp: "Your SANKALP verification code is {#var#}. Valid 5 minutes. Do not share it.",
@@ -27,9 +27,12 @@ export const TEMPLATES: Record<SmsTemplate, string> = {
   status_reply: "SANKALP: Complaint #{#var#} is {#var#}.",
   channel_help: "SANKALP: Send SANKALP <problem> to file, STATUS <ticket> to track. Emergency: call 112.",
   voice_received: "SANKALP: Your voice complaint #{#var#} is registered. An officer will listen to it.",
+  // P6.1: the location is behind a signed link that expires — never in the SMS text itself.
+  sos_contact: "SANKALP SOS: someone who listed you as a trusted contact needs help. Live location: {#var#} . Call 112.",
+  sos_cancelled: "SANKALP: the SOS alert you received was cancelled by the sender.",
 };
 
-export interface SmsResult { ok: boolean; driver: string; error?: string }
+export interface SmsResult { ok: boolean; driver: string; error?: string; messageId?: string }
 
 export async function sendSms(to: string, template: SmsTemplate, variables: string[]): Promise<SmsResult> {
   const c = config();
@@ -52,7 +55,9 @@ export async function sendSms(to: string, template: SmsTemplate, variables: stri
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.SMS_API_KEY}` },
         body: JSON.stringify({ to: `+91${to}`, templateId: template, variables, sender: process.env.SMS_SENDER_ID, entityId: process.env.DLT_ENTITY_ID }),
       });
-      return res.ok ? { ok: true, driver } : { ok: false, driver, error: `HTTP ${res.status}` };
+      if (!res.ok) return { ok: false, driver, error: `HTTP ${res.status}` };
+      const j = (await res.json().catch(() => ({}))) as { id?: unknown; messageId?: unknown };
+      return { ok: true, driver, messageId: String(j.messageId ?? j.id ?? "") || undefined };
     } catch (err) {
       return { ok: false, driver, error: (err as Error).message };
     }

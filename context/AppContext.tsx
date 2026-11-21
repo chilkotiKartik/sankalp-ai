@@ -257,7 +257,9 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const { token, logout, refreshSession } = useAuth();
+  const { token, logout, refreshSession, user: authUser } = useAuth();
+  const uidRef = useRef<string | null>(null);
+  uidRef.current = authUser?.id ?? null;
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [sosAlerts, setSosAlerts] = useState<SOSAlert[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
@@ -464,8 +466,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setComplaints(prev => [result, ...prev]);
       return result;
     } catch (err) {
-      if (!Outbox.isNetworkError(err)) throw err;
-      await Outbox.enqueue({ id: clientRequestId, path: "/api/complaints", method: "POST", body: data as Record<string, unknown>, label: String(data.description ?? "").slice(0, 60) });
+      if (!Outbox.isNetworkError(err) || !uidRef.current) throw err;
+      await Outbox.enqueue(uidRef.current, { id: clientRequestId, path: "/api/complaints", method: "POST", body: data as Record<string, unknown>, label: String(data.description ?? "").slice(0, 60) });
       const placeholder = { ...data, id: `local-${clientRequestId}`, ticketId: "SAVED", status: "pending", queued: true, submittedAt: new Date().toISOString(), upvotes: 0, upvotedBy: [] } as unknown as Complaint;
       setComplaints(prev => [placeholder, ...prev]);
       return placeholder;
@@ -474,19 +476,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // P5.1 outbox flush: on sign-in/start, every 30 s, and whenever the app comes back to the foreground.
   useEffect(() => {
-    if (!token) return;
-    const send = async (path: string, method: string, body: unknown) => {
-      const r = await fetch(`${getApiUrl()}${path.slice(1)}`, { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenRef.current ?? ""}` }, body: JSON.stringify(body) });
-      return { ok: r.ok, status: r.status, json: () => r.json() };
-    };
-    const run = () => { void Outbox.flush(send, (item, result) => {
+    const uid = authUser?.id;
+    if (!token || !uid) return;
+    // Only this user's queue is ever sent (review P5-3); a 401 triggers one token refresh (review P5-4).
+    const send = Outbox.makeSender(getApiUrl(), () => tokenRef.current, () => refreshRef.current());
+    const run = () => { void Outbox.flush(uid, send, (item, result) => {
       if (result && typeof result === "object") setComplaints(prev => prev.map(c => (c.id === `local-${item.id}` ? (result as Complaint) : c)));
     }); };
     run();
     const t = setInterval(run, 30_000);
     const sub = AppState.addEventListener("change", st => { if (st === "active") run(); });
     return () => { clearInterval(t); sub.remove(); };
-  }, [token]);
+  }, [token, authUser?.id]);
 
   const upvoteComplaint = useCallback(async (id: string) => {
     const apiCall = makeApiCall(tokenRef.current);

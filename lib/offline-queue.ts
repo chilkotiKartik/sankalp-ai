@@ -2,12 +2,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
  * P5.1 offline-first outbox. Writes that fail for lack of network are saved on the device and sent later.
- *  - Conflict-safe: every item carries a client-generated id (sent as `clientRequestId`), so a retry after a
- *    lost response never creates a second complaint (the server returns the first one).
- *  - Flushed on app start, when the app returns to the foreground, every 30 s while open, and after any success.
- *  - 4xx answers (except 408/429) are final: the item moves to `failed` with the server's message, so the user can
- *    see and fix it; network errors and 5xx keep the item with exponential backoff (max 30 min).
- * Never queued: SOS (sent immediately with its own SMS fallback) and anything needing a fresh answer.
+ *  - Per user (review P5-3): every queue is keyed by the signed-in user's id. After logout another person on the same
+ *    phone neither sees nor sends someone else's reports; they are sent when that user signs in again.
+ *  - One storage key per item (review P5-5): a single large photo cannot break the whole queue (Android limits
+ *    each AsyncStorage row to ≈2 MB), and items larger than MAX_ITEM_BYTES are refused up front, never half-saved.
+ *  - Conflict-safe: every item carries a client id (sent as `clientRequestId`); the server returns the first
+ *    complaint for a repeated id, so a retry after a lost response never duplicates.
+ *  - Final failures are only real validation errors (400/404/409/413/422). 401/403/408/428/429/5xx and network
+ *    errors keep the item for later (review P5-4); failed items can be moved back with `retryFailed`.
+ * Never queued: SOS (sent immediately with its own SMS fallback).
  */
 export interface OutboxItem {
   id: string;
@@ -21,9 +24,13 @@ export interface OutboxItem {
   error?: string;
 }
 
-const KEY = "sankalp_outbox_v1";
-const FAILED_KEY = "sankalp_outbox_failed_v1";
+const PREFIX = "sankalp_outbox_v2";
 const MAX_ITEMS = 50;
+export const MAX_ITEM_BYTES = 1_500_000;
+const FINAL = new Set([400, 404, 409, 413, 422]);
+
+const indexKey = (uid: string, list: "pending" | "failed") => `${PREFIX}:${uid}:${list}`;
+const itemKey = (uid: string, id: string) => `${PREFIX}:${uid}:item:${id}`;
 
 export function newClientId(): string {
   const bytes = new Uint8Array(16);
@@ -33,24 +40,54 @@ export function newClientId(): string {
   return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function read(key: string): Promise<OutboxItem[]> {
-  try { return JSON.parse((await AsyncStorage.getItem(key)) || "[]") as OutboxItem[]; } catch { return []; }
+/** Index read: a corrupt index is an error, never silently "empty" (which would overwrite the queue). */
+async function readIndex(uid: string, list: "pending" | "failed"): Promise<string[]> {
+  const raw = await AsyncStorage.getItem(indexKey(uid, list));
+  if (!raw) return [];
+  const v = JSON.parse(raw) as unknown;
+  if (!Array.isArray(v)) throw new Error("outbox index is corrupt");
+  return v.map(String);
 }
-async function write(key: string, items: OutboxItem[]) {
-  await AsyncStorage.setItem(key, JSON.stringify(items));
+const writeIndex = (uid: string, list: "pending" | "failed", ids: string[]) => AsyncStorage.setItem(indexKey(uid, list), JSON.stringify(ids));
+
+async function readItem(uid: string, id: string): Promise<OutboxItem | null> {
+  try { const raw = await AsyncStorage.getItem(itemKey(uid, id)); return raw ? (JSON.parse(raw) as OutboxItem) : null; } catch { return null; }
+}
+const writeItem = (uid: string, it: OutboxItem) => AsyncStorage.setItem(itemKey(uid, it.id), JSON.stringify(it));
+
+async function list(uid: string, which: "pending" | "failed"): Promise<OutboxItem[]> {
+  const ids = await readIndex(uid, which).catch(() => [] as string[]);
+  const items = await Promise.all(ids.map(id => readItem(uid, id)));
+  return items.filter((x): x is OutboxItem => !!x);
 }
 
-export async function enqueue(item: Omit<OutboxItem, "createdAt" | "attempts" | "nextAttemptAt">): Promise<OutboxItem> {
-  const items = await read(KEY);
-  if (items.length >= MAX_ITEMS) throw new Error("Too many reports are waiting to be sent. Connect to the internet and try again.");
+export async function enqueue(uid: string, item: Omit<OutboxItem, "createdAt" | "attempts" | "nextAttemptAt">): Promise<OutboxItem> {
+  const ids = await readIndex(uid, "pending"); // throws on a corrupt index → the caller shows an error instead of losing data
+  if (ids.length >= MAX_ITEMS) throw new Error("Too many reports are waiting to be sent. Connect to the internet and try again.");
   const full: OutboxItem = { ...item, createdAt: Date.now(), attempts: 0, nextAttemptAt: Date.now() };
-  await write(KEY, [...items.filter(i => i.id !== item.id), full]);
+  const size = JSON.stringify(full).length;
+  if (size > MAX_ITEM_BYTES) throw new Error("This report is too large to save offline (photo). Remove the photo or try again with a connection.");
+  await writeItem(uid, full);
+  await writeIndex(uid, "pending", [...ids.filter(i => i !== item.id), item.id]);
   return full;
 }
 
-export const pending = () => read(KEY);
-export const failed = () => read(FAILED_KEY);
-export async function dismissFailed(id: string) { await write(FAILED_KEY, (await read(FAILED_KEY)).filter(i => i.id !== id)); }
+export const pending = (uid: string) => list(uid, "pending");
+export const failed = (uid: string) => list(uid, "failed");
+
+export async function dismissFailed(uid: string, id: string) {
+  await writeIndex(uid, "failed", (await readIndex(uid, "failed").catch(() => [])).filter(i => i !== id));
+  await AsyncStorage.removeItem(itemKey(uid, id));
+}
+
+/** Move a failed item back to the queue (after the user fixed the cause, e.g. accepted the privacy notice). */
+export async function retryFailed(uid: string, id: string) {
+  const it = await readItem(uid, id);
+  if (!it) return;
+  await writeItem(uid, { ...it, error: undefined, attempts: 0, nextAttemptAt: Date.now() });
+  await writeIndex(uid, "failed", (await readIndex(uid, "failed").catch(() => [])).filter(i => i !== id));
+  await writeIndex(uid, "pending", [...(await readIndex(uid, "pending")).filter(i => i !== id), id]);
+}
 
 /** A fetch error with no HTTP status is a network problem → queue. */
 export const isNetworkError = (err: unknown) => {
@@ -60,35 +97,53 @@ export const isNetworkError = (err: unknown) => {
 
 type Sender = (path: string, method: string, body: unknown) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
 
-let flushing: Promise<{ sent: number; failed: number }> | null = null;
+const flushing = new Map<string, Promise<{ sent: number; failed: number }>>();
 
-export function flush(send: Sender, onSent?: (item: OutboxItem, result: unknown) => void, now = false): Promise<{ sent: number; failed: number }> {
-  if (flushing) return flushing;
-  flushing = (async () => {
+export function flush(uid: string, send: Sender, onSent?: (item: OutboxItem, result: unknown) => void, force = false): Promise<{ sent: number; failed: number }> {
+  const running = flushing.get(uid);
+  if (running) return running;
+  const p = (async () => {
     let sent = 0, bad = 0;
     const startedAt = Date.now();
-    const force = now;
-    for (const item of await read(KEY)) {
+    for (const item of await list(uid, "pending")) {
       if (!force && item.nextAttemptAt > startedAt) continue;
-      let keep = true;
+      let outcome: "sent" | "final" | "keep" = "keep";
+      let error: string | undefined;
       try {
         const res = await send(item.path, item.method, { ...item.body, clientRequestId: item.id });
-        if (res.ok) { keep = false; sent++; onSent?.(item, await res.json().catch(() => null)); }
-        else if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
-          keep = false; bad++;
-          const msg = ((await res.json().catch(() => ({}))) as { message?: string }).message ?? `HTTP ${res.status}`;
-          await write(FAILED_KEY, [...(await read(FAILED_KEY)), { ...item, error: msg }].slice(-MAX_ITEMS));
+        if (res.ok) { outcome = "sent"; onSent?.(item, await res.json().catch(() => null)); }
+        else if (FINAL.has(res.status)) {
+          outcome = "final";
+          error = ((await res.json().catch(() => ({}))) as { message?: string }).message ?? `HTTP ${res.status}`;
         }
       } catch { /* still offline */ }
-      const items = await read(KEY);
-      if (!keep) await write(KEY, items.filter(i => i.id !== item.id));
-      else {
+      const ids = await readIndex(uid, "pending");
+      if (outcome === "sent") {
+        sent++;
+        await writeIndex(uid, "pending", ids.filter(i => i !== item.id));
+        await AsyncStorage.removeItem(itemKey(uid, item.id));
+      } else if (outcome === "final") {
+        bad++;
+        await writeItem(uid, { ...item, error });
+        await writeIndex(uid, "pending", ids.filter(i => i !== item.id));
+        await writeIndex(uid, "failed", [...(await readIndex(uid, "failed").catch(() => [])).filter(i => i !== item.id), item.id].slice(-MAX_ITEMS));
+      } else {
         const attempts = item.attempts + 1;
-        const delay = Math.min(30 * 60_000, 15_000 * 2 ** Math.min(attempts, 7));
-        await write(KEY, items.map(i => (i.id === item.id ? { ...i, attempts, nextAttemptAt: Date.now() + delay } : i)));
+        await writeItem(uid, { ...item, attempts, nextAttemptAt: Date.now() + Math.min(30 * 60_000, 15_000 * 2 ** Math.min(attempts, 7)) });
       }
     }
     return { sent, failed: bad };
-  })().finally(() => { flushing = null; });
-  return flushing;
+  })().finally(() => flushing.delete(uid));
+  flushing.set(uid, p);
+  return p;
+}
+
+/** Sender with one token refresh on 401 (access tokens live 15 min; the device may have been offline longer). */
+export function makeSender(baseUrl: string, getToken: () => string | null, refresh: () => Promise<string | null>): Sender {
+  return async (path, method, body) => {
+    const go = (tok: string | null) => fetch(`${baseUrl}${path.slice(1)}`, { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok ?? ""}` }, body: JSON.stringify(body) });
+    let r = await go(getToken());
+    if (r.status === 401) { const fresh = await refresh().catch(() => null); if (fresh) r = await go(fresh); }
+    return { ok: r.ok, status: r.status, json: () => r.json() };
+  };
 }

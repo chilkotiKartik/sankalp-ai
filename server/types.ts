@@ -26,8 +26,11 @@ export interface AppUser {
   badges: string[];
   level: number;
   createdAt: string;
+  /** P6.1: up to 5 people alerted by SMS when this user triggers an SOS. */
+  trustedContacts?: Array<{ id: string; label: string; phone: string; addedAt: string }>;
   /** P5.2: complaint text received by SMS/WhatsApp before the sender accepted the privacy notice. */
   pendingChannelText?: string;
+  pendingChannelAt?: string;
   /** P3.6: may be asked whether nearby repairs were really done. Off unless the user opts in. */
   neighbourOptIn?: boolean;
 }
@@ -139,8 +142,13 @@ export interface SOSAlert {
   district: string;
   triggeredAt: string;
   resolvedAt?: string;
-  status: "active" | "responding" | "resolved";
+  status: "active" | "responding" | "resolved" | "cancelled";
   respondingWorker?: string;
+  /** P6.1: cancelled by the sender with their PIN (kept, audited — never deleted). */
+  cancelledAt?: string;
+  cancelPinAttempts?: number;
+  /** P6.1: per trusted-contact SMS delivery with retry/backoff and provider receipts. */
+  contactDeliveries?: Array<{ contactId: string; phoneMasked: string; attempts: number; status: "pending" | "sent" | "delivered" | "failed"; lastAttemptAt?: string; nextAttemptAt: number; messageId?: string; error?: string }>;
   triggeredBy?: string;
   triggeredByPhone?: string;
   nearestPoliceStation?: string;

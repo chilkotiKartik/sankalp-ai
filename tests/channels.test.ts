@@ -65,3 +65,32 @@ describe("P5.2 missed call → IVR → STT → ticket", () => {
     expect(storage.s.media.some(m => m.complaintId === c.id && m.kind === "audio")).toBe(true);
   });
 });
+
+describe("Phase 5 review regressions", () => {
+  it("P5-1: a foreign number is never truncated into an Indian one", async () => {
+    const victim = await (await import("./helpers")).makeUser("citizen", "Dehradun");
+    const tail = victim.user.phone;
+    const wa = await request(app()).post("/api/channels/whatsapp/inbound").set("X-Webhook-Secret", "wa-secret-for-tests").send({ from: `44${tail}`, text: "SANKALP pothole near the school" });
+    expect(wa.body.accepted).toBe(false);
+    expect((await sms(`+44${tail}`, "SANKALP pothole")).body.accepted).toBe(false);
+    expect(storage.getComplaints()).toHaveLength(0);
+  });
+
+  it("P5-6: stray messages create no account; a staff number never gets a second citizen account", async () => {
+    const before = storage.s.users.length;
+    expect((await sms(nextPhone(), "hi")).body.command).toBe("channel_help");
+    expect(storage.s.users.length).toBe(before);
+    const staff = await (await import("./helpers")).makeUser("district_admin", "Dehradun");
+    expect((await sms(staff.user.phone, "SANKALP pothole on the road")).body.command).toBe("channel_help");
+    expect(storage.s.users.filter(u => u.phone === staff.user.phone)).toHaveLength(1);
+  });
+
+  it("P5-2: realistic recordings (≈300 KB) are accepted by the IVR and transcribe routes", async () => {
+    const big = Buffer.concat([Buffer.from(M4A_HEADER, "base64"), Buffer.alloc(300_000)]).toString("base64");
+    const r = await request(app()).post("/api/channels/ivr/recording").set("X-Webhook-Secret", "ivr-secret-for-tests").send({ from: nextPhone(), audioBase64: big, consent: true });
+    expect(r.status).toBe(201);
+    const u = await (await import("./helpers")).makeUser();
+    const t = await request(app()).post("/api/ai/transcribe").set((await import("./helpers")).auth(u.token)).send({ audioBase64: big });
+    expect(t.status).toBe(200);
+  });
+});

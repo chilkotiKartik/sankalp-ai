@@ -3,7 +3,7 @@ import request from "supertest";
 
 const mem = new Map<string, string>();
 vi.mock("@react-native-async-storage/async-storage", () => ({
-  default: { getItem: async (k: string) => mem.get(k) ?? null, setItem: async (k: string, v: string) => { mem.set(k, v); } },
+  default: { getItem: async (k: string) => mem.get(k) ?? null, setItem: async (k: string, v: string) => { mem.set(k, v); }, removeItem: async (k: string) => { mem.delete(k); } },
 }));
 
 import * as Outbox from "../lib/offline-queue";
@@ -30,28 +30,49 @@ describe("P5.1 offline-first complaints", () => {
     expect((await request(app()).post("/api/complaints").set(auth(v.token)).send({ ...body, clientRequestId: id })).status).toBe(201);
   });
 
-  it("outbox: keeps items while offline, sends them once online, moves 4xx to failed", async () => {
-    await Outbox.enqueue({ id: "aaaaaaaaaaaa", path: "/api/complaints", method: "POST", body, label: "pothole" });
-    await Outbox.enqueue({ id: "bbbbbbbbbbbb", path: "/api/complaints", method: "POST", body: { bad: true }, label: "bad" });
+  it("outbox: keeps items while offline, sends them once online, moves real validation errors to failed", async () => {
+    await Outbox.enqueue("userA", { id: "aaaaaaaaaaaa", path: "/api/complaints", method: "POST", body, label: "pothole" });
+    await Outbox.enqueue("userA", { id: "bbbbbbbbbbbb", path: "/api/complaints", method: "POST", body: { bad: true }, label: "bad" });
     const offline = async () => { throw new TypeError("Network request failed"); };
-    expect(await Outbox.flush(offline)).toEqual({ sent: 0, failed: 0 });
-    expect(await Outbox.pending()).toHaveLength(2);
-    // backoff: items are not retried immediately
+    expect(await Outbox.flush("userA", offline)).toEqual({ sent: 0, failed: 0 });
+    expect(await Outbox.pending("userA")).toHaveLength(2);
     const sent: string[] = [];
     const online = async (_p: string, _m: string, b: unknown) => {
       const x = b as { clientRequestId: string; bad?: boolean };
       sent.push(x.clientRequestId);
       return x.bad ? { ok: false, status: 400, json: async () => ({ message: "Invalid input" }) } : { ok: true, status: 201, json: async () => ({ id: "server-1" }) };
     };
-    expect((await Outbox.flush(online)).sent).toBe(0);
-    for (const k of [...mem.keys()]) {
-      const items = JSON.parse(mem.get(k)!) as Outbox.OutboxItem[];
-      mem.set(k, JSON.stringify(items.map(i => ({ ...i, nextAttemptAt: 0 }))));
-    }
-    expect(await Outbox.flush(online)).toEqual({ sent: 1, failed: 1 });
+    expect((await Outbox.flush("userA", online)).sent).toBe(0); // backoff respected
+    expect(await Outbox.flush("userA", online, undefined, true)).toEqual({ sent: 1, failed: 1 });
     expect(sent).toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
-    expect(await Outbox.pending()).toHaveLength(0);
-    expect((await Outbox.failed())[0].error).toBe("Invalid input");
+    expect(await Outbox.pending("userA")).toHaveLength(0);
+    expect((await Outbox.failed("userA"))[0].error).toBe("Invalid input");
+    await Outbox.retryFailed("userA", "bbbbbbbbbbbb");
+    expect(await Outbox.pending("userA")).toHaveLength(1);
+  });
+
+  it("review P5-3: another user on the same phone never sees or sends someone else's queue", async () => {
+    await Outbox.enqueue("userA", { id: "cccccccccccc", path: "/api/complaints", method: "POST", body, label: "A's report" });
+    expect(await Outbox.pending("userB")).toHaveLength(0);
+    const seen: string[] = [];
+    await Outbox.flush("userB", async (_p, _m, b) => { seen.push((b as { clientRequestId: string }).clientRequestId); return { ok: true, status: 201, json: async () => ({}) }; }, undefined, true);
+    expect(seen).toEqual([]);
+    expect(await Outbox.pending("userA")).toHaveLength(1);
+  });
+
+  it("review P5-4: 401/403/428 keep the item (refresh / consent can fix them)", async () => {
+    await Outbox.enqueue("userA", { id: "dddddddddddd", path: "/api/complaints", method: "POST", body, label: "x" });
+    for (const status of [401, 403, 428]) {
+      await Outbox.flush("userA", async () => ({ ok: false, status, json: async () => ({}) }), undefined, true);
+      expect(await Outbox.pending("userA")).toHaveLength(1);
+    }
+    expect(await Outbox.failed("userA")).toHaveLength(0);
+  });
+
+  it("review P5-5: oversized items are refused up front; a corrupt index is never treated as empty", async () => {
+    await expect(Outbox.enqueue("userA", { id: "eeeeeeeeeeee", path: "/api/complaints", method: "POST", body: { beforePhoto: "x".repeat(Outbox.MAX_ITEM_BYTES) }, label: "big" })).rejects.toThrow(/too large/);
+    mem.set("sankalp_outbox_v2:userA:pending", "{corrupt");
+    await expect(Outbox.enqueue("userA", { id: "ffffffffffff", path: "/api/complaints", method: "POST", body, label: "y" })).rejects.toThrow();
   });
 
   it("classifies network errors", () => {

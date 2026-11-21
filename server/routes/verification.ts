@@ -8,13 +8,13 @@ import { runInTenant, hasTenant, tenant, currentTenantId } from "../tenancy";
 import { getDeptIdForCategory } from "../data/reference";
 import { readConfirmToken } from "../notify/voice";
 import { parseReply } from "../verification/confirm";
-import { smsCommand } from "./channels";
+import { smsCommand, senderPhone } from "./channels";
 import { evaluate } from "../verification";
 import { resolutionRates, RRR_DEFINITION } from "../verification/rate";
 import { config } from "../config";
 import { toStaffComplaint } from "./dto";
 import { isDistrictAdmin, isStateUser } from "../auth/roles";
-import { writeLimiter, authLimiter } from "./limits";
+import { writeLimiter, authLimiter, channelLimiter } from "./limits";
 import { text, domain } from "./common";
 import type { Complaint } from "../types";
 
@@ -62,7 +62,7 @@ export function registerVerificationRoutes(app: Express) {
   // ── P3.5 SMS fallback: the SMS gateway forwards replies here. Shared secret, constant-time compare. ──
   route(app, {
     method: "post", path: "/api/verification/sms-inbound", auth: "public", permission: "verification.sms_inbound",
-    middleware: [writeLimiter],
+    middleware: [channelLimiter],
     params: none, query: none,
     body: z.object({ from: z.string().max(20), text: z.string().max(500) }).passthrough(),
     handler: async ({ req, body }) => {
@@ -72,8 +72,8 @@ export function registerVerificationRoutes(app: Express) {
       const got = Buffer.from(String(req.headers["x-webhook-secret"] ?? ""));
       const want = Buffer.from(secret);
       if (got.length !== want.length || !timingSafeEqual(got, want)) throw forbidden("Bad webhook secret");
-      const phone = body.from.replace(/\D/g, "").slice(-10);
-      if (!/^[6-9]\d{9}$/.test(phone)) return { accepted: false };
+      const phone = senderPhone(body.from);
+      if (!phone) return { accepted: false, reason: "not an Indian mobile number" };
       const answer = parseReply(body.text);
       const ids = new Set(storage.s.users.filter(u => u.phone === phone).map(u => u.id));
       const open = storage.getComplaints().filter(c => c.userId && ids.has(c.userId) && AWAITING.has(c.state) && !c.citizenAnswer);

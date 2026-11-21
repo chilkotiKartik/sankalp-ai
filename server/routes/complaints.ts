@@ -1,3 +1,4 @@
+import { currentTenantId } from "../tenancy";
 import { autoMerge } from "../agents/duplicates";
 import { logger } from "../lib/logger";
 import { verifyProof } from "../verification";
@@ -63,6 +64,8 @@ const officerUpdate = z.object({
  * Shared complaint filing (app, SMS keyword, IVR — P5.2): classification + explainable routing, photo review task,
  * duplicate linking and department notification. Consent is checked by the caller. `beforePhoto` is an /uploads URL.
  */
+const inFlight = new Map<string, Promise<Complaint>>();
+
 export async function fileComplaintFor(user: AppUser, body: {
   category: (typeof CATEGORIES)[number]; description: string; location: string; geo?: { lat: number; lng: number };
   ward?: string; wardNumber?: number; priority?: (typeof PRIORITIES)[number]; beforePhoto?: string; clientRequestId?: string; channel?: "app" | "sms" | "ivr" | "whatsapp";
@@ -209,11 +212,18 @@ export function registerComplaintRoutes(app: Express) {
     }).passthrough(),
     handler: async ({ body, user, res }) => {
       requireConsent(user);
+      const key = body.clientRequestId ? `${currentTenantId()}:${user.id}:${body.clientRequestId}` : null;
       if (body.clientRequestId) {
         const seen = storage.getComplaints().find(c => c.userId === user.id && c.clientRequestId === body.clientRequestId);
         if (seen) { res.status(200); return complaintFor(user, seen, false); }
+        // Review P5-7: a retry arriving while the first request is still classifying waits for it.
+        const running = inFlight.get(key!);
+        if (running) { const c = await running; res.status(200); return complaintFor(user, c, false); }
       }
-      const complaint = await fileComplaintFor(user, { ...body, beforePhoto: resolveImage(body.beforePhoto, user.id) });
+      const filing = fileComplaintFor(user, { ...body, beforePhoto: resolveImage(body.beforePhoto, user.id) });
+      if (key) inFlight.set(key, filing);
+      let complaint: Complaint;
+      try { complaint = await filing; } finally { if (key) inFlight.delete(key); }
       res.status(201);
       return complaintFor(user, complaint, false);
     },

@@ -31,6 +31,8 @@ const schema = z.object({
   DEPT_JWT_SECRET: secret("DEPT_JWT_SECRET"),
   EGRESS_ALLOWLIST: csv,
   AI_TEXT_PROVIDER: z.enum(["sarvam", "selfhosted", "rules", ""]).optional(),
+  /** P6.2 evidence vault: 32-byte key (64 hex chars or base64). Without it a key is derived from JWT_SECRET (see docs/OPERATIONS.md). */
+  EVIDENCE_ENC_KEY: z.string().optional().or(z.literal("")).transform((v) => v || undefined),
   SARVAM_API_KEY: z.string().optional(),
   SARVAM_MODEL: z.string().default("sarvam-105b"),
   AI_TEXT_BASE_URL: z.string().url().optional().or(z.literal("")).transform((v) => v || undefined),

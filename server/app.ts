@@ -28,10 +28,11 @@ import { registerPrivacyRoutes } from "./routes/privacy";
 import { registerVerificationRoutes } from "./routes/verification";
 import { registerAgentRoutes } from "./routes/agents";
 import { registerChannelRoutes } from "./routes/channels";
+import { registerSafetyRoutes } from "./routes/safety";
 
 const ROOT = process.cwd();
 /** Body size: 100 KB by default; media-carrying routes get 22 MB (≈15 MB binary after base64). */
-const LARGE_BODY = /^\/api\/(upload(\/audio)?|ai\/(analyze|detect)-image|complaints(\/[^/]+\/proof)?|admin\/complaints\/[^/]+|dept\/complaints\/[^/]+)$/;
+const LARGE_BODY = /^\/api\/(upload(\/audio)?|ai\/(analyze|detect)-image|ai\/transcribe|channels\/ivr\/recording|complaints(\/[^/]+\/proof)?|admin\/complaints\/[^/]+|dept\/complaints\/[^/]+)$/;
 
 /** M11: only font/icon files from these packages may be served from node_modules (the web bundle references them). */
 const NODE_MODULE_ASSETS = /^\/(@expo-google-fonts\/inter\/[\w/]+\.ttf|@expo\/vector-icons\/build\/vendor\/react-native-vector-icons\/Fonts\/[\w-]+\.ttf|@react-navigation\/elements\/lib\/[\w/]+\/assets\/[\w-]+(@\dx)?\.png|expo-router\/assets\/[\w-]+(@\dx)?\.png)$/;
@@ -66,7 +67,7 @@ function setupSecurityHeaders(app: Express) {
       directives: {
         "default-src": ["'self'"],
         // Portals compile JSX in the browser with the vendored Babel standalone (needs eval) until Phase 1 pre-builds them.
-        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        "script-src": ["'self'", "'unsafe-inline'"], // review P5: no eval needed since portals are compiled on the server
         "style-src": ["'self'", "'unsafe-inline'"],
         "img-src": ["'self'", "data:", "blob:", ...tileOrigins],
         "media-src": ["'self'", "blob:"],
@@ -166,7 +167,8 @@ function setupStatic(app: Express) {
     app.get([`/web/${route}`, `/web/${route}/`], portalFile(file));
   }
   app.get("/dept", portalFile("dept.html"));
-  app.use("/web/vendor", express.static(path.join(ROOT, "server", "web", "vendor"), { immutable: true, maxAge: "30d" }));
+  // Review P5 low: vendor file names are not content-hashed (sankalp-common.js changes) — revalidate daily.
+  app.use("/web/vendor", express.static(path.join(ROOT, "server", "web", "vendor"), { maxAge: "1d" }));
 
   // M2: only validated images live here; nosniff + attachment-safe headers.
   app.use("/uploads", express.static(dirs().publicDir, {
@@ -248,6 +250,7 @@ export function createApp(): Built {
   registerVerificationRoutes(app);
   registerAgentRoutes(app);
   registerChannelRoutes(app);
+  registerSafetyRoutes(app);
 
   app.use("/api", (_req, _res, next) => next(new AppError(404, "NOT_FOUND", "Unknown API route")));
   setupStatic(app);

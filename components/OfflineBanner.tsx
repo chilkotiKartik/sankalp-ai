@@ -6,24 +6,23 @@ import { getApiUrl } from "@/lib/query-client";
 import { useI18n } from "@/lib/i18n";
 
 /** m14 / P5.1: shows reports saved on the phone that are waiting for a connection, with a manual retry. */
-export function OfflineBanner({ token, onSent }: { token: string | null; onSent?: () => void }) {
+export function OfflineBanner({ token, userId, refresh: refreshToken, onSent }: { token: string | null; userId: string | null; refresh: () => Promise<string | null>; onSent?: () => void }) {
   const { t } = useI18n();
   const [pending, setPending] = useState(0);
   const [failed, setFailed] = useState<Outbox.OutboxItem[]>([]);
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
-    setPending((await Outbox.pending()).length);
-    setFailed(await Outbox.failed());
-  }, []);
+    if (!userId) { setPending(0); setFailed([]); return; }
+    setPending((await Outbox.pending(userId)).length);
+    setFailed(await Outbox.failed(userId));
+  }, [userId]);
   useEffect(() => { void refresh(); const i = setInterval(refresh, 10_000); return () => clearInterval(i); }, [refresh]);
 
   const retry = async () => {
     setBusy(true);
-    const r = await Outbox.flush(async (path, method, body) => {
-      const res = await fetch(`${getApiUrl()}${path.slice(1)}`, { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` }, body: JSON.stringify(body) });
-      return { ok: res.ok, status: res.status, json: () => res.json() };
-    }, undefined, true);
+    if (!userId) { setBusy(false); return; }
+    const r = await Outbox.flush(userId, Outbox.makeSender(getApiUrl(), () => token, refreshToken), undefined, true);
     setBusy(false);
     await refresh();
     if (r.sent) onSent?.();
@@ -45,7 +44,10 @@ export function OfflineBanner({ token, onSent }: { token: string | null; onSent?
         <View key={f.id} style={s.row}>
           <Ionicons name="alert-circle-outline" size={18} color="#B91C1C" />
           <Text style={[s.txt, { color: "#B91C1C" }]} numberOfLines={2}>“{f.label}” was not accepted: {f.error}</Text>
-          <Pressable onPress={async () => { await Outbox.dismissFailed(f.id); await refresh(); }} accessibilityRole="button" accessibilityLabel="Dismiss" style={s.btn}>
+          <Pressable onPress={async () => { await Outbox.retryFailed(userId!, f.id); await retry(); }} accessibilityRole="button" accessibilityLabel={t("common.retry")} style={s.btn}>
+            <Ionicons name="refresh" size={16} color="#374151" />
+          </Pressable>
+          <Pressable onPress={async () => { await Outbox.dismissFailed(userId!, f.id); await refresh(); }} accessibilityRole="button" accessibilityLabel="Dismiss" style={s.btn}>
             <Ionicons name="close" size={16} color="#374151" />
           </Pressable>
         </View>

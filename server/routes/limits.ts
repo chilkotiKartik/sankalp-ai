@@ -20,4 +20,10 @@ export const phoneLimiter = rateLimit({
 export const registerLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 10, standardHeaders: "draft-7", legacyHeaders: false, keyGenerator: ip, message: json("Too many registrations from this network") });
 export const uploadLimiter = rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false, keyGenerator: ip, message: json("Too many uploads — slow down") });
 export const aiLimiter = rateLimit({ windowMs: 60_000, limit: 20, standardHeaders: "draft-7", legacyHeaders: false, keyGenerator: ip, message: json("Too many AI requests — please wait a moment") });
+/** Review P5 low: inbound SMS/WhatsApp webhooks arrive from one gateway IP — limit per sender number instead. */
+export const channelLimiter = rateLimit({
+  windowMs: 60_000, limit: 20, standardHeaders: "draft-7", legacyHeaders: false,
+  keyGenerator: (req) => `chan:${currentTenantId()}:${String((req.body as { from?: unknown })?.from ?? "").replace(/\D/g, "").slice(-12)}`,
+  message: json("Too many messages from this number"),
+});
 export const writeLimiter = rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: "draft-7", legacyHeaders: false, keyGenerator: ip, message: json("Too many requests") });

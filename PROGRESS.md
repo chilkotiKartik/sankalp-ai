@@ -108,11 +108,11 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P5.5 voice complaint — mic → /api/ai/transcribe (Sarvam STT, audio not stored) → editable text; browser Web Speech (Google) removed + egress-audit guard
 - [~] P5.6 performance — gzip, immutable caching, server-compiled portal JSX (2G portal load 23–27 s → 3–5 s); npm run perf + docs/PERFORMANCE.md; native cold start/APK size need a device build
 - [x] P5.7 accessibility + m14–m17 — axe WCAG 2.1 AA: 0 violations on all 7 portals (npm run a11y, in CI); app: offline banner + retry (m14), a11y labels/44px targets on SOS/submit/voice/language (m15), on-device photo resize ≤1600px/0.7 (m16), +91 normalisation & PIN code validation (m17)
-- [ ] P5.gate
+- [x] P5.gate — gate green; review findings 1–7 + lows fixed (docs/reports/phase-5.md)
 
 ## Phase 6 — Safety and disaster
-- [ ] P6.1 SOS fallback/cancel/retry/dedup
-- [ ] P6.2 evidence vault
+- [x] P6.1 SOS fallback/cancel/retry/dedup — trusted contacts (≤5), SMS with signed expiring live-location link, per-contact retry/backoff + DLR receipts, PIN cancel (lock after 5), dedup; nearest-station routing on all SOS routes
+- [x] P6.2 evidence vault — AES-256-GCM at rest for private + originals (EVIDENCE_ENC_KEY), legacy plaintext readable, tamper detection, access owner/police/district admin, every view audited
 - [ ] P6.3 fake call + check-in
 - [ ] P6.4 police routing + 112 plan
 - [ ] P6.5 disaster mode

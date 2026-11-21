@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import request from "supertest";
 import * as fs from "node:fs";
 import { storage } from "../server/storage";
-import { stripJpeg, stripPng, sniff, publicPathExists, originalPath } from "../server/lib/media";
+import { stripJpeg, stripPng, sniff, publicPathExists, originalPath, readStored, sealEvidence, openEvidence } from "../server/lib/media";
 import { app, stopApp, makeUser, auth, M4A_HEADER, PNG_1PX } from "./helpers";
 
 beforeEach(() => storage.reset());
@@ -44,7 +44,10 @@ describe("P1.6 metadata stripping", () => {
     expect(publicPathExists(file)).toBe(true);
     const pub = await request(app()).get(r.body.url);
     expect(Buffer.from(pub.body).includes(Buffer.from("GPSLatitude"))).toBe(false);
-    expect(fs.readFileSync(originalPath(file)!).includes(Buffer.from("GPSLatitude"))).toBe(true);
+    // P6.2: the original is encrypted at rest (AES-256-GCM); decrypted it still has the EXIF for verification.
+    expect(fs.readFileSync(originalPath(file)!).includes(Buffer.from("GPSLatitude"))).toBe(false);
+    expect(fs.readFileSync(originalPath(file)!).subarray(0, 4).toString()).toBe("SKV1");
+    expect(readStored("originals", file)!.includes(Buffer.from("GPSLatitude"))).toBe(true);
   });
 });
 
@@ -104,5 +107,15 @@ describe("P1.6 signed URLs for private media", () => {
     expect(out.subarray(-2).toString("hex")).toBe("ffd9");
     expect(() => stripJpeg(Buffer.from([0xff, 0xd8, 0x12, 0x34, 0x56]))).toThrow();
     expect(() => stripJpeg(Buffer.from([0xff, 0xd8, 0xff, 0xe1, 0xff, 0xff, 0x00]))).toThrow();
+  });
+
+  it("P6.2 vault: AES-256-GCM round trip, tamper detection, legacy plaintext still readable", () => {
+    const plain = Buffer.from("SOS audio bytes");
+    const sealed = sealEvidence(plain);
+    expect(sealed.includes(plain)).toBe(false);
+    expect(openEvidence(sealed).equals(plain)).toBe(true);
+    const bad = Buffer.from(sealed); bad[bad.length - 1] ^= 1;
+    expect(() => openEvidence(bad)).toThrow();
+    expect(openEvidence(plain).equals(plain)).toBe(true);
   });
 });
