@@ -89,7 +89,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P3.6 neighbour confirmation — up to 3 opted-in nearby users; identities never exposed
 - [x] P3.7 decision engine + reviewer queue — weighted, unknown ≠ pass, tenant weights; dept portal Proof Review page
 - [x] P3.8 Real Resolution Rate (Wilson) — GET /api/public/resolution-rate, Wilson 95% CI + n beside official rate
-- [ ] P3.gate
+- [x] P3.gate — gate green; review findings 1–7 fixed (docs/reports/phase-3.md)
 
 ## Phase 4 — Agentic workflows
 - [ ] P4.1 duplicate merge

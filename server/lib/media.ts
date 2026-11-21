@@ -3,7 +3,6 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { config } from "../config";
 import { unprocessable, AppError } from "./errors";
-import { pHash, peripheryHash } from "../verification/image";
 
 /**
  * Upload validation (M2) and private evidence storage (M3).
@@ -195,9 +194,8 @@ export function storeMedia(payload: string, expected: MediaKind): StoredFile {
     }
     drv.put("public", fileName, clean);
     drv.put("originals", fileName, buf);
-    // P3.2/P3.3 fingerprints for proof-of-fix (computed locally; undefined when the image cannot be fingerprinted).
-    const phash = pHash(buf) ?? undefined, sceneHash = peripheryHash(buf) ?? undefined;
-    return { id, fileName, mime: s.mime, kind: s.kind, size: clean.length, visibility: "public", hasOriginal: true, phash, sceneHash };
+    // P3.2/P3.3 fingerprints are computed off-thread after registration (routes/media.ts → verification/fingerprint).
+    return { id, fileName, mime: s.mime, kind: s.kind, size: clean.length, visibility: "public", hasOriginal: true };
   }
   drv.put("private", fileName, buf);
   return { id, fileName, mime: s.mime, kind: s.kind, size: buf.length, visibility: "private" };

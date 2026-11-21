@@ -7,6 +7,7 @@ import { originalPath, mediaDriver } from "../lib/media";
 import { vision, extractJson } from "../ai/gateway";
 import { readExif, haversineM, hamming } from "./image";
 import { evaluate } from "./evaluate";
+import { awaitFingerprint } from "./fingerprint";
 export { evaluate, humanSignals } from "./evaluate";
 
 /**
@@ -46,7 +47,10 @@ export function collectMachineSignals(c: Complaint, ctx: ProofContext = {}): { s
   if (c.geo && exif.lat !== undefined && exif.lng !== undefined) points.push({ src: "photo EXIF", d: haversineM(c.geo, { lat: exif.lat, lng: exif.lng }) });
   const deviceGeo = ctx.proofGeo ?? c.proofGeo;
   if (c.geo && deviceGeo) points.push({ src: "device GPS", d: haversineM(c.geo, deviceGeo) });
-  if (!points.length) {
+  if (c.geoApproximate) {
+    // Review P3-3: the complaint location is only the district centre — distance to it means nothing.
+    signals.push({ name: "geo", score: null, method: "haversine", detail: "Complaint was filed without GPS (district centre only)" });
+  } else if (!points.length) {
     signals.push({ name: "geo", score: null, method: "haversine", detail: c.geo ? "No GPS in the proof photo or from the device" : "Complaint has no location" });
   } else {
     const best = points.reduce((a, b) => (a.d <= b.d ? a : b));
@@ -103,6 +107,7 @@ export async function changeSignal(c: Complaint): Promise<VerificationSignal> {
 /** Full verification right after proof submission: machine signals (+ optional vision), then the engine. */
 export async function verifyProof(c: Complaint, ctx: ProofContext = {}): Promise<ProofVerification> {
   if (ctx.proofGeo) c.proofGeo = ctx.proofGeo;
+  await Promise.all([awaitFingerprint(fileOf(c.proofPhoto)), awaitFingerprint(fileOf(c.beforePhoto))]);
   const { signals, flags } = collectMachineSignals(c, ctx);
   signals.push(await changeSignal(c));
   c.verification = { engineVersion: "", signals, flags, score: null, coverage: 0, decision: "PENDING_CITIZEN", at: new Date().toISOString() };

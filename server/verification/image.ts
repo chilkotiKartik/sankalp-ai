@@ -58,14 +58,34 @@ const bitsToHex = (bits: boolean[]) => {
   return hex;
 };
 
-const MIN_SIDE = 32;
+export const MIN_SIDE = 32;
 const MIN_VARIANCE = 4; // grey levels² — below this the picture is essentially flat
 
-export function pHash(buf: Buffer): string | null {
-  const g = decodeGrey(buf);
-  if (!g || g.w < MIN_SIDE || g.h < MIN_SIDE) return null;
+/** Image dimensions from the file header, without decoding (JPEG SOFn / PNG IHDR). null if unknown. */
+export function imageDims(buf: Buffer): { w: number; h: number } | null {
+  try {
+    if (buf.subarray(0, 8).toString("hex") === "89504e470d0a1a0a") return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+    if (buf[0] === 0xff && buf[1] === 0xd8) {
+      let i = 2;
+      while (i + 9 < buf.length) {
+        if (buf[i] !== 0xff) return null;
+        const m = buf[i + 1];
+        if (m === 0xff) { i++; continue; }
+        if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return { h: buf.readUInt16BE(i + 5), w: buf.readUInt16BE(i + 7) };
+        if (m === 0xd8 || (m >= 0xd0 && m <= 0xd7) || m === 0x01) { i += 2; continue; }
+        i += 2 + buf.readUInt16BE(i + 2);
+      }
+    }
+  } catch { /* fall through */ }
+  return null;
+}
+
+/** Review P3-2: fingerprints are skipped (signal "unknown") above this size — decoding cost grows with pixels. */
+export const FINGERPRINT_MAX_PIXELS = 16_000_000;
+
+/** pHash from a 32×32 grey grid. */
+export function pHashFromGrid(s: Float64Array): string | null {
   const N = 32;
-  const s = resize(g, N);
   if (variance(s) < MIN_VARIANCE) return null;
   // separable DCT-II, only the 8×8 low-frequency block is needed
   const cos = (k: number, n: number) => Math.cos(((2 * n + 1) * k * Math.PI) / (2 * N));
@@ -81,11 +101,9 @@ export function pHash(buf: Buffer): string | null {
   return bitsToHex(q.map((c, i) => (i === 0 ? false : c > median)));
 }
 
-/** Average hash of the 60 outer cells of a 16×16 grid (padded to 64 bits). */
-export function peripheryHash(buf: Buffer): string | null {
-  const g = decodeGrey(buf);
-  if (!g || g.w < MIN_SIDE || g.h < MIN_SIDE) return null;
-  const n = 16, s = resize(g, n);
+/** Average hash of the 60 outer cells of a 16×16 grey grid (padded to 64 bits). */
+export function peripheryFromGrid(s: Float64Array): string | null {
+  const n = 16;
   const ring: number[] = [];
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (y === 0 || x === 0 || y === n - 1 || x === n - 1) ring.push(s[y * n + x]);
   if (variance(ring) < MIN_VARIANCE) return null;
@@ -94,6 +112,17 @@ export function peripheryHash(buf: Buffer): string | null {
   while (bits.length < 64) bits.push(false);
   return bitsToHex(bits);
 }
+
+/** Synchronous helpers (tests / small images). Production uploads go through fingerprint.ts (worker thread). */
+export function fingerprintsSync(buf: Buffer): { phash: string | null; sceneHash: string | null } {
+  const d = imageDims(buf);
+  if (!d || d.w * d.h > FINGERPRINT_MAX_PIXELS) return { phash: null, sceneHash: null };
+  const g = decodeGrey(buf);
+  if (!g || g.w < MIN_SIDE || g.h < MIN_SIDE) return { phash: null, sceneHash: null };
+  return { phash: pHashFromGrid(resize(g, 32)), sceneHash: peripheryFromGrid(resize(g, 16)) };
+}
+export const pHash = (buf: Buffer) => fingerprintsSync(buf).phash;
+export const peripheryHash = (buf: Buffer) => fingerprintsSync(buf).sceneHash;
 
 export function hamming(a: string, b: string): number {
   let d = 0;

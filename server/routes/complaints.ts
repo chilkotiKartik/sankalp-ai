@@ -144,6 +144,7 @@ export function registerComplaintRoutes(app: Express) {
         description: body.description,
         location: body.location,
         geo: body.geo ?? storage.getDistrictCenter(district),
+        geoApproximate: body.geo ? undefined : true,
         ward: body.ward || `${district} Block`,
         wardNumber: body.wardNumber ?? 1,
         district,

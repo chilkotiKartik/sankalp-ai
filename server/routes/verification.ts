@@ -4,21 +4,22 @@ import { z } from "zod";
 import { storage } from "../storage";
 import { route, none, idParams, scopeDistrict, type Actor } from "../lib/route";
 import { forbidden, notFound, AppError } from "../lib/errors";
-import { runInTenant, hasTenant, tenant } from "../tenancy";
-import { getDeptIdForCategory, DEPARTMENTS } from "../data/reference";
+import { runInTenant, hasTenant, tenant, currentTenantId } from "../tenancy";
+import { getDeptIdForCategory } from "../data/reference";
 import { readConfirmToken } from "../notify/voice";
 import { parseReply } from "../verification/confirm";
 import { evaluate } from "../verification";
-import { wilson } from "../verification/engine";
+import { resolutionRates, RRR_DEFINITION } from "../verification/rate";
 import { config } from "../config";
 import { toStaffComplaint } from "./dto";
 import { isDistrictAdmin, isStateUser } from "../auth/roles";
-import { writeLimiter } from "./limits";
+import { writeLimiter, authLimiter } from "./limits";
 import { text, domain } from "./common";
 import type { Complaint } from "../types";
 
 /** P3.5–P3.8 routes: confirmation channels, neighbour answers, reviewer queues, Real Resolution Rate. */
 const AWAITING = new Set(["VERIFYING", "NEEDS_REVIEW"]);
+export const INDEPENDENT_REVIEW = new Set(["reused_photo", "proof_is_before_photo", "proof_far_from_site", "gps_sources_disagree", "photo_taken_before_complaint"]);
 
 function reviewItem(c: Complaint) {
   const v = c.verification ? evaluate(c) : null;
@@ -37,6 +38,7 @@ export function registerVerificationRoutes(app: Express) {
   // ── P3.5 voice callback (IVR provider posts the pressed digit). The signed token binds tenant + complaint. ──
   route(app, {
     method: "post", path: "/api/verification/ivr/:token", auth: "public", permission: "verification.ivr_callback",
+    middleware: [authLimiter],
     params: z.object({ token: z.string().min(20).max(400) }), query: none,
     body: z.object({ digit: z.string().max(4) }).passthrough(),
     handler: ({ params, body }) => {
@@ -47,7 +49,9 @@ export function registerVerificationRoutes(app: Express) {
         if (!c || !c.userId) throw notFound();
         const answer = body.digit.trim() === "1" ? "yes" : body.digit.trim() === "2" ? "no" : null;
         if (!answer) return { accepted: false, reason: "Press 1 for yes or 2 for no" };
-        if (!AWAITING.has(c.state)) return { accepted: false, reason: "Already answered" };
+        // Single use per proof round (review P3-4): a stale or replayed token cannot change the answer.
+        if (t.round !== (c.proofSubmittedAt ?? "")) return { accepted: false, reason: "This call was about an earlier repair" };
+        if (!AWAITING.has(c.state) || c.citizenAnswer) return { accepted: false, reason: "Already answered" };
         domain(() => answer === "yes" ? storage.citizenConfirm(c.id, c.userId!, undefined, undefined, "voice") : storage.citizenReject(c.id, c.userId!, "Said no on the voice callback", "voice"));
         return { accepted: true, state: c.state };
       });
@@ -57,23 +61,26 @@ export function registerVerificationRoutes(app: Express) {
   // ── P3.5 SMS fallback: the SMS gateway forwards replies here. Shared secret, constant-time compare. ──
   route(app, {
     method: "post", path: "/api/verification/sms-inbound", auth: "public", permission: "verification.sms_inbound",
+    middleware: [writeLimiter],
     params: none, query: none,
     body: z.object({ from: z.string().max(20), text: z.string().max(500) }).passthrough(),
     handler: ({ req, body }) => {
-      const secret = process.env.INBOUND_SMS_SECRET;
+      // Review P3-6: a per-state secret (INBOUND_SMS_SECRET_<TENANT>) binds the webhook to one tenant; the global one is a fallback.
+      const secret = process.env[`INBOUND_SMS_SECRET_${currentTenantId().toUpperCase()}`] || process.env.INBOUND_SMS_SECRET;
       if (!secret) throw new AppError(503, "SMS_INBOUND_DISABLED", "Inbound SMS is not configured");
       const got = Buffer.from(String(req.headers["x-webhook-secret"] ?? ""));
       const want = Buffer.from(secret);
       if (got.length !== want.length || !timingSafeEqual(got, want)) throw forbidden("Bad webhook secret");
       const phone = body.from.replace(/\D/g, "").slice(-10);
-      const user = storage.s.users.find(u => u.phone === phone);
       const answer = parseReply(body.text);
-      if (!user || !answer) return { accepted: false };
-      const open = storage.getComplaints().filter(c => c.userId === user.id && AWAITING.has(c.state));
+      const ids = new Set(storage.s.users.filter(u => u.phone === phone).map(u => u.id));
+      if (!ids.size || !answer) return { accepted: false };
+      const open = storage.getComplaints().filter(c => c.userId && ids.has(c.userId) && AWAITING.has(c.state) && !c.citizenAnswer);
       const ticket = body.text.match(/[A-Z]{2,4}-[0-9A-F]{6,10}/i)?.[0]?.toUpperCase();
       const target = ticket ? open.find(c => c.ticketId.toUpperCase() === ticket) : open.length === 1 ? open[0] : undefined;
       if (!target) return { accepted: false, reason: open.length > 1 ? "ambiguous" : "nothing awaiting" };
-      domain(() => answer === "yes" ? storage.citizenConfirm(target.id, user.id, undefined, undefined, "sms") : storage.citizenReject(target.id, user.id, "Replied NO by SMS", "sms"));
+      const uid = target.userId!;
+      domain(() => answer === "yes" ? storage.citizenConfirm(target.id, uid, undefined, undefined, "sms") : storage.citizenReject(target.id, uid, "Replied NO by SMS", "sms"));
       return { accepted: true };
     },
   });
@@ -126,6 +133,9 @@ export function registerVerificationRoutes(app: Express) {
       const c = storage.getComplaint(params.id);
       if (!c) throw notFound();
       if (!canReview(actor, c)) throw forbidden("This complaint belongs to another department");
+      // Review P3-5: a department cannot clear fraud-type flags on its own proof — a district/state reviewer must.
+      const fraud = (c.verification?.flags ?? []).filter(f => INDEPENDENT_REVIEW.has(f));
+      if (body.decision === "verify" && fraud.length && actor.deptId) throw forbidden(`Flags ${fraud.join(", ")} need a district or state reviewer`);
       const who = actor.user?.id ?? `dept:${actor.deptId}`;
       domain(() => storage.reviewDecision(c.id, body.decision, who, body.note));
       storage.addAuditLog("review_decision", who, actor.user?.name ?? who, `${c.ticketId}: ${body.decision}`, c.id);
@@ -138,27 +148,9 @@ export function registerVerificationRoutes(app: Express) {
     method: "get", path: "/api/public/resolution-rate", auth: "public", permission: "public.resolution_rate",
     params: none, query: z.object({ by: z.enum(["department", "ward"]).default("department"), district: z.string().max(60).optional() }), body: none,
     handler: ({ query }) => {
-      const list = storage.getComplaints(query.district).filter(c => !c.isDemo || config().DEMO_MODE);
-      const groups = new Map<string, Complaint[]>();
-      for (const c of list) {
-        const key = query.by === "department" ? deptOf(c) : `${c.district} · ${c.ward}`;
-        groups.set(key, [...(groups.get(key) ?? []), c]);
-      }
-      const rows = [...groups.entries()].map(([key, cs]) => {
-        // "Closed" as the department reports it: every case where proof of a fix was submitted at least once.
-        const claimed = cs.filter(c => !!c.proofSubmittedAt);
-        const verified = claimed.filter(c => c.state === "CLOSED").length;
-        return {
-          key, label: query.by === "department" ? DEPARTMENTS[key]?.name ?? key : key,
-          filed: cs.length,
-          officialResolved: claimed.length,
-          officialRate: wilson(claimed.length, cs.length),
-          citizenVerified: verified,
-          realResolutionRate: wilson(verified, claimed.length),
-        };
-      }).sort((a, b) => b.filed - a.filed);
+      const rows = resolutionRates(query.by, query.district);
       return {
-        definition: "Real Resolution Rate = cases the citizen confirmed fixed ÷ cases the department marked resolved (proof submitted). 95% Wilson interval; n shown. Small n means wide intervals.",
+        definition: RRR_DEFINITION,
         by: query.by, state: tenant().name, demo: config().DEMO_MODE, rows,
       };
     },

@@ -21,7 +21,11 @@ const hoursSince = (iso: string | undefined, at: number) => (iso ? (at - new Dat
 export async function runConfirmationReminders(at = Date.now()): Promise<{ sms: number; voice: number }> {
   const v = tenant().verification;
   const out = { sms: 0, voice: 0 };
-  for (const c of storage.getComplaints().filter(x => x.state === "VERIFYING" && x.userId && !x.citizenAnswer)) {
+  // Checks left pending by a crash/restart fail closed to a human after 15 minutes.
+  for (const c of storage.getComplaints().filter(x => x.verificationPending && hoursSince(x.proofSubmittedAt, at) > 0.25)) {
+    storage.applyVerification(c.id, { engineVersion: "interrupted", signals: [], flags: ["verification_interrupted"], score: null, coverage: 0, decision: "NEEDS_REVIEW", at: new Date(at).toISOString() });
+  }
+  for (const c of storage.getComplaints().filter(x => x.state === "VERIFYING" && x.userId && !x.citizenAnswer && !x.verificationPending)) {
     const user = storage.getUserById(c.userId!);
     if (!user) continue;
     const sent = (ch: "sms" | "voice") => (c.confirmReminders ?? []).some(r => r.channel === ch);
@@ -34,7 +38,7 @@ export async function runConfirmationReminders(at = Date.now()): Promise<{ sms: 
     }
     if (!sent("voice") && h >= v.voiceCallbackAfterHours) {
       const base = config().PUBLIC_BASE_URL || "";
-      const url = `${base}/api/verification/ivr/${confirmToken(currentTenantId(), c.id, "voice")}`;
+      const url = `${base}/api/verification/ivr/${confirmToken(currentTenantId(), c.id, "voice", c.proofSubmittedAt ?? "")}`;
       const r = await placeConfirmCall(user.phone, c.ticketId, url);
       (c.confirmReminders ??= []).push({ channel: "voice", at: new Date(at).toISOString(), ok: r.ok });
       out.voice++;
@@ -48,13 +52,13 @@ export async function runConfirmationReminders(at = Date.now()): Promise<{ sms: 
 /** P3.6: opted-in users who filed a complaint within the radius in the last 180 days (they live or work nearby). */
 export function inviteNeighbours(c: Complaint, at = Date.now()): string[] {
   const v = tenant().verification;
-  if (!v.neighbourMax || !c.geo) return [];
+  if (!v.neighbourMax || !c.geo || c.geoApproximate) return [];
   const since = at - 180 * 86400000;
   const seen = new Set<string>();
   const picked: string[] = [];
   for (const o of storage.getComplaints()) {
     if (picked.length >= v.neighbourMax) break;
-    if (!o.userId || o.userId === c.userId || seen.has(o.userId) || !o.geo) continue;
+    if (!o.userId || o.userId === c.userId || seen.has(o.userId) || !o.geo || o.geoApproximate) continue;
     if (new Date(o.submittedAt).getTime() < since || haversineM(c.geo, o.geo) > v.neighbourRadiusM) continue;
     seen.add(o.userId);
     if (storage.getUserById(o.userId)?.neighbourOptIn) picked.push(o.userId);

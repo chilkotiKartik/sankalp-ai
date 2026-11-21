@@ -82,9 +82,22 @@ export interface Complaint {
   assignedWorkerPhone?: string;
   proofPhoto?: string;
   proofNote?: string;
+  /** P4.1 duplicate merge (reversible): a child points at its parent; the parent counts affected citizens. */
+  duplicateOf?: string;
+  duplicates?: string[];
+  affectedCount?: number;
+  priorityBeforeMerge?: string;
+  /** P4.2 SLA escalation ladder: 1 = officer (75%), 2 = dept head (100%), 3 = district admin (150%). */
+  slaLevel?: number;
+  slaSnoozedUntil?: string;
+  slaSnoozeReason?: string;
   /** P3: device GPS sent with the proof (worker app / officer upload). */
   proofGeo?: GeoPoint;
   verification?: ProofVerification;
+  /** Review P3-1: true from proof submission until the machine signals are stored. Answers wait for it. */
+  verificationPending?: boolean;
+  /** Review P3-3: geo is the district centre (citizen sent no GPS) — not usable for geo/neighbour/duplicate checks. */
+  geoApproximate?: boolean;
   /** P3.5: the citizen's answer and the channel it came from. "yes" alone never closes a flagged case. */
   citizenAnswer?: "yes" | "no";
   citizenAnswerChannel?: "app" | "voice" | "sms";
@@ -169,6 +182,9 @@ export interface Worker {
   status: "active" | "idle" | "on_leave";
   currentTask?: string;
   geo?: GeoPoint;
+  /** P4.3: department and complaint categories this worker is trained for (optional). */
+  departmentId?: string;
+  skills?: string[];
 }
 
 export interface PoliceStation {

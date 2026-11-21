@@ -30,7 +30,8 @@ export async function placeConfirmCall(to: string, ticket: string, callbackUrl: 
     if (c.NODE_ENV === "production" && !c.DEMO_MODE) return { ok: false, driver, error: "console voice driver is disabled in production" };
     const file = path.join(path.resolve(c.DATA_DIR), "voice-outbox.log");
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.appendFileSync(file, `${new Date().toISOString()}\t${to}\t${ticket}\t${callbackUrl}\n`, { mode: 0o600 });
+    // Review P3-7: masked number, and no callback token in the log.
+    fs.appendFileSync(file, `${new Date().toISOString()}\t******${to.slice(-4)}\t${ticket}\n`, { mode: 0o600 });
     logger.info("voice_console", { ticket });
     return { ok: true, driver };
   }
@@ -56,20 +57,21 @@ export async function placeConfirmCall(to: string, ticket: string, callbackUrl: 
 // ── signed callback tokens (bind tenant + complaint + channel, expire in 72 h) ──────────────────────
 const sig = (payload: string) => createHmac("sha256", config().JWT_SECRET).update(`confirm:${payload}`).digest("base64url");
 
-export function confirmToken(tenantId: string, complaintId: string, channel: "voice", ttlS = 72 * 3600): string {
+/** Review P3-4: the token is bound to one proof round (proofSubmittedAt) — a new proof makes old tokens useless. */
+export function confirmToken(tenantId: string, complaintId: string, channel: "voice", round: string, ttlS = 72 * 3600): string {
   const exp = Math.floor(Date.now() / 1000) + ttlS;
-  const payload = `${tenantId}.${complaintId}.${channel}.${exp}`;
+  const payload = `${tenantId}.${complaintId}.${channel}.${exp}.${Buffer.from(round).toString("base64url")}`;
   return `${Buffer.from(payload).toString("base64url")}.${sig(payload)}`;
 }
 
-export function readConfirmToken(token: string): { tenantId: string; complaintId: string; channel: "voice" } | null {
+export function readConfirmToken(token: string): { tenantId: string; complaintId: string; channel: "voice"; round: string } | null {
   const [b, s] = token.split(".");
   if (!b || !s) return null;
   const payload = Buffer.from(b, "base64url").toString();
   const expected = sig(payload);
   const a = Buffer.from(s), e = Buffer.from(expected);
   if (a.length !== e.length || !timingSafeEqual(a, e)) return null;
-  const [tenantId, complaintId, channel, exp] = payload.split(".");
-  if (channel !== "voice" || Number(exp) < Date.now() / 1000) return null;
-  return { tenantId, complaintId, channel };
+  const [tenantId, complaintId, channel, exp, round] = payload.split(".");
+  if (channel !== "voice" || !round || Number(exp) < Date.now() / 1000) return null;
+  return { tenantId, complaintId, channel, round: Buffer.from(round, "base64url").toString() };
 }

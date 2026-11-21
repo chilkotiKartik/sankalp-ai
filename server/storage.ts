@@ -551,7 +551,7 @@ export class AppStorage {
 
   createComplaint(
     data: Pick<Complaint, "category" | "description" | "location" | "geo" | "ward" | "wardNumber" | "district" | "priority"> &
-      Partial<Pick<Complaint, "beforePhoto" | "submittedBy" | "submittedByPhone" | "aiRouting" | "aiDecisions" | "photoReview" | "isDemo" | "hasProof">>,
+      Partial<Pick<Complaint, "beforePhoto" | "submittedBy" | "submittedByPhone" | "aiRouting" | "aiDecisions" | "photoReview" | "isDemo" | "hasProof" | "geoApproximate">>,
     user: Pick<AppUser, "id" | "name" | "phone">,
   ): Complaint {
     const state: ComplaintState = "NEW";
@@ -629,6 +629,7 @@ export class AppStorage {
     // A new proof starts a new verification round: earlier answers were about the previous attempt.
     c.proofGeo = proof.geo;
     c.verification = undefined;
+    c.verificationPending = true;
     c.citizenAnswer = undefined; c.citizenAnswerChannel = undefined; c.citizenAnsweredAt = undefined;
     c.confirmReminders = []; c.neighbourInvites = []; c.neighbourAnswers = [];
     this.commit(c, steps, actorId, proof.note);
@@ -638,9 +639,15 @@ export class AppStorage {
   /** P3.7: store the engine result; machine flags send the case to a human reviewer (never closes, never rejects). */
   applyVerification(id: string, v: ProofVerification): Complaint {
     const c = this.mustGet(id);
+    c.verificationPending = false;
     c.verification = v;
-    this.addAuditLog("proof_verified", "system", "SANKALP Verification", `${c.ticketId}: ${v.decision} (score ${v.score ?? "n/a"}, coverage ${v.coverage}${v.flags.length ? `, flags ${v.flags.join(", ")}` : ""})`, c.id);
-    if (v.decision === "NEEDS_REVIEW" && c.state === "VERIFYING") this.toReview(c, v);
+    // A citizen answer may have arrived while the checks ran (review P3-1): re-evaluate with it now.
+    if (c.citizenAnswer) c.verification = evaluate(c);
+    const d = c.verification;
+    this.addAuditLog("proof_verified", "system", "SANKALP Verification", `${c.ticketId}: ${d.decision} (score ${d.score ?? "n/a"}, coverage ${d.coverage}${d.flags.length ? `, flags ${d.flags.join(", ")}` : ""})`, c.id);
+    if (c.state !== "VERIFYING") { this.touch(); return c; }
+    if (d.decision === "NEEDS_REVIEW") this.toReview(c, d);
+    else if (d.decision === "VERIFIED" && c.citizenAnswer === "yes" && c.userId) this.commit(c, smConfirm(c), c.userId, "Citizen confirmed while checks were running");
     else this.touch();
     return c;
   }
@@ -674,6 +681,8 @@ export class AppStorage {
     if (feedback) c.feedback = feedback;
     const u = this.getUserById(userId);
     if (u && first) u.points += 5;
+    // Checks still running: the answer is recorded and applyVerification decides (review P3-1).
+    if (c.verificationPending) { this.touch(); return c; }
     if (c.state === "VERIFYING") {
       if (c.verification!.decision === "VERIFIED") this.commit(c, smConfirm(c), userId, feedback);
       else this.toReview(c, c.verification!);

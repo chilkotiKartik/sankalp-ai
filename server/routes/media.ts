@@ -4,7 +4,9 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage, type AppUser } from "../storage";
 import { route, none, emergencyDistrict, type Actor } from "../lib/route";
-import { storeMedia, privatePath, publicPathExists, originalPath, signMediaUrl, verifyMediaSignature, SIGNED_URL_TTL_S } from "../lib/media";
+import * as fs from "node:fs";
+import { fingerprintLater } from "../verification/fingerprint";
+import { storeMedia, type StoredFile, privatePath, publicPathExists, originalPath, signMediaUrl, verifyMediaSignature, SIGNED_URL_TTL_S } from "../lib/media";
 import { currentTenantId, hasTenant, runInTenant } from "../tenancy";
 import { forbidden, notFound, unprocessable, unauthorized } from "../lib/errors";
 import { uploadLimiter } from "./limits";
@@ -27,11 +29,21 @@ export function resolveImage(input: string | undefined, owner: string, opts: { p
   }
   if (/^(file|content|blob|https?):/i.test(input)) throw unprocessable("INVALID_MEDIA", "Upload the photo first (POST /api/upload) and send its /uploads URL");
   const f = storeMedia(input, "image");
-  storage.addMedia({ ...f, ownerId: owner });
+  addImage(f, owner);
   return `/uploads/${f.fileName}`;
 }
 
 /** M3: owner, district admin of the linked SOS, super admin, or police/USDMA department. */
+/** Register an uploaded image and fingerprint it off-thread (P3.2/P3.3, review P3-2). */
+function addImage(f: StoredFile, owner: string) {
+  const rec = storage.addMedia({ ...f, ownerId: owner });
+  const p = originalPath(f.fileName);
+  if (!p) return;
+  let buf: Buffer;
+  try { buf = fs.readFileSync(p); } catch { return; }
+  fingerprintLater(rec, buf, () => storage.touch());
+}
+
 export function canAccessEvidence(actor: Actor, rec: { ownerId: string; sosId?: string }): boolean {
   if (actor.deptId === "police" || actor.deptId === "usdma") {
     const d = emergencyDistrict(actor);
@@ -70,7 +82,7 @@ export function registerMediaRoutes(app: Express) {
     body: z.object({ image: b64, filename: z.string().max(200).optional() }),
     handler: ({ body, user }) => {
       const f = storeMedia(body.image, "image");
-      storage.addMedia({ ...f, ownerId: user.id });
+      addImage(f, user.id);
       return { url: `/uploads/${f.fileName}`, filename: f.fileName, mediaId: f.id };
     },
   });

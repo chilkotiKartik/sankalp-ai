@@ -142,11 +142,69 @@ describe("P3 proof-of-fix through the API", () => {
   it("voice callback: press 1 closes a clean case; the token is tenant- and complaint-bound", async () => {
     const { id, dept } = await caseWithBefore(png(rings));
     await resolve(id, dept, png(stripes), { lat: 30.33, lng: 78.06 });
-    const tok = confirmToken("uttarakhand", id, "voice");
+    const tok = confirmToken("uttarakhand", id, "voice", storage.getComplaint(id)!.proofSubmittedAt!);
     expect((await request(app()).post(`/api/verification/ivr/${tok.slice(0, -2)}xx`).send({ digit: "1" })).status).toBe(403);
     const r = await request(app()).post(`/api/verification/ivr/${tok}`).send({ digit: "1" });
     expect(r.body).toMatchObject({ accepted: true, state: "CLOSED" });
     expect(storage.getComplaint(id)!.citizenAnswerChannel).toBe("voice");
+    // replay is refused (review P3-4)
+    expect((await request(app()).post(`/api/verification/ivr/${tok}`).send({ digit: "2" })).body.accepted).toBe(false);
+  });
+
+  it("review P3-4: a token from an earlier proof round cannot answer the new one", async () => {
+    const { id, dept } = await caseWithBefore(png(rings));
+    await resolve(id, dept, png(stripes));
+    const old = confirmToken("uttarakhand", id, "voice", "2020-01-01T00:00:00.000Z");
+    const r = await request(app()).post(`/api/verification/ivr/${old}`).send({ digit: "1" });
+    expect(r.body.accepted).toBe(false);
+    expect(storage.getComplaint(id)!.state).toBe("VERIFYING");
+  });
+
+  it("review P3-1: a 'yes' while checks run is held; a flagged result then goes to review, not CLOSED", async () => {
+    const { citizen, id } = await caseWithBefore(png(rings));
+    const c = storage.getComplaint(id)!;
+    storage.submitProof(id, { photoUrl: c.beforePhoto! }, "officer", "officer-1");
+    expect(c.verificationPending).toBe(true);
+    storage.citizenConfirm(id, citizen.user.id);
+    expect(c.state).toBe("VERIFYING");
+    storage.applyVerification(id, { engineVersion: "t", signals: [], flags: ["reused_photo"], score: null, coverage: 0, decision: "NEEDS_REVIEW", at: new Date().toISOString() });
+    expect(c.state).toBe("NEEDS_REVIEW");
+  });
+
+  it("review P3-1: a held 'yes' closes once clean checks arrive", async () => {
+    const { citizen, id } = await caseWithBefore(png(rings));
+    storage.submitProof(id, { photoUrl: storage.getComplaint(id)!.beforePhoto! }, "officer", "officer-1");
+    storage.citizenConfirm(id, citizen.user.id);
+    storage.applyVerification(id, { engineVersion: "t", signals: [], flags: [], score: null, coverage: 0, decision: "PENDING_CITIZEN", at: new Date().toISOString() });
+    expect(storage.getComplaint(id)!.state).toBe("CLOSED");
+  });
+
+  it("review P3-3: complaints without GPS get geo 'unknown', not a far-away flag", async () => {
+    const citizen = await makeUser("citizen", "Dehradun");
+    const c = await request(app()).post("/api/complaints").set(auth(citizen.token))
+      .send({ category: "pothole", description: "Large pothole near the bus stand", location: "Rajpur Road", beforePhoto: png(rings) });
+    const dept = await deptToken("pwd");
+    const r = await resolve(c.body.id, dept, png(stripes), { lat: 30.5, lng: 78.5 });
+    expect(r.body.verification.flags).not.toContain("proof_far_from_site");
+    expect(r.body.verification.signals.find((s: VerificationSignal) => s.name === "geo").score).toBeNull();
+  });
+
+  it("review P3-5: a department cannot clear a reused-photo flag on its own proof", async () => {
+    const { id, dept } = await caseWithBefore();
+    await resolve(id, dept, png(stripes));
+    const r = await request(app()).put(`/api/dept/complaints/${id}/review`).set(auth(dept)).send({ decision: "verify" });
+    expect(r.status).toBe(403);
+    expect((await request(app()).put(`/api/dept/complaints/${id}/review`).set(auth(dept)).send({ decision: "reopen" })).status).toBe(200);
+  });
+
+  it("review P3-2: oversized images are not decoded (header check)", async () => {
+    const { fingerprint } = await import("../server/verification/fingerprint");
+    const big = Buffer.from(png(stripes), "base64");
+    big.writeUInt32BE(20000, 16); big.writeUInt32BE(20000, 20); // claims 400 MP
+    const t0 = Date.now();
+    expect(await fingerprint(big)).toEqual({});
+    expect(Date.now() - t0).toBeLessThan(100);
+    expect((await fingerprint(Buffer.from(png(stripes), "base64"))).phash).toMatch(/^[0-9a-f]{16}$/);
   });
 
   it("reminder job sends SMS then voice; inbound SMS '2' reopens", async () => {

@@ -761,7 +761,10 @@ function ReviewPage({token,dept,addToast}){
           {c.beforePhoto&&<a href={c.beforePhoto} target="_blank" rel="noopener noreferrer" style={{fontSize:12}}>Before photo ↗</a>}
           {c.proofPhoto&&<a href={c.proofPhoto} target="_blank" rel="noopener noreferrer" style={{fontSize:12}}>Proof photo ↗</a>}
           <input className="input" aria-label="Review note" placeholder="Note (optional)" value={notes[c.id]||''} onChange={e=>setNotes({...notes,[c.id]:e.target.value})} style={{flex:1,minWidth:160}}/>
-          <button className="btn btn-sm" disabled={busy===c.id} onClick={()=>decide(c,'verify')} style={{background:'var(--green)',color:'#fff'}}>✓ Proof OK</button>
+          {(()=>{const fraud=v.flags.filter(f=>['reused_photo','proof_is_before_photo','proof_far_from_site','gps_sources_disagree','photo_taken_before_complaint'].includes(f));
+            return fraud.length
+              ?<span style={{fontSize:11,color:'var(--muted)'}} title="Your department submitted this proof, so a district or state reviewer must clear these flags">🔒 Needs district/state reviewer</span>
+              :<button className="btn btn-sm" disabled={busy===c.id} onClick={()=>decide(c,'verify')} style={{background:'var(--green)',color:'#fff'}}>✓ Proof OK</button>;})()}
           <button className="btn btn-ghost btn-sm" disabled={busy===c.id} onClick={()=>decide(c,'reopen')}>↩ Reopen</button>
         </div>
       </div>;
