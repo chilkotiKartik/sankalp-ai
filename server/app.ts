@@ -25,6 +25,7 @@ import { registerCitizenRoutes } from "./routes/citizen";
 import { registerPrivacyRoutes } from "./routes/privacy";
 import { registerVerificationRoutes } from "./routes/verification";
 import { registerAgentRoutes } from "./routes/agents";
+import { registerChannelRoutes } from "./routes/channels";
 
 const ROOT = process.cwd();
 /** Body size: 100 KB by default; media-carrying routes get 22 MB (≈15 MB binary after base64). */
@@ -237,6 +238,7 @@ export function createApp(): Built {
   registerPrivacyRoutes(app);
   registerVerificationRoutes(app);
   registerAgentRoutes(app);
+  registerChannelRoutes(app);
 
   app.use("/api", (_req, _res, next) => next(new AppError(404, "NOT_FOUND", "Unknown API route")));
   setupStatic(app);

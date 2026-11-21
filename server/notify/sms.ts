@@ -11,7 +11,8 @@ import { logger } from "../lib/logger";
  *    with `Authorization: Bearer SMS_API_KEY`. The host must be in EGRESS_ALLOWLIST (safeFetch).
  * Messages use DLT templates with variables only — never names, addresses or locations (rule 2).
  */
-export type SmsTemplate = "otp" | "status_update" | "sos_fallback" | "checkin_alert" | "verify_request" | "ops_alert";
+export type SmsTemplate = "otp" | "status_update" | "sos_fallback" | "checkin_alert" | "verify_request" | "ops_alert"
+  | "complaint_received" | "consent_request" | "status_reply" | "channel_help" | "voice_received";
 
 export const TEMPLATES: Record<SmsTemplate, string> = {
   otp: "Your SANKALP verification code is {#var#}. Valid 5 minutes. Do not share it.",
@@ -20,6 +21,12 @@ export const TEMPLATES: Record<SmsTemplate, string> = {
   checkin_alert: "SANKALP: A contact did not check in on time. Please call them.",
   verify_request: "SANKALP: Was complaint #{#var#} fixed? Reply 1 for YES, 2 for NO.",
   ops_alert: "SANKALP OPS: service {#var#} is {#var#}. Check the status page.",
+  // P5.2 basic-phone channels (register each with DLT before use). Variables: ticket ids, states, URLs — never PII.
+  complaint_received: "SANKALP: Complaint #{#var#} registered. Reply STATUS {#var#} for updates.",
+  consent_request: "SANKALP: To file complaints by SMS, read the privacy notice at {#var#} and reply AGREE.",
+  status_reply: "SANKALP: Complaint #{#var#} is {#var#}.",
+  channel_help: "SANKALP: Send SANKALP <problem> to file, STATUS <ticket> to track. Emergency: call 112.",
+  voice_received: "SANKALP: Your voice complaint #{#var#} is registered. An officer will listen to it.",
 };
 
 export interface SmsResult { ok: boolean; driver: string; error?: string }

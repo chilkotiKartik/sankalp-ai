@@ -8,6 +8,7 @@ import { runInTenant, hasTenant, tenant, currentTenantId } from "../tenancy";
 import { getDeptIdForCategory } from "../data/reference";
 import { readConfirmToken } from "../notify/voice";
 import { parseReply } from "../verification/confirm";
+import { smsCommand } from "./channels";
 import { evaluate } from "../verification";
 import { resolutionRates, RRR_DEFINITION } from "../verification/rate";
 import { config } from "../config";
@@ -64,7 +65,7 @@ export function registerVerificationRoutes(app: Express) {
     middleware: [writeLimiter],
     params: none, query: none,
     body: z.object({ from: z.string().max(20), text: z.string().max(500) }).passthrough(),
-    handler: ({ req, body }) => {
+    handler: async ({ req, body }) => {
       // Review P3-6: a per-state secret (INBOUND_SMS_SECRET_<TENANT>) binds the webhook to one tenant; the global one is a fallback.
       const secret = process.env[`INBOUND_SMS_SECRET_${currentTenantId().toUpperCase()}`] || process.env.INBOUND_SMS_SECRET;
       if (!secret) throw new AppError(503, "SMS_INBOUND_DISABLED", "Inbound SMS is not configured");
@@ -72,13 +73,17 @@ export function registerVerificationRoutes(app: Express) {
       const want = Buffer.from(secret);
       if (got.length !== want.length || !timingSafeEqual(got, want)) throw forbidden("Bad webhook secret");
       const phone = body.from.replace(/\D/g, "").slice(-10);
+      if (!/^[6-9]\d{9}$/.test(phone)) return { accepted: false };
       const answer = parseReply(body.text);
       const ids = new Set(storage.s.users.filter(u => u.phone === phone).map(u => u.id));
-      if (!ids.size || !answer) return { accepted: false };
       const open = storage.getComplaints().filter(c => c.userId && ids.has(c.userId) && AWAITING.has(c.state) && !c.citizenAnswer);
       const ticket = body.text.match(/[A-Z]{2,4}-[0-9A-F]{6,10}/i)?.[0]?.toUpperCase();
-      const target = ticket ? open.find(c => c.ticketId.toUpperCase() === ticket) : open.length === 1 ? open[0] : undefined;
-      if (!target) return { accepted: false, reason: open.length > 1 ? "ambiguous" : "nothing awaiting" };
+      const target = answer ? (ticket ? open.find(c => c.ticketId.toUpperCase() === ticket) : open.length === 1 ? open[0] : undefined) : undefined;
+      // Not a 1/2 answer to a pending confirmation → P5.2 SMS commands (SANKALP … / STATUS … / AGREE / HELP).
+      if (!target) {
+        if (answer && open.length > 1) return { accepted: false, reason: "ambiguous" };
+        return { accepted: true, command: await smsCommand(phone, body.text) };
+      }
       const uid = target.userId!;
       domain(() => answer === "yes" ? storage.citizenConfirm(target.id, uid, undefined, undefined, "sms") : storage.citizenReject(target.id, uid, "Replied NO by SMS", "sms"));
       return { accepted: true };

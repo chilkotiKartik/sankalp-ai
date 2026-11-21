@@ -1729,6 +1729,10 @@
                   "beforePhoto": {
                     "type": "string",
                     "maxLength": 23068672
+                  },
+                  "clientRequestId": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{8,64}$"
                   }
                 },
                 "required": [
@@ -10058,8 +10062,6 @@
           "district_admin",
           "state_admin",
           "super_admin",
-          "dept_token",
-          "officer",
           "dept_admin"
         ],
         "security": [
@@ -10307,6 +10309,140 @@
           },
           "404": {
             "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/channels/whatsapp/inbound": {
+      "post": {
+        "operationId": "post_api_channels_whatsapp_inbound",
+        "summary": "channels.whatsapp_inbound",
+        "x-permission": "channels.whatsapp_inbound",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "from",
+                  "text"
+                ],
+                "additionalProperties": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/channels/ivr/recording": {
+      "post": {
+        "operationId": "post_api_channels_ivr_recording",
+        "summary": "channels.ivr_recording",
+        "x-permission": "channels.ivr_recording",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "audioBase64": {
+                    "type": "string",
+                    "minLength": 16,
+                    "maxLength": 12582912
+                  },
+                  "lang": {
+                    "default": "hi-IN",
+                    "type": "string",
+                    "enum": [
+                      "hi-IN",
+                      "en-IN"
+                    ]
+                  },
+                  "consent": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "from",
+                  "audioBase64",
+                  "consent"
+                ]
+              }
+            }
           }
         }
       }

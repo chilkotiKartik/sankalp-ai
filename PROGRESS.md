@@ -102,8 +102,8 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 
 ## Phase 5 — Reach every Indian
 - [x] P5.1 offline queue — AsyncStorage outbox, clientRequestId idempotency, backoff, failed list, "Saved — will send when online"
-- [ ] P5.2 basic-phone channels
-- [ ] P5.3 WhatsApp
+- [x] P5.2 basic-phone channels — SMS keywords (SANKALP/STATUS/AGREE/HELP), missed call→IVR→Sarvam STT→ticket (fail closed to human transcription), docs/CHANNELS.md
+- [x] P5.3 WhatsApp — citizen-initiated webhook + driver interface (off by default; foreign Cloud API flagged), no PII in templates
 - [ ] P5.4 i18n
 - [ ] P5.5 voice complaint
 - [ ] P5.6 performance

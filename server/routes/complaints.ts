@@ -82,6 +82,7 @@ export async function fileComplaintFor(user: AppUser, body: {
     geo: body.geo ?? storage.getDistrictCenter(district),
     geoApproximate: body.geo ? undefined : true,
     clientRequestId: body.clientRequestId,
+    channel: body.channel ?? "app",
     ward: body.ward || `${district} Block`,
     wardNumber: body.wardNumber ?? 1,
     district,

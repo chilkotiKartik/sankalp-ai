@@ -551,7 +551,7 @@ export class AppStorage {
 
   createComplaint(
     data: Pick<Complaint, "category" | "description" | "location" | "geo" | "ward" | "wardNumber" | "district" | "priority"> &
-      Partial<Pick<Complaint, "beforePhoto" | "submittedBy" | "submittedByPhone" | "aiRouting" | "aiDecisions" | "photoReview" | "isDemo" | "hasProof" | "geoApproximate" | "clientRequestId">>,
+      Partial<Pick<Complaint, "beforePhoto" | "submittedBy" | "submittedByPhone" | "aiRouting" | "aiDecisions" | "photoReview" | "isDemo" | "hasProof" | "geoApproximate" | "clientRequestId" | "channel">>,
     user: Pick<AppUser, "id" | "name" | "phone">,
   ): Complaint {
     const state: ComplaintState = "NEW";

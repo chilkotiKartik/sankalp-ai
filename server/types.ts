@@ -26,6 +26,8 @@ export interface AppUser {
   badges: string[];
   level: number;
   createdAt: string;
+  /** P5.2: complaint text received by SMS/WhatsApp before the sender accepted the privacy notice. */
+  pendingChannelText?: string;
   /** P3.6: may be asked whether nearby repairs were really done. Off unless the user opts in. */
   neighbourOptIn?: boolean;
 }
@@ -98,6 +100,8 @@ export interface Complaint {
   /** Review P3-1: true from proof submission until the machine signals are stored. Answers wait for it. */
   verificationPending?: boolean;
   clientRequestId?: string;
+  /** P5.2/P5.3: where the complaint came from. */
+  channel?: "app" | "sms" | "ivr" | "whatsapp";
   /** Review P3-3: geo is the district centre (citizen sent no GPS) — not usable for geo/neighbour/duplicate checks. */
   geoApproximate?: boolean;
   /** P3.5: the citizen's answer and the channel it came from. "yes" alone never closes a flagged case. */
@@ -457,7 +461,7 @@ export interface ComplaintEvent {
 
 export interface ReviewTask {
   id: string;
-  kind: "photo_authenticity" | "proof_review";
+  kind: "photo_authenticity" | "proof_review" | "transcription";
   complaintId?: string;
   mediaId?: string;
   reason: string;
