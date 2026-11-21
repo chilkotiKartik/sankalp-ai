@@ -8,7 +8,9 @@ import { runInTenant, hasTenant, tenant } from "../tenancy";
 import { applyDeliveryReceipt, readShareToken, newContactId, MAX_CONTACTS, maskPhone } from "../safety/sos";
 import { sendSms } from "../notify/sms";
 import { checkSecret } from "./channels";
-import { phone10, text } from "./common";
+import { phone10, text, geo } from "./common";
+import { startCheckIn } from "../safety/checkin";
+import { readPayload } from "../safety/sign";
 import { authLimiter, writeLimiter } from "./limits";
 
 /** P6.1 trusted contacts, PIN-protected cancel, delivery receipts and the public live-location page. */
@@ -109,6 +111,52 @@ export function registerSafetyRoutes(app: Express) {
       res.setHeader("Cache-Control", "no-store");
       res.setHeader("Referrer-Policy", "no-referrer");
       res.type("html").send(sharePage(params.token, !!s));
+      return undefined;
+    },
+  });
+}
+
+export function registerCheckInRoutes(app: Express) {
+  route(app, {
+    method: "post", path: "/api/safety/checkins", auth: "sos", permission: "safety.checkin",
+    params: none, query: none,
+    body: z.object({ minutes: z.number().int().min(5).max(720), note: text(200).optional(), geo: geo.optional() }),
+    handler: ({ body, user, res }) => {
+      if (!user.trustedContacts?.length) throw new AppError(422, "NO_CONTACTS", "Add at least one trusted contact first");
+      const c = startCheckIn(user.id, body.minutes, body.note, body.geo);
+      res.status(201);
+      return { id: c.id, dueAt: c.dueAt, status: c.status };
+    },
+  });
+  route(app, {
+    method: "put", path: "/api/safety/checkins/:id/done", auth: "sos", permission: "safety.checkin",
+    params: idParams, query: none, body: z.object({}).passthrough(),
+    handler: ({ params, user }) => {
+      const c = storage.s.checkins.find(x => x.id === params.id && x.userId === user.id);
+      if (!c) throw notFound();
+      if (c.status === "active") { c.status = "done"; storage.touch(); }
+      return { status: c.status };
+    },
+  });
+  route(app, {
+    method: "get", path: "/c/:token", auth: "public", permission: "safety.shared_location",
+    params: z.object({ token: z.string().min(20).max(300) }), query: none, body: none,
+    handler: ({ params, res }) => {
+      const p = readPayload("checkin", params.token);
+      const [tid, id] = (p ?? "").split(".");
+      const info = p && hasTenant(tid) ? runInTenant(tid, () => {
+        const c = storage.s.checkins.find(x => x.id === id);
+        const u = c && storage.getUserById(c.userId);
+        return c && u ? { name: u.name.split(" ")[0], due: c.dueAt, geo: c.lastGeo, done: c.status === "done" } : null;
+      }) : null;
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Referrer-Policy", "no-referrer");
+      const esc = (v: string) => v.replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
+      res.type("html").send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>SANKALP check-in</title>
+<style>body{font:16px system-ui,sans-serif;padding:16px;color:#111}a{display:block;text-align:center;padding:14px;margin:10px 0;border-radius:10px;font-weight:700;text-decoration:none;background:#B91C1C;color:#fff}</style></head><body>
+${info ? `<h1>⏰ ${esc(info.name)} did not check in</h1><p>They were due to confirm they were safe by ${esc(new Date(info.due).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }))} IST.${info.done ? " They have since confirmed they are safe." : ""}</p>
+${info.geo ? `<p>Last shared location: <a style="background:#1D4ED8" href="geo:${info.geo.lat},${info.geo.lng}?q=${info.geo.lat},${info.geo.lng}">${info.geo.lat.toFixed(5)}, ${info.geo.lng.toFixed(5)}</a></p>` : "<p>No location was shared.</p>"}` : "<h1>This link has expired.</h1>"}
+<p>Try calling them first.</p><a href="tel:112">Call 112 (emergency)</a></body></html>`);
       return undefined;
     },
   });

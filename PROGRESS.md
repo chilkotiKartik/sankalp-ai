@@ -113,7 +113,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 ## Phase 6 — Safety and disaster
 - [x] P6.1 SOS fallback/cancel/retry/dedup — trusted contacts (≤5), SMS with signed expiring live-location link, per-contact retry/backoff + DLR receipts, PIN cancel (lock after 5), dedup; nearest-station routing on all SOS routes
 - [x] P6.2 evidence vault — AES-256-GCM at rest for private + originals (EVIDENCE_ENC_KEY), legacy plaintext readable, tamper detection, access owner/police/district admin, every view audited
-- [ ] P6.3 fake call + check-in
+- [x] P6.3 fake call + check-in — check-in timer (missed → contacts get a signed link, once), app Safety tools screen (contacts editor, check-in, offline fake incoming call)
 - [ ] P6.4 police routing + 112 plan
 - [ ] P6.5 disaster mode
 - [ ] P6.6 yatra mode

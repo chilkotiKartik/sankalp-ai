@@ -1,4 +1,5 @@
 import { openInMaps, openInMapsQuery } from "@/lib/maps";
+import { router } from "expo-router";
 import React, { useRef, useEffect, useState, useCallback, Component } from "react";
 import {
   View, Text, StyleSheet, Pressable, Animated, ScrollView,
@@ -1052,6 +1053,12 @@ function SOSScreenInner() {
 
       <ScrollView showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 110 : insets.bottom + 110 }}>
+        {/* P6.1/P6.3: trusted contacts, check-in timer, fake call */}
+        <Pressable onPress={() => router.push("/safety")} accessibilityRole="button" accessibilityLabel="Safety tools: trusted contacts, check-in timer, fake call"
+          style={{ position: "absolute", top: Platform.OS === "web" ? 20 : insets.top + 8, right: 16, zIndex: 10, minHeight: 44, paddingHorizontal: 12, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.15)", flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Ionicons name="shield-checkmark-outline" size={18} color="#fff" />
+          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Safety tools</Text>
+        </Pressable>
 
         {/* ── HEADER ── */}
         <LinearGradient colors={["#0D0000", "#1A0000", "#3D0000", "#7F1D1D"]}

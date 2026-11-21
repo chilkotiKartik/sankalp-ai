@@ -105,3 +105,33 @@ describe("P6.2 evidence vault", () => {
     expect(storage.getAuditLogs().some(l => l.action === "evidence_viewed")).toBe(true);
   });
 });
+
+describe("P6.3 check-in timer", () => {
+  it("needs a trusted contact; a missed check-in alerts contacts once with a signed link, no PII in the SMS", async () => {
+    const { runCheckInAlerts } = await import("../server/safety/checkin");
+    const lonely = await makeUser();
+    expect((await request(app()).post("/api/safety/checkins").set(auth(lonely.token)).send({ minutes: 30 })).status).toBe(422);
+    const { u, c1 } = await withContacts();
+    const r = await request(app()).post("/api/safety/checkins").set(auth(u.token)).send({ minutes: 30, geo: { lat: 30.3, lng: 78.05 } });
+    expect(r.status).toBe(201);
+    expect(await runCheckInAlerts(Date.now() + 20 * 60_000)).toBe(0);
+    expect(await runCheckInAlerts(Date.now() + 40 * 60_000)).toBe(1);
+    expect(await runCheckInAlerts(Date.now() + 50 * 60_000)).toBe(0);
+    const line = smsLog().split("\n").find(l => l.includes(c1) && l.includes("did not check in"))!;
+    expect(line).not.toContain(u.user.name);
+    expect(line).not.toContain("30.3");
+    const page = await request(app()).get(`/c/${line.match(/\/c\/([\w.-]+)/)![1]}`);
+    expect(page.text).toContain(u.user.name.split(" ")[0]);
+    expect((await request(app()).get("/c/forged.token-value-xx")).text).toContain("expired");
+  });
+
+  it("'I'm safe' stops the alert; erasure removes check-ins", async () => {
+    const { runCheckInAlerts } = await import("../server/safety/checkin");
+    const { u } = await withContacts();
+    const r = await request(app()).post("/api/safety/checkins").set(auth(u.token)).send({ minutes: 10 });
+    await request(app()).put(`/api/safety/checkins/${r.body.id}/done`).set(auth(u.token)).send({});
+    expect(await runCheckInAlerts(Date.now() + 60 * 60_000)).toBe(0);
+    storage.eraseUser(u.user.id, "test");
+    expect(storage.s.checkins.some(c => c.userId === u.user.id)).toBe(false);
+  });
+});

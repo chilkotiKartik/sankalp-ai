@@ -17,7 +17,7 @@ import {
   citizenConfirm as smConfirm, citizenReject as smReject, TERMINAL, type TransitionStep, type ActorKind,
 } from "./domain/complaintState";
 import type {
-  AppUser, AuthToken, Complaint, ProofVerification, ComplaintCategory, SOSAlert, Ward, Worker, PoliceStation, GeoPoint, RiskZone,
+  AppUser, AuthToken, Complaint, ProofVerification, CheckIn, ComplaintCategory, SOSAlert, Ward, Worker, PoliceStation, GeoPoint, RiskZone,
   Announcement, Poll, Petition, RTIRequest, NightSafetyZone, PatrolVan, SafetyIncident, CivicEvent, ChatMessage,
   BudgetItem, AuditLog, EmergencyService, PredictiveAlert, MediaRecord, ComplaintEvent, ReviewTask, DeptCredential,
   ConsentRecord, ErasureRequest,
@@ -136,13 +136,14 @@ interface State {
   auditAnchor?: { seq: number; hash: string };
   consents: ConsentRecord[];
   erasureRequests: ErasureRequest[];
+  checkins: CheckIn[];
 }
 
 const emptyState = (): State => ({
   users: [], tokens: [], sessions: [], refreshTokens: [], otps: [], workerPins: [], deptCredentials: [], complaints: [], complaintEvents: [], sosAlerts: [],
   workers: [], patrolVans: [], safetyIncidents: [], nightSafetyZones: [], announcements: [], polls: [], petitions: [],
   rtis: [], civicEvents: [], chatMessages: [], budgetItems: [], auditLogs: [], media: [], reviewTasks: [], pushTokens: [],
-  demoRiskZones: [], consents: [], erasureRequests: [],
+  demoRiskZones: [], consents: [], erasureRequests: [], checkins: [],
 });
 
 export class AppStorage {
@@ -388,6 +389,8 @@ export class AppStorage {
       eventsRsvped: this.s.civicEvents.filter(e => e.rsvpIds.includes(userId)).map(e => ({ id: e.id, title: e.title })),
       complaintsUpvoted: this.s.complaints.filter(c => c.upvotedBy.includes(userId)).map(c => ({ id: c.id })),
       workerProfile: this.s.workers.filter(w => w.userId === userId || w.phone === u.phone),
+      trustedContacts: u.trustedContacts ?? [],
+      checkins: this.s.checkins.filter(c => c.userId === userId),
     };
   }
 
@@ -429,6 +432,7 @@ export class AppStorage {
     this.s.workers = this.s.workers.filter(w => !(w.userId === userId || w.phone === u.phone));
     this.s.workerPins = this.s.workerPins.filter(p => p.phone !== u.phone);
     this.s.otps = this.s.otps.filter(o => o.phone !== u.phone);
+    this.s.checkins = this.s.checkins.filter(c => c.userId !== userId);
     // Originals keep EXIF/GPS: delete them. The stripped public copy stays with the (pseudonymised) complaint.
     const drv = mediaDriver();
     for (const m of this.s.media.filter(x => x.ownerId === userId)) {

@@ -493,6 +493,18 @@ export interface ConsentRecord {
   at: string;
 }
 
+/** P6.3 safety check-in: if the user does not confirm by dueAt (+ grace), trusted contacts are alerted. */
+export interface CheckIn {
+  id: string;
+  userId: string;
+  startedAt: string;
+  dueAt: string;
+  note?: string;
+  lastGeo?: GeoPoint;
+  status: "active" | "done" | "alerted" | "cancelled";
+  alertedAt?: string;
+}
+
 export interface ErasureRequest {
   id: string;
   userRef: string; // pseudonymous reference — the user record may already be gone

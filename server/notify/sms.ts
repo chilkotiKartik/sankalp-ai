@@ -18,7 +18,7 @@ export const TEMPLATES: Record<SmsTemplate, string> = {
   otp: "Your SANKALP verification code is {#var#}. Valid 5 minutes. Do not share it.",
   status_update: "SANKALP: Complaint #{#var#} has an update. Open the app to view.",
   sos_fallback: "SANKALP SOS: Help needed. Location: {#var#}. Call 112.",
-  checkin_alert: "SANKALP: A contact did not check in on time. Please call them.",
+  checkin_alert: "SANKALP: someone who listed you as a trusted contact did not check in on time. Details: {#var#} . If you cannot reach them, call 112.",
   verify_request: "SANKALP: Was complaint #{#var#} fixed? Reply 1 for YES, 2 for NO.",
   ops_alert: "SANKALP OPS: service {#var#} is {#var#}. Check the status page.",
   // P5.2 basic-phone channels (register each with DLT before use). Variables: ticket ids, states, URLs — never PII.
