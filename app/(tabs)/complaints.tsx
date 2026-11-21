@@ -1,4 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { OfflineBanner } from "@/components/OfflineBanner";
+import { compressPhoto } from "@/lib/photo";
+import { VoiceInput } from "@/components/VoiceInput";
+import { useI18n } from "@/lib/i18n";
 import {
   View, Text, StyleSheet, FlatList, Pressable, TextInput,
   Modal, ScrollView, Platform, ActivityIndicator, Animated, Alert, Image,
@@ -173,27 +177,13 @@ function ComplaintCard({ item, onPress, onUpvote, userId, index = 0 }: {
 
 type SortKey = "latest" | "priority" | "upvotes" | "ai_score";
 
-function startVoiceInput(onResult: (text: string) => void, onEnd: () => void) {
-  if (Platform.OS !== "web") { Alert.alert("Voice Input", "Voice input is available on web. On mobile, please type your complaint."); onEnd(); return; }
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  if (!SpeechRecognition) { Alert.alert("Not Supported", "Voice input is not supported in this browser."); onEnd(); return; }
-  const recognition = new SpeechRecognition();
-  recognition.lang = "en-IN";
-  recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.onresult = (event: any) => {
-    const transcript = event.results[0][0].transcript;
-    onResult(transcript);
-  };
-  recognition.onend = () => onEnd();
-  recognition.onerror = () => onEnd();
-  recognition.start();
-}
+// The browser Web Speech API was removed: in Chrome it sends audio to Google (data residency). See VoiceInput (Sarvam STT).
 
 export default function ComplaintsScreen() {
   const insets = useSafeAreaInsets();
   const { complaints, submitComplaint, upvoteComplaint, resolveComplaint, rejectComplaint, cancelComplaint, isLoading, refresh } = useApp();
   const { user, token } = useAuth();
+  const { t } = useI18n();
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -216,7 +206,6 @@ export default function ComplaintsScreen() {
   const [newGeo, setNewGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [aiDetected, setAiDetected] = useState("");
-  const [isListening, setIsListening] = useState(false);
   const [detectingLoc, setDetectingLoc] = useState(false);
   const [photoAiResult, setPhotoAiResult] = useState<{ status?: string; isReal: boolean | null; confidence: number | null; reason: string } | null>(null);
   const [photoAiLoading, setPhotoAiLoading] = useState(false);
@@ -253,14 +242,6 @@ export default function ComplaintsScreen() {
       if (detected) { setAiDetected(detected); setNewCat(detected); }
     }
   }, [newDesc]);
-
-  const handleVoiceInput = useCallback(() => {
-    setIsListening(true);
-    startVoiceInput(
-      (text) => { setNewDesc(prev => prev ? prev + " " + text : text); },
-      () => setIsListening(false)
-    );
-  }, []);
 
   const handleDetectLocation = useCallback(async () => {
     setDetectingLoc(true);
@@ -324,11 +305,13 @@ export default function ComplaintsScreen() {
     Alert.alert("Attach Photo", "Choose source", [
       { text: "Camera", onPress: async () => {
         const r = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.6, base64: true, exif: false });
-        if (!r.canceled && r.assets[0]?.base64) { const d = `data:image/jpeg;base64,${r.assets[0].base64}`; setNewPhoto(r.assets[0].uri); setNewPhotoData(d); runAiDetection(d); }
+        // m16: resize to ≤ 1600 px / JPEG 0.7 on the device before upload
+        if (!r.canceled && r.assets[0]) { const a0 = r.assets[0]; const d = await compressPhoto(a0.uri, a0.width, a0.height, a0.base64 ?? undefined); setNewPhoto(a0.uri); setNewPhotoData(d); runAiDetection(d); }
       }},
       { text: "Gallery", onPress: async () => {
         const r = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.6, base64: true, exif: false });
-        if (!r.canceled && r.assets[0]?.base64) { const d = `data:image/jpeg;base64,${r.assets[0].base64}`; setNewPhoto(r.assets[0].uri); setNewPhotoData(d); runAiDetection(d); }
+        // m16: resize to ≤ 1600 px / JPEG 0.7 on the device before upload
+        if (!r.canceled && r.assets[0]) { const a0 = r.assets[0]; const d = await compressPhoto(a0.uri, a0.width, a0.height, a0.base64 ?? undefined); setNewPhoto(a0.uri); setNewPhotoData(d); runAiDetection(d); }
       }},
       { text: "Cancel", style: "cancel" },
     ]);
@@ -341,8 +324,8 @@ export default function ComplaintsScreen() {
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!newDesc.trim()) { Alert.alert("Required", "Please describe the issue"); return; }
-    if (!newLoc.trim()) { Alert.alert("Required", "Please enter location or use GPS"); return; }
+    if (!newDesc.trim()) { Alert.alert(t("complaint.required"), t("complaint.needDescription")); return; }
+    if (!newLoc.trim()) { Alert.alert(t("complaint.required"), t("complaint.needLocation")); return; }
     setSubmitting(true);
     try {
       const locStr = newLandmark.trim() ? `${newLoc.trim()} (near ${newLandmark.trim()})` : newLoc.trim();
@@ -376,10 +359,10 @@ export default function ComplaintsScreen() {
       } as any);
       setShowSubmit(false);
       resetForm();
-      if (saved?.queued) Alert.alert("Saved", "No internet right now. Your complaint is saved on this phone and will be sent automatically when you are online.\n\nसहेज लिया गया — इंटरनेट मिलते ही अपने-आप भेज दिया जाएगा।");
+      if (saved?.queued) Alert.alert(t("complaint.savedTitle"), t("complaint.savedOffline"));
     } catch (err: any) { Alert.alert("Error", err.message); }
     finally { setSubmitting(false); }
-  }, [newCat, newDesc, newLoc, newLandmark, newPriority, newPhotoData, newGeo, token, submitComplaint, user, resetForm]);
+  }, [newCat, newDesc, newLoc, newLandmark, newPriority, newPhotoData, newGeo, token, submitComplaint, user, resetForm, t]);
 
   const handleUpvote = useCallback(async (id: string) => { try { await upvoteComplaint(id); } catch {} }, [upvoteComplaint]);
 
@@ -545,6 +528,8 @@ export default function ComplaintsScreen() {
         </ScrollView>
       </View>
 
+      {/* m14 / P5.1: reports waiting in the offline outbox */}
+      <OfflineBanner token={token} onSent={refresh} />
       {/* List */}
       <FlatList
         data={filtered}
@@ -900,19 +885,9 @@ export default function ComplaintsScreen() {
                       multiline
                       numberOfLines={3}
                     />
-                    <Pressable
-                      onPress={handleVoiceInput}
-                      style={{ position: "absolute", right: 10, top: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: isListening ? "#E64A19" : "#F3F4F6", alignItems: "center", justifyContent: "center" }}
-                    >
-                      <Ionicons name={isListening ? "radio" : "mic"} size={16} color={isListening ? "#fff" : "#6B7280"} />
-                    </Pressable>
                   </View>
-                  {isListening && (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF8E7", borderRadius: 8, padding: 8, marginTop: 6 }}>
-                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#E64A19" }} />
-                      <Text style={{ color: "#E64A19", fontSize: 12, fontFamily: "Inter_600SemiBold" }}>Listening... speak now</Text>
-                    </View>
-                  )}
+                  {/* P5.5 voice-first: speech → editable text (Sarvam STT, India) */}
+                  <VoiceInput token={token} onText={(text) => setNewDesc(prev => (prev ? `${prev} ${text}` : text))} />
                   {aiDetected && (
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF8E7", borderRadius: 10, padding: 10, marginTop: 8, borderWidth: 1, borderColor: "#FED7AA" }}>
                       <Text style={{ fontSize: 14 }}>🤖</Text>
@@ -1072,7 +1047,7 @@ export default function ComplaintsScreen() {
                 </View>
 
                 {/* ── SUBMIT ── */}
-                <Pressable onPress={handleSubmit} disabled={submitting} style={cs.submitBtn}>
+                <Pressable onPress={handleSubmit} disabled={submitting} style={cs.submitBtn} accessibilityRole="button" accessibilityLabel={t("complaint.submit")} accessibilityState={{ busy: submitting }}>
                   {submitting ? <ActivityIndicator color="#fff" /> : (
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                       <Ionicons name="paper-plane" size={18} color="#fff" />

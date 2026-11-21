@@ -1,10 +1,12 @@
+import { decodeBase64Payload, sniff } from "../lib/media";
 import { maskPII } from "../ai/pii";
 import { stateLabel } from "../data/reference";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage, assignDepartment } from "../storage";
 import { route, none } from "../lib/route";
-import { chat, vision, extractJson, type Msg } from "../ai/gateway";
+import { chat, vision, stt, extractJson, type Msg } from "../ai/gateway";
+import { AppError } from "../lib/errors";
 import { rulesReply } from "../ai/rules";
 import { aiLimiter } from "./limits";
 import { CATEGORIES, text } from "./common";
@@ -43,6 +45,21 @@ const imageAnalysis = z.object({
 }).strip();
 
 export function registerAiRoutes(app: Express) {
+  // P5.5 voice-first complaint: speech → editable text. Sarvam STT (India) only; audio is not stored.
+  route(app, {
+    method: "post", path: "/api/ai/transcribe", auth: "user", permission: "ai.transcribe",
+    middleware: [aiLimiter],
+    params: none, query: none,
+    body: z.object({ audioBase64: z.string().min(16).max(8 * 1024 * 1024), lang: z.enum(["hi-IN", "en-IN"]).default("hi-IN") }),
+    handler: async ({ body }) => {
+      const buf = decodeBase64Payload(body.audioBase64, 6 * 1024 * 1024);
+      const kind = sniff(buf);
+      if (!kind || kind.kind !== "audio") throw new AppError(422, "UNSUPPORTED_MEDIA", "Only M4A, AAC, WebM, Ogg or WAV audio is accepted");
+      const r = await stt(buf, kind.mime, body.lang);
+      return r ? { status: "transcribed", transcript: r.transcript, provider: r.provider } : { status: "unavailable", transcript: null };
+    },
+  });
+
   route(app, {
     method: "post", path: "/api/ai/chat", auth: "user", permission: "ai.chat",
     middleware: [aiLimiter],

@@ -1,3 +1,5 @@
+import { compiledPortal } from "./lib/portal-compile";
+import compression from "compression";
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import helmet from "helmet";
 import { createServer, type Server } from "node:http";
@@ -124,7 +126,7 @@ function proxyToMetro(req: Request, res: Response) {
 function portalFile(file: string) {
   const full = path.join(ROOT, "server", "web", file);
   return (_req: Request, res: Response) => {
-    const html = fs.readFileSync(full, "utf8");
+    const html = compiledPortal(full);
     const cfg = { demoMode: config().DEMO_MODE, mapTileUrl: config().mapTileUrl };
     const inject = `<script>window.__SANKALP__=${JSON.stringify(cfg).replace(/</g, "\\u003c")};</script><script src="/web/vendor/sankalp-common.js"></script>`;
     res.setHeader("Cache-Control", "no-store");
@@ -177,6 +179,8 @@ function setupStatic(app: Express) {
   }));
 
   app.use(express.static(path.join(ROOT, "public"), { dotfiles: "deny", maxAge: "7d" }));
+  // P5.6: content-hashed bundle files never change — cache them for a year (2G users download once).
+  app.use("/_expo/static", express.static(path.join(webDir, "_expo", "static"), { dotfiles: "deny", index: false, immutable: true, maxAge: "365d" }));
   app.use(express.static(webDir, { dotfiles: "deny", index: false }));
 
   const dehash = (req: Request, _res: Response, next: NextFunction) => {
@@ -206,6 +210,11 @@ export interface Built { app: Express; server: Server }
 
 export function createApp(): Built {
   const app = express();
+  // P5.6: gzip responses (≈4× smaller on 2G). SSE streams are excluded — they must not be buffered.
+  app.use(compression({
+    threshold: 1024,
+    filter: (req, res) => !req.path.endsWith("/stream") && !String(res.getHeader("Content-Type") ?? "").includes("text/event-stream") && compression.filter(req, res),
+  }));
   app.disable("x-powered-by");
   app.set("trust proxy", config().TRUST_PROXY);
   setupSecurityHeaders(app);

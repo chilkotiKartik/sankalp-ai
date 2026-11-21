@@ -104,10 +104,10 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P5.1 offline queue — AsyncStorage outbox, clientRequestId idempotency, backoff, failed list, "Saved — will send when online"
 - [x] P5.2 basic-phone channels — SMS keywords (SANKALP/STATUS/AGREE/HELP), missed call→IVR→Sarvam STT→ticket (fail closed to human transcription), docs/CHANNELS.md
 - [x] P5.3 WhatsApp — citizen-initiated webhook + driver interface (off by default; foreign Cloud API flagged), no PII in templates
-- [ ] P5.4 i18n
-- [ ] P5.5 voice complaint
-- [ ] P5.6 performance
-- [ ] P5.7 accessibility + m14–m17
+- [x] P5.4 i18n — locales/{en,hi,gbm,kfy}.json, lib/i18n.ts, tabs/profile/complaint flow localised, i18n:check in CI, Sarvam translate scaffold for 22 languages (gbm/kfy needs_review)
+- [x] P5.5 voice complaint — mic → /api/ai/transcribe (Sarvam STT, audio not stored) → editable text; browser Web Speech (Google) removed + egress-audit guard
+- [~] P5.6 performance — gzip, immutable caching, server-compiled portal JSX (2G portal load 23–27 s → 3–5 s); npm run perf + docs/PERFORMANCE.md; native cold start/APK size need a device build
+- [x] P5.7 accessibility + m14–m17 — axe WCAG 2.1 AA: 0 violations on all 7 portals (npm run a11y, in CI); app: offline banner + retry (m14), a11y labels/44px targets on SOS/submit/voice/language (m15), on-device photo resize ≤1600px/0.7 (m16), +91 normalisation & PIN code validation (m17)
 - [ ] P5.gate
 
 ## Phase 6 — Safety and disaster

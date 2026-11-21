@@ -48,6 +48,10 @@ for (const f of files) {
     for (const [re, why] of rules) if (re.test(src)) violations.push(`${f}: ${why}`);
     if (/expo-server-sdk/.test(src) && !f.endsWith(path.join("notify", "push.ts"))) violations.push(`${f}: push SDK used outside server/notify/push.ts`);
   }
+  // P5.5: browser speech recognition streams audio to the browser vendor's cloud (Google for Chrome) — not allowed.
+  if (/(?:webkit)?SpeechRecognition\b/.test(src) && !f.endsWith("egress-audit.ts") && !/Web Speech API was removed/.test(src.split("\n").find(l => /SpeechRecognition/.test(l)) ?? "")) {
+    violations.push(`${f}: browser SpeechRecognition sends audio abroad — use components/VoiceInput (Sarvam STT)`);
+  }
 }
 
 const unknown = [...hosts.keys()].filter(h => !allowed.has(h)).sort();

@@ -1037,7 +1037,7 @@ function SOSScreenInner() {
               <Pressable onPress={() => setShowModal(false)} style={s.cancelBtn}>
                 <Text style={s.cancelText}>Cancel</Text>
               </Pressable>
-              <Pressable onPress={handleSOS} disabled={isTriggering} style={{ flex: 2, borderRadius: 14, overflow: "hidden" }}>
+              <Pressable onPress={handleSOS} disabled={isTriggering} accessibilityRole="button" accessibilityLabel="Send SOS now" accessibilityHint="Alerts the police control room with your location" accessibilityState={{ busy: isTriggering }} style={{ flex: 2, borderRadius: 14, overflow: "hidden" }}>
                 <LinearGradient colors={["#7F1D1D", "#EF4444"]} style={s.sendBtn}
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                   {isTriggering
@@ -1192,6 +1192,9 @@ function SOSScreenInner() {
                   onPressIn={() => Animated.spring(btnScale, { toValue: 0.88, friction: 6, useNativeDriver: false }).start()}
                   onPressOut={() => Animated.spring(btnScale, { toValue: 1, friction: 4, useNativeDriver: false }).start()}
                   onPress={() => setShowModal(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Emergency SOS"
+                  accessibilityHint="Opens the SOS screen to alert police with your location"
                   style={s.sosBtn}
                 >
                   <LinearGradient colors={["#7F1D1D", "#B91C1C", "#EF4444"]} style={s.sosBtnGrad}
@@ -1413,6 +1416,8 @@ function SOSScreenInner() {
                   <Pressable
                     onPressIn={handleWomenLongPressStart}
                     onPressOut={handleWomenLongPressEnd}
+                    accessibilityRole="button"
+                    accessibilityLabel="Women safety SOS: hold for 2 seconds"
                     style={({ pressed }) => [s.bigMethodCard, s.holdCard, pressed && { opacity: 0.82 }]}
                   >
                     {/* Circular fill progress */}

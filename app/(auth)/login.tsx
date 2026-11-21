@@ -1,4 +1,5 @@
 import { useRuntimeConfig } from "@/lib/runtime-config";
+import { normalizeIndianMobile, isIndianMobile } from "@/lib/india";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, TextInput, Pressable,
@@ -293,11 +294,12 @@ export default function LoginScreen() {
   ]).start();
 
   const handleLogin = async (overridePhone?: string, overridePin?: string) => {
-    const p = (overridePhone ?? phone).trim();
+    const p = normalizeIndianMobile((overridePhone ?? phone).trim()); // m17
     const n = overridePin ?? pin;
     setError("");
     if (overridePhone) { setPhone(overridePhone); setPin(overridePin ?? ""); }
     if (!p) { setError("Please enter your mobile number"); shake(); return; }
+    if (!isIndianMobile(p)) { setError("Enter a valid 10-digit Indian mobile number"); shake(); return; }
     if (p.length !== 10) { setError("Mobile number must be 10 digits"); shake(); return; }
     if (n.length !== PIN_DIGITS) { setError("Please enter your 6-digit PIN"); shake(); return; }
     setLoading(true);

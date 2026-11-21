@@ -3,8 +3,10 @@ import { Platform, StyleSheet, View } from "react-native";
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useApp } from "@/context/AppContext";
+import { useI18n } from "@/lib/i18n";
 
 export default function TabLayout() {
+  const { t } = useI18n();
   const { getStats } = useApp();
   const stats = getStats();
   const isWeb = Platform.OS === "web";
@@ -39,7 +41,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("tab.home"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
           ),
@@ -48,7 +50,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="complaints"
         options={{
-          title: "Reports",
+          title: t("tab.reports"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "document-text" : "document-text-outline"} size={22} color={color} />
           ),
@@ -57,7 +59,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="sos"
         options={{
-          title: "SOS",
+          title: t("tab.sos"),
           tabBarBadge: stats.sos > 0 ? stats.sos : undefined,
           tabBarBadgeStyle: { backgroundColor: "#EF4444", fontSize: 9 },
           tabBarIcon: ({ color, focused }) => (
@@ -68,7 +70,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="map"
         options={{
-          title: "District Map",
+          title: t("tab.map"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "map" : "map-outline"} size={22} color={color} />
           ),
@@ -77,7 +79,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: t("tab.profile"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "person-circle" : "person-circle-outline"} size={22} color={color} />
           ),

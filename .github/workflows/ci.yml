@@ -29,6 +29,8 @@ jobs:
         run: npm run lint
       - name: Tests (with coverage)
         run: npm run test:coverage
+      - name: Locale completeness (en/hi complete; gbm/kfy needs_review)
+        run: npm run i18n:check
       - name: AI eval (fails on a >2-point accuracy drop vs eval/baseline.json)
         run: npm run eval
       - name: Egress audit (data stays in India)
@@ -49,6 +51,10 @@ jobs:
           npx tsx server/index.ts > $RUNNER_TEMP/server.log 2>&1 &
           for i in $(seq 1 60); do curl -sf localhost:5099/healthz && break; sleep 1; done
           SMOKE_BASE_URL=http://localhost:5099 npm run smoke
+      - name: Accessibility (axe, WCAG 2.1 AA) on the portals
+        run: |
+          npx playwright install --with-deps chromium
+          A11Y_BASE_URL=http://localhost:5099 npm run a11y
       - name: Smoke test on the Postgres driver (PGlite)
         run: |
           export JWT_SECRET=$(openssl rand -hex 32) DEPT_JWT_SECRET=$(openssl rand -hex 32) DATA_DIR=$RUNNER_TEMP/pg PORT=5098 NODE_ENV=development STORAGE_DRIVER=postgres DATABASE_URL=pglite:$RUNNER_TEMP/pg/db

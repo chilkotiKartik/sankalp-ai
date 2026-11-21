@@ -208,9 +208,9 @@ function RTIPortal() {
                 <label>Topic / Issue</label>
                 <input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="e.g. Road repair budget in Dehradun, Water supply contamination"/>
                 <label>Department</label>
-                <select value={dept} onChange={e=>setDept(e.target.value)}>{DEPARTMENTS.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select>
+                <select aria-label="Department" value={dept} onChange={e=>setDept(e.target.value)}>{DEPARTMENTS.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select>
                 <label>District</label>
-                <select value={district} onChange={e=>setDistrict(e.target.value)}>{UK_DISTRICTS.map(d=><option key={d}>{d}</option>)}</select>
+                <select aria-label="District" value={district} onChange={e=>setDistrict(e.target.value)}>{UK_DISTRICTS.map(d=><option key={d}>{d}</option>)}</select>
                 <button className="btn btn-ai" onClick={generateAIDraft} disabled={aiLoading||!topic.trim()}>
                   {aiLoading?"✨ Generating Draft...":"✨ Generate AI Draft"}
                 </button>
@@ -250,7 +250,7 @@ function RTIPortal() {
                 {[["State Information Commission","0135-2784480"],["DOIT Uttarakhand","0135-2669764"],["CM Helpline","1905"],["Anti-Corruption","1064"]].map(([n,p])=>(
                   <div key={n} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F1F5F9",fontSize:13}}>
                     <span style={{color:"#64748B"}}>{n}</span>
-                    <a href={`tel:${p}`} style={{color:"#FF9933",fontWeight:700,textDecoration:"none"}}>{p}</a>
+                    <a href={`tel:${p}`} style={{color:"#B45309",fontWeight:700,textDecoration:"none"}}>{p}</a>
                   </div>
                 ))}
               </div>

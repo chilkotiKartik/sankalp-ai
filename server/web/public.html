@@ -41,7 +41,7 @@ h1{font-size:28px;font-weight:800;color:#0B1C3F;margin-bottom:6px}
 .dept-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
 .dept-icon{font-size:28px;margin-bottom:8px}
 .dept-name{font-size:13px;font-weight:700;color:#1E293B;margin-bottom:2px}
-.dept-hindi{font-size:11px;color:#94A3B8;margin-bottom:10px}
+.dept-hindi{font-size:11px;color:#475569 !important;margin-bottom:10px}
 .dept-rate{font-size:28px;font-weight:800;margin-bottom:4px}
 .grade-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
 .progress-bar{background:#F1F5F9;border-radius:4px;height:6px;margin-top:10px;overflow:hidden}
@@ -50,18 +50,18 @@ h1{font-size:28px;font-weight:800;color:#0B1C3F;margin-bottom:6px}
 .ward-row{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid #F1F5F9;transition:background .15s}
 .ward-row:last-child{border-bottom:none}
 .ward-row:hover{background:#F8FAFC}
-.ward-rank{font-size:12px;font-weight:700;color:#94A3B8;width:24px;text-align:center}
+.ward-rank{font-size:12px;font-weight:700;color:#64748B;width:24px;text-align:center}
 .score-circle{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
 .ward-name{font-size:14px;font-weight:600;color:#1E293B;flex:1}
-.ward-dist{font-size:12px;color:#94A3B8}
+.ward-dist{font-size:12px;color:#64748B}
 .tab-bar{display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid #E2E8F0;padding-bottom:0}
 .tab-btn{padding:8px 16px;font-size:13px;font-weight:600;color:#64748B;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
 .tab-btn.active{color:#0B1C3F;border-bottom-color:#FF9933}
-.live-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#22C55E;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.04em}
+.live-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#166534;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.04em}
 .live-dot{width:7px;height:7px;border-radius:50%;background:#22C55E;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.refresh-info{font-size:11px;color:#94A3B8;display:inline-flex;align-items:center;gap:5px}
-footer{background:#0B1C3F;color:#475569;padding:24px 32px;text-align:center;font-size:13px;margin-top:48px}
+.refresh-info{font-size:11px;color:#64748B;display:inline-flex;align-items:center;gap:5px}
+footer{background:#0B1C3F;color:#CBD5E1;padding:24px 32px;text-align:center;font-size:13px;margin-top:48px}
 footer a{color:#93C5FD;text-decoration:none}
 </style>
 </head>
@@ -204,7 +204,7 @@ function PublicPortal() {
                       <span>Pending: <strong style={{color:(d.pending||0)>0?"#F59E0B":"#1E293B"}}>{d.pending||0}</strong></span>
                     </div>
                     <div className="progress-bar"><div className="progress-fill" style={{width:animated?`${d.resolutionRate}%`:"0%",background:d.color||"#64748B"}}/></div>
-                    <div style={{marginTop:8,fontSize:11,color:"#94A3B8"}}>📞 {d.helpline} · SLA: {d.slaHours}h</div>
+                    <div style={{marginTop:8,fontSize:11,color:"#64748B"}}>📞 {d.helpline} · SLA: {d.slaHours}h</div>
                   </div>
                 ))}
               </div>
@@ -220,7 +220,7 @@ function PublicPortal() {
                       <div className="ward-name">{w.name}</div>
                       <div className="ward-dist">{w.district}</div>
                     </div>
-                    <div style={{fontSize:12,color:"#94A3B8",textAlign:"right"}}>
+                    <div style={{fontSize:12,color:"#64748B",textAlign:"right"}}>
                       <div>{w.resolvedCount||0}/{w.complaintCount||0} resolved</div>
                     </div>
                   </div>
@@ -247,7 +247,7 @@ function PublicPortal() {
                   </div>
                 ))}
                 <div className="progress-bar"><div className="progress-fill" style={{width:animated?`${d.resolutionRate}%`:"0%",background:d.color||"#64748B"}}/></div>
-                <div style={{marginTop:10,fontSize:11,color:"#94A3B8"}}>📞 {d.helpline} · ⏱ SLA: {d.slaHours}h</div>
+                <div style={{marginTop:10,fontSize:11,color:"#64748B"}}>📞 {d.helpline} · ⏱ SLA: {d.slaHours}h</div>
               </div>
             ))}
           </div>

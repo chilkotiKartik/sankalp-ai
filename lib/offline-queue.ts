@@ -62,13 +62,14 @@ type Sender = (path: string, method: string, body: unknown) => Promise<{ ok: boo
 
 let flushing: Promise<{ sent: number; failed: number }> | null = null;
 
-export function flush(send: Sender, onSent?: (item: OutboxItem, result: unknown) => void): Promise<{ sent: number; failed: number }> {
+export function flush(send: Sender, onSent?: (item: OutboxItem, result: unknown) => void, now = false): Promise<{ sent: number; failed: number }> {
   if (flushing) return flushing;
   flushing = (async () => {
     let sent = 0, bad = 0;
-    const now = Date.now();
+    const startedAt = Date.now();
+    const force = now;
     for (const item of await read(KEY)) {
-      if (item.nextAttemptAt > now) continue;
+      if (!force && item.nextAttemptAt > startedAt) continue;
       let keep = true;
       try {
         const res = await send(item.path, item.method, { ...item.body, clientRequestId: item.id });

@@ -5,6 +5,7 @@ import {
   Platform, Animated, Alert, Image, Switch, Modal,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useI18n, LANGUAGES, type Lang } from "@/lib/i18n";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -52,16 +53,15 @@ export default function ProfileScreen() {
   const headerAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const [notifEnabled, setNotifEnabled] = useState(true);
-  const [language, setLanguage] = useState<"EN" | "HI">("EN");
+  const { lang: language, t, setLanguage: applyLanguage } = useI18n();
   const [showLangModal, setShowLangModal] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem("app_language").then(v => { if (v === "HI" || v === "EN") setLanguage(v); });
+    // language is loaded by lib/i18n (P5.4)
   }, []);
 
-  const switchLanguage = async (lang: "EN" | "HI") => {
-    setLanguage(lang);
-    await AsyncStorage.setItem("app_language", lang);
+  const switchLanguage = async (lang: Lang) => {
+    await applyLanguage(lang);
     setShowLangModal(false);
   };
 
@@ -249,10 +249,10 @@ export default function ProfileScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Language</Text>
-              <Text style={styles.settingDesc}>{language === "EN" ? "English" : "हिंदी (Hindi)"}</Text>
+              <Text style={styles.settingDesc}>{LANGUAGES.find(l => l.code === language)?.native}</Text>
             </View>
             <View style={[styles.langPill, { flexDirection: "row", alignItems: "center", gap: 5 }]}>
-              <Text style={styles.langPillText}>{language}</Text>
+              <Text style={styles.langPillText}>{language.toUpperCase()}</Text>
               <Ionicons name="chevron-down" size={10} color="#00A651" />
             </View>
           </Pressable>
@@ -262,16 +262,16 @@ export default function ProfileScreen() {
         <Modal visible={showLangModal} transparent animationType="fade" onRequestClose={() => setShowLangModal(false)}>
           <Pressable style={ls.langOverlay} onPress={() => setShowLangModal(false)}>
             <View style={ls.langCard}>
-              <Text style={ls.langTitle}>Choose Language</Text>
-              <Text style={ls.langSub}>Select your preferred app language</Text>
-              {[
-                { code: "EN" as const, label: "English", native: "English", flag: "🇬🇧", desc: "App in English" },
-                { code: "HI" as const, label: "Hindi", native: "हिंदी", flag: "🇮🇳", desc: "ऐप हिंदी में" },
-              ].map(lang => (
+              <Text style={ls.langTitle}>{t("lang.title")}</Text>
+              <Text style={ls.langSub}>{t("lang.subtitle")}</Text>
+              {LANGUAGES.map(l => ({ ...l, flag: l.code === "en" ? "🇬🇧" : "🇮🇳", desc: l.needsReview ? `${l.label} · ${t("lang.needsReview")}` : l.label })).map(lang => (
                 <Pressable
                   key={lang.code}
                   style={[ls.langOption, language === lang.code && ls.langOptionActive]}
                   onPress={() => switchLanguage(lang.code)}
+                  accessibilityRole="button"
+                  accessibilityLabel={lang.label}
+                  accessibilityState={{ selected: language === lang.code }}
                 >
                   <Text style={{ fontSize: 28 }}>{lang.flag}</Text>
                   <View style={{ flex: 1 }}>
@@ -286,9 +286,7 @@ export default function ProfileScreen() {
                 </Pressable>
               ))}
               <Text style={ls.langNote}>
-                {language === "HI"
-                  ? "✓ हिंदी लागू है — नमस्ते! स्वागत है SANKALP AI में"
-                  : "✓ English is active — All content displayed in English"}
+                {`✓ ${t("lang.active")}`}
               </Text>
             </View>
           </Pressable>

@@ -4,7 +4,19 @@ import { StateError } from "../storage";
 import { TransitionError } from "../domain/complaintState";
 import { AppError } from "../lib/errors";
 
-export const phone10 = z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number");
+/** m17: accepts "+91 98765-43210", "098765 43210", "919876543210" … and normalises to 10 digits. */
+export function normalizeIndianMobile(v: unknown): unknown {
+  if (typeof v !== "string") return v;
+  const d = v.replace(/[\s\-().]/g, "").replace(/^\+/, "");
+  if (/^91[6-9]\d{9}$/.test(d)) return d.slice(2);
+  if (/^0[6-9]\d{9}$/.test(d)) return d.slice(1);
+  return d;
+}
+export const phone10 = z.preprocess(normalizeIndianMobile, z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"));
+/** E.164 for SMS/IVR providers. */
+export const toE164 = (p10: string) => `+91${p10}`;
+/** m17: Indian PIN code — 6 digits, first digit 1–8. */
+export const pincode = z.string().trim().regex(/^[1-8]\d{5}$/, "Enter a valid 6-digit PIN code");
 export const pin6 = z.string().regex(/^\d{6}$/, "PIN must be 6 digits");
 export const geo = z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) });
 export const district = z.string().trim().min(2).max(60);

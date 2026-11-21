@@ -1,6 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
 import { Platform } from "react-native";
 import * as Location from "expo-location";
+import { compressPhoto } from "./photo";
 
 /**
  * Capture a proof photo for "mark fixed" (rule 4: proof before closure).
@@ -17,7 +18,7 @@ export async function captureProofPhoto(): Promise<string | null> {
         const f = input.files?.[0];
         if (!f) return resolve(null);
         const r = new FileReader();
-        r.onloadend = () => resolve(typeof r.result === "string" ? r.result : null);
+        r.onloadend = () => { if (typeof r.result !== "string") return resolve(null); compressPhoto(r.result).then(resolve, () => resolve(r.result as string)); };
         r.readAsDataURL(f);
       };
       input.click();
@@ -26,8 +27,9 @@ export async function captureProofPhoto(): Promise<string | null> {
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (!perm.granted) throw new Error("Camera permission is required to capture proof");
   const r = await ImagePicker.launchCameraAsync({ quality: 0.6, base64: true, exif: false, allowsEditing: false });
-  if (r.canceled || !r.assets[0]?.base64) return null;
-  return `data:image/jpeg;base64,${r.assets[0].base64}`;
+  if (r.canceled || !r.assets[0]) return null;
+  const a = r.assets[0];
+  return compressPhoto(a.uri, a.width, a.height, a.base64 ?? undefined); // m16
 }
 
 /** P3.1: device GPS at the moment of capture (best effort, never blocks the upload for more than ~6 s). */

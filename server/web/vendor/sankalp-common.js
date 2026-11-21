@@ -183,6 +183,10 @@
   }
 
   function onReady() {
+    // P5.7 (WCAG 1.4.1): links inside text blocks must not rely on colour alone (e.g. Leaflet attribution).
+    var st = document.createElement("style");
+    st.textContent = ".leaflet-control-attribution a{text-decoration:underline}";
+    document.head.appendChild(st);
     if (cfg.demoMode) {
       var b = document.createElement("div");
       b.textContent = "DEMO · simulated data";

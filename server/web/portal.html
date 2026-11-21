@@ -599,7 +599,7 @@ function LoginScreen({onLogin}){
             <form onSubmit={doLogin}>
               <div style={{marginBottom:14}}>
                 <label>Department</label>
-                <select className="select" value={deptId} onChange={e=>setDeptId(e.target.value)}>
+                <select aria-label="Department" className="select" value={deptId} onChange={e=>setDeptId(e.target.value)}>
                   {Object.values(DEPTS).map(d=><option key={d.id} value={d.id}>{d.icon} {d.name}</option>)}
                 </select>
               </div>
@@ -625,7 +625,7 @@ function LoginScreen({onLogin}){
               </div>
               {isReg&&<div style={{marginBottom:14}}>
                 <label>District</label>
-                <select className="select" value={district} onChange={e=>setDistrict(e.target.value)}>
+                <select aria-label="District" className="select" value={district} onChange={e=>setDistrict(e.target.value)}>
                   {DISTRICTS.map(d=><option key={d}>{d}</option>)}
                 </select>
               </div>}
@@ -1093,7 +1093,7 @@ function RTIPage({token,user,addToast}){
           </div>
           <div style={{marginBottom:18}}>
             <label>Target Department</label>
-            <select className="select" value={dept} onChange={e=>setDept(e.target.value)}>
+            <select aria-label="Department" className="select" value={dept} onChange={e=>setDept(e.target.value)}>
               {Object.values(DEPTS).map(d=><option key={d.id}>{d.name.replace('—',' –')} ({d.nameHindi})</option>)}
             </select>
           </div>
@@ -1914,11 +1914,11 @@ function AdminComplaints({complaints,token,addToast,onRefresh}){
     </div>
     <div style={{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap',alignItems:'center'}}>
       <input className="input" style={{width:240,flexShrink:0}} placeholder="🔍 Search ticket, description, location…" value={search} onChange={e=>setSearch(e.target.value)}/>
-      <select className="select" style={{width:150,flexShrink:0}} value={cf} onChange={e=>setCf(e.target.value)}>
+      <select aria-label="Choose an option" className="select" style={{width:150,flexShrink:0}} value={cf} onChange={e=>setCf(e.target.value)}>
         <option value="all">All Categories</option>
         {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
       </select>
-      <select className="select" style={{width:160,flexShrink:0}} value={df} onChange={e=>setDf(e.target.value)}>
+      <select aria-label="Choose an option" className="select" style={{width:160,flexShrink:0}} value={df} onChange={e=>setDf(e.target.value)}>
         <option value="all">All Districts</option>
         {DISTRICTS.map(d=><option key={d}>{d}</option>)}
       </select>
@@ -2075,7 +2075,7 @@ function AdminWorkers({workers}){
       <div style={{display:'flex',gap:4}}>
         {['all','active','idle','on_leave'].map(s=><button key={s} className={'btn btn-sm '+(sf===s?'btn-orange':'btn-ghost')} onClick={()=>setSf(s)}>{s==='all'?'All Status':s.replace('_',' ')}</button>)}
       </div>
-      <select className="select" style={{width:160}} value={df} onChange={e=>setDf(e.target.value)}>
+      <select aria-label="Choose an option" className="select" style={{width:160}} value={df} onChange={e=>setDf(e.target.value)}>
         <option value="all">All Districts</option>
         {[...new Set(workers.map(w=>w.district))].filter(Boolean).map(d=><option key={d}>{d}</option>)}
       </select>
@@ -2159,7 +2159,7 @@ function AdminAnnouncements({token,addToast,user}){
         </div>
         <div style={{marginBottom:14}}>
           <label>Type</label>
-          <select className="select" value={type} onChange={e=>setType(e.target.value)}>
+          <select aria-label="Emergency type" className="select" value={type} onChange={e=>setType(e.target.value)}>
             {['general','scheme','emergency','welfare','tender','holiday'].map(t=><option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
           </select>
         </div>

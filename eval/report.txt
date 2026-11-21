@@ -1,5 +1,5 @@
 Eval [dev]: 307 examples · method rules · AI status {"text":"rules","vision":"manual_review","speech":"none"}
-Accuracy: 78.2% · p95 latency 0.02 ms
+Accuracy: 78.2% · p95 latency 0.01 ms
 By language: en 66% (n=106) · hi 84% (n=92) · hinglish 75% (n=55) · garhwali 100% (n=27) · kumaoni 93% (n=27)
 Per class (precision / recall):
   disaster       P 100%  R  64%  (n=22)
@@ -34,7 +34,7 @@ tree              0     0     2     0     0     0     1     0     0     0     1 
 water             0     0     0     0     0     0     6     0     0     0     0     0     0    18
 
 Eval [holdout]: 36 examples · method rules · AI status {"text":"rules","vision":"manual_review","speech":"none"}
-Accuracy: 77.8% · p95 latency 0.02 ms
+Accuracy: 77.8% · p95 latency 0.01 ms
 By language: en 79% (n=14) · hi 86% (n=14) · hinglish 63% (n=8)
 Per class (precision / recall):
   disaster       P 100%  R 100%  (n=2)

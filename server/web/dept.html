@@ -327,7 +327,7 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
 
       <div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:4}}>
         <label>Update Status</label>
-        <select className="select" style={{marginBottom:12}} value={status} onChange={e=>setStatus(e.target.value)}>
+        <select aria-label="Status" className="select" style={{marginBottom:12}} value={status} onChange={e=>setStatus(e.target.value)}>
           {['in_progress','resolved'].map(s=><option key={s} value={s}>{s==='resolved'?'Fixed — submit proof photo':SL[s]}</option>)}
         </select>
         {status==='resolved'&&<div style={{marginBottom:12}}>
@@ -497,10 +497,10 @@ function ComplaintsPage({token,dept,complaints,newIds,onRefresh,addToast}){
     <div className="card" style={{marginBottom:16}}>
       <div style={{display:'flex',gap:10,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
         <input className="search" placeholder="🔍 Search complaints, ticket IDs, locations…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:200}}/>
-        <select className="select" value={distFilter} onChange={e=>setDistFilter(e.target.value)} style={{width:'auto',minWidth:160}}>
+        <select aria-label="Filter by district" className="select" value={distFilter} onChange={e=>setDistFilter(e.target.value)} style={{width:'auto',minWidth:160}}>
           {UK_DISTRICTS.map(d=><option key={d} value={d}>{d}{d!=='All Districts'&&distCounts[d]?` (${distCounts[d]})`:''}</option>)}
         </select>
-        <select className="select" value={sort} onChange={e=>setSort(e.target.value)} style={{width:'auto',minWidth:130}}>
+        <select aria-label="Sort order" className="select" value={sort} onChange={e=>setSort(e.target.value)} style={{width:'auto',minWidth:130}}>
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
           <option value="priority">Priority</option>
@@ -663,7 +663,7 @@ function WorkersPage({token,dept}){
     <div className="card" style={{marginBottom:16}}>
       <div style={{display:'flex',gap:10,marginBottom:12,flexWrap:'wrap'}}>
         <input className="search" placeholder="🔍 Search by name, ward, district…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:180}}/>
-        <select className="select" value={distFilter} onChange={e=>setDistFilter(e.target.value)} style={{width:'auto',minWidth:140}}>
+        <select aria-label="Filter by district" className="select" value={distFilter} onChange={e=>setDistFilter(e.target.value)} style={{width:'auto',minWidth:140}}>
           {UK_DISTS_W.map(d=><option key={d} value={d}>{d}</option>)}
         </select>
       </div>
@@ -1102,7 +1102,7 @@ function AnnouncementsPage({token,dept,announcements,onRefresh,addToast}){
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:14}}>
         <div>
           <label>Target District</label>
-          <select className="select" value={form.targetDistrict} onChange={e=>setForm(f=>({...f,targetDistrict:e.target.value}))}>
+          <select aria-label="Target district" className="select" value={form.targetDistrict} onChange={e=>setForm(f=>({...f,targetDistrict:e.target.value}))}>
             {UK_DISTS_ANN.map(d=><option key={d} value={d}>{d==='all'?'All Districts':d}</option>)}
           </select>
         </div>
@@ -1348,7 +1348,7 @@ function Login({onLogin}){
 
       <div style={{marginBottom:16}}>
         <label>Select Your Department</label>
-        <select className="select" value={deptId} onChange={e=>setDeptId(e.target.value)}>
+        <select aria-label="Department" className="select" value={deptId} onChange={e=>setDeptId(e.target.value)}>
           <option value="">— Select Department —</option>
           {DEPT_LIST.map(d=><option key={d.id} value={d.id}>{d.icon} {d.name}</option>)}
         </select>

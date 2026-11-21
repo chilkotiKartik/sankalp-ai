@@ -61,7 +61,7 @@ export const PERMISSIONS: Record<string, Principal[]> = {
   // workers
   "workers.list": USERS, "workers.report_location": ["worker"], "workers.stream": ADMINS,
   // AI
-  "ai.chat": USERS, "ai.vision": USERS, "ai.rti_draft": USERS,
+  "ai.chat": USERS, "ai.vision": USERS, "ai.transcribe": USERS, "ai.rti_draft": USERS,
   // misc
   "push.register": USERS, "bills.read": USERS, "bills.pay": USERS,
   // DPDP (P1.9)
