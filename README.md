@@ -502,7 +502,7 @@ npm run server:prod       # Serves everything from a single Node process
 
 The Express server serves everything from one process — `/api/*` for REST and WebSocket, `/web/*` for the five HTML command portals, and `/*` for the Expo web SPA. One deploy, one URL, five command centers.
 
-Full step-by-step guides live in [`DEPLOY.md`](./DEPLOY.md), [`DEPLOYMENT_GUIDE.md`](./DEPLOYMENT_GUIDE.md), and [`DEPLOY_RAILWAY.md`](./DEPLOY_RAILWAY.md).
+Full step-by-step guide: [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md).
 
 ---
 
@@ -514,7 +514,7 @@ eas login
 eas build --platform android --profile apk
 ```
 
-Full guide with prerequisites and troubleshooting: [`APK_BUILD_GUIDE.md`](./APK_BUILD_GUIDE.md) · [`EXPO_GO_DEPLOYMENT.md`](./EXPO_GO_DEPLOYMENT.md)
+Full guide: [`docs/MOBILE_BUILD.md`](./docs/MOBILE_BUILD.md)
 
 ---
 

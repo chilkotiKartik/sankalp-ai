@@ -15,30 +15,30 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] S1.8c docs/DATA_MODEL_CURRENT.md — (this commit)
 
 ## Phase 0 — Demo-safe hardening
-- [ ] M1 worker GPS demo-only + real location API
-- [ ] M2 upload allow-list, magic bytes, size limits, nosniff
-- [ ] M3 private SOS audio + audited access
-- [ ] M4 photo authenticity fails closed → manual_review
-- [ ] M5 required secrets, random hashed dept codes
-- [ ] M6 remove published credentials
-- [ ] M7 complaint state machine
-- [ ] M8 JSON snapshot persistence
-- [ ] M9 remove fake predictions
-- [ ] M10 AI gateway, foreign AI removed
-- [ ] M11 stop serving node_modules
-- [ ] M12 CORS allow-list
-- [ ] M13 secure token storage, demo login gated
-- [ ] M14 helmet, rate limits, zod on every route, route inventory test
-- [ ] M15 re-hash legacy PINs + migration
-- [ ] M16 vendor portal libs, MAP_TILE_URL, escaping
-- [ ] M17 PII-free push payloads
-- [ ] m1 central error handler
-- [ ] m3 configurable base URL
-- [ ] m4 randomUUID ids
-- [ ] m13 env validation
-- [ ] P0.a seed:demo
-- [ ] P0.b DEMO.md
-- [ ] P0.c scripts/smoke.ts
+- [x] M1 worker GPS demo-only + real location API — f724a4b
+- [x] M2 upload allow-list, magic bytes, size limits, nosniff — f724a4b
+- [x] M3 private SOS audio + audited access — f724a4b
+- [x] M4 photo authenticity fails closed → manual_review — f724a4b
+- [x] M5 required secrets, random hashed dept codes — f724a4b
+- [x] M6 remove published credentials — 86bac98
+- [x] M7 complaint state machine — f724a4b
+- [x] M8 JSON snapshot persistence — f724a4b
+- [x] M9 remove fake predictions — f724a4b
+- [x] M10 AI gateway, foreign AI removed — f724a4b
+- [x] M11 stop serving node_modules — f724a4b
+- [x] M12 CORS allow-list — f724a4b
+- [x] M13 secure token storage, demo login gated — a42a088
+- [x] M14 helmet, rate limits, zod on every route, route inventory test — f724a4b
+- [x] M15 re-hash legacy PINs + migration — 86bac98
+- [x] M16 vendor portal libs, MAP_TILE_URL, escaping — 86bac98
+- [x] M17 PII-free push payloads — f724a4b
+- [x] m1 central error handler — f724a4b
+- [x] m3 configurable base URL — 86bac98
+- [x] m4 randomUUID ids — f724a4b
+- [x] m13 env validation — f724a4b
+- [x] P0.a seed:demo — 86bac98
+- [x] P0.b DEMO.md — 86bac98
+- [x] P0.c scripts/smoke.ts — 86bac98
 - [ ] P0.gate Phase 0 gate + review + report
 
 ## Phase 1 — Production foundation
@@ -55,19 +55,19 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [ ] P1.11 CI
 - [ ] P1.12 backups
 - [ ] M18 map abstraction
-- [ ] M19 test suite ≥70% coverage
+- [~] M19 test suite ≥70% coverage — Vitest+Supertest suite (79 tests); coverage target pending
 - [ ] m2 remove any
-- [ ] m5 split routes
+- [x] m5 split routes — routes split into server/routes/*.ts (f724a4b)
 - [ ] m6 pino redaction
-- [ ] m7 untrack build junk
-- [ ] m8 merge docs
+- [~] m7 untrack build junk — dist-web/ + zipFile.zip untracked (86bac98); static-build regenerated; attached_assets pending
+- [x] m8 merge docs — docs/DEPLOYMENT.md + docs/MOBILE_BUILD.md
 - [ ] m9 UTC/IST
 - [ ] m10 pagination
-- [ ] m11 SSE/WS heartbeat+limits
-- [ ] m12 jobs module
-- [ ] m18 dependency hygiene
+- [~] m11 SSE/WS heartbeat+limits — 25 s heartbeat, WS auth, 5 sockets/user, client backoff (f724a4b, a42a088); per-user SSE limits pending
+- [~] m12 jobs module — server/jobs/ with start/stop (f724a4b); graceful shutdown done
+- [~] m18 dependency hygiene — unused deps removed, audit 0 critical / 1 justified high (D-016)
 - [ ] m19 OpenAPI
-- [ ] m20 repo docs
+- [~] m20 repo docs — SECURITY/DATA_RESIDENCY/CONTRIBUTING/CHANGELOG/.env.example done; LICENSE conflict needs owner (D-019)
 - [ ] P1.gate
 
 ## Phase 2 — Sovereign AI
