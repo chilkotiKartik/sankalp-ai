@@ -114,9 +114,9 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P6.1 SOS fallback/cancel/retry/dedup — trusted contacts (≤5), SMS with signed expiring live-location link, per-contact retry/backoff + DLR receipts, PIN cancel (lock after 5), dedup; nearest-station routing on all SOS routes
 - [x] P6.2 evidence vault — AES-256-GCM at rest for private + originals (EVIDENCE_ENC_KEY), legacy plaintext readable, tamper detection, access owner/police/district admin, every view audited
 - [x] P6.3 fake call + check-in — check-in timer (missed → contacts get a signed link, once), app Safety tools screen (contacts editor, check-in, offline fake incoming call)
-- [ ] P6.4 police routing + 112 plan
-- [ ] P6.5 disaster mode
-- [ ] P6.6 yatra mode
+- [x] P6.4 police routing + 112 plan — nearest-station routing on all SOS routes; docs/112_INTEGRATION_PLAN.md (no live integration without approval)
+- [x] P6.5 disaster mode — config/runtime toggle, disaster_authority role, verified-only public road-block/landslide reports, relief camps, area broadcast, missing persons (no reporter identity), /web/disaster (no JS, <30 KB, a11y clean)
+- [x] P6.6 yatra mode — opt-in groups (code join, ≤10 days), member locations only within the group, I'm-lost + 60-min silence flags, nearest medical point, helplines, auto-expiry deletes locations
 - [ ] P6.gate
 
 ## Phase 7 — Scale & deployment

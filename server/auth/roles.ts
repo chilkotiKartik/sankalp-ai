@@ -3,7 +3,8 @@
  *  citizen · worker (field staff) · officer (department officer, district-scoped) · dept_admin (department head)
  *  district_admin · police (police user account) · state_admin (state-wide read/act) · super_admin (system owner)
  */
-export const ROLES = ["citizen", "worker", "officer", "dept_admin", "district_admin", "admin", "police", "state_admin", "super_admin"] as const;
+/** P6.5 adds disaster_authority (State/District Disaster Management Authority staff). */
+export const ROLES = ["citizen", "worker", "officer", "dept_admin", "district_admin", "admin", "police", "disaster_authority", "state_admin", "super_admin"] as const;
 export type Role = (typeof ROLES)[number];
 
 interface HasRole { role: string }

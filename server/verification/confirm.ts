@@ -52,7 +52,8 @@ export async function runConfirmationReminders(at = Date.now()): Promise<{ sms: 
 /** P3.6: opted-in users who filed a complaint within the radius in the last 180 days (they live or work nearby). */
 export function inviteNeighbours(c: Complaint, at = Date.now()): string[] {
   const v = tenant().verification;
-  if (!v.neighbourMax || !c.geo || c.geoApproximate) return [];
+  // The tenant must enable neighbour confirmation (features.neighbourConfirmation) — off by default.
+  if (!tenant().features.neighbourConfirmation || !v.neighbourMax || !c.geo || c.geoApproximate) return [];
   const since = at - 180 * 86400000;
   const seen = new Set<string>();
   const picked: string[] = [];

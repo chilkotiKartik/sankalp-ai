@@ -1,6 +1,6 @@
 import type { ComplaintState, LegacyStatus } from "./domain/complaintState";
 
-export type UserRole = "citizen" | "worker" | "officer" | "dept_admin" | "district_admin" | "admin" | "police" | "state_admin" | "super_admin";
+export type UserRole = "citizen" | "worker" | "officer" | "dept_admin" | "district_admin" | "admin" | "police" | "disaster_authority" | "state_admin" | "super_admin";
 export type Priority = "P1" | "P2" | "P3" | "P4";
 export type ComplaintStatus = LegacyStatus;
 export type ComplaintCategory =
@@ -491,6 +491,28 @@ export interface ConsentRecord {
   lang: string;
   purposes: string[];
   at: string;
+}
+
+/** P6.5 disaster mode. */
+export interface DisasterReport {
+  id: string; reporterId?: string; kind: "road_block" | "landslide" | "flood" | "bridge_damage" | "other";
+  district: string; geo: GeoPoint; description: string; reportedAt: string;
+  status: "unverified" | "verified" | "cleared" | "rejected"; verifiedBy?: string; verifiedAt?: string;
+}
+export interface ReliefCamp {
+  id: string; name: string; district: string; geo: GeoPoint; capacity: number; occupancy: number;
+  facilities: string[]; officialPhone?: string; open: boolean; updatedAt: string; updatedBy: string;
+}
+export interface MissingPerson {
+  id: string; reporterId: string; name: string; age?: number; gender?: string; description: string;
+  lastSeenArea: string; district: string; lastSeenAt?: string; status: "missing" | "found" | "withdrawn"; reportedAt: string; closedAt?: string;
+}
+export interface DisasterModeState { active: boolean; since?: string; by?: string; districts?: string[] }
+
+/** P6.6 yatra / tourist group. Locations are deleted when the group expires. */
+export interface YatraGroup {
+  id: string; code: string; name: string; leaderId: string; createdAt: string; expiresAt: string;
+  members: Array<{ userId: string; displayName: string; joinedAt: string; geo?: GeoPoint; at?: string; lost?: boolean; lostAlertedAt?: string }>;
 }
 
 /** P6.3 safety check-in: if the user does not confirm by dueAt (+ grace), trusted contacts are alerted. */

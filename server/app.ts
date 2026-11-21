@@ -29,6 +29,8 @@ import { registerVerificationRoutes } from "./routes/verification";
 import { registerAgentRoutes } from "./routes/agents";
 import { registerChannelRoutes } from "./routes/channels";
 import { registerSafetyRoutes, registerCheckInRoutes } from "./routes/safety";
+import { registerDisasterRoutes } from "./routes/disaster";
+import { registerYatraRoutes } from "./routes/yatra";
 
 const ROOT = process.cwd();
 /** Body size: 100 KB by default; media-carrying routes get 22 MB (≈15 MB binary after base64). */
@@ -252,6 +254,8 @@ export function createApp(): Built {
   registerChannelRoutes(app);
   registerSafetyRoutes(app);
   registerCheckInRoutes(app);
+  registerDisasterRoutes(app);
+  registerYatraRoutes(app);
 
   app.use("/api", (_req, _res, next) => next(new AppError(404, "NOT_FOUND", "Unknown API route")));
   setupStatic(app);

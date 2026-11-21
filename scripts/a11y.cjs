@@ -5,7 +5,7 @@
 const { chromium } = require("playwright");
 const fs = require("fs");
 const BASE = process.env.A11Y_BASE_URL || "http://localhost:5000";
-const PAGES = ["/web/portal", "/web/dept", "/web/rti", "/web/public", "/web/privacy", "/web/cpr", "/web/pcr"];
+const PAGES = ["/web/portal", "/web/dept", "/web/rti", "/web/public", "/web/privacy", "/web/cpr", "/web/pcr", "/web/disaster"];
 const axe = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 (async () => {
   const b = await chromium.launch();

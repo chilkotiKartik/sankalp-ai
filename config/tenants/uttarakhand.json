@@ -1380,6 +1380,6 @@
     "autoCloseUnverifiedDays": null,
     "neighbourConfirmation": false,
     "disasterMode": false,
-    "yatraMode": false
+    "yatraMode": true
   }
 }

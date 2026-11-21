@@ -11,6 +11,7 @@ import { runConfirmationReminders } from "../verification/confirm";
 import { runSlaEscalation } from "../agents/sla";
 import { runSosDeliveries } from "../safety/sos";
 import { runCheckInAlerts } from "../safety/checkin";
+import { runYatraHousekeeping } from "../routes/yatra";
 
 /** P1.10 downtime alert hook: notify ops (SMS to ALERT_PHONES and/or ALERT_WEBHOOK_URL) on state changes. No PII. */
 let lastReady = true;
@@ -62,6 +63,8 @@ export function startJobs() {
   timers.push(setInterval(() => { for (const id of tenantIds()) void runInTenant(id, () => runSosDeliveries()).catch(err => logger.error("sos_deliveries_failed", { tenant: id, err })); }, 15_000));
   // P6.3: missed check-ins alert trusted contacts.
   timers.push(setInterval(() => { for (const id of tenantIds()) void runInTenant(id, () => runCheckInAlerts()).catch(err => logger.error("checkin_alerts_failed", { tenant: id, err })); }, 60_000));
+  // P6.6: yatra groups — flag silent members, delete expired groups and their locations.
+  timers.push(setInterval(eachTenant("yatra_job", () => { runYatraHousekeeping(); }), 5 * 60 * 1000));
   // P3.5: SMS reminder / voice callback for citizens who have not answered "was it fixed?".
   timers.push(setInterval(() => { for (const id of tenantIds()) void runInTenant(id, () => runConfirmationReminders()).catch(err => logger.error("confirm_reminders_failed", { tenant: id, err })); }, 10 * 60 * 1000));
   if (config().DEMO_MODE) timers.push(setInterval(eachTenant("demo_workers", () => storeFor(storage.tenantId).simulateDemoWorkerMovement()), 8000));

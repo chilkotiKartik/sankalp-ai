@@ -224,6 +224,20 @@ describe("P3 proof-of-fix through the API", () => {
   });
 
   it("opted-in neighbours are asked; only they can answer; identities are not exposed", async () => {
+    tenant().features.neighbourConfirmation = true;
+    try { await neighbourCase(); } finally { tenant().features.neighbourConfirmation = false; }
+  });
+
+  it("neighbours are never asked when the tenant has not enabled it", async () => {
+    const n = await makeUser("citizen", "Dehradun");
+    await request(app()).put("/api/me/neighbour-opt-in").set(auth(n.token)).send({ optIn: true });
+    await request(app()).post("/api/complaints").set(auth(n.token)).send({ category: "garbage", description: "Garbage pile near the shop", location: "Rajpur Road", geo: { lat: 30.3305, lng: 78.0605 } });
+    const { id, dept } = await caseWithBefore(png(rings));
+    const r = await resolve(id, dept, png(stripes));
+    expect(r.body.neighbours).toMatchObject({ asked: 0 });
+  });
+
+  async function neighbourCase() {
     const n = await makeUser("citizen", "Dehradun");
     await request(app()).put("/api/me/neighbour-opt-in").set(auth(n.token)).send({ optIn: true });
     await request(app()).post("/api/complaints").set(auth(n.token)).send({ category: "garbage", description: "Garbage pile near the shop", location: "Rajpur Road", geo: { lat: 30.3305, lng: 78.0605 } });
@@ -235,7 +249,7 @@ describe("P3 proof-of-fix through the API", () => {
     expect((await request(app()).post(`/api/complaints/${id}/neighbour-answer`).set(auth(stranger.token)).send({ fixed: true })).status).toBe(403);
     expect((await request(app()).post(`/api/complaints/${id}/neighbour-answer`).set(auth(n.token)).send({ fixed: true })).status).toBe(200);
     expect(storage.getComplaint(id)!.verification!.signals.find(s => s.name === "neighbour")!.score).toBe(1);
-  });
+  }
 
   it("Real Resolution Rate: citizen-verified ÷ marked resolved, with Wilson CI and n", async () => {
     const a = await caseWithBefore(png(rings));

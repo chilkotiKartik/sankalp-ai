@@ -591,6 +591,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -1052,6 +1053,7 @@
                       "district_admin",
                       "admin",
                       "police",
+                      "disaster_authority",
                       "state_admin",
                       "super_admin"
                     ]
@@ -1088,6 +1090,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -1160,6 +1163,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -1236,6 +1240,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -1412,6 +1417,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -1479,6 +1485,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -1559,6 +1566,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -1618,6 +1626,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -1758,6 +1767,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -1817,6 +1827,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -1888,6 +1899,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -1969,6 +1981,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -2050,6 +2063,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -2126,6 +2140,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -2197,6 +2212,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -2260,6 +2276,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -2317,6 +2334,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -2396,6 +2414,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -3190,6 +3209,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -3260,6 +3280,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -3308,6 +3329,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -3423,6 +3445,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -3514,6 +3537,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -3602,6 +3626,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -3847,6 +3872,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -3925,6 +3951,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -4081,6 +4108,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -4655,6 +4683,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -4733,6 +4762,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -4787,6 +4817,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -5531,6 +5562,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -5600,6 +5632,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -5649,6 +5682,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -5697,6 +5731,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -5976,6 +6011,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -6044,6 +6080,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -6204,6 +6241,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -6329,6 +6367,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -6397,6 +6436,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -6521,6 +6561,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -6600,6 +6641,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -6668,6 +6710,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -6714,6 +6757,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -6803,6 +6847,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -6874,6 +6919,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -6942,6 +6988,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -7081,6 +7128,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -7152,6 +7200,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -7198,6 +7247,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -7283,6 +7333,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -7331,6 +7382,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -7683,6 +7735,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -7784,6 +7837,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -7842,6 +7896,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -7890,6 +7945,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -7958,6 +8014,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8006,6 +8063,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8082,6 +8140,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8175,6 +8234,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8262,6 +8322,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8330,6 +8391,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8406,6 +8468,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8454,6 +8517,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8502,6 +8566,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8550,6 +8615,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8619,6 +8685,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8667,6 +8734,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8734,6 +8802,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8927,6 +8996,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -8975,6 +9045,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -9099,6 +9170,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -9145,6 +9217,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -9225,6 +9298,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -9273,6 +9347,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -10534,6 +10609,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -10580,6 +10656,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -10664,6 +10741,7 @@
           "officer",
           "dept_admin",
           "police",
+          "disaster_authority",
           "admin",
           "district_admin",
           "state_admin",
@@ -10868,6 +10946,1790 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/safety/checkins": {
+      "post": {
+        "operationId": "post_api_safety_checkins",
+        "summary": "safety.checkin",
+        "x-permission": "safety.checkin",
+        "x-allowed-principals": [
+          "citizen",
+          "worker",
+          "officer",
+          "dept_admin",
+          "police",
+          "disaster_authority",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "minutes": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 720
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "geo": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
+                  }
+                },
+                "required": [
+                  "minutes"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/safety/checkins/{id}/done": {
+      "put": {
+        "operationId": "put_api_safety_checkins_id_done",
+        "summary": "safety.checkin",
+        "x-permission": "safety.checkin",
+        "x-allowed-principals": [
+          "citizen",
+          "worker",
+          "officer",
+          "dept_admin",
+          "police",
+          "disaster_authority",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/c/{token}": {
+      "get": {
+        "operationId": "get_c_token",
+        "summary": "safety.shared_location",
+        "x-permission": "safety.shared_location",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 300
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/disaster/status": {
+      "get": {
+        "operationId": "get_api_disaster_status",
+        "summary": "disaster.read",
+        "x-permission": "disaster.read",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/disaster/mode": {
+      "put": {
+        "operationId": "put_api_disaster_mode",
+        "summary": "disaster.mode",
+        "x-permission": "disaster.mode",
+        "x-allowed-principals": [
+          "state_admin",
+          "super_admin",
+          "disaster_authority"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "districts": {
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "active"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/disaster/reports": {
+      "post": {
+        "operationId": "post_api_disaster_reports",
+        "summary": "disaster.report",
+        "x-permission": "disaster.report",
+        "x-allowed-principals": [
+          "citizen",
+          "worker",
+          "officer",
+          "dept_admin",
+          "police",
+          "disaster_authority",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "road_block",
+                      "landslide",
+                      "flood",
+                      "bridge_damage",
+                      "other"
+                    ]
+                  },
+                  "geo": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "district": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "geo",
+                  "description"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "get_api_disaster_reports",
+        "summary": "disaster.read",
+        "x-permission": "disaster.read",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "district",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 60
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/disaster/reports/queue": {
+      "get": {
+        "operationId": "get_api_disaster_reports_queue",
+        "summary": "disaster.manage",
+        "x-permission": "disaster.manage",
+        "x-allowed-principals": [
+          "disaster_authority",
+          "dept_token:usdma",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/disaster/reports/{id}": {
+      "put": {
+        "operationId": "put_api_disaster_reports_id",
+        "summary": "disaster.manage",
+        "x-permission": "disaster.manage",
+        "x-allowed-principals": [
+          "disaster_authority",
+          "dept_token:usdma",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "verified",
+                      "cleared",
+                      "rejected"
+                    ]
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/disaster/camps": {
+      "get": {
+        "operationId": "get_api_disaster_camps",
+        "summary": "disaster.read",
+        "x-permission": "disaster.read",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "district",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 60
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_api_disaster_camps",
+        "summary": "disaster.manage",
+        "x-permission": "disaster.manage",
+        "x-allowed-principals": [
+          "disaster_authority",
+          "dept_token:usdma",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "district": {
+                    "type": "string"
+                  },
+                  "geo": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
+                  },
+                  "capacity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "occupancy": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "facilities": {
+                    "maxItems": 8,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "food",
+                        "water",
+                        "medical",
+                        "shelter",
+                        "toilets",
+                        "power",
+                        "women_safe_space",
+                        "child_care"
+                      ]
+                    }
+                  },
+                  "officialPhone": {
+                    "type": "string",
+                    "pattern": "^[0-9 +-]{3,15}$"
+                  },
+                  "open": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name",
+                  "district",
+                  "geo",
+                  "capacity",
+                  "occupancy",
+                  "facilities"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/disaster/camps/{id}": {
+      "put": {
+        "operationId": "put_api_disaster_camps_id",
+        "summary": "disaster.manage",
+        "x-permission": "disaster.manage",
+        "x-allowed-principals": [
+          "disaster_authority",
+          "dept_token:usdma",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "district": {
+                    "type": "string"
+                  },
+                  "geo": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
+                  },
+                  "capacity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "occupancy": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "facilities": {
+                    "maxItems": 8,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "food",
+                        "water",
+                        "medical",
+                        "shelter",
+                        "toilets",
+                        "power",
+                        "women_safe_space",
+                        "child_care"
+                      ]
+                    }
+                  },
+                  "officialPhone": {
+                    "type": "string",
+                    "pattern": "^[0-9 +-]{3,15}$"
+                  },
+                  "open": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/disaster/broadcast": {
+      "post": {
+        "operationId": "post_api_disaster_broadcast",
+        "summary": "disaster.manage",
+        "x-permission": "disaster.manage",
+        "x-allowed-principals": [
+          "disaster_authority",
+          "dept_token:usdma",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "severity": {
+                    "default": "warning",
+                    "type": "string",
+                    "enum": [
+                      "info",
+                      "warning",
+                      "critical"
+                    ]
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/disaster/missing": {
+      "post": {
+        "operationId": "post_api_disaster_missing",
+        "summary": "disaster.missing_report",
+        "x-permission": "disaster.missing_report",
+        "x-allowed-principals": [
+          "citizen",
+          "worker",
+          "officer",
+          "dept_admin",
+          "police",
+          "disaster_authority",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "age": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120
+                  },
+                  "gender": {
+                    "type": "string",
+                    "enum": [
+                      "female",
+                      "male",
+                      "other"
+                    ]
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "lastSeenArea": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "district": {
+                    "type": "string"
+                  },
+                  "lastSeenAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "name",
+                  "description",
+                  "lastSeenArea",
+                  "district"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "get_api_disaster_missing",
+        "summary": "disaster.read",
+        "x-permission": "disaster.read",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "district",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 60
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/disaster/missing/{id}": {
+      "put": {
+        "operationId": "put_api_disaster_missing_id",
+        "summary": "disaster.missing_report",
+        "x-permission": "disaster.missing_report",
+        "x-allowed-principals": [
+          "citizen",
+          "worker",
+          "officer",
+          "dept_admin",
+          "police",
+          "disaster_authority",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "found",
+                      "withdrawn"
+                    ]
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/web/disaster": {
+      "get": {
+        "operationId": "get_web_disaster",
+        "summary": "disaster.read",
+        "x-permission": "disaster.read",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "district",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 60
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/yatra/groups": {
+      "post": {
+        "operationId": "post_api_yatra_groups",
+        "summary": "yatra.use",
+        "x-permission": "yatra.use",
+        "x-allowed-principals": [
+          "citizen",
+          "worker",
+          "officer",
+          "dept_admin",
+          "police",
+          "disaster_authority",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "hours": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 240
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "maxLength": 40
+                  }
+                },
+                "required": [
+                  "name",
+                  "hours",
+                  "displayName"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/yatra/join": {
+      "post": {
+        "operationId": "post_api_yatra_join",
+        "summary": "yatra.use",
+        "x-permission": "yatra.use",
+        "x-allowed-principals": [
+          "citizen",
+          "worker",
+          "officer",
+          "dept_admin",
+          "police",
+          "disaster_authority",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[A-Z0-9]{6}$"
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "maxLength": 40
+                  }
+                },
+                "required": [
+                  "code",
+                  "displayName"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/yatra/groups/{id}": {
+      "get": {
+        "operationId": "get_api_yatra_groups_id",
+        "summary": "yatra.use",
+        "x-permission": "yatra.use",
+        "x-allowed-principals": [
+          "citizen",
+          "worker",
+          "officer",
+          "dept_admin",
+          "police",
+          "disaster_authority",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/yatra/groups/{id}/location": {
+      "put": {
+        "operationId": "put_api_yatra_groups_id_location",
+        "summary": "yatra.use",
+        "x-permission": "yatra.use",
+        "x-allowed-principals": [
+          "citizen",
+          "worker",
+          "officer",
+          "dept_admin",
+          "police",
+          "disaster_authority",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "geo": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
+                  }
+                },
+                "required": [
+                  "geo"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/yatra/groups/{id}/lost": {
+      "post": {
+        "operationId": "post_api_yatra_groups_id_lost",
+        "summary": "yatra.use",
+        "x-permission": "yatra.use",
+        "x-allowed-principals": [
+          "citizen",
+          "worker",
+          "officer",
+          "dept_admin",
+          "police",
+          "disaster_authority",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lost": {
+                    "type": "boolean"
+                  },
+                  "geo": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
+                  }
+                },
+                "required": [
+                  "lost"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/yatra/groups/{id}/members/me": {
+      "delete": {
+        "operationId": "delete_api_yatra_groups_id_members_me",
+        "summary": "yatra.use",
+        "x-permission": "yatra.use",
+        "x-allowed-principals": [
+          "citizen",
+          "worker",
+          "officer",
+          "dept_admin",
+          "police",
+          "disaster_authority",
+          "admin",
+          "district_admin",
+          "state_admin",
+          "super_admin"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/yatra/nearest-medical": {
+      "get": {
+        "operationId": "get_api_yatra_nearest_medical",
+        "summary": "yatra.read_public",
+        "x-permission": "yatra.read_public",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            }
+          },
+          {
+            "name": "lng",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/yatra/helplines": {
+      "get": {
+        "operationId": "get_api_yatra_helplines",
+        "summary": "yatra.read_public",
+        "x-permission": "yatra.read_public",
+        "x-allowed-principals": [
+          "public"
+        ],
+        "security": [],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "Success"

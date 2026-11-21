@@ -17,7 +17,7 @@ import {
   citizenConfirm as smConfirm, citizenReject as smReject, TERMINAL, type TransitionStep, type ActorKind,
 } from "./domain/complaintState";
 import type {
-  AppUser, AuthToken, Complaint, ProofVerification, CheckIn, ComplaintCategory, SOSAlert, Ward, Worker, PoliceStation, GeoPoint, RiskZone,
+  AppUser, AuthToken, Complaint, ProofVerification, CheckIn, DisasterReport, ReliefCamp, MissingPerson, DisasterModeState, YatraGroup, ComplaintCategory, SOSAlert, Ward, Worker, PoliceStation, GeoPoint, RiskZone,
   Announcement, Poll, Petition, RTIRequest, NightSafetyZone, PatrolVan, SafetyIncident, CivicEvent, ChatMessage,
   BudgetItem, AuditLog, EmergencyService, PredictiveAlert, MediaRecord, ComplaintEvent, ReviewTask, DeptCredential,
   ConsentRecord, ErasureRequest,
@@ -137,13 +137,18 @@ interface State {
   consents: ConsentRecord[];
   erasureRequests: ErasureRequest[];
   checkins: CheckIn[];
+  disasterReports: DisasterReport[];
+  reliefCamps: ReliefCamp[];
+  missingPersons: MissingPerson[];
+  disasterMode: DisasterModeState;
+  yatraGroups: YatraGroup[];
 }
 
 const emptyState = (): State => ({
   users: [], tokens: [], sessions: [], refreshTokens: [], otps: [], workerPins: [], deptCredentials: [], complaints: [], complaintEvents: [], sosAlerts: [],
   workers: [], patrolVans: [], safetyIncidents: [], nightSafetyZones: [], announcements: [], polls: [], petitions: [],
   rtis: [], civicEvents: [], chatMessages: [], budgetItems: [], auditLogs: [], media: [], reviewTasks: [], pushTokens: [],
-  demoRiskZones: [], consents: [], erasureRequests: [], checkins: [],
+  demoRiskZones: [], consents: [], erasureRequests: [], checkins: [], disasterReports: [], reliefCamps: [], missingPersons: [], disasterMode: { active: false }, yatraGroups: [],
 });
 
 export class AppStorage {
@@ -391,6 +396,9 @@ export class AppStorage {
       workerProfile: this.s.workers.filter(w => w.userId === userId || w.phone === u.phone),
       trustedContacts: u.trustedContacts ?? [],
       checkins: this.s.checkins.filter(c => c.userId === userId),
+      disasterReports: this.s.disasterReports.filter(r => r.reporterId === userId),
+      missingPersonReports: this.s.missingPersons.filter(m => m.reporterId === userId),
+      yatraGroups: this.s.yatraGroups.filter(g => g.members.some(m => m.userId === userId)).map(g => ({ id: g.id, name: g.name, expiresAt: g.expiresAt })),
     };
   }
 
@@ -433,6 +441,10 @@ export class AppStorage {
     this.s.workerPins = this.s.workerPins.filter(p => p.phone !== u.phone);
     this.s.otps = this.s.otps.filter(o => o.phone !== u.phone);
     this.s.checkins = this.s.checkins.filter(c => c.userId !== userId);
+    for (const r of this.s.disasterReports) if (r.reporterId === userId) r.reporterId = undefined;
+    for (const m of this.s.missingPersons) if (m.reporterId === userId) m.reporterId = `erased:${pseudoRef(userId)}`;
+    for (const g of this.s.yatraGroups) g.members = g.members.filter(m => m.userId !== userId);
+    this.s.yatraGroups = this.s.yatraGroups.filter(g => g.members.length && g.leaderId !== userId);
     // Originals keep EXIF/GPS: delete them. The stripped public copy stays with the (pseudonymised) complaint.
     const drv = mediaDriver();
     for (const m of this.s.media.filter(x => x.ownerId === userId)) {

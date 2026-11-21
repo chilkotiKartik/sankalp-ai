@@ -12,11 +12,13 @@ const CITIZENS: Principal[] = ["citizen", "worker"];
 const ADMINS: Principal[] = ["admin", "district_admin", "state_admin", "super_admin"];
 const DEPT_USERS: Principal[] = ["officer", "dept_admin"];
 const POLICE: Principal[] = ["police", "dept_token:police", "dept_token:usdma", ...ADMINS];
-const USERS: Principal[] = [...CITIZENS, ...DEPT_USERS, "police", ...ADMINS];
+const USERS: Principal[] = [...CITIZENS, ...DEPT_USERS, "police", "disaster_authority", ...ADMINS];
 const DEPT: Principal[] = ["dept_token", ...DEPT_USERS];
 const STATE: Principal[] = ["state_admin", "super_admin"];
 const SUPER: Principal[] = ["super_admin"];
 const PUBLIC: Principal[] = ["public"];
+/** P6.5: disaster management staff (plus USDMA department sessions and state staff). */
+const DISASTER: Principal[] = ["disaster_authority", "dept_token:usdma", ...ADMINS];
 
 export const PERMISSIONS: Record<string, Principal[]> = {
   // auth
@@ -34,7 +36,9 @@ export const PERMISSIONS: Record<string, Principal[]> = {
   "complaints.events": [...USERS, ...DEPT],
   "complaints.admin_list": ADMINS, "complaints.review": ADMINS, "dept.review": DEPT,
   "agents.unmerge": [...ADMINS, ...DEPT], "agents.sla_snooze": [...ADMINS, "dept_admin"], "agents.suggest_assignee": [...ADMINS, ...DEPT],
-  "agents.briefing": ADMINS, "safety.contacts": USERS, "safety.checkin": USERS, "sos.cancel": USERS, "safety.delivery_receipt": PUBLIC, "safety.shared_location": PUBLIC, "channels.whatsapp_inbound": PUBLIC, "channels.ivr_recording": PUBLIC, "agents.trends": ADMINS,
+  "agents.briefing": ADMINS, "safety.contacts": USERS, "safety.checkin": USERS,
+  "disaster.read": PUBLIC, "disaster.report": USERS, "disaster.manage": DISASTER, "disaster.mode": [...STATE, "disaster_authority"],
+  "disaster.missing_report": USERS, "yatra.use": USERS, "yatra.read_public": PUBLIC, "sos.cancel": USERS, "safety.delivery_receipt": PUBLIC, "safety.shared_location": PUBLIC, "channels.whatsapp_inbound": PUBLIC, "channels.ivr_recording": PUBLIC, "agents.trends": ADMINS,
   "verification.ivr_callback": PUBLIC, "verification.sms_inbound": PUBLIC, "public.resolution_rate": PUBLIC,
   "verification.neighbour_answer": CITIZENS, "verification.neighbour_optin": CITIZENS,
   "complaints.officer_update": [...ADMINS, ...DEPT], "complaints.assign_worker": DEPT,

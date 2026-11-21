@@ -161,7 +161,7 @@ export function registerAuthRoutes(app: Express) {
     params: none, query: none,
     body: z.object({
       name: z.string().trim().min(2).max(80), phone: phone10, pin: pin6,
-      role: z.enum(["worker", "officer", "dept_admin", "district_admin", "admin", "police", "state_admin", "super_admin"]), district: tenantDistrictOrState,
+      role: z.enum(["worker", "officer", "dept_admin", "district_admin", "admin", "police", "disaster_authority", "state_admin", "super_admin"]), district: tenantDistrictOrState,
       departmentId: z.string().max(20).optional(),
     }),
     handler: async ({ body, user }) => {

@@ -4,7 +4,7 @@ import { AppState } from "react-native";
 import { getApiUrl } from "@/lib/query-client";
 import { getSecure, setSecure, deleteSecure } from "@/lib/secure-session";
 
-export type UserRole = "citizen" | "worker" | "officer" | "dept_admin" | "district_admin" | "admin" | "police" | "state_admin" | "super_admin";
+export type UserRole = "citizen" | "worker" | "officer" | "dept_admin" | "district_admin" | "admin" | "police" | "disaster_authority" | "state_admin" | "super_admin";
 
 export interface AuthUser {
   id: string;
