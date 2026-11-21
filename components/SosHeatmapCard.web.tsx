@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import React, { useRef, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { buildSosHeatmapHTML, SosHeatEntry } from "@/lib/sosheatmap-html";
@@ -24,8 +25,9 @@ function buildEntries(sosAlerts: SOSAlert[]): SosHeatEntry[] {
 export default function SosHeatmapCard({ sosAlerts, height = 200 }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const entries = buildEntries(sosAlerts);
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://sankalp-ai.replit.app";
-  const html = buildSosHeatmapHTML(entries, origin);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const runtime = useRuntimeConfig();
+  const html = buildSosHeatmapHTML(entries, origin, runtime?.mapTileUrl ?? null);
 
   useEffect(() => {
     const iframe = iframeRef.current;

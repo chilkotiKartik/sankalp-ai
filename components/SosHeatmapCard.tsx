@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import React, { useRef, useEffect } from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import WebView from "react-native-webview";
@@ -24,7 +25,8 @@ function buildEntries(sosAlerts: SOSAlert[]): SosHeatEntry[] {
 
 export default function SosHeatmapCard({ sosAlerts, height = 200 }: Props) {
   const entries = buildEntries(sosAlerts);
-  const html = buildSosHeatmapHTML(entries);
+  const runtime = useRuntimeConfig();
+  const html = buildSosHeatmapHTML(entries, "", runtime?.mapTileUrl ?? null);
   return (
     <View style={[s.wrap, { height }]}>
       <WebView

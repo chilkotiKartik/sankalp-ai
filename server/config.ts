@@ -16,7 +16,7 @@ const csv = z
 
 const secret = (name: string) =>
   z
-    .string({ required_error: `${name} is required (>= 32 random characters)` })
+    .string({ error: `${name} is required (>= 32 random characters)` })
     .min(32, `${name} must be at least 32 characters`);
 
 const schema = z.object({

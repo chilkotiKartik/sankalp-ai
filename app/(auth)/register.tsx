@@ -145,8 +145,8 @@ export default function RegisterScreen() {
                 <View style={s.statsRow}>
                   {[
                     { num: "13", label: "Districts" },
-                    { num: "5K+", label: "Citizens" },
-                    { num: "4.8★", label: "Rating" },
+                    { num: "24×7", label: "SOS" },
+                    { num: "₹0", label: "For citizens" },
                   ].map(stat => (
                     <View key={stat.label} style={s.statBox}>
                       <Text style={s.statNum}>{stat.num}</Text>

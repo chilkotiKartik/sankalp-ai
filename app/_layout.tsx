@@ -21,6 +21,7 @@ try {
   KeyboardProvider = function KeyboardProviderFallback({ children }) { return <>{children}</>; };
 }
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { DemoBadge } from "@/components/DemoBadge";
 import { queryClient } from "@/lib/query-client";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -127,6 +128,7 @@ function RootLayoutNav() {
     <View style={{ flex: 1 }}>
       <AuthGate />
       <EmergencyBuzzer />
+      <DemoBadge />
     </View>
   );
 }

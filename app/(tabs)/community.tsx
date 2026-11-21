@@ -1,3 +1,4 @@
+import { openInMaps, openInMapsQuery } from "@/lib/maps";
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator,
@@ -642,7 +643,7 @@ export default function CommunityScreen() {
                     ))}
                     {/* Get Directions / Live Location */}
                     <Pressable
-                      onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(selectedEvent.location + ", Uttarakhand")}`)}
+                      onPress={() => openInMapsQuery(selectedEvent.location + ", Uttarakhand")}
                       style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#EFF6FF", borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: "#BFDBFE" }}
                     >
                       <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}>

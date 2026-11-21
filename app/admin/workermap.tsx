@@ -1,4 +1,5 @@
 // Native version — uses react-native-webview (works in Expo Go)
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
@@ -58,6 +59,7 @@ function toMapData(workers: Worker[]): WorkerMapData[] {
 }
 
 export default function WorkerMapScreen() {
+  const runtime = useRuntimeConfig();
   const insets = useSafeAreaInsets();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +154,7 @@ export default function WorkerMapScreen() {
   });
 
   const heatData = buildHeatData(workers);
-  const htmlContent = buildWorkerMapHTML(toMapData(filtered), heatData, mapFocusId, showHeat, false);
+  const htmlContent = buildWorkerMapHTML(toMapData(filtered), heatData, mapFocusId, showHeat, false, "", runtime?.mapTileUrl ?? null);
 
   const activeCount = workers.filter(w => w.status === "active").length;
   const idleCount   = workers.filter(w => w.status === "idle").length;

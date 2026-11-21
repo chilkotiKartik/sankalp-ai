@@ -1,3 +1,4 @@
+import { openInMaps, openInMapsQuery } from "@/lib/maps";
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, Pressable, ScrollView, Linking,
@@ -240,7 +241,7 @@ export default function EmergencyScreen() {
                   )}
                 </View>
                 <Pressable style={styles.mapsBtn}
-                  onPress={() => Linking.openURL(`https://maps.google.com/?q=${selected.geo.lat},${selected.geo.lng}`)}>
+                  onPress={() => openInMaps(selected.geo.lat, selected.geo.lng)}>
                   <Ionicons name="map-outline" size={16} color="#FF9933" />
                   <Text style={styles.mapsBtnText}>Open in Maps</Text>
                 </Pressable>

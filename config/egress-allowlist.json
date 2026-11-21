@@ -1,0 +1,22 @@
+{
+  "$comment": "Reviewed list of every external host that may appear in source. Rule 1: citizen data may only flow to `outbound` hosts (Indian). Everything else must be justified. scripts/egress-audit.ts fails on any host not listed here.",
+  "outbound": {
+    "api.sarvam.ai": "Sarvam AI (India) — text AI provider, only when SARVAM_API_KEY is set"
+  },
+  "optInForeign": {
+    "exp.host": "Expo push relay — only used when PUSH_DRIVER=expo AND exp.host is added to EGRESS_ALLOWLIST; payload carries no personal data (M17)",
+    "tile.openstreetmap.org": "Development-only default map tiles (NODE_ENV=development); production must set MAP_TILE_URL (§11)"
+  },
+  "userInitiatedLinks": {
+    "www.openstreetmap.org": "Web fallback for 'open in maps' — opened only when the user taps it; Sankalp sends nothing"
+  },
+  "nonNetwork": {
+    "react.dev": "URL inside an error message string",
+    "leafletjs.com": "Licence header comment in the bundled Leaflet build",
+    "bugs.chromium.org": "Comment inside the bundled Leaflet build",
+    "bugzilla.mozilla.org": "Comment inside the bundled Leaflet build",
+    "apps.apple.com": "Static store link on the fallback landing page (user-initiated)",
+    "play.google.com": "Static store link on the fallback landing page (user-initiated)",
+    "sankalp.uk.gov.in": "Intended production domain placeholder in docs/templates"
+  }
+}

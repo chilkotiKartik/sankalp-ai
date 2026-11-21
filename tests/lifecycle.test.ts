@@ -88,9 +88,11 @@ describe("persistence (M8)", () => {
     await fileComplaint(real.token);
     const demo = await storage.createUser({ name: "D", phone: "9000000999", pin: "x", role: "citizen", district: "Dehradun", points: 0, badges: [], level: 1, isDemo: true });
     storage.createComplaint({ category: "garbage", description: "demo", location: "x", geo: { lat: 30, lng: 78 }, ward: "w", wardNumber: 1, district: "Dehradun", priority: "P3", isDemo: true }, demo);
+    storage.reportWorkerLocation({ ...demo, role: "worker" }, { lat: 30.3, lng: 78 });
     expect(storage.purgeDemo()).toBeGreaterThan(0);
     expect(storage.getComplaints().length).toBe(1);
     expect(storage.getUserById(demo.id)).toBeUndefined();
+    expect(storage.getWorkers()).toHaveLength(0);
   });
 });
 

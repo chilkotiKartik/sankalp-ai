@@ -1,4 +1,5 @@
 import { DISTRICT_CENTERS } from "./workermap-html";
+import { scriptJson, ESC_JS, tileLayerJs } from "./map-safety";
 import { LEAFLET_CSS, LEAFLET_JS } from "./leaflet-bundle";
 
 export interface SosHeatEntry {
@@ -9,9 +10,9 @@ export interface SosHeatEntry {
   critical: number; // P1
 }
 
-export function buildSosHeatmapHTML(entries: SosHeatEntry[], origin = "https://sankalp-ai.replit.app"): string {
-  const eJson = JSON.stringify(entries);
-  const centersJson = JSON.stringify(DISTRICT_CENTERS);
+export function buildSosHeatmapHTML(entries: SosHeatEntry[], origin = "", tileUrl: string | null = null): string {
+  const eJson = scriptJson(entries);
+  const centersJson = scriptJson(DISTRICT_CENTERS);
 
   return `<!DOCTYPE html>
 <html>
@@ -65,9 +66,8 @@ export function buildSosHeatmapHTML(entries: SosHeatEntry[], origin = "https://s
 var entries=${eJson};
 var centers=${centersJson};
 var map=L.map('map',{center:[30.0668,79.0193],zoom:7,zoomControl:true,attributionControl:true,preferCanvas:false});
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-  attribution:'&copy; OSM &copy; CARTO',subdomains:'abcd',maxZoom:19
-}).addTo(map);
+${tileLayerJs(tileUrl)}
+${ESC_JS}
 
 var maxTotal=Math.max.apply(null,entries.map(function(e){return e.total;})||[1]);
 if(maxTotal===0)maxTotal=1;
@@ -91,7 +91,7 @@ entries.forEach(function(e){
   });
   var ws=e.womenSafety>0?'<br><span style="color:#8B5CF6;font-weight:700">&#128737; '+e.womenSafety+' women safety</span>':'';
   var cr=e.critical>0?'<br><span style="color:#EF4444;font-weight:700">P1 Critical: '+e.critical+'</span>':'';
-  var popup='<div class="pb"><div class="pt">'+e.district+'</div>'
+  var popup='<div class="pb"><div class="pt">'+esc(e.district)+'</div>'
     +'<div class="ps"><span style="color:#EF4444;font-weight:700">'+e.total+'</span> total SOS'
     +(e.active?' &bull; <span style="color:#FF9933;font-weight:700">'+e.active+' active</span>':'')
     +'</div>'+ws+cr+'</div>';
@@ -109,7 +109,7 @@ entries.forEach(function(e){
     iconSize:[14,14],iconAnchor:[7,7],className:''
   });
   L.marker([c[0],c[1]],{icon:icon,zIndexOffset:500}).bindPopup(
-    '<div class="pb"><div class="pt">'+e.district+'</div><div class="ps pc" style="color:#EF4444">'+e.active+' ACTIVE SOS</div></div>',
+    '<div class="pb"><div class="pt">'+esc(e.district)+'</div><div class="ps pc" style="color:#EF4444">'+e.active+' ACTIVE SOS</div></div>',
     {maxWidth:160}
   ).addTo(map);
 });

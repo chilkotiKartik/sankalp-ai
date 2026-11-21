@@ -177,7 +177,7 @@ export function registerSosRoutes(app: Express) {
       mustOwn(a, user);
       ownedAudio(body.chunkUrl, user, a.id);
       storage.addSOSAudioChunk(a.id, { url: body.chunkUrl, chunkIndex: body.chunkIndex, duration: body.duration ?? 10 });
-      cprEmitter.emit("event", { type: "audio_chunk", sosId: a.id, chunkIndex: body.chunkIndex, district: a.district, isWomenSafety: a.isWomenSafety, timestamp: new Date().toISOString() });
+      cprEmitter.emit("event", { type: "audio_chunk", sosId: a.id, chunkUrl: body.chunkUrl, chunkIndex: body.chunkIndex, district: a.district, isWomenSafety: a.isWomenSafety, timestamp: new Date().toISOString() });
       return { ok: true, chunkIndex: body.chunkIndex, totalChunks: a.audioChunks?.length ?? 0 };
     },
   });

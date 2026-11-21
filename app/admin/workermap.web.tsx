@@ -1,4 +1,5 @@
 // Web version — uses iframe + srcDoc (no react-native-webview needed)
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
@@ -104,6 +105,7 @@ function WebMap({
 }
 
 export default function WorkerMapScreen() {
+  const runtime = useRuntimeConfig();
   const insets = useSafeAreaInsets();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -191,7 +193,7 @@ export default function WorkerMapScreen() {
       const base = getApiUrl();
       if (typeof EventSource !== "undefined") {
         try {
-          const es = new EventSource(`${base}api/workers/stream`);
+          const es = new EventSource(`${base}api/workers/stream?token=${encodeURIComponent(tok)}`);
           esRef.current = es;
           es.onopen = () => { setLiveStatus("live"); setLastUpdate(new Date()); };
           es.onerror = () => {
@@ -246,8 +248,8 @@ export default function WorkerMapScreen() {
   // Only rebuild HTML when filtered workers, heatData, or focus changes
   useEffect(() => {
     const hd = buildHeatData(workers);
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://sankalp-ai.replit.app";
-    setHtmlContent(buildWorkerMapHTML(toMapData(filtered), hd, mapFocusId, showHeat, true, origin));
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    setHtmlContent(buildWorkerMapHTML(toMapData(filtered), hd, mapFocusId, showHeat, true, origin, runtime?.mapTileUrl ?? null));
   }, [filtered.length, filterStatus, filterDistrict, searchQuery, mapFocusId, showHeat, workers.length]);
 
   const heatData = buildHeatData(workers);

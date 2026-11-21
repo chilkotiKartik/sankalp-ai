@@ -128,7 +128,9 @@ export class AppStorage {
     const ids = new Set(this.s.complaints.map(c => c.id));
     this.s.complaintEvents = this.s.complaintEvents.filter(e => ids.has(e.complaintId));
     this.s.sosAlerts = this.s.sosAlerts.filter(a => !a.isDemo);
-    this.s.workers = this.s.workers.filter(w => !w.isDemo);
+    this.s.workers = this.s.workers.filter(w => !w.isDemo && !(w.userId && demoUserIds.has(w.userId)));
+    this.s.pushTokens = this.s.pushTokens.filter(t => !demoUserIds.has(t.userId));
+    this.s.media = this.s.media.filter(m => !demoUserIds.has(m.ownerId));
     this.s.patrolVans = [];
     this.s.budgetItems = [];
     this.s.demoRiskZones = [];

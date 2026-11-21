@@ -1,3 +1,4 @@
+import { openInMaps, openInMapsQuery } from "@/lib/maps";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable, Platform, Animated,
@@ -171,12 +172,12 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
                 </View>
                 <Text style={rm.gpsAddrText}>{alert.location}</Text>
                 <View style={rm.gpsActions}>
-                  <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${liveGeo.lat},${liveGeo.lng}`)}
+                  <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng)}
                     style={rm.mapsBtn}>
                     <Ionicons name="map" size={14} color="#4ADE80" />
                     <Text style={rm.mapsBtnText}>Open in Google Maps</Text>
                   </Pressable>
-                  <Pressable onPress={() => Linking.openURL(`https://waze.com/ul?ll=${liveGeo.lat},${liveGeo.lng}&navigate=yes`)}
+                  <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng, "Navigate")}
                     style={rm.wazeBtn}>
                     <Ionicons name="navigate" size={14} color="#3B82F6" />
                     <Text style={rm.wazeBtnText}>Navigate (Waze)</Text>
@@ -293,7 +294,7 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
               <View style={rm.section}>
                 <Text style={rm.sectionLabel}>ADMIN ACTIONS</Text>
                 <View style={rm.adminActions}>
-                  <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${liveGeo.lat},${liveGeo.lng}`)}
+                  <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng)}
                     style={rm.adminBtn}>
                     <Ionicons name="map-outline" size={16} color="#4ADE80" />
                     <Text style={[rm.adminBtnText, { color: "#4ADE80" }]}>Live Map</Text>
@@ -454,7 +455,7 @@ function AlertCard({ alert, onResolve, onViewReport }: {
           <Ionicons name="document-text" size={13} color="#3B82F6" />
           <Text style={[ac.actionText, { color: "#3B82F6" }]}>Full Report</Text>
         </Pressable>
-        <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${liveGeo.lat},${liveGeo.lng}`)}
+        <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng)}
           style={[ac.actionBtn, { backgroundColor: "#14532D" }]}>
           <Ionicons name="map" size={13} color="#4ADE80" />
           <Text style={[ac.actionText, { color: "#4ADE80" }]}>Maps</Text>

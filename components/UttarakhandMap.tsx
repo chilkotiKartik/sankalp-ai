@@ -1,3 +1,5 @@
+import { scriptJson, ESC_JS, tileLayerJs } from "@/lib/map-safety";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import React, { useRef, useMemo, useState } from "react";
 import { View, StyleSheet, Pressable, Alert, Linking, Modal, Text, TouchableOpacity } from "react-native";
 import { WebView } from "react-native-webview";
@@ -57,10 +59,11 @@ export interface EmergencyServiceMarker {
 function buildLeafletHTML(
   markers: MarkerData[],
   center: { lat: number; lng: number; zoom: number },
-  userLoc: { lat: number; lng: number } | null
+  userLoc: { lat: number; lng: number } | null,
+  tileUrl: string | null = null
 ): string {
-  const markersJson = JSON.stringify(markers);
-  const userJson = JSON.stringify(userLoc);
+  const markersJson = scriptJson(markers);
+  const userJson = scriptJson(userLoc);
   const cLat = center.lat;
   const cLng = center.lng;
   const cZoom = center.zoom;
@@ -104,20 +107,8 @@ var map=L.map('map',{
   preferCanvas:true
 });
 
-var cartoLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
-  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-  subdomains:'abcd',
-  maxZoom:19
-}).addTo(map);
-
-// Fallback tiles if the Carto CDN is unreachable on the device
-var osmLayer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-  maxZoom:19
-});
-cartoLayer.on('tileerror',function(ev){
-  if(ev.tile && !osmLayer._map){ map.addLayer(osmLayer); }
-});
+${tileLayerJs(tileUrl)}
+${ESC_JS}
 
 var typeLabels={
   complaint:'ISSUE',sos:'SOS',worker:'WORKER',police:'POLICE',risk:'RISK',hospital:'HOSPITAL',fire:'FIRE STN'
@@ -136,7 +127,7 @@ function postNotify(name){
 
 var markersData=${markersJson};
 
-markersData.forEach(function(m){
+markersData.forEach(function(m,mi){
   if(m.type==='risk'){
     L.circle([m.lat,m.lng],{
       radius:m.ringRadius||2000,
@@ -179,13 +170,13 @@ markersData.forEach(function(m){
   }
 
   var popupHTML='<div class="popup-box">'
-    +'<span class="popup-type" style="background:'+m.color+'18;color:'+m.color+'">'+typeLabels[m.type]+'</span>'
-    +'<div class="popup-title">'+m.title+'</div>'
-    +'<div class="popup-sub">'+m.subtitle+'</div>';
+    +'<span class="popup-type" style="background:'+m.color+'18;color:'+m.color+'">'+esc(typeLabels[m.type]||m.type)+'</span>'
+    +'<div class="popup-title">'+esc(m.title)+'</div>'
+    +'<div class="popup-sub">'+esc(m.subtitle)+'</div>';
   if(m.phone&&(m.type==='police'||m.type==='hospital'||m.type==='fire')){
     popupHTML+='<div style="display:flex;gap:6px;margin-top:8px">'
-      +'<button onclick="postCall(\''+m.phone+'\',\''+m.title+'\')" style="background:'+m.color+';color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px">📞 Call</button>'
-      +'<button onclick="postNotify(\''+m.title+'\')" style="background:#1c2128;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer">🔔 Alert</button>'
+      +'<button onclick="postCall(markersData['+mi+'].phone,markersData['+mi+'].title)" style="background:'+m.color+';color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px">📞 Call</button>'
+      +'<button onclick="postNotify(markersData['+mi+'].title)" style="background:#1c2128;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer">🔔 Alert</button>'
       +'</div>';
   }
   popupHTML+='</div>';
@@ -261,6 +252,7 @@ export default function UttarakhandMap({
   style,
 }: Props) {
   const webViewRef = useRef<WebView>(null);
+  const runtime = useRuntimeConfig();
 
   const show = (type: "complaints" | "sos" | "workers" | "police" | "risks" | "hospitals" | "fire") =>
     filter === "all" || filter === type;
@@ -376,9 +368,10 @@ export default function UttarakhandMap({
     buildLeafletHTML(
       markers,
       center,
-      userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : null
+      userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : null,
+      runtime?.mapTileUrl ?? null
     ),
-    [markers, center, userLocation]
+    [markers, center, userLocation, runtime?.mapTileUrl]
   );
 
   const recenter = () => {

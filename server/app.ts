@@ -119,11 +119,6 @@ function setupStatic(app: Express) {
   const webDir = path.join(ROOT, "static-build", "web");
   const webIndex = path.join(webDir, "index.html");
 
-  app.use((req, res, next) => {
-    if (c.DEMO_MODE) res.setHeader("X-Sankalp-Demo", "true");
-    next();
-  });
-
   // Expo Go manifest (native) — static build if present, Metro in development.
   app.get(["/", "/manifest"], (req, res, next) => {
     const platform = req.header("expo-platform");
@@ -199,6 +194,10 @@ export function createApp(): Built {
   setupCors(app);
   setupBody(app);
   setupRequestLog(app);
+  app.use((_req, res, next) => {
+    if (config().DEMO_MODE) res.setHeader("X-Sankalp-Demo", "true");
+    next();
+  });
 
   registry.length = 0;
   registerPublicRoutes(app);

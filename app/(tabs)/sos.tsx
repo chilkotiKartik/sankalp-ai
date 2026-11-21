@@ -1,3 +1,4 @@
+import { openInMaps, openInMapsQuery } from "@/lib/maps";
 import React, { useRef, useEffect, useState, useCallback, Component } from "react";
 import {
   View, Text, StyleSheet, Pressable, Animated, ScrollView,
@@ -492,7 +493,7 @@ function SOSScreenInner() {
             const uploadRes = await fetch(`${baseUrl}api/upload/audio`, {
               method: "POST",
               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-              body: JSON.stringify({ audio: base64, filename: `sos-chunk${chunkIdx}-${Date.now()}.m4a` }),
+              body: JSON.stringify({ audio: base64, sosId: alertId }),
             });
             if (uploadRes.ok) {
               const data = await uploadRes.json();
@@ -539,35 +540,39 @@ function SOSScreenInner() {
       try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); } catch {}
       Vibration.vibrate([0, 400, 150, 400, 150, 400, 150, 400]);
     }
-    // Voice alert — speak immediately to reassure the user
+    // H2: never claim help is coming until the server has accepted the alert.
     try {
-      Speech.speak("Emergency alert sent. Police and help notified. Stay calm. Help is on the way.", {
-        language: "en-IN", rate: 0.88, pitch: 1.0,
-      });
-    } catch {}
-    try {
-      const g = currentGeoRef.current || userDistrictGeo;
-      // Send SOS alert immediately (no audio URL yet — will be patched after 18s)
-      const result = await triggerWomenSafetySOS(g, `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}`);
-      if (result?.alert) {
-        setActiveAlert({ ...result.alert, isWomenSafety: true });
-        setTriggered(true);
-        startLive(result.alert.id);
-        // Start 18-second audio recording in background, auto-patches this alert
-        startAudioRecording(result.alert.id);
-        try {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: "🛡️ Women Safety SOS Sent",
-              body: "Emergency alert dispatched. Police notified. 18-sec audio evidence being recorded.",
-              sound: true,
-              priority: Notifications.AndroidNotificationPriority.MAX,
-            },
-            trigger: null,
-          });
-        } catch {}
-      }
-    } catch {}
+      const g = currentGeoRef.current;
+      const label = g ? `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}` : "Location unavailable — approximate (district centre)";
+      const result = await triggerWomenSafetySOS(g, label);
+      if (!result?.alert) throw new Error("no alert returned");
+      setActiveAlert({ ...result.alert, isWomenSafety: true });
+      setTriggered(true);
+      startLive(result.alert.id);
+      startAudioRecording(result.alert.id);
+      try {
+        Speech.speak("Your SOS has reached the police control room. If you can, also call 112.", { language: "en-IN", rate: 0.9, pitch: 1.0 });
+      } catch {}
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "Sankalp SOS delivered",
+            body: g ? "Control room has your live location. Audio evidence is being recorded." : "Control room notified. Turn on location so they can find you.",
+            sound: true,
+            priority: Notifications.AndroidNotificationPriority.MAX,
+          },
+          trigger: null,
+        });
+      } catch {}
+    } catch {
+      setWomenPanic(false);
+      try { Speech.speak("SOS could not be sent. Call 112 now.", { language: "en-IN", rate: 0.9 }); } catch {}
+      Alert.alert(
+        "SOS NOT SENT",
+        "We could not reach the server. Call 112 now — it works even without internet data.",
+        [{ text: "Call 112", style: "destructive", onPress: () => Linking.openURL("tel:112") }, { text: "Try again", onPress: () => activateWomenSafetyRef.current(source) }],
+      );
+    }
   }, [womenPanic, triggerWomenSafetySOS, startLive, startAudioRecording]);
 
   // Keep ref always pointing to latest activateWomenSafety (fixes stale closure in accelerometer)
@@ -754,15 +759,17 @@ function SOSScreenInner() {
         body: JSON.stringify({ location: `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}`, lat: g.lat, lng: g.lng, reason: cprReason }),
       });
       if (res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg: string = body.message || "Help requested. The control room has been notified.";
         setCprSent(true);
         try {
-          Speech.speak("PCR patrol requested. Nearest patrol van is on its way. Stay calm.", { language: "en-IN", rate: 0.9 });
+          Speech.speak(msg, { language: "en-IN", rate: 0.9 });
         } catch {}
         try {
           await Notifications.scheduleNotificationAsync({
             content: {
               title: "🚔 PCR Help Requested",
-              body: "Nearest patrol van dispatched to your location.",
+              body: msg,
               sound: true,
             },
             trigger: null,
@@ -787,14 +794,14 @@ function SOSScreenInner() {
       Vibration.vibrate([0, 300, 100, 300]);
     }
     try {
-      const g = currentGeoRef.current || userDistrictGeo;
+      const g = currentGeoRef.current;
       const cat = SOS_CATS.find(c => c.key === selectedCat);
       const alert = await triggerSOS({
         category: selectedCat as any,
         description: description || `${cat?.label} emergency via SANKALP AI`,
-        location: `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}`,
-        geo: g,
-        ward: nearestPS[0]?.ward || "Champawat",
+        location: g ? `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}` : "Location unavailable — approximate",
+        ...(g ? { geo: g } : {}),
+        ward: nearestPS[0]?.ward,
         wardNumber: 1,
         status: "active",
       });
@@ -822,7 +829,9 @@ function SOSScreenInner() {
         });
       } catch {}
     } catch (err: any) {
-      Alert.alert("SOS Failed", err.message || "Could not send SOS. Please call 112 directly.");
+      Alert.alert("SOS NOT SENT", `${err?.message || "Could not reach the server."} Call 112 now.`, [
+        { text: "Call 112", style: "destructive", onPress: () => Linking.openURL("tel:112") }, { text: "OK" },
+      ]);
     } finally { setIsTriggering(false); }
   };
 
@@ -1131,7 +1140,7 @@ function SOSScreenInner() {
             </View>
 
             {geo && (
-              <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${geo.lat},${geo.lng}`)} style={s.mapsBtn}>
+              <Pressable onPress={() => openInMaps(geo.lat, geo.lng)} style={s.mapsBtn}>
                 <Ionicons name="map" size={14} color="#4ADE80" />
                 <Text style={s.mapsBtnText}>Open My Location in Google Maps</Text>
                 <Ionicons name="open-outline" size={12} color="#4ADE80" />
@@ -1591,7 +1600,7 @@ function SOSScreenInner() {
                       </Text>
                     )}
                   </View>
-                  <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${liveGeo.lat},${liveGeo.lng}`)} style={s.alertMapBtn}>
+                  <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng)} style={s.alertMapBtn}>
                     <Ionicons name="map-outline" size={16} color="#4ADE80" />
                   </Pressable>
                 </View>

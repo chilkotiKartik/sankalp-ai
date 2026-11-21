@@ -1,3 +1,5 @@
+import { scriptJson, ESC_JS, tileLayerJs } from "@/lib/map-safety";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import React, { useEffect, useRef, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import type { Complaint, SOSAlert, Worker, PoliceStation, RiskZone, GeoPoint } from "@/context/AppContext";
@@ -54,10 +56,11 @@ function buildLeafletHTML(
   markers: MarkerData[],
   center: { lat: number; lng: number; zoom: number },
   userLoc: { lat: number; lng: number } | null,
-  baseUrl: string = ""
+  baseUrl: string = "",
+  tileUrl: string | null = null
 ): string {
-  const markersJson = JSON.stringify(markers);
-  const userJson = JSON.stringify(userLoc);
+  const markersJson = scriptJson(markers);
+  const userJson = scriptJson(userLoc);
   const cLat = center.lat;
   const cLng = center.lng;
   const cZoom = center.zoom;
@@ -103,11 +106,8 @@ var map=L.map('map',{
   preferCanvas:true
 });
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-  subdomains:'abcd',
-  maxZoom:19
-}).addTo(map);
+${tileLayerJs(tileUrl)}
+${ESC_JS}
 
 var typeLabels={
   complaint:'ISSUE',sos:'SOS',worker:'WORKER',police:'POLICE',risk:'RISK',hospital:'HOSPITAL',fire:'FIRE'
@@ -115,7 +115,7 @@ var typeLabels={
 
 var markersData=${markersJson};
 
-markersData.forEach(function(m){
+markersData.forEach(function(m,mi){
   if(m.type==='risk'){
     L.circle([m.lat,m.lng],{
       radius:m.ringRadius||2000,
@@ -151,10 +151,10 @@ markersData.forEach(function(m){
 
   var popupHTML='<div class="popup-box">'
     +'<span class="popup-type" style="background:'+m.color+'28;color:'+m.color+'">'+(typeLabels[m.type]||m.type.toUpperCase())+'</span>'
-    +'<div class="popup-title">'+m.title+'</div>'
-    +'<div class="popup-sub">'+m.subtitle+'</div>';
+    +'<div class="popup-title">'+esc(m.title)+'</div>'
+    +'<div class="popup-sub">'+esc(m.subtitle)+'</div>';
   if(m.phone&&(m.type==='police'||m.type==='hospital'||m.type==='fire')){
-    popupHTML+='<div><button class="popup-call" onclick="window.open(\'tel:'+m.phone+'\',\'_self\')">📞 '+m.phone+'</button></div>';
+    popupHTML+='<div><button class="popup-call" onclick="window.open(\'tel:\'+String(markersData['+mi+'].phone).replace(/[^0-9+]/g,\'\'),\'_self\')">📞 '+esc(m.phone)+'</button></div>';
   }
   popupHTML+='</div>';
   marker.bindPopup(popupHTML,{maxWidth:260,closeButton:false});
@@ -342,15 +342,17 @@ export default function UttarakhandMap({
   }, [userLocation, userDistrict]);
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const runtime = useRuntimeConfig();
 
   const html = useMemo(() =>
     buildLeafletHTML(
       markers,
       center,
       userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : null,
-      baseUrl
+      baseUrl,
+      runtime?.mapTileUrl ?? null
     ),
-    [markers, center, userLocation, baseUrl]
+    [markers, center, userLocation, baseUrl, runtime?.mapTileUrl]
   );
 
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { scriptJson, ESC_JS, tileLayerJs } from "./map-safety";
 // Shared Leaflet HTML builder for Worker GPS Map
 // Used by both native (WebView) and web (iframe) versions
 import { LEAFLET_CSS, LEAFLET_JS } from "./leaflet-bundle";
@@ -49,12 +50,13 @@ export function buildWorkerMapHTML(
   selectedId: string | null,
   showHeat: boolean,
   isWebPlatform: boolean,
-  origin = "https://sankalp-ai.replit.app"
+  origin = "",
+  tileUrl: string | null = null
 ): string {
-  const wJson = JSON.stringify(workers);
-  const hJson = JSON.stringify(heatData);
-  const sJson = JSON.stringify(selectedId);
-  const centersJson = JSON.stringify(DISTRICT_CENTERS);
+  const wJson = scriptJson(workers);
+  const hJson = scriptJson(heatData);
+  const sJson = scriptJson(selectedId);
+  const centersJson = scriptJson(DISTRICT_CENTERS);
   const showHeatJs = showHeat ? "true" : "false";
   const isWebJs = isWebPlatform ? "true" : "false";
 
@@ -142,9 +144,8 @@ var map=L.map('map',{
   center:[30.0668,79.0193],zoom:7,
   zoomControl:true,attributionControl:true,preferCanvas:false
 });
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-  attribution:'&copy; OSM &copy; CARTO',subdomains:'abcd',maxZoom:19
-}).addTo(map);
+${tileLayerJs(tileUrl)}
+${ESC_JS}
 
 // ── HEAT COLOR FUNCTION ──────────────────────────────────────────────────────
 function heatColor(count,avgScore,maxCount){
@@ -181,7 +182,7 @@ heatData.forEach(function(d){
     interactive:true,
     className:'heat-circle'
   });
-  var label=d.district+' &mdash; <b>'+d.count+'</b> workers'
+  var label=esc(d.district)+' &mdash; <b>'+d.count+'</b> workers'
     +(d.active?' (<span style="color:#00C060">'+d.active+' active</span>)':'')
     +'<br><span style="color:#FF9933">Avg Score: '+Math.round(d.avgScore)+'</span>';
   circle.bindTooltip(label,{
@@ -201,7 +202,7 @@ function makeIcon(w,isSel){
   var col=SC[w.status]||'#6B7280';
   var cls='wm '+w.status+(isSel?' sel':'');
   return L.divIcon({
-    html:'<div class="'+cls+'" style="background:'+col+'">'+w.name.charAt(0)+'</div>',
+    html:'<div class="'+cls+'" style="background:'+col+'">'+esc(String(w.name||'?').charAt(0))+'</div>',
     iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-18],className:''
   });
 }
@@ -225,11 +226,11 @@ workers.forEach(function(w){
   });
   var ph='<div class="pb">'
     +'<span class="pbadge" style="background:'+col+'22;color:'+col+'">'+slabel+'</span>'
-    +'<div class="pt">'+w.name+'</div>'
-    +'<div class="ps">'+w.ward+' &middot; '+w.district+'</div>'
+    +'<div class="pt">'+esc(w.name)+'</div>'
+    +'<div class="ps">'+esc(w.ward)+' &middot; '+esc(w.district)+'</div>'
     +'<div class="ps"><span style="color:#FF9933;font-weight:700">'+w.score+'</span> score &nbsp;&#9733; '+w.avgRating.toFixed(1)+'</div>'
     +'<div class="ps">'+w.resolvedToday+' today &middot; '+w.totalResolved+' total</div>'
-    +(w.task?'<div class="pk">&#9881; '+w.task+'</div>':'')
+    +(w.task?'<div class="pk">&#9881; '+esc(w.task)+'</div>':'')
     +'</div>';
   marker.bindPopup(ph,{maxWidth:240});
   marker.on('click',function(){sendMsg({type:'workerTap',id:w.id});});

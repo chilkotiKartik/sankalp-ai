@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SANKALP AI — Department Portal</title>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="/web/vendor/react-18.3.1.production.min.js"></script>
+<script src="/web/vendor/react-dom-18.3.1.production.min.js"></script>
+<script src="/web/vendor/babel-standalone-7.26.10.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
 :root{--orange:#FF9933;--bg:#0d1117;--sidebar:#080d18;--card:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--dimmed:#6e7681;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--yellow:#d29922;--purple:#bc8cff}
@@ -185,7 +185,9 @@ function Toast({msg,type,onDone}){
 /* ── COMPLAINT DETAIL MODAL ──────────────────────────────────────────────── */
 function ComplaintModal({c,onClose,token,onRefresh,addToast}){
   if(!c)return null;
-  const [status,setStatus]=useState(c.status||'pending');
+  const [status,setStatus]=useState(c.status==='pending'?'in_progress':(c.status||'in_progress'));
+  const [proof,setProof]=useState(null);
+  const [proofNote,setProofNote]=useState('');
   const [saving,setSaving]=useState(false);
   const [showAssign,setShowAssign]=useState(false);
   const [wName,setWName]=useState(c.assignedWorkerName||'');
@@ -198,7 +200,8 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
   async function save(){
     setSaving(true);
     try{
-      await api.put(`/api/dept/complaints/${c.id}`,{status},token);
+      if(status==='resolved'&&!proof){addToast('Attach a proof photo first','error');setSaving(false);return;}
+      await api.put(`/api/dept/complaints/${c.id}`,status==='resolved'?{status,proofPhoto:proof,proofNote:proofNote||undefined}:{status},token);
       addToast('Complaint updated','success');
       onRefresh();onClose();
     }catch(e){addToast(e.message,'error');}
@@ -292,7 +295,7 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
       {c.assignedWorkerName&&!assignResult&&<div style={{background:'rgba(255,153,51,.07)',border:'1px solid rgba(255,153,51,.25)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
         <div style={{fontWeight:600,color:'var(--orange)',marginBottom:4}}>👷 Assigned Worker</div>
         <div>{c.assignedWorkerName} · 📞 {c.assignedWorkerPhone}</div>
-        <div style={{color:'var(--muted)',marginTop:4,fontFamily:'monospace'}}>PIN: {c.assignedWorkerPin}</div>
+        <div style={{color:'var(--muted)',marginTop:4,fontSize:11}}>The worker PIN was shown once at assignment and is not stored. Re-assign to issue a new PIN.</div>
       </div>}
 
       {/* Assign Worker Panel */}
@@ -311,7 +314,7 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
         </div>
         {showAssign&&<div style={{display:'flex',flexDirection:'column',gap:10}}>
           <div><label>Worker Name</label><input className="input" placeholder="e.g. Ramesh Kumar" value={wName} onChange={e=>setWName(e.target.value)}/></div>
-          <div><label>Worker Phone (10 digits)</label><input className="input" placeholder="e.g. 9876543210" maxLength={10} value={wPhone} onChange={e=>setWPhone(e.target.value.replace(/\D/g,''))}/></div>
+          <div><label>Worker Phone (10 digits)</label><input className="input" placeholder="10-digit mobile" maxLength={10} value={wPhone} onChange={e=>setWPhone(e.target.value.replace(/\D/g,''))}/></div>
           <button className="btn btn-orange" onClick={assignWorker} disabled={assigning} style={{justifyContent:'center'}}>
             {assigning?<Spinner/>:'🔑 Generate Worker Credentials & Assign'}
           </button>
@@ -321,8 +324,15 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
       <div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:4}}>
         <label>Update Status</label>
         <select className="select" style={{marginBottom:12}} value={status} onChange={e=>setStatus(e.target.value)}>
-          {['pending','in_progress','resolved','closed'].map(s=><option key={s} value={s}>{SL[s]}</option>)}
+          {['in_progress','resolved'].map(s=><option key={s} value={s}>{s==='resolved'?'Fixed — submit proof photo':SL[s]}</option>)}
         </select>
+        {status==='resolved'&&<div style={{marginBottom:12}}>
+          <label htmlFor="proof-file">Proof photo of the completed work (required)</label>
+          <input id="proof-file" className="input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onloadend=()=>setProof(r.result);r.readAsDataURL(f);}}/>
+          {proof&&<img src={proof} alt="Proof preview" style={{marginTop:8,width:'100%',maxWidth:220,borderRadius:8}}/>}
+          <input className="input" style={{marginTop:8}} placeholder="Note (optional)" value={proofNote} onChange={e=>setProofNote(e.target.value)}/>
+          <div style={{fontSize:11,color:'var(--muted)',marginTop:6}}>The citizen confirms the fix before the case closes.</div>
+        </div>}
         <div style={{display:'flex',gap:8}}>
           <button className="btn btn-orange" style={{flex:1,justifyContent:'center'}} onClick={save} disabled={saving}>
             {saving?<Spinner/>:'💾 Save Changes'}
@@ -570,7 +580,7 @@ function WorkerModal({w,onClose}){
       {w.geo&&<div style={{background:'rgba(88,166,255,.06)',border:'1px solid rgba(88,166,255,.2)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
         <div style={{fontWeight:700,color:'var(--blue)',marginBottom:4}}>📍 Live GPS Location</div>
         <div style={{fontFamily:'monospace',color:'var(--text)'}}>{w.geo.lat.toFixed(5)}°N, {w.geo.lng.toFixed(5)}°E</div>
-        <a href={`https://maps.google.com/?q=${w.geo.lat},${w.geo.lng}`} target="_blank" style={{color:'var(--blue)',textDecoration:'none',fontSize:11,marginTop:4,display:'block'}}>🗺️ View on Google Maps →</a>
+        <a href={`https://www.openstreetmap.org/?mlat=${w.geo.lat}&mlon=${w.geo.lng}#map=17/${w.geo.lat}/${w.geo.lng}`} target="_blank" rel="noopener noreferrer" style={{color:'var(--blue)',textDecoration:'none',fontSize:11,marginTop:4,display:'block'}}>🗺️ View on Google Maps →</a>
       </div>}
 
       {/* Task History */}
@@ -775,9 +785,9 @@ function SOSPage({token,dept,addToast}){
         {selected.description&&<div style={{background:'#1c2128',borderRadius:8,padding:12,fontSize:13,lineHeight:1.6,marginBottom:14}}>{selected.description}</div>}
         {selected.audioRecordingUrl&&<div style={{background:'rgba(188,140,255,.1)',border:'1px solid rgba(188,140,255,.25)',borderRadius:8,padding:12,marginBottom:14}}>
           <div style={{color:'var(--purple)',fontWeight:600,fontSize:13,marginBottom:4}}>🎙️ Audio Recording Available</div>
-          <audio controls src={selected.audioRecordingUrl} style={{width:'100%'}}/>
+          <audio controls src={selected.audioRecordingUrl+"?token="+encodeURIComponent(token||"")} style={{width:"100%"}}/>
         </div>}
-        {selected.geo&&<a href={`https://maps.google.com/?q=${selected.geo.lat},${selected.geo.lng}`} target="_blank" style={{display:'block',marginTop:10}}>
+        {selected.geo&&<a href={`https://www.openstreetmap.org/?mlat=${selected.geo.lat}&mlon=${selected.geo.lng}#map=17/${selected.geo.lat}/${selected.geo.lng}`} target="_blank" rel="noopener noreferrer" style={{display:'block',marginTop:10}}>
           <button className="btn btn-blue" style={{width:'100%',justifyContent:'center'}}>🗺️ Open in Google Maps</button>
         </a>}
       </div>
@@ -1070,7 +1080,7 @@ function AnnouncementsPage({token,dept,announcements,onRefresh,addToast}){
         </div>
         <div style={{fontSize:13,color:'var(--text)',lineHeight:1.6,marginBottom:8,background:'#1c2128',borderRadius:8,padding:'10px 12px'}}>{a.body}</div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          {a.link&&<a href={a.link} target="_blank" style={{fontSize:12,color:'var(--blue)',textDecoration:'none'}}>🔗 Reference Link</a>}
+          {a.link&&<a href={a.link} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:'var(--blue)',textDecoration:'none'}}>🔗 Reference Link</a>}
           {a.expiresAt&&!expired&&<span style={{fontSize:11,color:'var(--muted)'}}>⏱ Expires: {new Date(a.expiresAt).toLocaleDateString('en-IN')}</span>}
           <span style={{fontSize:11,color:'var(--muted)',marginLeft:'auto'}}>👁 {a.views} views</span>
           {isOwn&&<button className="btn btn-sm btn-ghost" style={{color:'var(--red)',borderColor:'rgba(248,81,73,.3)'}} onClick={()=>del(a.id)} disabled={deleting===a.id}>
@@ -1267,7 +1277,7 @@ function Login({onLogin}){
       </div>
       <div style={{marginBottom:20}}>
         <label>Access Code</label>
-        <input className="input" type="password" placeholder="e.g. pwd_2026" value={code}
+        <input className="input" type="password" placeholder="Department access code" value={code}
           onChange={e=>setCode(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()}/>
       </div>
       {error&&<div style={{background:'rgba(248,81,73,.12)',border:'1px solid rgba(248,81,73,.3)',borderRadius:8,padding:10,marginBottom:14,fontSize:13,color:'var(--red)'}}>✗ {error}</div>}
@@ -1275,14 +1285,8 @@ function Login({onLogin}){
         {loading?<><Spinner/> Signing in…</>:'🔑 Sign In to Department Portal'}
       </button>
 
-      <div style={{background:'rgba(255,153,51,.06)',border:'1px solid rgba(255,153,51,.15)',borderRadius:10,padding:14,marginTop:20,fontSize:12,color:'var(--muted)'}}>
-        <div style={{fontWeight:600,marginBottom:6,color:'var(--orange)'}}>Demo Access Codes</div>
-        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-          {['pwd_2026','ulb_2026','jal_2026','upcl_2026','forest_2026','health_2026','usdma_2026','police_2026'].map(c=>
-            <code key={c} style={{background:'rgba(255,153,51,.1)',padding:'2px 7px',borderRadius:5,cursor:'pointer',color:'var(--orange)'}} onClick={()=>{const [d]=c.split('_');setDeptId(d);setCode(c);}}>{c}</code>
-          )}
-        </div>
-        <div style={{marginTop:8,fontSize:11,opacity:.7}}>Click any code to auto-fill</div>
+      <div style={{marginTop:20,fontSize:12,color:'var(--muted)'}}>
+        Access codes are issued by the state administrator and can be rotated at any time. Never share your code.
       </div>
 
       <div style={{marginTop:16,display:'flex',gap:6,justifyContent:'center',flexWrap:'wrap'}}>

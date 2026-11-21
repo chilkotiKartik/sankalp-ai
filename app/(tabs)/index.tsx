@@ -31,44 +31,33 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
   closed:      { label: "Closed",      color: "#6B7280", bg: "#F9FAFB" },
 };
 
-const UK_NEWS = [
-  {
-    id: "n1", tag: "GOVERNMENT", headline: "CM launches ₹2,000 Cr Char Dham Road Widening Project", time: "2h ago",
-    icon: "car-outline" as const, color: "#3B82F6", bg: "#EFF6FF",
-    source: "Uttarakhand Govt Press Release", readTime: "3 min read",
-    body: "Chief Minister Pushkar Singh Dhami today inaugurated the ambitious ₹2,000 crore Char Dham Road Widening Project, aimed at improving all-weather connectivity to Badrinath, Kedarnath, Gangotri, and Yamunotri — the four sacred pilgrimage destinations of Uttarakhand.\n\nThe project will widen approximately 825 km of national highways to four lanes, incorporating modern safety features including crash barriers, proper drainage systems, and retaining walls. The work is expected to be completed before the 2027 Char Dham Yatra season.\n\nKey highlights:\n• ₹2,000 crore total project cost\n• 825 km of highway widening across 4 routes\n• 15,000 local employment opportunities created\n• Covers Rishikesh-Rudraprayag, Rishikesh-Gangotri, Rishikesh-Yamunotri, and Rudraprayag-Badrinath routes\n• Estimated 5 lakh additional pilgrims per year benefiting\n\nThe CM urged contractors to ensure quality construction and maintain zero tolerance for sub-standard materials. NHAI officials confirmed that 40% of the work has already been completed.",
-  },
-  {
-    id: "n2", tag: "ENVIRONMENT", headline: "Uttarakhand ranks 1st in India for forest cover increase 2025", time: "5h ago",
-    icon: "leaf" as const, color: "#22C55E", bg: "#F0FFF4",
-    source: "Forest Survey of India (FSI)", readTime: "2 min read",
-    body: "The Forest Survey of India's latest report has ranked Uttarakhand as the top-performing state in India for forest cover increase in 2025. The state added 1,200 sq km of forest cover in a single year — a historic achievement.\n\nThe 'Mission Vriksharopan' initiative, launched under the state's green economy plan, involved planting 35 crore saplings across 13 districts. More than 8 lakh citizens participated in the plantation drive.\n\nKey findings:\n• Forest cover increased from 71.2% to 73.8% of total geographical area\n• 1,200 sq km new forest area added in 2024-25\n• 35 crore saplings planted under Mission Vriksharopan\n• Van Panchayats (community forests) now cover 12,089 villages\n• ₹450 crore allocated for forest protection and fire prevention\n\nForest Department officials noted that community participation played a crucial role, with 8 lakh residents enrolled as 'Van Mitras'. Uttarakhand is now targeting 75% forest cover by 2030.",
-  },
-  {
-    id: "n3", tag: "SAFETY", headline: "New 112 emergency centers opened in Pithoragarh & Champawat", time: "1d ago",
-    icon: "shield-checkmark" as const, color: "#8B5CF6", bg: "#F5F3FF",
-    source: "Uttarakhand Police Headquarters", readTime: "2 min read",
-    body: "Two new 112 emergency response centers have been inaugurated in Pithoragarh and Champawat districts, significantly improving emergency response times in the remote hill districts of eastern Uttarakhand.\n\nThe centers are equipped with state-of-the-art dispatch systems, GPS-tracked patrol vehicles, and trained personnel available 24/7. Response time is expected to drop from the current average of 28 minutes to under 12 minutes.\n\nCenter features:\n• 24/7 dispatch center with 15 trained operators each\n• Fleet of 8 GPS-equipped emergency response vehicles per center\n• Direct integration with district hospitals and fire stations\n• Women's helpline 1090 routed through the centers\n• Mountain rescue equipment for remote terrain emergencies\n• Real-time SANKALP AI integration for complaint tracking\n\nThe centers will serve a combined population of approximately 3.5 lakh residents across the two border districts. The DGP confirmed plans to open 4 more centers in Chamoli, Rudraprayag, Uttarkashi, and Bageshwar by June 2026.",
-  },
-  {
-    id: "n4", tag: "INFRASTRUCTURE", headline: "Rishikesh-Karnaprayag rail project 62% complete, on track for 2026", time: "1d ago",
-    icon: "train-outline" as const, color: "#F59E0B", bg: "#FFFBEB",
-    source: "National Capital Region Transport Corporation", readTime: "3 min read",
-    body: "The Rishikesh-Karnaprayag Railway Project, one of India's most challenging infrastructure endeavors, has crossed the 62% completion mark and remains on track for its 2026 deadline. The project will be a game-changer for Uttarakhand's connectivity and pilgrimage tourism.\n\nThe 125 km rail line passes through extremely difficult Himalayan terrain with 17 tunnels totalling 105 km — making it one of the most tunnel-intensive railway projects in the world.\n\nProject highlights:\n• Total length: 125 km (Rishikesh to Karnaprayag)\n• 17 tunnels totalling 105 km — world record density\n• 35 stations across 5 districts\n• ₹16,216 crore total project cost\n• Travel time: 3.5 hours vs current 8+ hours by road\n• Will serve as base for Char Dham connectivity extension\n• Estimated to boost Uttarakhand's GDP by ₹8,000 crore annually\n\nWith 62% construction complete, NCRTC officials expressed confidence in the 2026 deadline. Once operational, the train will run at 100 km/h even through mountain terrain, connecting Devprayag, Srinagar, Rudraprayag, and Gauchar.",
-  },
-  {
-    id: "n5", tag: "HEALTH", headline: "50 mobile health vans deployed to remote hill districts of UK", time: "2d ago",
-    icon: "medkit" as const, color: "#EF4444", bg: "#FEF2F2",
-    source: "Uttarakhand Health Department", readTime: "2 min read",
-    body: "The state government has deployed 50 new mobile health vans under the 'Mukhyamantri Svastha Uttarakhand' initiative, targeting the most remote and medically underserved villages in the hill districts.\n\nEach van is equipped with essential diagnostic equipment, a trained doctor, nurse, and pharmacist, with the ability to conduct basic surgeries and deliver emergency care. The vans are specially designed for mountain terrain and can navigate even unpaved village roads.\n\nVan specifications:\n• Equipped with: ECG machine, ultrasound, X-ray portable unit\n• Carries 3 months' medicine supply including emergency drugs\n• Each van serves 15-20 villages per month\n• Telemedicine link to AIIMS Rishikesh for specialist consultation\n• Dental chair and vision testing equipment included\n• Ayushman Bharat card scanning for cashless services\n\nDistrict-wise deployment:\n• Pithoragarh: 8 vans (border area priority)\n• Chamoli: 7 vans\n• Uttarkashi: 7 vans  \n• Bageshwar: 6 vans\n• Other districts: 22 vans\n\nThe initiative is expected to benefit 4 lakh residents who currently have to travel 50+ km to reach the nearest hospital.",
-  },
-  {
-    id: "n6", tag: "DISASTER", headline: "SDRF teams on alert: Pre-monsoon preparedness drive begins", time: "2d ago",
-    icon: "warning" as const, color: "#6B7280", bg: "#F9FAFB",
-    source: "State Disaster Response Force, Uttarakhand", readTime: "2 min read",
-    body: "The State Disaster Response Force (SDRF) has launched its annual pre-monsoon preparedness drive across all 13 districts, with teams on heightened alert ahead of the June-September monsoon season. Uttarakhand receives some of India's heaviest rainfall and is highly susceptible to landslides, flash floods, and glacial lake outburst floods (GLOFs).\n\nThis year, NDRF has also deployed additional battalions to the state following the 2023 and 2024 incidents in Joshimath and Kedarnath.\n\nPreparedness measures:\n• 24 SDRF teams (1,200 personnel) deployed across 13 districts\n• 2 NDRF battalions stationed in Dehradun and Haridwar\n• 48 disaster control rooms activated\n• Early warning systems upgraded with AI-based flood prediction\n• 850 vulnerable villages identified and evacuation routes mapped\n• 45 relief camps with 2 lakh person capacity readied\n• SANKALP AI SOS system integrated with SDRF dispatch\n\nHigh-risk districts include: Chamoli, Uttarkashi, Rudraprayag, Pithoragarh, and Bageshwar. Residents in these areas are urged to download the SANKALP AI app and enable SOS notifications.\n\nHelpline: 1070 (State Emergency Operations Center) · Operational 24x7",
-  },
-];
+/**
+ * Home feed shows ONLY official announcements stored on the server (rule 3: no fabricated news,
+ * no statements attributed to real officials). Shape kept compatible with NewsDetailModal.
+ */
+type NewsItem = {
+  id: string; tag: string; headline: string; time: string; icon: React.ComponentProps<typeof Ionicons>["name"];
+  color: string; bg: string; source: string; readTime: string; body: string;
+};
+const ANN_STYLE: Record<string, { icon: NewsItem["icon"]; color: string; bg: string }> = {
+  emergency: { icon: "warning", color: "#EF4444", bg: "#FEF2F2" },
+  scheme: { icon: "ribbon-outline", color: "#3B82F6", bg: "#EFF6FF" },
+  welfare: { icon: "heart-outline", color: "#EC4899", bg: "#FDF2F8" },
+  tender: { icon: "document-text-outline", color: "#F59E0B", bg: "#FFFBEB" },
+  holiday: { icon: "calendar-outline", color: "#8B5CF6", bg: "#F5F3FF" },
+  general: { icon: "megaphone-outline", color: "#6B7280", bg: "#F9FAFB" },
+};
+function relTime(iso: string): string {
+  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  return m < 60 ? `${m}m ago` : m < 1440 ? `${Math.round(m / 60)}h ago` : `${Math.round(m / 1440)}d ago`;
+}
+function toNewsItems(anns: Array<{ id: string; type?: string; title: string; body: string; postedAt: string; postedBy?: string }>): NewsItem[] {
+  return anns.slice(0, 6).map(a => {
+    const st = ANN_STYLE[a.type || "general"] || ANN_STYLE.general;
+    return { id: a.id, tag: (a.type || "general").toUpperCase(), headline: a.title, time: relTime(a.postedAt), icon: st.icon, color: st.color, bg: st.bg,
+      source: a.postedBy || "District Administration", readTime: "", body: a.body };
+  });
+}
 
 const SCHEMES_DATA = [
   {
@@ -523,7 +512,8 @@ export default function DashboardScreen() {
 
   const [selectedScheme, setSelectedScheme] = useState<typeof SCHEMES_DATA[0] | null>(null);
   const [selectedNotice, setSelectedNotice] = useState<any>(null);
-  const [selectedNews, setSelectedNews] = useState<typeof UK_NEWS[0] | null>(null);
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  const newsItems = toNewsItems(announcements as any);
   const [lang, setLang] = useState<"EN" | "HI">("EN");
 
   useEffect(() => {
@@ -819,14 +809,17 @@ export default function DashboardScreen() {
               <View style={[styles.kpiIconWrap, { backgroundColor: "#EFF6FF" }]}>
                 <Ionicons name="newspaper" size={14} color="#3B82F6" />
               </View>
-              <Text style={styles.sectionTitle}>{t("Uttarakhand News", HI.news)}</Text>
+              <Text style={styles.sectionTitle}>{t("Official announcements", HI.news)}</Text>
             </View>
             <View style={styles.livePill}>
               <PulsingDot color="#3B82F6" />
-              <Text style={[styles.liveText, { color: "#3B82F6" }]}>Today</Text>
+              <Text style={[styles.liveText, { color: "#3B82F6" }]}>Official</Text>
             </View>
           </View>
-          {UK_NEWS.map((item, idx) => (
+          {newsItems.length === 0 && (
+            <Text style={[styles.newsHeadline, { color: "#9CA3AF", paddingVertical: 10 }]}>No official announcements for your district yet.</Text>
+          )}
+          {newsItems.map((item, idx) => (
             <Pressable key={item.id} onPress={() => setSelectedNews(item)} style={[styles.newsRow, idx > 0 && { borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
               <View style={[styles.newsIconWrap, { backgroundColor: item.bg }]}>
                 <Ionicons name={item.icon} size={15} color={item.color} />

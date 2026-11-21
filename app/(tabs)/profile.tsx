@@ -24,10 +24,8 @@ const BADGE_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; label
   system_admin:   { icon: "shield-checkmark", label: "System Admin",  color: "#06B6D4" },
 };
 
-const INDIAN_PHOTOS: Record<string, string> = {
-  "9999999999": "https://randomuser.me/api/portraits/men/85.jpg",
-  "9876543210": "https://randomuser.me/api/portraits/women/62.jpg",
-};
+/** No remote stock portraits: profiles show initials until users upload their own photo. */
+const INDIAN_PHOTOS: Record<string, string> = {};
 
 function BadgeChip({ badge }: { badge: string }) {
   const cfg = BADGE_CONFIG[badge] || { icon: "medal" as const, label: badge, color: "#9CA3AF" };

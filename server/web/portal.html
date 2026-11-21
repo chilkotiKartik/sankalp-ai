@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>SANKALP AI — Unified Governance Portal</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>"/>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="/web/vendor/react-18.3.1.production.min.js"></script>
+<script src="/web/vendor/react-dom-18.3.1.production.min.js"></script>
+<script src="/web/vendor/babel-standalone-7.26.10.min.js"></script>
 <link rel="stylesheet" href="/leaflet/leaflet.css"/>
 <script src="/leaflet/leaflet.js"></script>
 <style>
@@ -350,7 +350,7 @@ function ComplaintModal({c,onClose,token,deptToken,addToast,onRefresh,isAdmin}){
           <span className={'badge '+(SC[c.status]||'badge-muted')} style={{fontSize:12,padding:'3px 10px'}}>{SL[c.status]||c.status}</span>
           {slaBreached&&<span className="badge badge-red">⚠️ SLA Overdue {hoursElapsed-slaHours}h</span>}
           {!slaBreached&&(c.status==='pending'||c.status==='in_progress')&&<span style={{fontSize:11,color:'var(--muted)',background:'rgba(255,255,255,.05)',padding:'2px 8px',borderRadius:5}}>⏳ {hoursElapsed}h / {slaHours}h SLA</span>}
-          {c.geo?.lat&&<a href={'https://maps.google.com/?q='+c.geo.lat+','+c.geo.lng} target="_blank" className="btn btn-ghost btn-sm" style={{fontSize:11,marginLeft:'auto',color:'var(--blue)',borderColor:'rgba(88,166,255,.3)'}}>🗺️ Open on Map</a>}
+          {c.geo?.lat&&<a href={'https://www.openstreetmap.org/?mlat='+c.geo.lat+'&mlon='+c.geo.lng+'#map=17/'+c.geo.lat+'/'+c.geo.lng} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{fontSize:11,marginLeft:'auto',color:'var(--blue)',borderColor:'rgba(88,166,255,.3)'}}>🗺️ Open on Map</a>}
         </div>
 
         {/* ── SLA PROGRESS BAR ── */}
@@ -453,7 +453,7 @@ function ComplaintModal({c,onClose,token,deptToken,addToast,onRefresh,isAdmin}){
             <a href={'tel:112'} className="btn btn-sm" style={{background:'rgba(248,81,73,.1)',color:'var(--red)',border:'1px solid rgba(248,81,73,.3)'}}>📞 Call 112</a>
             <a href={'tel:'+(dept?.helpline||'1800180')} className="btn btn-sm" style={{background:'rgba(255,153,51,.1)',color:'var(--orange)',border:'1px solid rgba(255,153,51,.3)'}}>☎️ Dept Helpline</a>
             <button className="btn btn-ghost btn-sm" onClick={()=>{navigator.clipboard?.writeText(c.ticketId||'');addToast&&addToast('success','Ticket ID copied to clipboard');}}>📋 Copy Ticket ID</button>
-            {c.geo?.lat&&<a href={'https://maps.google.com/?q='+c.geo.lat+','+c.geo.lng} target="_blank" className="btn btn-ghost btn-sm">🗺️ View Location</a>}
+            {c.geo?.lat&&<a href={'https://www.openstreetmap.org/?mlat='+c.geo.lat+'&mlon='+c.geo.lng+'#map=17/'+c.geo.lat+'/'+c.geo.lng} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">🗺️ View Location</a>}
           </div>
         </div>}
 
@@ -614,8 +614,8 @@ function LoginScreen({onLogin}){
               </div>
               <div style={{marginBottom:18}}>
                 <label>Access Code</label>
-                <input className="input" type="password" placeholder="e.g. pwd_2026" value={code} onChange={e=>setCode(e.target.value)} required/>
-                <div style={{fontSize:11,color:'var(--muted)',marginTop:6}}>Format: {'<deptId>_2026'} (e.g. pwd_2026, jal_2026)</div>
+                <input className="input" type="password" placeholder="Department access code" value={code} onChange={e=>setCode(e.target.value)} required/>
+                <div style={{fontSize:11,color:'var(--muted)',marginTop:6}}>Use the access code issued by the state administrator.</div>
               </div>
               {err&&<div style={{background:'rgba(248,81,73,.12)',border:'1px solid rgba(248,81,73,.3)',borderRadius:8,padding:10,marginBottom:14,fontSize:13,color:'var(--red)'}}>✗ {err}</div>}
               <button className="btn btn-orange" style={{width:'100%',justifyContent:'center',padding:'12px',fontSize:14}} disabled={loading}>
@@ -652,12 +652,6 @@ function LoginScreen({onLogin}){
             </form>
           )}
 
-          <div style={{marginTop:18,padding:'12px',background:'rgba(255,153,51,.06)',borderRadius:8,fontSize:12,color:'var(--muted)'}}>
-            <div style={{fontWeight:600,marginBottom:6,color:'var(--orange)'}}>Demo Credentials</div>
-            <div>Citizen: <span style={{color:'var(--orange)'}}>9876543210 / 123456</span></div>
-            <div style={{marginTop:3}}>Admin: <span style={{color:'var(--orange)'}}>9999999999 / 000000</span></div>
-            <div style={{marginTop:3}}>Dept code: <span style={{color:'var(--orange)'}}>pwd_2026</span> (any dept)</div>
-          </div>
         </div>
 
         <div style={{marginTop:14,display:'flex',gap:8,justifyContent:'center'}}>
@@ -1163,10 +1157,7 @@ function LiveMapPage({complaints,sos,wards,token,addToast}){
   useEffect(()=>{
     if(!mapRef.current||mapInstRef.current)return;
     const m=L.map(mapRef.current,{center:[30.3165,78.0322],zoom:9,zoomControl:true});
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-      attribution:'&copy; <a href="https://www.openstreetmap.org">OSM</a> &copy; <a href="https://carto.com">CARTO</a>',
-      subdomains:'abcd',maxZoom:19
-    }).addTo(m);
+    sankalpTileLayer(L,m);
     layerRef.current=L.layerGroup().addTo(m);
     mapInstRef.current=m;
     return()=>{if(mapInstRef.current){mapInstRef.current.remove();mapInstRef.current=null;layerRef.current=null;}};
@@ -1195,7 +1186,7 @@ function LiveMapPage({complaints,sos,wards,token,addToast}){
         const col=c.status==='resolved'?'#3fb950':c.status==='in_progress'?'#58a6ff':c.priority==='P1'?'#f85149':'#FF9933';
         const icon=L.divIcon({html:dot(col,12,c.priority==='P1'),className:'',iconSize:[12,12],iconAnchor:[6,6]});
         const m2=L.marker([c.geo.lat,c.geo.lng],{icon});
-        m2.bindTooltip(`<b>${c.ticketId}</b> — ${c.category}<br/>${c.status} · ${c.priority}`,{direction:'top',offset:[0,-6]});
+        m2.bindTooltip(`<b>${sankalpEsc(c.ticketId)}</b> — ${sankalpEsc(c.category)}<br/>${sankalpEsc(c.status)} · ${sankalpEsc(c.priority)}`,{direction:'top',offset:[0,-6]});
         m2.on('click',()=>setSel(c));
         layerRef.current.addLayer(m2);
       });
@@ -1209,7 +1200,7 @@ function LiveMapPage({complaints,sos,wards,token,addToast}){
         const html=`<div style="width:18px;height:18px;border-radius:50%;background:${col};border:3px solid #fff;box-shadow:0 0 14px ${col}"></div>`;
         const icon=L.divIcon({html,className:'',iconSize:[18,18],iconAnchor:[9,9]});
         const m2=L.marker([s.geo.lat,s.geo.lng],{icon});
-        m2.bindTooltip(`<b>🆘 SOS: ${s.category?.replace('_',' ')}</b><br/>${s.location||''}`,{direction:'top',offset:[0,-9]});
+        m2.bindTooltip(`<b>🆘 SOS: ${sankalpEsc(s.category?.replace('_',' '))}</b><br/>${sankalpEsc(s.location||'')}`,{direction:'top',offset:[0,-9]});
         layerRef.current.addLayer(m2);
       });
     }
@@ -1220,7 +1211,7 @@ function LiveMapPage({complaints,sos,wards,token,addToast}){
         if(!w.geo?.lat)return;
         const icon=L.divIcon({html:dot('#06B6D4',10,false),className:'',iconSize:[10,10],iconAnchor:[5,5]});
         const m2=L.marker([w.geo.lat,w.geo.lng],{icon});
-        m2.bindTooltip(`<b>${w.name}</b><br/>${w.department||''} — ${w.currentTask||'On duty'}`,{direction:'top',offset:[0,-5]});
+        m2.bindTooltip(`<b>${sankalpEsc(w.name)}</b><br/>${sankalpEsc(w.department||'')} — ${sankalpEsc(w.currentTask||'On duty')}`,{direction:'top',offset:[0,-5]});
         layerRef.current.addLayer(m2);
       });
     }
