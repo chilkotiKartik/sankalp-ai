@@ -49,8 +49,8 @@ export function registerPublicRoutes(app: Express) {
           defaultDistrict: t.defaultDistrict,
           districts: t.districts.map(d => ({ name: d.district, center: d.center })),
           departments: Object.values(t.departments).map(d => ({ id: d.id, name: d.name, nameLocal: d.nameHindi, icon: d.icon, color: d.color, helpline: d.helpline, categories: d.categories })),
-          emergencyServices: t.emergencyServices.map(e => ({ id: e.id, type: e.type, name: e.name, district: e.district, phone: e.phone, geo: e.geo })),
-          policeStations: t.policeStations.map(p => ({ id: p.id, name: p.name, district: p.district, phone: p.phone, geo: p.geo })),
+          // Counts only: lists can run to thousands per state; screens fetch the nearest or their district's.
+          counts: { policeStations: t.policeStations.length, hospitals: t.emergencyServices.filter(e => e.type === "hospital").length, fireStations: t.emergencyServices.filter(e => e.type === "fire").length },
         } };
     },
   });

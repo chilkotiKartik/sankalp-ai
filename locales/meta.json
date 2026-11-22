@@ -6,18 +6,28 @@
   ],
   "needs_review": {
     "gbm": "Garhwali first draft (Devanagari). Strings not yet adapted fall back to Hindi. Needs native-speaker review before release.",
-    "kfy": "Kumaoni first draft (Devanagari). Strings not yet adapted fall back to Hindi. Needs native-speaker review before release."
+    "kfy": "Kumaoni first draft (Devanagari). Strings not yet adapted fall back to Hindi. Needs native-speaker review before release.",
+    "ta": "Tamil first draft (model-assisted, 2026-11). Needs native-speaker review before release.",
+    "te": "Telugu first draft (model-assisted, 2026-11). Needs native-speaker review before release.",
+    "bn": "Bengali first draft (model-assisted, 2026-11). Needs native-speaker review before release.",
+    "mr": "Marathi first draft (model-assisted, 2026-11). Needs native-speaker review before release.",
+    "gu": "Gujarati first draft (model-assisted, 2026-11). Needs native-speaker review before release.",
+    "kn": "Kannada first draft (model-assisted, 2026-11). Needs native-speaker review before release.",
+    "ml": "Malayalam first draft (model-assisted, 2026-11). Needs native-speaker review before release.",
+    "pa": "Punjabi first draft (model-assisted, 2026-11). Needs native-speaker review before release.",
+    "or": "Odia first draft (model-assisted, 2026-11). Needs native-speaker review before release.",
+    "as": "Assamese first draft (model-assisted, 2026-11). Needs native-speaker review before release."
   },
   "scheduled_languages": [
     {
       "code": "as",
       "name": "Assamese",
-      "status": "not_started"
+      "status": "needs_review"
     },
     {
       "code": "bn",
       "name": "Bengali",
-      "status": "not_started"
+      "status": "needs_review"
     },
     {
       "code": "brx",
@@ -32,7 +42,7 @@
     {
       "code": "gu",
       "name": "Gujarati",
-      "status": "not_started"
+      "status": "needs_review"
     },
     {
       "code": "hi",
@@ -42,7 +52,7 @@
     {
       "code": "kn",
       "name": "Kannada",
-      "status": "not_started"
+      "status": "needs_review"
     },
     {
       "code": "ks",
@@ -62,7 +72,7 @@
     {
       "code": "ml",
       "name": "Malayalam",
-      "status": "not_started"
+      "status": "needs_review"
     },
     {
       "code": "mni",
@@ -72,7 +82,7 @@
     {
       "code": "mr",
       "name": "Marathi",
-      "status": "not_started"
+      "status": "needs_review"
     },
     {
       "code": "ne",
@@ -82,12 +92,12 @@
     {
       "code": "or",
       "name": "Odia",
-      "status": "not_started"
+      "status": "needs_review"
     },
     {
       "code": "pa",
       "name": "Punjabi",
-      "status": "not_started"
+      "status": "needs_review"
     },
     {
       "code": "sa",
@@ -107,12 +117,12 @@
     {
       "code": "ta",
       "name": "Tamil",
-      "status": "not_started"
+      "status": "needs_review"
     },
     {
       "code": "te",
       "name": "Telugu",
-      "status": "not_started"
+      "status": "needs_review"
     },
     {
       "code": "ur",

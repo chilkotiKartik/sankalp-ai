@@ -19,8 +19,15 @@ export function registerCitizenRoutes(app: Express) {
 
   route(app, {
     method: "get", path: "/api/police-stations", auth: "user", permission: "reference.read",
-    params: none, query: none, body: none,
-    handler: () => storage.getPoliceStations(),
+    // Large states have thousands of stations: the caller's district by default, or the nearest to a point; always capped.
+    params: none,
+    query: z.object({ district: z.string().max(60).optional(), lat: z.coerce.number().min(-90).max(90).optional(), lng: z.coerce.number().min(-180).max(180).optional(), limit: z.coerce.number().int().min(1).max(500).default(200) }),
+    body: none,
+    handler: ({ query, actor }) => {
+      if (query.lat !== undefined && query.lng !== undefined) return storage.getNearestPoliceStations({ lat: query.lat, lng: query.lng }, query.limit);
+      const d = query.district ?? scopeDistrict(actor) ?? actor.user?.district;
+      return storage.getPoliceStations(d).slice(0, query.limit);
+    },
   });
 
   route(app, {
@@ -43,10 +50,20 @@ export function registerCitizenRoutes(app: Express) {
 
   route(app, {
     method: "get", path: "/api/emergency-services", auth: "user", permission: "reference.read",
-    params: none, query: z.object({ type: z.string().max(20).optional(), district: z.string().max(60).optional() }), body: none,
-    handler: ({ query }) => storage.getEmergencyServices()
-      .filter(s => !query.type || s.type === query.type)
-      .filter(s => !query.district || isStateWide(query.district) || s.district === query.district),
+    params: none,
+    query: z.object({ type: z.string().max(20).optional(), district: z.string().max(60).optional(), lat: z.coerce.number().min(-90).max(90).optional(), lng: z.coerce.number().min(-180).max(180).optional(), limit: z.coerce.number().int().min(1).max(500).default(200) }),
+    body: none,
+    handler: ({ query, actor }) => {
+      const d = query.district ?? (query.lat === undefined ? actor.user?.district : undefined);
+      let list = storage.getEmergencyServices()
+        .filter(s => !query.type || s.type === query.type)
+        .filter(s => !d || isStateWide(d) || s.district === d);
+      if (query.lat !== undefined && query.lng !== undefined) {
+        const here = { lat: query.lat, lng: query.lng };
+        list = list.map(s => ({ s, k: (s.geo.lat - here.lat) ** 2 + (s.geo.lng - here.lng) ** 2 })).sort((a, b) => a.k - b.k).map(x => x.s);
+      }
+      return list.slice(0, query.limit);
+    },
   });
 
   route(app, {

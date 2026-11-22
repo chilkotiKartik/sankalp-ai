@@ -69,11 +69,13 @@ describe("config (m13, M5)", () => {
     expect(() => loadConfig({ JWT_SECRET: "short", DEPT_JWT_SECRET: "b".repeat(32) })).toThrow(/at least 32/);
     expect(() => loadConfig({ JWT_SECRET: "a".repeat(32), DEPT_JWT_SECRET: "a".repeat(32) })).toThrow(/must differ/);
   });
-  it("defaults to rules + manual_review with no Indian AI configured, and never OSM tiles in production", () => {
+  it("defaults to rules + manual_review with no Indian AI configured, and Indian (Bhuvan) map tiles, never OSM unless set", () => {
     const c = loadConfig({ ...base, NODE_ENV: "production" });
     expect(c.textProvider).toBe("rules");
     expect(c.visionProvider).toBe("manual_review");
-    expect(c.mapTileUrl).toBeNull();
+    expect(c.mapTileUrl).toMatch(/^wms:https:\/\/bhuvan-vec1\.nrsc\.gov\.in\//);
+    expect(loadConfig({ ...base, NODE_ENV: "development" }).mapTileUrl).not.toMatch(/openstreetmap/);
+    expect(loadConfig({ ...base, MAP_TILE_URL: "none" }).mapTileUrl).toBeNull();
     expect(loadConfig({ ...base, SARVAM_API_KEY: "k" }).textProvider).toBe("sarvam");
   });
 });

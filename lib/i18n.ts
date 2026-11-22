@@ -4,19 +4,39 @@ import en from "../locales/en.json";
 import hi from "../locales/hi.json";
 import gbm from "../locales/gbm.json";
 import kfy from "../locales/kfy.json";
+import ta from "../locales/ta.json";
+import te from "../locales/te.json";
+import bn from "../locales/bn.json";
+import mr from "../locales/mr.json";
+import gu from "../locales/gu.json";
+import kn from "../locales/kn.json";
+import ml from "../locales/ml.json";
+import pa from "../locales/pa.json";
+import or from "../locales/or.json";
+import as_ from "../locales/as.json";
 
 /**
  * P5.4 i18n. Strings live in locales/<code>.json (keys from en.json). Missing keys fall back to Hindi, then English.
- * Garhwali (gbm) and Kumaoni (kfy) are marked needs_review (locales/meta.json) until native speakers sign off.
+ * Every language except en/hi is marked needs_review (locales/meta.json) until native speakers sign off.
  */
-export type Lang = "en" | "hi" | "gbm" | "kfy";
+export type Lang = "en" | "hi" | "gbm" | "kfy" | "ta" | "te" | "bn" | "mr" | "gu" | "kn" | "ml" | "pa" | "or" | "as";
 export type Key = keyof typeof en;
-const TABLES: Record<Lang, Partial<Record<Key, string>>> = { en, hi, gbm, kfy };
+const TABLES: Record<Lang, Partial<Record<Key, string>>> = { en, hi, gbm, kfy, ta, te, bn, mr, gu, kn, ml, pa, or, as: as_ };
 export const LANGUAGES: Array<{ code: Lang; native: string; label: string; needsReview?: boolean }> = [
   { code: "en", native: "English", label: "English" },
   { code: "hi", native: "हिंदी", label: "Hindi" },
   { code: "gbm", native: "गढ़वळि", label: "Garhwali", needsReview: true },
   { code: "kfy", native: "कुमाउँनी", label: "Kumaoni", needsReview: true },
+  { code: "ta", native: "தமிழ்", label: "Tamil", needsReview: true },
+  { code: "te", native: "తెలుగు", label: "Telugu", needsReview: true },
+  { code: "bn", native: "বাংলা", label: "Bengali", needsReview: true },
+  { code: "mr", native: "मराठी", label: "Marathi", needsReview: true },
+  { code: "gu", native: "ગુજરાતી", label: "Gujarati", needsReview: true },
+  { code: "kn", native: "ಕನ್ನಡ", label: "Kannada", needsReview: true },
+  { code: "ml", native: "മലയാളം", label: "Malayalam", needsReview: true },
+  { code: "pa", native: "ਪੰਜਾਬੀ", label: "Punjabi", needsReview: true },
+  { code: "or", native: "ଓଡ଼ିଆ", label: "Odia", needsReview: true },
+  { code: "as", native: "অসমীয়া", label: "Assamese", needsReview: true },
 ];
 
 const STORAGE_KEY = "app_language";
@@ -25,11 +45,12 @@ const listeners = new Set<(l: Lang) => void>();
 
 const normalise = (v: string | null): Lang | null => {
   const x = (v ?? "").toLowerCase();
-  return x === "en" || x === "hi" || x === "gbm" || x === "kfy" ? x : null; // also accepts the old "EN"/"HI" values
+  return (Object.keys(TABLES) as Lang[]).includes(x as Lang) ? (x as Lang) : null; // also accepts the old "EN"/"HI" values
 };
 
 export function t(key: Key, vars: Record<string, string | number> = {}): string {
-  const raw = TABLES[current][key] ?? TABLES.hi[key] ?? en[key] ?? key;
+  // Garhwali/Kumaoni drafts fall back to Hindi; every other language falls back to English.
+  const raw = TABLES[current][key] ?? (current === "gbm" || current === "kfy" ? TABLES.hi[key] : undefined) ?? en[key] ?? key;
   return raw.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? `{${k}}`));
 }
 

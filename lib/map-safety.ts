@@ -21,10 +21,17 @@ export const ESC_JS = `function esc(s){return String(s==null?'':s).replace(/[&<>
 export function tileLayerJs(tileUrl: string | null | undefined, mapVar = "map"): string {
   // Without tiles, zooming past district level shows nothing: cap it so the outlines always give context.
   const plain = `try{${mapVar}.getContainer().style.background='#EEF2F7';${mapVar}.setMaxZoom(10);}catch(e){}`;
-  if (!tileUrl || !/^https:\/\/[\w.{}-]+\/[\w{}./@-]+$/.test(tileUrl)) {
+  const wms = tileUrl?.match(/^wms:(https:\/\/[\w.-]+\/[\w./-]+)\|([\w:,-]+)$/);
+  const xyzOk = !!tileUrl && /^https:\/\/[\w.{}-]+\/[\w{}./@-]+$/.test(tileUrl);
+  if (!wms && !xyzOk) {
     return `${plain}if(window.console)console.info('SANKALP map: no tile server configured, showing district outlines');`;
   }
-  return `(function(){var t=L.tileLayer(${scriptJson(tileUrl)},{maxZoom:19,subdomains:'abc',attribution:'&copy; OpenStreetMap contributors'}).addTo(${mapVar});
+  const layer = wms
+    ? `L.tileLayer.wms(${scriptJson(wms[1])},{layers:${scriptJson(wms[2])},format:'image/png',transparent:false,tiled:true,maxZoom:18,attribution:'&copy; ISRO Bhuvan / NRSC'})`
+    : `L.tileLayer(${scriptJson(tileUrl)},{maxZoom:19,subdomains:'abc',attribution:'&copy; OpenStreetMap contributors'})`;
+  return `(function(){var t=${layer}.addTo(${mapVar});
 var bad=0,good=0;t.on('tileload',function(){good++;});
-t.on('tileerror',function(){bad++;if(bad>=6&&good===0){${mapVar}.removeLayer(t);${plain}if(window.console)console.info('SANKALP map: tiles unavailable, showing district outlines');}});})();`;
+t.on('tileerror',function(ev){var img=ev&&ev.tile;
+if(img&&!img.getAttribute('data-retry')){img.setAttribute('data-retry','1');var u=img.src;setTimeout(function(){img.src=u+(u.indexOf('?')<0?'?':'&')+'_r=1';},1200);return;}
+bad++;if(bad>=6&&good===0){${mapVar}.removeLayer(t);${plain}if(window.console)console.info('SANKALP map: tiles unavailable, showing district outlines');}});})();`;
 }

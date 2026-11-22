@@ -26,8 +26,8 @@ export interface TenantInfo {
   defaultDistrict: string;
   districts: Array<{ name: string; center: Geo }>;
   departments: TenantDept[];
-  emergencyServices: Array<{ id: string; name: string; type: string; phone: string; district?: string; geo?: Geo }>;
-  policeStations: Array<{ id: string; name: string; district: string; phone: string; geo: Geo }>;
+  /** How many stations/services the state has; screens fetch the nearest or their district's from the API. */
+  counts?: { policeStations: number; hospitals: number; fireStations: number };
 }
 
 interface Ctx {

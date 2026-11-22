@@ -56,7 +56,12 @@ export type AppConfig = z.infer<typeof schema> & {
   mapTileUrl: string | null;
 };
 
-const OSM_DEV_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+/**
+ * Default base map: ISRO Bhuvan (NRSC, Government of India) — Indian servers, official GoI borders.
+ * `wms:<endpoint>|<layer>` = a WMS layer drawn as 256 px tiles on the standard web grid.
+ * MAP_TILE_URL may name another XYZ or wms: source (e.g. a self-hosted tile server); "none" = outlines only.
+ */
+export const BHUVAN_TILES = "wms:https://bhuvan-vec1.nrsc.gov.in/bhuvan/gwc/service/wms|india3";
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): AppConfig {
   const parsed = schema.safeParse(env);
@@ -79,8 +84,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   if (textProvider === "selfhosted" && !c.AI_TEXT_BASE_URL) textProvider = "rules";
   const visionProvider: AppConfig["visionProvider"] = c.AI_VISION_BASE_URL ? "selfhosted" : "manual_review";
 
-  // Map tiles: explicit MAP_TILE_URL; OSM only in development (§11)
-  const mapTileUrl = c.MAP_TILE_URL || (c.NODE_ENV === "development" ? OSM_DEV_TILES : null);
+  // Map tiles: Indian by default (Bhuvan); another source only when set explicitly; "none" = outlines only.
+  const mapTileUrl = c.MAP_TILE_URL === "none" ? null : c.MAP_TILE_URL || BHUVAN_TILES;
 
   // Egress allow-list always includes the configured AI hosts' explicit opt-in only.
   const allow = new Set(c.EGRESS_ALLOWLIST.length ? c.EGRESS_ALLOWLIST : ["api.sarvam.ai"]);

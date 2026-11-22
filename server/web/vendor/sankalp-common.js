@@ -92,10 +92,17 @@
   window.sankalpTileLayer = function (L, map) {
     var plain = function () { try { map.getContainer().style.background = "#EEF2F7"; map.setMaxZoom(10); } catch (e) {} }; // outlines stay readable
     if (!cfg.mapTileUrl) { plain(); if (window.console) console.info("SANKALP map: no tile server configured, showing district outlines"); return null; }
-    var t = L.tileLayer(cfg.mapTileUrl, { maxZoom: 19, subdomains: "abc", attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
+    var wms = /^wms:(https:\/\/[\w.-]+\/[\w.\/-]+)\|([\w:,-]+)$/.exec(cfg.mapTileUrl);
+    var t = (wms
+      ? L.tileLayer.wms(wms[1], { layers: wms[2], format: "image/png", transparent: false, tiled: true, maxZoom: 18, attribution: "&copy; ISRO Bhuvan / NRSC" })
+      : L.tileLayer(cfg.mapTileUrl, { maxZoom: 19, subdomains: "abc", attribution: "&copy; OpenStreetMap contributors" })).addTo(map);
     var bad = 0, good = 0;
     t.on("tileload", function () { good++; });
-    t.on("tileerror", function () { bad++; if (bad >= 6 && good === 0) { map.removeLayer(t); plain(); if (window.console) console.info("SANKALP map: tiles unavailable, showing district outlines"); } });
+    t.on("tileerror", function (ev) {
+      // A dropped tile request is retried once before it counts as a failure.
+      var img = ev && ev.tile;
+      if (img && !img.getAttribute("data-retry")) { img.setAttribute("data-retry", "1"); var u = img.src; setTimeout(function () { img.src = u + (u.indexOf("?") < 0 ? "?" : "&") + "_r=1"; }, 1200); return; }
+      bad++; if (bad >= 6 && good === 0) { map.removeLayer(t); plain(); if (window.console) console.info("SANKALP map: tiles unavailable, showing district outlines"); } });
     return t;
   };
 

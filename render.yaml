@@ -33,10 +33,8 @@ services:
         sync: false
       - key: DEFAULT_TENANT
         value: uttarakhand
-      # Base-map tiles for the pilot (D-048). Tiles are fetched by the viewer's device, never by the server; no
-      # personal data is sent. Replace with a self-hosted or Indian tile server before production scale.
-      - key: MAP_TILE_URL
-        value: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+      # Base map: ISRO Bhuvan (Indian servers) is the default — no MAP_TILE_URL needed (D-050).
+      # Set MAP_TILE_URL only to use your own tile server, or "none" for district outlines only.
   # No backup cron here (review P7-4): Render disks attach to one service only, so a separate cron service can
   # never read DATA_DIR. For the pilot, take backups from a machine with access (docs/DR.md) or move production
   # to an Indian VM with deploy/install-onprem.sh, where scripts/backup.sh runs from a systemd timer or cron.

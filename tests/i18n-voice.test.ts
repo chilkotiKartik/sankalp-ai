@@ -18,7 +18,9 @@ describe("P5.4 i18n", () => {
     await setLanguage("gbm");
     expect(t("complaint.submit")).toBe("शिकैत भेजा");
     expect(t("tab.home")).toBe("होम"); // not yet adapted → Hindi
-    expect(LANGUAGES.filter(l => l.needsReview).map(l => l.code)).toEqual(["gbm", "kfy"]);
+    // Only English and Hindi are complete; every other language is a draft until native speakers sign off.
+    expect(LANGUAGES.filter(l => !l.needsReview).map(l => l.code)).toEqual(["en", "hi"]);
+    expect(LANGUAGES.filter(l => l.needsReview).map(l => l.code)).toEqual(expect.arrayContaining(["gbm", "kfy", "ta", "te", "bn", "mr", "gu", "kn", "ml", "pa", "or", "as"]));
     expect(Object.keys(en).length).toBeGreaterThan(40);
     await setLanguage("en");
   });

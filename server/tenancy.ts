@@ -103,14 +103,35 @@ export function loadTenants(dir = path.resolve(process.cwd(), "config", "tenants
   for (const f of fs.readdirSync(dir).filter(x => x.endsWith(".json")).sort()) {
     const t = parseTenantConfig(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
     if (`${t.id}.json` !== f) throw new Error(`Tenant file ${f} must be named ${t.id}.json`);
-    configs.set(t.id, t);
+    configs.set(t.id, parseTenantConfig(withPlaces(t, loadPlaces(dir, t.id))));
   }
   // P9: every Indian state/UT is available. States without a full config run at state level from the registry.
   if (process.env.STATE_REGISTRY !== "off") {
-    for (const r of loadRegistry(path.resolve(dir, "..", "states.json"))) if (!configs.has(r.id)) configs.set(r.id, parseTenantConfig(stateLevelConfig(r)));
+    for (const r of loadRegistry(path.resolve(dir, "..", "states.json"))) {
+      if (!configs.has(r.id)) configs.set(r.id, parseTenantConfig(withPlaces(stateLevelConfig(r) as TenantConfig, loadPlaces(dir, r.id))));
+    }
   }
   if (!configs.has(defaultId)) throw new Error(`DEFAULT_TENANT ${defaultId} has no config file`);
   defaultTenantId = defaultId;
+}
+
+// ── P9.14 police stations, hospitals, fire stations (config/places/<id>.json, built by scripts/build-places.py) ──
+type Places = Pick<TenantConfig, "policeStations" | "emergencyServices">;
+function loadPlaces(dir: string, id: string): Places | null {
+  const f = path.resolve(dir, "..", "places", `${id}.json`);
+  if (!fs.existsSync(f)) return null;
+  const p = JSON.parse(fs.readFileSync(f, "utf8")) as Partial<Places>;
+  return { policeStations: p.policeStations ?? [], emergencyServices: p.emergencyServices ?? [] };
+}
+/** Keep a state's own hand-entered entries (they carry direct phone numbers) and add mapped ones that are not duplicates (>150 m away). */
+function withPlaces<T extends Places>(t: T, p: Places | null): T {
+  if (!p) return t;
+  const near = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => Math.abs(a.lat - b.lat) < 0.00135 && Math.abs(a.lng - b.lng) < 0.0015;
+  const districts = new Set((t as unknown as TenantConfig).districts?.map(d => d.district) ?? []);
+  const ok = (d: string) => !districts.size || districts.has(d);
+  const police = [...t.policeStations, ...p.policeStations.filter(x => ok(x.district) && !t.policeStations.some(o => near(o.geo, x.geo)))];
+  const services = [...t.emergencyServices, ...p.emergencyServices.filter(x => ok(x.district) && !t.emergencyServices.some(o => o.type === x.type && near(o.geo, x.geo)))];
+  return { ...t, policeStations: police, emergencyServices: services };
 }
 
 /** Register (or replace) a tenant at runtime — used by the onboarding wizard (P7.1) and tests. */
