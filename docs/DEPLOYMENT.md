@@ -52,6 +52,19 @@ It installs Node 22 if needed and creates a locked-down `sankalp` system user. I
 
 No outbound internet is needed beyond the hosts you allow in `EGRESS_ALLOWLIST`, and none are required: AI falls back to the rules engine and photos to manual review. Docker Compose and Helm were deliberately not built (DECISIONS D-024). The systemd install is the supported on-premise path.
 
+### Azure (Azure for Students) — the current live pilot
+Live at **https://172-128-32-35.sslip.io** since 2026-11-22: VM `sankalp-vm` in resource group `sankalp-rg`, region **South Central India** (`indiasouthcentral`, Hyderabad). The Azure for Students policy allows only a few regions, and this is the Indian one. Size **Standard_B2ats_v2** (2 vCPU, 1 GB RAM, covered by the 12-month free services), 64 GB Premium SSD, Ubuntu 24.04, ports 22/80/443 open.
+
+Set up with the same script as Oracle:
+```bash
+sudo bash deploy/oracle-free.sh 172.128.32.35
+```
+Upgrade from your laptop with the Azure CLI (no SSH needed):
+```bash
+az vm run-command invoke -g sankalp-rg -n sankalp-vm --command-id RunShellScript --scripts "cd /root/sankalp-ai && git pull -q && SKIP_PLACES=1 bash deploy/oracle-free.sh 172.128.32.35 | tail -3"
+```
+To log in yourself, use Azure portal → `sankalp-vm` → **Reset password**, add your own SSH public key for user `azureuser`, then `ssh azureuser@172.128.32.35`. The address changes only if the VM's public IP is deleted; keep it static, or move to your own domain.
+
 ### Oracle Cloud Always Free, Mumbai or Hyderabad — free, always on, in India (recommended for pilots)
 Oracle's Always Free tier gives a VM that never sleeps and keeps its disk. The Ampere ARM shape has up to 4 cores, 24 GB RAM and 200 GB of disk. Data stays in India because the VM runs in an Indian region (D-053).
 
