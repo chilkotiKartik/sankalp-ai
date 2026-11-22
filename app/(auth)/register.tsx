@@ -71,13 +71,13 @@ export default function RegisterScreen() {
   };
 
   const pinStrength = pin.length === 0 ? 0 : pin.length < 3 ? 1 : pin.length < 6 ? 2 : 3;
-  const strengthColors = ["transparent", "#EF4444", "#FFAB00", "#00A651"];
+  const strengthColors = ["transparent", "#DC2626", "#FFAB00", "#047857"];
   const strengthLabels = ["", "Weak", "Fair", "Strong"];
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F0FFF4" }}>
       <LinearGradient
-        colors={["#006400", "#00A651", "#00E676"]}
+        colors={["#006400", "#047857", "#00E676"]}
         style={[s.hero, { paddingTop: topInset + 12 }]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       >
@@ -114,7 +114,7 @@ export default function RegisterScreen() {
           <Animated.View style={[s.card, { opacity: fadeAnim, transform: [{ translateY: slideAnim }, { translateX: shakeAnim }] }]}>
             {success ? (
               <View style={s.successBox}>
-                <LinearGradient colors={["#00A651", "#006400"]} style={s.successIcon}>
+                <LinearGradient colors={["#047857", "#006400"]} style={s.successIcon}>
                   <Ionicons name="checkmark" size={40} color="#fff" />
                 </LinearGradient>
                 <Text style={s.successEmoji}>🎉</Text>
@@ -156,7 +156,7 @@ export default function RegisterScreen() {
                 <View style={s.field}>
                   <Text style={s.label}>FULL NAME</Text>
                   <View style={s.inputRow}>
-                    <Ionicons name="person" size={16} color="#9CA3AF" style={s.inputIcon} />
+                    <Ionicons name="person" size={16} color="#6B7280" style={s.inputIcon} />
                     <TextInput
                       style={s.input}
                       placeholder="Your full name"
@@ -192,9 +192,9 @@ export default function RegisterScreen() {
                 <View style={s.field}>
                   <Text style={s.label}>YOUR DISTRICT (जिला)</Text>
                   <Pressable style={s.inputRow} onPress={() => setShowDistrictPicker(true)}>
-                    <Ionicons name="location" size={16} color="#00A651" style={s.inputIcon} />
+                    <Ionicons name="location" size={16} color="#047857" style={s.inputIcon} />
                     <Text style={[s.input, { color: "#111827", paddingTop: 16 }]}>{district}</Text>
-                    <Ionicons name="chevron-down" size={16} color="#9CA3AF" style={{ marginRight: 16 }} />
+                    <Ionicons name="chevron-down" size={16} color="#6B7280" style={{ marginRight: 16 }} />
                   </Pressable>
                 </View>
 
@@ -202,7 +202,7 @@ export default function RegisterScreen() {
                 <View style={s.field}>
                   <Text style={s.label}>CREATE 6-DIGIT PIN</Text>
                   <View style={s.inputRow}>
-                    <Ionicons name="lock-closed" size={16} color="#9CA3AF" style={s.inputIcon} />
+                    <Ionicons name="lock-closed" size={16} color="#6B7280" style={s.inputIcon} />
                     <TextInput
                       style={s.input}
                       placeholder="Choose a secure PIN"
@@ -231,7 +231,7 @@ export default function RegisterScreen() {
                     <Ionicons
                       name="checkmark-circle"
                       size={16}
-                      color={pin === confirmPin && confirmPin ? "#00A651" : "#9CA3AF"}
+                      color={pin === confirmPin && confirmPin ? "#047857" : "#9CA3AF"}
                       style={s.inputIcon}
                     />
                     <TextInput
@@ -249,7 +249,7 @@ export default function RegisterScreen() {
 
                 {!!error && (
                   <View style={s.errorBox}>
-                    <Ionicons name="alert-circle" size={14} color="#EF4444" />
+                    <Ionicons name="alert-circle" size={14} color="#DC2626" />
                     <Text style={s.errorText}>{error}</Text>
                   </View>
                 )}
@@ -259,7 +259,7 @@ export default function RegisterScreen() {
                   onPress={() => { if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleRegister(); }}
                   disabled={loading}
                 >
-                  <LinearGradient colors={["#006400", "#00A651"]} style={s.createBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <LinearGradient colors={["#006400", "#047857"]} style={s.createBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                     {loading ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
@@ -272,7 +272,7 @@ export default function RegisterScreen() {
                 </Pressable>
 
                 <View style={s.trustRow}>
-                  <Ionicons name="shield-checkmark" size={13} color="#9CA3AF" />
+                  <Ionicons name="shield-checkmark" size={13} color="#6B7280" />
                   <Text style={s.trustText}>Protected under Digital India data guidelines</Text>
                 </View>
 
@@ -298,9 +298,9 @@ export default function RegisterScreen() {
               {allDistricts().map(d => (
                 <Pressable key={d} style={[s.districtOption, d === district && s.districtOptionActive]}
                   onPress={() => { setDistrict(d); setShowDistrictPicker(false); }}>
-                  <Ionicons name="location" size={16} color={d === district ? "#00A651" : "#9CA3AF"} />
-                  <Text style={[s.districtOptionText, d === district && { color: "#00A651", fontFamily: "Inter_700Bold" }]}>{d}</Text>
-                  {d === district && <Ionicons name="checkmark-circle" size={18} color="#00A651" />}
+                  <Ionicons name="location" size={16} color={d === district ? "#047857" : "#9CA3AF"} />
+                  <Text style={[s.districtOptionText, d === district && { color: "#047857", fontFamily: "Inter_700Bold" }]}>{d}</Text>
+                  {d === district && <Ionicons name="checkmark-circle" size={18} color="#047857" />}
                 </Pressable>
               ))}
             </ScrollView>
@@ -323,16 +323,16 @@ const s = StyleSheet.create({
   heroTitle: { color: "#fff", fontSize: 20, fontFamily: "Inter_700Bold", lineHeight: 28 },
   heroSub: { color: "rgba(255,255,255,0.85)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 4 },
   scroll: { paddingHorizontal: 20, paddingTop: 0 },
-  card: { backgroundColor: "#fff", borderRadius: 24, padding: 24, marginTop: -16, shadowColor: "#00A651", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 24, elevation: 12, marginBottom: 20 },
+  card: { backgroundColor: "#fff", borderRadius: 24, padding: 24, marginTop: -16, shadowColor: "#047857", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 24, elevation: 12, marginBottom: 20 },
   tricolor: { height: 3, flexDirection: "row", borderRadius: 2, overflow: "hidden", marginBottom: 20 },
   cardTitle: { color: "#111827", fontSize: 26, fontFamily: "Inter_700Bold", marginBottom: 4 },
-  cardSub: { color: "#9CA3AF", fontSize: 13, fontFamily: "Inter_400Regular", marginBottom: 20 },
+  cardSub: { color: "#6B7280", fontSize: 13, fontFamily: "Inter_400Regular", marginBottom: 20 },
   statsRow: { flexDirection: "row", gap: 8, marginBottom: 20 },
   statBox: { flex: 1, backgroundColor: "#F0FFF4", borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1, borderColor: "#A7F3D0" },
-  statNum: { color: "#00A651", fontSize: 15, fontFamily: "Inter_700Bold" },
-  statLabel: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 2 },
+  statNum: { color: "#047857", fontSize: 15, fontFamily: "Inter_700Bold" },
+  statLabel: { color: "#4B5563", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 2 },
   field: { marginBottom: 16 },
-  label: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1.2, marginBottom: 8, textTransform: "uppercase" },
+  label: { color: "#4B5563", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1.2, marginBottom: 8, textTransform: "uppercase" },
   inputRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#F9FAFB", borderRadius: 14, borderWidth: 1.5, borderColor: "#E5E7EB", overflow: "hidden" },
   inputIcon: { marginLeft: 14 },
   prefix: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 16, borderRightWidth: 1.5, borderRightColor: "#E5E7EB", backgroundColor: "#F3F4F6" },
@@ -342,28 +342,28 @@ const s = StyleSheet.create({
   strengthBar: { flex: 1, height: 4, borderRadius: 2 },
   strengthLabel: { fontSize: 11, fontFamily: "Inter_500Medium", width: 42, textAlign: "right" },
   errorBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: "#EF4444", fontSize: 13, fontFamily: "Inter_500Medium", flex: 1 },
+  errorText: { color: "#DC2626", fontSize: 13, fontFamily: "Inter_500Medium", flex: 1 },
   createBtn: { borderRadius: 16, overflow: "hidden", marginBottom: 12 },
   createBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 18 },
   createBtnText: { color: "#fff", fontSize: 17, fontFamily: "Inter_700Bold" },
   trustRow: { flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center", marginBottom: 16 },
-  trustText: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular" },
+  trustText: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular" },
   loginRow: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
-  loginPre: { color: "#6B7280", fontSize: 14, fontFamily: "Inter_400Regular" },
-  loginLink: { color: "#00A651", fontSize: 14, fontFamily: "Inter_700Bold" },
+  loginPre: { color: "#4B5563", fontSize: 14, fontFamily: "Inter_400Regular" },
+  loginLink: { color: "#047857", fontSize: 14, fontFamily: "Inter_700Bold" },
   successBox: { alignItems: "center", gap: 12, paddingVertical: 20 },
   successIcon: { width: 80, height: 80, borderRadius: 40, alignItems: "center", justifyContent: "center" },
   successEmoji: { fontSize: 36 },
-  successTitle: { fontSize: 28, fontFamily: "Inter_700Bold", color: "#00A651" },
-  successSub: { fontSize: 14, fontFamily: "Inter_400Regular", color: "#6B7280", textAlign: "center", lineHeight: 22, maxWidth: 280 },
+  successTitle: { fontSize: 28, fontFamily: "Inter_700Bold", color: "#047857" },
+  successSub: { fontSize: 14, fontFamily: "Inter_400Regular", color: "#4B5563", textAlign: "center", lineHeight: 22, maxWidth: 280 },
   successBadges: { flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: "center" },
   successBadge: { backgroundColor: "#F0FFF4", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: "#A7F3D0" },
-  successBadgeText: { color: "#00A651", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  successBadgeText: { color: "#047857", fontSize: 11, fontFamily: "Inter_600SemiBold" },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   districtModal: { backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "70%", paddingBottom: 34 },
   districtModalHeader: { padding: 20, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
   districtModalTitle: { fontSize: 18, fontFamily: "Inter_700Bold", color: "#111827" },
-  districtModalSub: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#9CA3AF", marginTop: 2 },
+  districtModalSub: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#6B7280", marginTop: 2 },
   districtOption: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#F3F4F6" },
   districtOptionActive: { backgroundColor: "#F0FFF4" },
   districtOptionText: { flex: 1, fontSize: 15, fontFamily: "Inter_500Medium", color: "#374151" },

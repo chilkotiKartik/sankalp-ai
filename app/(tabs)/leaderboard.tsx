@@ -26,13 +26,13 @@ interface LeaderEntry {
 }
 
 const BADGE_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string; label: string }> = {
-  new_citizen:      { icon: "person-add",         color: "#6B7280", label: "New Citizen" },
-  first_report:     { icon: "flag",                color: "#3B82F6", label: "First Report" },
-  active_citizen:   { icon: "people",              color: "#00A651", label: "Active Citizen" },
+  new_citizen:      { icon: "person-add",         color: "#9CA3AF", label: "New Citizen" },
+  first_report:     { icon: "flag",                color: "#60A5FA", label: "First Report" },
+  active_citizen:   { icon: "people",              color: "#34D399", label: "Active Citizen" },
   civic_hero:       { icon: "shield-checkmark",    color: "#F59E0B", label: "Civic Hero" },
-  city_champion:    { icon: "trophy",              color: "#EF4444", label: "City Champion" },
+  city_champion:    { icon: "trophy",              color: "#F87171", label: "City Champion" },
   super_admin:      { icon: "star",                color: "#FF9933", label: "Super Admin" },
-  district_admin:   { icon: "business",            color: "#8B5CF6", label: "District Admin" },
+  district_admin:   { icon: "business",            color: "#A78BFA", label: "District Admin" },
 };
 
 const LEVEL_LABEL = (level: number) => {
@@ -46,11 +46,11 @@ const LEVEL_LABEL = (level: number) => {
 
 const LEVEL_COLOR = (level: number) => {
   if (level >= 10) return "#FF9933";
-  if (level >= 8) return "#EF4444";
+  if (level >= 8) return "#F87171";
   if (level >= 6) return "#F59E0B";
-  if (level >= 4) return "#00A651";
-  if (level >= 2) return "#3B82F6";
-  return "#6B7280";
+  if (level >= 4) return "#34D399";
+  if (level >= 2) return "#60A5FA";
+  return "#9CA3AF";
 };
 
 const RANK_GRADIENT: Record<number, string[]> = {

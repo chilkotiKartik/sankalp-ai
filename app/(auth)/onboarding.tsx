@@ -35,13 +35,13 @@ const avs = StyleSheet.create({
   outer: { borderWidth: 4, borderColor: "rgba(255,255,255,0.8)", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.15)", overflow: "hidden" },
   namePill: { marginTop: 12, backgroundColor: "rgba(255,255,255,0.95)", borderRadius: 20, paddingHorizontal: 18, paddingVertical: 8, alignItems: "center" },
   nameText: { color: "#111827", fontSize: 14, fontFamily: "Inter_700Bold" },
-  roleText: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  roleText: { color: "#4B5563", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
 });
 
 const SLIDES = [
   {
     id: "0",
-    gradients: ["#BF360C", "#E64A19", "#FF8F00"] as const,
+    gradients: ["#BF360C", "#C2410C", "#FF8F00"] as const,
     avatar: { name: "Report in 30 seconds", role: "Illustration", photo: require("@/assets/images/indian_men_namaste.png") },
     badge: "🏛️",
     pill: "CIVIC TECH",
@@ -195,7 +195,7 @@ export default function OnboardingScreen() {
                 <Ionicons name={slide.featureIcons[i]} size={14} color={slide.gradients[1]} />
               </View>
               <Text style={ob.featureText}>{f}</Text>
-              <Ionicons name="checkmark-circle" size={14} color="#00A651" />
+              <Ionicons name="checkmark-circle" size={14} color="#047857" />
             </View>
           ))}
         </View>
@@ -287,7 +287,7 @@ const ob = StyleSheet.create({
   pill: { alignSelf: "flex-start", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5, borderWidth: 1, marginBottom: 12 },
   pillText: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1 },
   title: { color: "#111827", fontSize: 26, fontFamily: "Inter_700Bold", lineHeight: 34, marginBottom: 8 },
-  sub: { color: "#6B7280", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20, marginBottom: 14 },
+  sub: { color: "#4B5563", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20, marginBottom: 14 },
   features: { gap: 8, marginBottom: 14 },
   featureRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   featureIcon: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
@@ -300,6 +300,6 @@ const ob = StyleSheet.create({
   nextBtn: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 14 },
   nextBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
   loginRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 4 },
-  loginPre: { color: "#9CA3AF", fontSize: 13, fontFamily: "Inter_400Regular" },
-  loginLink: { color: "#FF9933", fontSize: 13, fontFamily: "Inter_700Bold" },
+  loginPre: { color: "#6B7280", fontSize: 13, fontFamily: "Inter_400Regular" },
+  loginLink: { color: "#C2410C", fontSize: 13, fontFamily: "Inter_700Bold" },
 });

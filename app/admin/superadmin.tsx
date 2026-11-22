@@ -31,11 +31,11 @@ interface DistrictStat {
 }
 
 const GRADE_COLORS = {
-  A: { color: "#00A651", bg: "#00A65122", label: "Excellent" },
-  B: { color: "#3B82F6", bg: "#3B82F622", label: "Good" },
+  A: { color: "#34D399", bg: "#00A65122", label: "Excellent" },
+  B: { color: "#60A5FA", bg: "#3B82F622", label: "Good" },
   C: { color: "#F59E0B", bg: "#F59E0B22", label: "Average" },
   D: { color: "#F97316", bg: "#F9731622", label: "Poor" },
-  F: { color: "#EF4444", bg: "#EF444422", label: "Critical" },
+  F: { color: "#F87171", bg: "#EF444422", label: "Critical" },
 };
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {

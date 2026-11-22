@@ -34,11 +34,11 @@ const DEPARTMENTS = [
 ];
 
 const STATUS_META: Record<string, { color: string; bg: string; icon: string; label: string }> = {
-  filed:        { color: "#6B7280", bg: "#F9FAFB", icon: "document-text",    label: "Filed" },
-  acknowledged: { color: "#3B82F6", bg: "#EFF6FF", icon: "eye",              label: "Acknowledged" },
-  processing:   { color: "#F59E0B", bg: "#FFFBEB", icon: "time",             label: "Processing" },
-  responded:    { color: "#00A651", bg: "#F0FFF4", icon: "checkmark-circle", label: "Responded" },
-  closed:       { color: "#9CA3AF", bg: "#F3F4F6", icon: "close-circle",     label: "Closed" },
+  filed:        { color: "#4B5563", bg: "#F9FAFB", icon: "document-text",    label: "Filed" },
+  acknowledged: { color: "#2563EB", bg: "#EFF6FF", icon: "eye",              label: "Acknowledged" },
+  processing:   { color: "#B45309", bg: "#FFFBEB", icon: "time",             label: "Processing" },
+  responded:    { color: "#047857", bg: "#F0FFF4", icon: "checkmark-circle", label: "Responded" },
+  closed:       { color: "#6B7280", bg: "#F3F4F6", icon: "close-circle",     label: "Closed" },
 };
 
 function makeApiCall(token: string | null) {
@@ -135,7 +135,7 @@ export default function RTIScreen() {
   return (
     <View style={s.container}>
       {/* Header */}
-      <LinearGradient colors={["#1E3A5F", "#0F5132", "#00A651"]} style={[s.header, { paddingTop: topPad + 12 }]}>
+      <LinearGradient colors={["#1E3A5F", "#0F5132", "#047857"]} style={[s.header, { paddingTop: topPad + 12 }]}>
         <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
           <View style={{ flex: 1 }}>
             <Text style={s.headerTitle}>RTI Portal</Text>
@@ -166,7 +166,7 @@ export default function RTIScreen() {
       {/* File RTI Button */}
       <View style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#F3F4F6" }}>
         <Pressable onPress={() => setShowForm(true)} style={s.fileBtn}>
-          <LinearGradient colors={["#00A651", "#059669"]} style={s.fileBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+          <LinearGradient colors={["#047857", "#059669"]} style={s.fileBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <Ionicons name="document-text" size={18} color="#fff" />
             <Text style={s.fileBtnText}>File a New RTI Request</Text>
             <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.7)" />
@@ -181,8 +181,8 @@ export default function RTIScreen() {
       >
         {loading ? (
           <View style={{ padding: 40, alignItems: "center" }}>
-            <ActivityIndicator color="#00A651" size="large" />
-            <Text style={{ color: "#9CA3AF", marginTop: 12, fontSize: 13, fontFamily: "Inter_400Regular" }}>Loading RTIs...</Text>
+            <ActivityIndicator color="#047857" size="large" />
+            <Text style={{ color: "#6B7280", marginTop: 12, fontSize: 13, fontFamily: "Inter_400Regular" }}>Loading RTIs...</Text>
           </View>
         ) : rtis.length === 0 ? (
           <View style={s.empty}>
@@ -209,17 +209,17 @@ export default function RTIScreen() {
               </View>
               <View style={s.cardMeta}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Ionicons name="calendar-outline" size={10} color="#9CA3AF" />
+                  <Ionicons name="calendar-outline" size={10} color="#6B7280" />
                   <Text style={s.metaText}>Filed {timeAgo(rti.filedAt)}</Text>
                 </View>
                 <View style={[{ flexDirection: "row", alignItems: "center", gap: 4 }, isOverdue && { backgroundColor: "#FEF2F2", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }]}>
-                  <Ionicons name="time-outline" size={10} color={isOverdue ? "#EF4444" : "#9CA3AF"} />
-                  <Text style={[s.metaText, isOverdue && { color: "#EF4444", fontFamily: "Inter_600SemiBold" }]}>{dl}</Text>
+                  <Ionicons name="time-outline" size={10} color={isOverdue ? "#DC2626" : "#9CA3AF"} />
+                  <Text style={[s.metaText, isOverdue && { color: "#DC2626", fontFamily: "Inter_600SemiBold" }]}>{dl}</Text>
                 </View>
                 {rti.response && (
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#F0FFF4", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                    <Ionicons name="checkmark-circle" size={10} color="#00A651" />
-                    <Text style={[s.metaText, { color: "#00A651" }]}>Response received</Text>
+                    <Ionicons name="checkmark-circle" size={10} color="#047857" />
+                    <Text style={[s.metaText, { color: "#047857" }]}>Response received</Text>
                   </View>
                 )}
               </View>
@@ -231,9 +231,9 @@ export default function RTIScreen() {
         <View style={s.infoSection}>
           <Text style={s.infoSectionTitle}>Know Your RTI Rights</Text>
           {[
-            { icon: "time", color: "#3B82F6", title: "30-Day Response Deadline", body: "Under Section 7 of RTI Act 2005, the Public Information Officer must provide information within 30 days of receipt of RTI application." },
-            { icon: "cash", color: "#00A651", title: "₹10 Application Fee", body: "RTI applications attract a nominal fee of ₹10. BPL card holders are exempt from this fee. Fee can be paid via IPO, DD, or cash." },
-            { icon: "shield-checkmark", color: "#F59E0B", title: "First Appeal", body: "If dissatisfied, you can file a First Appeal within 30 days to the First Appellate Authority of the same department." },
+            { icon: "time", color: "#2563EB", title: "30-Day Response Deadline", body: "Under Section 7 of RTI Act 2005, the Public Information Officer must provide information within 30 days of receipt of RTI application." },
+            { icon: "cash", color: "#047857", title: "₹10 Application Fee", body: "RTI applications attract a nominal fee of ₹10. BPL card holders are exempt from this fee. Fee can be paid via IPO, DD, or cash." },
+            { icon: "shield-checkmark", color: "#B45309", title: "First Appeal", body: "If dissatisfied, you can file a First Appeal within 30 days to the First Appellate Authority of the same department." },
             { icon: "people", color: "#8B5CF6", title: "Central Information Commission", body: "For second appeal or complaint, approach your State Information Commission within 90 days of first appeal decision." },
           ].map(info => (
             <View key={info.title} style={s.infoCard}>
@@ -265,7 +265,7 @@ export default function RTIScreen() {
                         <Text style={{ color: "#111827", fontSize: 18, fontFamily: "Inter_700Bold", marginTop: 4, lineHeight: 26 }}>{selectedRTI.subject}</Text>
                       </View>
                       <Pressable onPress={() => setSelectedRTI(null)} style={s.closeBtn}>
-                        <Ionicons name="close" size={18} color="#6B7280" />
+                        <Ionicons name="close" size={18} color="#4B5563" />
                       </Pressable>
                     </View>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
@@ -284,27 +284,27 @@ export default function RTIScreen() {
                     ].map(row => (
                       <View key={row.label} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                         <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" }}>
-                          <Ionicons name={row.icon as any} size={16} color="#6B7280" />
+                          <Ionicons name={row.icon as any} size={16} color="#4B5563" />
                         </View>
                         <View>
-                          <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_500Medium", textTransform: "uppercase" }}>{row.label}</Text>
+                          <Text style={{ color: "#6B7280", fontSize: 10, fontFamily: "Inter_500Medium", textTransform: "uppercase" }}>{row.label}</Text>
                           <Text style={{ color: "#111827", fontSize: 13, fontFamily: "Inter_600SemiBold" }}>{row.val}</Text>
                         </View>
                       </View>
                     ))}
                     <View style={{ backgroundColor: "#F9FAFB", borderRadius: 12, padding: 14 }}>
-                      <Text style={{ color: "#6B7280", fontSize: 10, fontFamily: "Inter_700Bold", textTransform: "uppercase", marginBottom: 6 }}>Your RTI Request</Text>
+                      <Text style={{ color: "#4B5563", fontSize: 10, fontFamily: "Inter_700Bold", textTransform: "uppercase", marginBottom: 6 }}>Your RTI Request</Text>
                       <Text style={{ color: "#374151", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 }}>{selectedRTI.description}</Text>
                     </View>
                     {selectedRTI.response ? (
                       <View style={{ backgroundColor: "#F0FFF4", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#A7F3D0" }}>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                          <Ionicons name="checkmark-circle" size={16} color="#00A651" />
-                          <Text style={{ color: "#00A651", fontSize: 12, fontFamily: "Inter_700Bold" }}>Official Response Received</Text>
+                          <Ionicons name="checkmark-circle" size={16} color="#047857" />
+                          <Text style={{ color: "#047857", fontSize: 12, fontFamily: "Inter_700Bold" }}>Official Response Received</Text>
                         </View>
                         <Text style={{ color: "#374151", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 }}>{selectedRTI.response}</Text>
                         {selectedRTI.respondedAt && (
-                          <Text style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 8 }}>
+                          <Text style={{ color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 8 }}>
                             Responded on {new Date(selectedRTI.respondedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
                           </Text>
                         )}
@@ -312,10 +312,10 @@ export default function RTIScreen() {
                     ) : (
                       <View style={{ backgroundColor: "#FFFBEB", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#FDE68A" }}>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                          <Ionicons name="time" size={14} color="#F59E0B" />
-                          <Text style={{ color: "#F59E0B", fontSize: 12, fontFamily: "Inter_700Bold" }}>Awaiting Response</Text>
+                          <Ionicons name="time" size={14} color="#B45309" />
+                          <Text style={{ color: "#B45309", fontSize: 12, fontFamily: "Inter_700Bold" }}>Awaiting Response</Text>
                         </View>
-                        <Text style={{ color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular" }}>
+                        <Text style={{ color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular" }}>
                           The department must respond within 30 days. Deadline: {new Date(selectedRTI.deadline).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                         </Text>
                       </View>
@@ -338,10 +338,10 @@ export default function RTIScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 8 }}>
                 <View>
                   <Text style={{ color: "#111827", fontSize: 20, fontFamily: "Inter_700Bold" }}>File RTI Request</Text>
-                  <Text style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>Right to Information Act, 2005</Text>
+                  <Text style={{ color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>Right to Information Act, 2005</Text>
                 </View>
                 <Pressable onPress={() => setShowForm(false)} style={s.closeBtn}>
-                  <Ionicons name="close" size={18} color="#6B7280" />
+                  <Ionicons name="close" size={18} color="#4B5563" />
                 </Pressable>
               </View>
               <View style={{ paddingHorizontal: 20 }}>
@@ -358,7 +358,7 @@ export default function RTIScreen() {
                   <Text style={[{ color: department ? "#111827" : "#9CA3AF", fontSize: 14, fontFamily: "Inter_400Regular", flex: 1 }]}>
                     {department || "Select government department..."}
                   </Text>
-                  <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                  <Ionicons name="chevron-down" size={16} color="#6B7280" />
                 </Pressable>
                 <Text style={s.fieldLabel}>INFORMATION REQUESTED *</Text>
                 <TextInput
@@ -371,8 +371,8 @@ export default function RTIScreen() {
                   numberOfLines={5}
                 />
                 <View style={{ backgroundColor: "#F0FFF4", borderRadius: 10, padding: 12, marginBottom: 16, flexDirection: "row", gap: 8 }}>
-                  <Ionicons name="information-circle" size={16} color="#00A651" style={{ marginTop: 1 }} />
-                  <Text style={{ color: "#00A651", fontSize: 11, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 16 }}>
+                  <Ionicons name="information-circle" size={16} color="#047857" style={{ marginTop: 1 }} />
+                  <Text style={{ color: "#047857", fontSize: 11, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 16 }}>
                     Under RTI Act 2005, the department must respond within 30 days. Your request will be automatically logged with a ticket ID.
                   </Text>
                 </View>
@@ -404,7 +404,7 @@ export default function RTIScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: "#374151", fontSize: 14, fontFamily: department === dept ? "Inter_700Bold" : "Inter_400Regular" }}>{dept}</Text>
                   </View>
-                  {department === dept && <Ionicons name="checkmark-circle" size={18} color="#00A651" />}
+                  {department === dept && <Ionicons name="checkmark-circle" size={18} color="#047857" />}
                 </Pressable>
               ))}
               <View style={{ height: 20 }} />
@@ -423,15 +423,15 @@ export default function RTIScreen() {
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                   <Text style={{ color: "#111827", fontSize: 20, fontFamily: "Inter_700Bold" }}>How RTI Works</Text>
                   <Pressable onPress={() => setShowGuide(false)} style={s.closeBtn}>
-                    <Ionicons name="close" size={18} color="#6B7280" />
+                    <Ionicons name="close" size={18} color="#4B5563" />
                   </Pressable>
                 </View>
                 {[
-                  { step: "1", title: "File Your Request", body: "Write your RTI application specifying the exact information you need from the government department. Be specific and factual.", color: "#3B82F6" },
+                  { step: "1", title: "File Your Request", body: "Write your RTI application specifying the exact information you need from the government department. Be specific and factual.", color: "#2563EB" },
                   { step: "2", title: "Acknowledgement", body: "The Public Information Officer (PIO) must acknowledge your application within 5 days. You receive a tracking number.", color: "#8B5CF6" },
-                  { step: "3", title: "30-Day Deadline", body: "The PIO must provide the requested information within 30 days. For matters concerning life and liberty, it's 48 hours.", color: "#F59E0B" },
-                  { step: "4", title: "First Appeal", body: "If information is denied or unsatisfactory, file a First Appeal within 30 days to the First Appellate Authority.", color: "#EF4444" },
-                  { step: "5", title: "State Information Commission", body: "If First Appeal is rejected, approach the State Information Commission within 90 days.", color: "#00A651" },
+                  { step: "3", title: "30-Day Deadline", body: "The PIO must provide the requested information within 30 days. For matters concerning life and liberty, it's 48 hours.", color: "#B45309" },
+                  { step: "4", title: "First Appeal", body: "If information is denied or unsatisfactory, file a First Appeal within 30 days to the First Appellate Authority.", color: "#DC2626" },
+                  { step: "5", title: "State Information Commission", body: "If First Appeal is rejected, approach the State Information Commission within 90 days.", color: "#047857" },
                 ].map(step => (
                   <View key={step.step} style={{ flexDirection: "row", gap: 14, marginBottom: 20 }}>
                     <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: step.color, alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -439,13 +439,13 @@ export default function RTIScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: "#111827", fontSize: 14, fontFamily: "Inter_700Bold", marginBottom: 4 }}>{step.title}</Text>
-                      <Text style={{ color: "#6B7280", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 }}>{step.body}</Text>
+                      <Text style={{ color: "#4B5563", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 }}>{step.body}</Text>
                     </View>
                   </View>
                 ))}
                 <View style={{ backgroundColor: "#FFF8E7", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#FDE68A" }}>
                   <Text style={{ color: "#B45309", fontSize: 12, fontFamily: "Inter_700Bold", marginBottom: 4 }}>Emergency Contact</Text>
-                  <Text style={{ color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular" }}>
+                  <Text style={{ color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular" }}>
                     {`${stateName()} State Information Commission — see the state RTI portal`}{"\n"}Central RTI Portal: rtionline.gov.in
                   </Text>
                 </View>
@@ -478,32 +478,32 @@ const s = StyleSheet.create({
 
   card: { backgroundColor: "#fff", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
   cardTop: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 10 },
-  ticketId: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_700Bold", textTransform: "uppercase", letterSpacing: 0.5 },
+  ticketId: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_700Bold", textTransform: "uppercase", letterSpacing: 0.5 },
   rtiSubject: { color: "#111827", fontSize: 14, fontFamily: "Inter_700Bold", marginTop: 2, lineHeight: 20 },
-  rtiDept: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  rtiDept: { color: "#4B5563", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   statusBadge: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, flexShrink: 0 },
   statusText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
   cardMeta: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
-  metaText: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular" },
+  metaText: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular" },
 
   infoSection: { backgroundColor: "#fff", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "#E5E7EB", gap: 16 },
   infoSectionTitle: { color: "#111827", fontSize: 15, fontFamily: "Inter_700Bold", marginBottom: 4 },
   infoCard: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
   infoIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   infoTitle: { color: "#111827", fontSize: 13, fontFamily: "Inter_700Bold", marginBottom: 4 },
-  infoBody: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
+  infoBody: { color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
 
   empty: { padding: 40, alignItems: "center", gap: 8 },
   emptyTitle: { color: "#374151", fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  emptySub: { color: "#9CA3AF", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18 },
+  emptySub: { color: "#6B7280", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18 },
 
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   sheet: { backgroundColor: "#fff", borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "92%", overflow: "hidden" },
   sheetHandle: { width: 40, height: 4, backgroundColor: "#E5E7EB", borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 12 },
   closeBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
 
-  fieldLabel: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_700Bold", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginTop: 16 },
+  fieldLabel: { color: "#4B5563", fontSize: 10, fontFamily: "Inter_700Bold", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginTop: 16 },
   textInput: { backgroundColor: "#F9FAFB", borderRadius: 12, padding: 14, color: "#111827", fontSize: 14, fontFamily: "Inter_400Regular", borderWidth: 1, borderColor: "#E5E7EB", marginBottom: 4 },
-  submitBtn: { backgroundColor: "#00A651", borderRadius: 14, padding: 18, alignItems: "center", marginTop: 8 },
+  submitBtn: { backgroundColor: "#047857", borderRadius: 14, padding: 18, alignItems: "center", marginTop: 8 },
   submitBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
 });

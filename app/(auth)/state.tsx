@@ -108,7 +108,7 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg, paddingHorizontal: 16 },
   title: { color: Colors.textPrimary, fontSize: 26, fontFamily: "Inter_700Bold" },
   sub: { color: Colors.textSecondary, fontSize: 14, fontFamily: "Inter_400Regular", marginTop: 6, lineHeight: 20 },
-  locBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Colors.saffronDark, borderRadius: 12, paddingVertical: 12, marginTop: 16 },
+  locBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#C2410C", borderRadius: 12, paddingVertical: 12, marginTop: 16 },
   locText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
   note: { color: Colors.textSecondary, fontSize: 13, marginTop: 8, fontFamily: "Inter_400Regular" },
   search: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.bgCard, borderColor: Colors.border, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, marginTop: 14, height: 44 },

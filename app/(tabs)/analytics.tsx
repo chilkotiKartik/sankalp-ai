@@ -15,36 +15,36 @@ import { getSecure } from "@/lib/secure-session";
 
 const CAT_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
   pothole:     { label: "Pothole",     icon: "alert-circle",        color: "#F59E0B" },
-  garbage:     { label: "Garbage",     icon: "trash",               color: "#EF4444" },
+  garbage:     { label: "Garbage",     icon: "trash",               color: "#F87171" },
   streetlight: { label: "Streetlight", icon: "bulb",                color: "#FCD34D" },
-  water:       { label: "Water",       icon: "water",               color: "#3B82F6" },
+  water:       { label: "Water",       icon: "water",               color: "#60A5FA" },
   drain:       { label: "Drain",       icon: "git-network",         color: "#06B6D4" },
-  electricity: { label: "Electricity", icon: "flash",               color: "#8B5CF6" },
+  electricity: { label: "Electricity", icon: "flash",               color: "#A78BFA" },
   tree:        { label: "Tree",        icon: "leaf",                color: "#22C55E" },
-  other:       { label: "Other",       icon: "ellipsis-horizontal", color: "#6B7280" },
+  other:       { label: "Other",       icon: "ellipsis-horizontal", color: "#9CA3AF" },
 };
 
 const BADGE_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
   new_citizen:    { icon: "leaf",             color: "#22C55E" },
   active_citizen: { icon: "star",             color: "#F59E0B" },
-  civic_hero:     { icon: "shield-checkmark", color: "#8B5CF6" },
-  city_champion:  { icon: "trophy",           color: "#EF4444" },
-  first_report:   { icon: "document-text",    color: "#3B82F6" },
+  civic_hero:     { icon: "shield-checkmark", color: "#A78BFA" },
+  city_champion:  { icon: "trophy",           color: "#F87171" },
+  first_report:   { icon: "document-text",    color: "#60A5FA" },
   system_admin:   { icon: "settings",         color: "#06B6D4" },
   district_admin: { icon: "business",         color: "#FF9933" },
 };
 
 function getWardGrade(healthScore: number): { grade: "A" | "B" | "C" | "D" | "F"; color: string } {
-  if (healthScore >= 85) return { grade: "A", color: "#00A651" };
-  if (healthScore >= 70) return { grade: "B", color: "#3B82F6" };
+  if (healthScore >= 85) return { grade: "A", color: "#34D399" };
+  if (healthScore >= 70) return { grade: "B", color: "#60A5FA" };
   if (healthScore >= 55) return { grade: "C", color: "#F59E0B" };
   if (healthScore >= 40) return { grade: "D", color: "#F97316" };
-  return { grade: "F", color: "#EF4444" };
+  return { grade: "F", color: "#F87171" };
 }
 
 const PREDICT_CATEGORY_COLORS: Record<string, string> = {
-  pothole: "#F59E0B", garbage: "#EF4444", water: "#3B82F6",
-  streetlight: "#FCD34D", drain: "#06B6D4", electricity: "#8B5CF6",
+  pothole: "#F59E0B", garbage: "#F87171", water: "#60A5FA",
+  streetlight: "#FCD34D", drain: "#06B6D4", electricity: "#A78BFA",
 };
 
 function AnimatedBar({ pct, color, delay = 0 }: { pct: number; color: string; delay?: number }) {
@@ -103,10 +103,10 @@ export default function AnalyticsScreen() {
   }).sort((a, b) => b.count - a.count);
 
   const priorities = [
-    { key: "P1", label: "Critical", color: "#EF4444" },
+    { key: "P1", label: "Critical", color: "#F87171" },
     { key: "P2", label: "High",     color: "#F59E0B" },
-    { key: "P3", label: "Medium",   color: "#3B82F6" },
-    { key: "P4", label: "Low",      color: "#6B7280" },
+    { key: "P3", label: "Medium",   color: "#60A5FA" },
+    { key: "P4", label: "Low",      color: "#9CA3AF" },
   ].map(p => ({ ...p, count: complaints.filter(c => c.priority === p.key).length, pct: Math.round((complaints.filter(c => c.priority === p.key).length / total) * 100) }));
 
   const avgAiScore = Math.round(complaints.reduce((s, c) => s + c.aiScore, 0) / total);
@@ -198,7 +198,7 @@ export default function AnalyticsScreen() {
         <SectionCard icon="pie-chart" iconColor={Colors.green} title="Status Breakdown">
           {[
             { label: "Resolved",    count: resolved,    color: "#22C55E", pct: Math.round(resolved / total * 100),    icon: "checkmark-circle" as const },
-            { label: "In Progress", count: inProgress,  color: "#3B82F6", pct: Math.round(inProgress / total * 100),  icon: "time" as const },
+            { label: "In Progress", count: inProgress,  color: "#60A5FA", pct: Math.round(inProgress / total * 100),  icon: "time" as const },
             { label: "Pending",     count: pending,     color: "#F59E0B", pct: Math.round(pending / total * 100),     icon: "hourglass" as const },
           ].map((s, i) => (
             <View key={s.label} style={styles.barRow}>
@@ -212,7 +212,7 @@ export default function AnalyticsScreen() {
         </SectionCard>
 
         {/* Category breakdown */}
-        <SectionCard icon="bar-chart" iconColor="#3B82F6" title="Category Distribution">
+        <SectionCard icon="bar-chart" iconColor="#60A5FA" title="Category Distribution">
           {catData.map((cat, i) => (
             <View key={cat.key} style={styles.barRow}>
               <Ionicons name={cat.icon} size={14} color={cat.color} />
@@ -345,7 +345,7 @@ export default function AnalyticsScreen() {
         </SectionCard>
 
         {/* Top Workers */}
-        <SectionCard icon="people" iconColor="#8B5CF6" title="Top Workers">
+        <SectionCard icon="people" iconColor="#A78BFA" title="Top Workers">
           {[...workers].sort((a, b) => b.score - a.score).slice(0, 8).map((w, i) => (
             <View key={w.id} style={styles.workerRow}>
               <Text style={[styles.workerRank, { color: i < 3 ? "#F59E0B" : Colors.textMuted }]}>#{i + 1}</Text>

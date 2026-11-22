@@ -38,9 +38,9 @@ const DEPT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 const DEPT_COLORS: Record<string, string> = {
   "Public Works Department": "#F59E0B",
-  "Urban Local Body": "#EF4444",
+  "Urban Local Body": "#F87171",
   "ULB Electric Wing": "#FBBF24",
-  "Forest Department": "#00A651",
+  "Forest Department": "#34D399",
   "Health Department": "#EC4899",
   "Disaster Management": "#F97316",
 };

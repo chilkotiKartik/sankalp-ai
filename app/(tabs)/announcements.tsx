@@ -27,23 +27,23 @@ interface Announcement {
 }
 
 const TYPE_META: Record<string, { icon: string; color: string; label: string; bg: string }> = {
-  general:   { icon: "information-circle",  color: "#3B82F6", label: "General",   bg: "#3B82F615" },
+  general:   { icon: "information-circle",  color: "#60A5FA", label: "General",   bg: "#3B82F615" },
   scheme:    { icon: "ribbon",              color: "#22C55E", label: "Scheme",    bg: "#22C55E15" },
-  emergency: { icon: "warning",             color: "#EF4444", label: "Emergency", bg: "#EF444415" },
-  welfare:   { icon: "heart",               color: "#8B5CF6", label: "Welfare",   bg: "#8B5CF615" },
+  emergency: { icon: "warning",             color: "#F87171", label: "Emergency", bg: "#EF444415" },
+  welfare:   { icon: "heart",               color: "#A78BFA", label: "Welfare",   bg: "#8B5CF615" },
   tender:    { icon: "document-text",       color: "#F59E0B", label: "Tender",    bg: "#F59E0B15" },
   holiday:   { icon: "calendar",            color: "#06B6D4", label: "Holiday",   bg: "#06B6D415" },
 };
 
 const PRIORITY_META: Record<string, { color: string; label: string; icon: string }> = {
-  normal:    { color: "#6B7280", label: "Normal",    icon: "ellipse-outline" },
+  normal:    { color: "#9CA3AF", label: "Normal",    icon: "ellipse-outline" },
   important: { color: "#F59E0B", label: "Important", icon: "alert-circle-outline" },
-  urgent:    { color: "#EF4444", label: "Urgent",    icon: "warning" },
+  urgent:    { color: "#F87171", label: "Urgent",    icon: "warning" },
 };
 
 const FILTER_TYPES = ["all", "emergency", "scheme", "welfare", "general", "holiday", "tender"] as const;
 const PRIORITY_FILTERS = ["all", "urgent", "important", "normal"] as const;
-const PRIORITY_COLORS: Record<string, string> = { all: "#9CA3AF", urgent: "#EF4444", important: "#F59E0B", normal: "#6B7280" };
+const PRIORITY_COLORS: Record<string, string> = { all: "#9CA3AF", urgent: "#F87171", important: "#F59E0B", normal: "#9CA3AF" };
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -73,7 +73,7 @@ function AnnouncementDetailModal({ ann, onClose }: { ann: Announcement; onClose:
               <Text style={[det.priorityTxt, { color: priorityMeta.color }]}>{priorityMeta.label}</Text>
             </View>
             <Pressable onPress={onClose} style={det.closeBtn}>
-              <Ionicons name="close" size={20} color="#6B7280" />
+              <Ionicons name="close" size={20} color="#9CA3AF" />
             </Pressable>
           </View>
 
@@ -81,16 +81,16 @@ function AnnouncementDetailModal({ ann, onClose }: { ann: Announcement; onClose:
             <Text style={det.title}>{ann.title}</Text>
 
             <View style={det.metaRow}>
-              <Ionicons name="business-outline" size={12} color="#6B7280" />
+              <Ionicons name="business-outline" size={12} color="#9CA3AF" />
               <Text style={det.metaTxt}>{ann.department}</Text>
             </View>
             <View style={det.metaRow}>
-              <Ionicons name="time-outline" size={12} color="#6B7280" />
+              <Ionicons name="time-outline" size={12} color="#9CA3AF" />
               <Text style={det.metaTxt}>{new Date(ann.postedAt).toLocaleString("en-IN", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</Text>
             </View>
             {ann.targetDistrict && ann.targetDistrict !== "all" && (
               <View style={det.metaRow}>
-                <Ionicons name="location-outline" size={12} color="#6B7280" />
+                <Ionicons name="location-outline" size={12} color="#9CA3AF" />
                 <Text style={det.metaTxt}>{ann.targetDistrict}</Text>
               </View>
             )}
@@ -107,7 +107,7 @@ function AnnouncementDetailModal({ ann, onClose }: { ann: Announcement; onClose:
 
             {ann.expiresAt && (
               <View style={det.expiry}>
-                <Ionicons name="calendar-outline" size={12} color="#EF4444" />
+                <Ionicons name="calendar-outline" size={12} color="#F87171" />
                 <Text style={det.expiryTxt}>
                   Valid until: {new Date(ann.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
                 </Text>
@@ -137,13 +137,13 @@ const det = StyleSheet.create({
   body: { padding: 20 },
   title: { fontSize: 18, fontFamily: "Inter_700Bold", color: "#F1F5F9", lineHeight: 26, marginBottom: 14 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 5 },
-  metaTxt: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#6B7280" },
+  metaTxt: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#9CA3AF" },
   divider: { height: 1, backgroundColor: "#1F2937", marginVertical: 14 },
   bodyText: { fontSize: 14, fontFamily: "Inter_400Regular", color: "#CBD5E1", lineHeight: 22 },
   linkBtn: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 18, backgroundColor: "rgba(255,153,51,0.1)", borderWidth: 1, borderColor: "rgba(255,153,51,0.3)", borderRadius: 10, padding: 12 },
   linkTxt: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#FF9933" },
   expiry: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14, backgroundColor: "#EF444410", borderRadius: 8, padding: 10, borderWidth: 1, borderColor: "#EF444430" },
-  expiryTxt: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#EF4444" },
+  expiryTxt: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#F87171" },
   closeFull: { margin: 16, backgroundColor: "#1F2937", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
   closeFullTxt: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#9CA3AF" },
 });
@@ -215,7 +215,7 @@ export default function AnnouncementsScreen() {
       >
         {isUrgent && (
           <View style={styles.urgentBanner}>
-            <Ionicons name="warning" size={10} color="#EF4444" />
+            <Ionicons name="warning" size={10} color="#F87171" />
             <Text style={styles.urgentBannerTxt}>URGENT NOTICE</Text>
           </View>
         )}
@@ -270,7 +270,7 @@ export default function AnnouncementsScreen() {
         </View>
         {urgentCount > 0 && (
           <View style={styles.urgentBadge}>
-            <Ionicons name="warning" size={12} color="#EF4444" />
+            <Ionicons name="warning" size={12} color="#F87171" />
             <Text style={styles.urgentBadgeTxt}>{urgentCount} Urgent</Text>
           </View>
         )}
@@ -331,7 +331,7 @@ export default function AnnouncementsScreen() {
               ]}
               onPress={() => setFilter(f)}
             >
-              {meta && <Ionicons name={meta.icon as any} size={11} color={isActive ? meta.color : "#6B7280"} />}
+              {meta && <Ionicons name={meta.icon as any} size={11} color={isActive ? meta.color : "#9CA3AF"} />}
               <Text style={[styles.filterChipTxt, isActive && meta && { color: meta.color }]}>
                 {f.charAt(0).toUpperCase() + f.slice(1)}
               </Text>
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#EF444418", borderWidth: 1, borderColor: "#EF444445",
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12,
   },
-  urgentBadgeTxt: { fontSize: 11, fontFamily: "Inter_700Bold", color: "#EF4444" },
+  urgentBadgeTxt: { fontSize: 11, fontFamily: "Inter_700Bold", color: "#F87171" },
   filterBar: { flexShrink: 0, maxHeight: 44 },
   filterBarContent: { paddingHorizontal: 14, paddingVertical: 6, gap: 6, flexDirection: "row", alignItems: "center" },
   filterChip: {
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   filterChipActive: { borderColor: "#FF993360", backgroundColor: "#FF993318" },
-  filterChipTxt: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#6B7280" },
+  filterChipTxt: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#9CA3AF" },
   filterCount: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#FF9933", backgroundColor: "#FF993318", borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1, overflow: "hidden" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
   loadingTxt: { marginTop: 12, fontSize: 13, fontFamily: "Inter_400Regular", color: "#4B5563" },
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#EF444418", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
     alignSelf: "flex-start", marginBottom: 8,
   },
-  urgentBannerTxt: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#EF4444", letterSpacing: 0.5 },
+  urgentBannerTxt: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#F87171", letterSpacing: 0.5 },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10, flexWrap: "wrap" },
   typeChip: {
     flexDirection: "row", alignItems: "center", gap: 4,
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
   priorityChipTxt: { fontSize: 9, fontFamily: "Inter_700Bold" },
   timeAgo: { fontSize: 10, fontFamily: "Inter_400Regular", color: "#374151" },
   cardTitle: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#F1F5F9", lineHeight: 22, marginBottom: 6 },
-  cardBody: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#6B7280", lineHeight: 18, marginBottom: 10 },
+  cardBody: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#9CA3AF", lineHeight: 18, marginBottom: 10 },
   cardFooter: { flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" },
   deptRow: { flexDirection: "row", alignItems: "center", gap: 4, flex: 1 },
   deptTxt: { fontSize: 10, fontFamily: "Inter_400Regular", color: "#374151", flex: 1 },

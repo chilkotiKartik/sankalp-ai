@@ -16,18 +16,18 @@ import { getApiUrl } from "@/lib/query-client";
 import { getDistrictCenter, stateName } from "@/constants/districts";
 
 const FILTERS: { key: MapFilter; label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }[] = [
-  { key: "all",        label: "All",       icon: "apps-outline",    color: "#6B7280", bg: "#F3F4F6" },
-  { key: "complaints", label: "Issues",    icon: "alert-circle",    color: "#F59E0B", bg: "#FFFBEB" },
-  { key: "sos",        label: "SOS",       icon: "warning",         color: "#EF4444", bg: "#FEF2F2" },
-  { key: "workers",    label: "Workers",   icon: "person-outline",  color: "#06B6D4", bg: "#F0FDFF" },
-  { key: "police",     label: "Police",    icon: "shield-outline",  color: "#3B82F6", bg: "#EFF6FF" },
+  { key: "all",        label: "All",       icon: "apps-outline",    color: "#4B5563", bg: "#F3F4F6" },
+  { key: "complaints", label: "Issues",    icon: "alert-circle",    color: "#B45309", bg: "#FFFBEB" },
+  { key: "sos",        label: "SOS",       icon: "warning",         color: "#DC2626", bg: "#FEF2F2" },
+  { key: "workers",    label: "Workers",   icon: "person-outline",  color: "#0E7490", bg: "#F0FDFF" },
+  { key: "police",     label: "Police",    icon: "shield-outline",  color: "#2563EB", bg: "#EFF6FF" },
   { key: "risks",      label: "Risks",     icon: "flame-outline",   color: "#8B5CF6", bg: "#F5F3FF" },
-  { key: "hospitals",  label: "Hospitals", icon: "medical-outline", color: "#EF4444", bg: "#FEF2F2" },
-  { key: "fire",       label: "Fire Stns", icon: "flame",           color: "#F59E0B", bg: "#FFFBEB" },
+  { key: "hospitals",  label: "Hospitals", icon: "medical-outline", color: "#DC2626", bg: "#FEF2F2" },
+  { key: "fire",       label: "Fire Stns", icon: "flame",           color: "#B45309", bg: "#FFFBEB" },
 ];
 
 const RISK_COLORS: Record<string, string> = {
-  flood: "#3B82F6", garbage: "#00A651", infrastructure: "#F59E0B", crime: "#EF4444",
+  flood: "#3B82F6", garbage: "#047857", infrastructure: "#B45309", crime: "#DC2626",
 };
 
 export default function MapScreen() {
@@ -201,9 +201,9 @@ export default function MapScreen() {
         {/* Location pill */}
         <View style={ms.locPill}>
           {geoLoading
-            ? <ActivityIndicator size="small" color="#FF9933" />
-            : <Ionicons name={userGeo ? "location" : "location-outline"} size={12} color={userGeo ? "#00A651" : "#F59E0B"} />}
-          <Text style={[ms.locText, { color: userGeo ? "#00A651" : "#F59E0B" }]}>
+            ? <ActivityIndicator size="small" color="#C2410C" />
+            : <Ionicons name={userGeo ? "location" : "location-outline"} size={12} color={userGeo ? "#047857" : "#B45309"} />}
+          <Text style={[ms.locText, { color: userGeo ? "#047857" : "#B45309" }]}>
             {geoLoading ? "Locating..." : userGeo ? `${userGeo.lat.toFixed(3)}, ${userGeo.lng.toFixed(3)}` : "Location off"}
           </Text>
         </View>
@@ -223,7 +223,7 @@ export default function MapScreen() {
           {(nearestPolice.length > 0 ? nearestPolice : policeStations.slice(0, 3)).map((ps, i) => (
             <View key={ps.id} style={[ms.psCard, i === 0 && nearestPolice.length > 0 && { borderColor: "#FFD07777" }]}>
               <View style={ms.psIconWrap}>
-                <Ionicons name="shield" size={16} color="#3B82F6" />
+                <Ionicons name="shield" size={16} color="#2563EB" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={ms.psName} numberOfLines={1}>{ps.name}</Text>
@@ -275,16 +275,16 @@ const ms = StyleSheet.create({
   statLbl: { color: "rgba(255,255,255,0.7)", fontSize: 8, fontFamily: "Inter_400Regular", marginTop: 1 },
   filterScroll: { flexShrink: 0, maxHeight: 54, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
   filterPill: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB" },
-  filterText: { color: "#9CA3AF", fontSize: 12, fontFamily: "Inter_500Medium" },
+  filterText: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_500Medium" },
   mapWrap: { flex: 1, overflow: "hidden" },
   locPill: { position: "absolute", top: 12, left: 12, flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.95)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 4 },
   locText: { fontSize: 11, fontFamily: "Inter_500Medium" },
   bottomPanel: { backgroundColor: "#fff", paddingTop: 8, borderTopWidth: 1, borderTopColor: "#E5E7EB" },
-  bottomTitle: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1, paddingHorizontal: 16, marginBottom: 8, textTransform: "uppercase" },
+  bottomTitle: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1, paddingHorizontal: 16, marginBottom: 8, textTransform: "uppercase" },
   psCard: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#fff", borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: "#E5E7EB", width: 200, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
   psIconWrap: { width: 34, height: 34, borderRadius: 10, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
   psName: { color: "#111827", fontSize: 12, fontFamily: "Inter_600SemiBold" },
-  psPhone: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 },
+  psPhone: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 },
   distPill: { backgroundColor: "#FFFBEB", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
-  distText: { color: "#F59E0B", fontSize: 10, fontFamily: "Inter_700Bold" },
+  distText: { color: "#B45309", fontSize: 10, fontFamily: "Inter_700Bold" },
 });
