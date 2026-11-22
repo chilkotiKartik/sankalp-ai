@@ -149,6 +149,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P9.15 Free always-on hosting in India: `deploy/oracle-free.sh` (Oracle Cloud Always Free, Mumbai/Hyderabad; Caddy HTTPS, firewall, swap, daily encrypted backup, optional station build), guide in docs/DEPLOYMENT.md (D-053)
 - [x] P9.16 Fresh-clone build fix (server/data/reference.ts was git-ignored)
 - [x] P9.17 Live on Azure, South Central India: https://172-128-32-35.sslip.io (Let's Encrypt HTTPS, nightly encrypted backup); Caddy 2.6 fix; APK and eas.json point at it
+- [x] P9.18 Own domain https://sankalpai.app (www redirects), Let's Encrypt; app and docs point at it
 
 ## Baseline failures out of scope
 See docs/BASELINE.md.
