@@ -56,7 +56,9 @@ systemctl restart sankalp
 cat > /etc/caddy/Caddyfile <<CADDY
 $DOMAIN {
   encode gzip
-  request_body { max_size 25MB }
+  request_body {
+    max_size 25MB
+  }
   reverse_proxy 127.0.0.1:5000 {
     flush_interval -1
   }
