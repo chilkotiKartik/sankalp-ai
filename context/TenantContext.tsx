@@ -83,7 +83,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const refreshTenants = useCallback(async () => {
     setLoadingTenants(true);
     try { setTenants(await getJson<TenantSummary[]>("/api/public/tenants")); setError(null); }
-    catch { setError("Could not load the list of states. Check your connection."); }
+    catch (e) {
+      setError((e as Error).message === "404"
+        ? "This server has not been updated for all-India state selection yet. Please try again after the update."
+        : "Could not load the list of states. Check your connection.");
+    }
     finally { setLoadingTenants(false); }
   }, []);
 

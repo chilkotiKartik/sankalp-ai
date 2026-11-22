@@ -33,7 +33,9 @@
     "perf": "node scripts/perf.cjs",
     "a11y": "node scripts/a11y.cjs",
     "tenant:onboard": "tsx scripts/tenant-onboard.ts",
-    "loadtest": "tsx scripts/loadtest.ts"
+    "loadtest": "tsx scripts/loadtest.ts",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@babel/core": "^7.29.0",
