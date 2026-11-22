@@ -55,3 +55,4 @@ attached_assets/
 # Locally built APKs (sideload builds; not committed)
 dist-apk/
 *.apk
+screenshots/
