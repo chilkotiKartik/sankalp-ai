@@ -212,14 +212,14 @@ export default function MapScreen() {
       {/* Bottom panel */}
       <View style={[ms.bottomPanel, { paddingBottom: botInset + 85 }]}>
         <Text style={ms.bottomTitle}>Nearest Police Stations & Risk Zones</Text>
-        {nearestPolice.length === 0 && policeStations.length === 0 && (
-          <Pressable onPress={() => Linking.openURL("tel:112")} accessibilityRole="button" accessibilityLabel="Call 112 emergency"
-            style={{ marginHorizontal: 16, padding: 12, borderRadius: 12, backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA" }}>
-            <Text style={{ color: "#991B1B", fontSize: 13, fontFamily: "Inter_600SemiBold" }}>{`Police station locations for ${stateName()} are not imported yet.`}</Text>
-            <Text style={{ color: "#7F1D1D", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 }}>In an emergency tap here to call 112 — it reaches police anywhere in India.</Text>
-          </Pressable>
-        )}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingBottom: 4 }}>
+          {nearestPolice.length === 0 && policeStations.length === 0 && (
+            <Pressable onPress={() => Linking.openURL("tel:112")} accessibilityRole="button" accessibilityLabel={`Police station locations for ${stateName()} are not imported yet. Call 112`}
+              style={{ width: 230, padding: 10, borderRadius: 12, backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA" }}>
+              <Text style={{ color: "#991B1B", fontSize: 12, fontFamily: "Inter_700Bold" }}>Police stations: call 112</Text>
+              <Text style={{ color: "#7F1D1D", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={2}>{`Station locations for ${stateName()} aren't imported yet. 112 reaches police anywhere.`}</Text>
+            </Pressable>
+          )}
           {(nearestPolice.length > 0 ? nearestPolice : policeStations.slice(0, 3)).map((ps, i) => (
             <View key={ps.id} style={[ms.psCard, i === 0 && nearestPolice.length > 0 && { borderColor: "#FFD07777" }]}>
               <View style={ms.psIconWrap}>

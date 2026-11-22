@@ -23,6 +23,7 @@ try {
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DemoBadge } from "@/components/DemoBadge";
 import { ConsentGate } from "@/components/ConsentGate";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { queryClient } from "@/lib/query-client";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -139,6 +140,7 @@ function RootLayoutNav() {
       <EmergencyBuzzer />
       <DemoBadge />
       <ConsentGate />
+      <InstallPrompt />
     </View>
   );
 }

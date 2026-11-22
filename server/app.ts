@@ -126,6 +126,33 @@ function proxyToMetro(req: Request, res: Response) {
   req.pipe(proxyReq);
 }
 
+/**
+ * The Expo web build's index.html plus what makes it an installable web app on Android and iPhone:
+ * manifest, icons, theme colour, iOS standalone tags, notch-safe viewport and the service-worker script.
+ */
+let pwaCache: { mtime: number; html: string } | null = null;
+const PWA_HEAD = [
+  '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />',
+  '<meta name="description" content="Report civic issues, track them to a verified fix, and get help fast with SOS — in every Indian state and UT." />',
+  '<meta name="theme-color" content="#111A29" />',
+  '<link rel="manifest" href="/manifest.webmanifest" />',
+  '<link rel="apple-touch-icon" href="/pwa/apple-touch-icon.png" />',
+  '<meta name="apple-mobile-web-app-capable" content="yes" />',
+  '<meta name="mobile-web-app-capable" content="yes" />',
+  '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
+  '<meta name="apple-mobile-web-app-title" content="SANKALP AI" />',
+  '<script src="/pwa/register.js" defer></script>',
+].join("");
+function pwaIndex(file: string): string {
+  const mtime = fs.statSync(file).mtimeMs;
+  if (pwaCache?.mtime === mtime) return pwaCache.html;
+  const html = fs.readFileSync(file, "utf8")
+    .replace(/<meta name="viewport"[^>]*>/, "")
+    .replace("</head>", `${PWA_HEAD}</head>`);
+  pwaCache = { mtime, html };
+  return html;
+}
+
 /** Portals get the runtime config injected (demo badge, tile URL) without inline user data. */
 function portalFile(file: string) {
   const full = path.join(ROOT, "server", "web", file);
@@ -193,6 +220,16 @@ function setupStatic(app: Express) {
     },
   }));
 
+  // Web app / PWA: the service worker must always be revalidated so updates reach installed apps.
+  app.get("/sw.js", (_req, res) => {
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Service-Worker-Allowed", "/");
+    res.type("application/javascript").sendFile(path.join(ROOT, "public", "sw.js"));
+  });
+  app.get("/manifest.webmanifest", (_req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.type("application/manifest+json").sendFile(path.join(ROOT, "public", "manifest.webmanifest"));
+  });
   app.use(express.static(path.join(ROOT, "public"), { dotfiles: "deny", maxAge: "7d" }));
   // P5.6: content-hashed bundle files never change — cache them for a year (2G users download once).
   app.use("/_expo/static", express.static(path.join(webDir, "_expo", "static"), { dotfiles: "deny", index: false, immutable: true, maxAge: "365d" }));
@@ -213,7 +250,7 @@ function setupStatic(app: Express) {
     if (req.method !== "GET" || req.path.startsWith("/api") || req.path.startsWith("/_expo") || req.path.startsWith("/assets") || req.path.startsWith("/uploads")) return next();
     if (fs.existsSync(webIndex)) {
       res.setHeader("Cache-Control", "no-store");
-      return res.sendFile(webIndex);
+      return res.type("html").send(pwaIndex(webIndex));
     }
     const tpl = path.join(ROOT, "server", "templates", "landing-page.html");
     if (fs.existsSync(tpl)) return res.type("html").send(fs.readFileSync(tpl, "utf8").replace(/APP_NAME_PLACEHOLDER/g, "SANKALP AI").replace(/(BASE|EXPS)_URL_PLACEHOLDER/g, ""));

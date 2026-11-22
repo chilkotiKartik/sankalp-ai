@@ -737,10 +737,10 @@ function SOSScreenInner() {
           });
         } catch {}
       } else {
-        Alert.alert("Failed", "Could not send alert. Call 1800-180-4191 (Forest Helpline).");
+        Alert.alert("Failed", "Could not send alert. Call 112 now — it reaches emergency services anywhere in India.");
       }
     } catch {
-      Alert.alert("Error", "Network error. Call 1800-180-4191 directly.");
+      Alert.alert("Error", "Network error. Call 112 directly.");
     } finally {
       setForestSending(false);
       setShowForestModal(false);
@@ -1071,7 +1071,7 @@ function SOSScreenInner() {
           <View style={s.headerRow}>
             <View style={{ flex: 1 }}>
               <View style={s.gnctPill}>
-                <Text style={s.gnctText}>🏛️ Govt of UK · SANKALP AI · Emergency Command Center</Text>
+                <Text style={s.gnctText}>{`🏛️ ${stateName()} · SANKALP AI · Emergency Command Center`}</Text>
               </View>
               <Text style={s.headerTitle}>SOS Emergency</Text>
               <Text style={s.headerSub}>{`${stateName()} Rapid Response System · 24/7 Active`}</Text>
@@ -1214,7 +1214,7 @@ function SOSScreenInner() {
                 </Pressable>
               </Animated.View>
             </View>
-            <Text style={s.sosHintText}>Your live location instantly shared with 2 nearest police stations</Text>
+            <Text style={s.sosHintText}>Your live location is shared instantly with the police control room and your nearest police stations</Text>
           </View>
         )}
 

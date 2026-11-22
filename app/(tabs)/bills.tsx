@@ -354,7 +354,7 @@ export default function BillsScreen() {
 
           <View style={s.infoBox}>
             <Ionicons name="information-circle-outline" size={18} color={Colors.textMuted}/>
-            <Text style={s.infoText}>Bill data linked to registered address · Disputes: 1800-180-4167 (UK Helpline)</Text>
+            <Text style={s.infoText}>Bill data linked to registered address · Disputes: contact your water or power office · Consumer helpline 1915</Text>
           </View>
         </ScrollView>
       )}

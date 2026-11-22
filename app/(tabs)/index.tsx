@@ -561,7 +561,7 @@ export default function DashboardScreen() {
             <View style={styles.healthCard}>
               <View style={styles.healthCardLeft}>
                 <Text style={styles.healthCardLabel}>{t("City Health Score", HI.cityHealth)}</Text>
-                <Text style={styles.healthCardSub}>{lang === "HI" ? HI.blocksMonitored(wards.length) : `${stateName()} · ${wards.length} Blocks Monitored`}</Text>
+                <Text style={styles.healthCardSub}>{lang === "HI" ? HI.blocksMonitored(wards.length) : `${stateName()} · ${wards.length} ${wards.length === 1 ? "area" : "areas"} monitored`}</Text>
                 <HealthBar pct={avgHealth} color={healthColor} />
               </View>
               <View style={[styles.healthScoreBubble, { borderColor: healthColor + "44" }]}>

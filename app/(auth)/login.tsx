@@ -102,7 +102,7 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
   }, [onDone]);
 
   const slide = SLIDES[idx];
-  const orangeH = H * 0.48;
+  const orangeH = H * 0.48; // the text area below scrolls on shorter phones
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -164,7 +164,7 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
 
       {/* ── WHITE BOTTOM SECTION ── */}
       <View style={ob.bottom}>
-        <Animated.View style={{ opacity: bottomFade, flex: 1 }}>
+        <Animated.ScrollView style={{ opacity: bottomFade, flex: 1 }} contentContainerStyle={{ paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
           {/* Tag pill */}
           <View style={[ob.tagPill, { borderColor: slide.tagColor + "55", backgroundColor: slide.tagColor + "12" }]}>
             <Text style={[ob.tagText, { color: slide.tagColor }]}>{slide.tag}</Text>
@@ -193,7 +193,7 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
             <View style={[ob.dividerStrip, { backgroundColor: "#fff", flex: 1, borderWidth: 0.5, borderColor: "#E5E7EB" }]} />
             <View style={[ob.dividerStrip, { backgroundColor: "#138808", flex: 2 }]} />
           </View>
-        </Animated.View>
+        </Animated.ScrollView>
 
         {/* Bottom nav row */}
         <View style={ob.navRow}>

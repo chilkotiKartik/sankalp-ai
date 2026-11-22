@@ -141,6 +141,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P9.4 Maps: generic `StateMap`, worker and SOS heat maps centred on the selected state with district outlines
 - [x] P9.5 Portals: injected state config (`window.SK`), state switcher, real petitions/notices in the community hub, district outlines on maps, CSP-safe video controls
 - [x] P9.6 Tests: `tests/states.test.ts` (registry, 787 districts, every category owned in every state, endpoints, Kerala end-to-end)
+- [x] P9.8 Installable web app (PWA) for iPhone/Android/desktop: manifest, icons, iOS tags, service worker (offline shell; never caches API/SOS), in-app install prompt — tests/pwa.test.ts
 - [x] P9.7 Android APK (sideload build, debug-signed, arm64-v8a + armeabi-v7a, points at sankalp-ai.onrender.com); not committed — build with `npx expo prebuild -p android` + `gradlew assembleRelease` (JDK 17)
 
 ## Baseline failures out of scope
