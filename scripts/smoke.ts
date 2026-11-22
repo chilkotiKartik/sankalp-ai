@@ -14,6 +14,8 @@ import { randomInt } from "node:crypto";
 
 const BASE = (process.env.SMOKE_BASE_URL || "http://localhost:5000").replace(/\/$/, "");
 const DATA = path.resolve(process.env.DATA_DIR || "./data");
+/** P9: run the same end-to-end flow in any state (`SMOKE_TENANT=kerala`); default = the server's default state. */
+const TENANT = process.env.SMOKE_TENANT || "";
 const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 let step = 0;
 
@@ -27,7 +29,7 @@ async function call(method: string, p: string, body?: unknown, token?: string, e
   step++;
   const res = await fetch(`${BASE}${p}`, {
     method,
-    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: { "Content-Type": "application/json", ...(TENANT ? { "X-Tenant": TENANT } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   }).catch(e => fail(`${method} ${p}: ${(e as Error).message}`));
   const text = await res.text();
@@ -40,7 +42,8 @@ async function call(method: string, p: string, body?: unknown, token?: string, e
 function deptCode(dept: string): string {
   const env = process.env[`SMOKE_${dept.toUpperCase()}_CODE`];
   if (env) return env;
-  for (const f of ["demo-credentials.txt", "dept-codes.initial.txt"]) {
+  const files = TENANT ? [path.join("tenants", TENANT, "dept-codes.initial.txt"), "demo-credentials.txt", "dept-codes.initial.txt"] : ["demo-credentials.txt", "dept-codes.initial.txt"];
+  for (const f of files) {
     const p = path.join(DATA, f);
     if (!fs.existsSync(p)) continue;
     const m = fs.readFileSync(p, "utf8").match(new RegExp(`^\\s*${dept}\\s+(\\S+)`, "m"));
@@ -55,7 +58,10 @@ async function main() {
   if (h.status !== "ok") fail("healthz not ok");
   ok("server healthy");
   const cfg = await call("GET", "/api/public/config");
-  ok(`config: demoMode=${cfg.demoMode} textAI=${cfg.ai.text} vision=${cfg.ai.vision}`);
+  ok(`config: state=${cfg.tenant?.name} demoMode=${cfg.demoMode} textAI=${cfg.ai.text} vision=${cfg.ai.vision}`);
+  // A real district of this state and its centre (no state is assumed).
+  const home = (cfg.tenant?.districts ?? []).find((d: { name: string }) => d.name === cfg.tenant.defaultDistrict) ?? cfg.tenant?.districts?.[0] ?? { name: "Dehradun", center: { lat: 30.3165, lng: 78.0322 } };
+  const near = (dLat: number, dLng: number) => ({ lat: +(home.center.lat + dLat).toFixed(5), lng: +(home.center.lng + dLng).toFixed(5) });
 
   // Security guard-rails that must hold before anything else.
   await call("GET", "/api/cpr/stream", undefined, undefined, 401); ok("CPR stream rejects anonymous access");
@@ -63,7 +69,7 @@ async function main() {
 
   // 1. Citizen registers and files a complaint with a photo.
   const phone = `90000${randomInt(10000, 99999)}`;
-  const reg = await call("POST", "/api/auth/register", { name: "Smoke Citizen", phone, pin: "246813", district: "Dehradun" });
+  const reg = await call("POST", "/api/auth/register", { name: "Smoke Citizen", phone, pin: "246813", district: home.name });
   const citizen = reg.token as string;
   ok("citizen registered");
   await call("POST", "/api/complaints", { category: "pothole", description: "Consent check", location: "Somewhere" }, citizen, 428);
@@ -74,7 +80,7 @@ async function main() {
   const up = await call("POST", "/api/upload", { image: PNG }, citizen);
   if (!/^\/uploads\/[0-9a-f-]{36}\.png$/.test(up.url)) fail(`unexpected upload url ${up.url}`);
   ok("photo uploaded");
-  const c = await call("POST", "/api/complaints", { category: "pothole", description: "Deep pothole near the school gate", location: "Rajpur Road, Dehradun", geo: { lat: 30.3398, lng: 78.0644 }, beforePhoto: up.url }, citizen, 201);
+  const c = await call("POST", "/api/complaints", { category: "pothole", description: "Deep pothole near the school gate", location: `Main road, ${home.name}`, geo: near(0.02, 0.03), beforePhoto: up.url }, citizen, 201);
   if (c.state !== "NEW" || c.aiRouting?.department !== "pwd") fail(`routing wrong: ${JSON.stringify(c.aiRouting)}`);
   ok(`complaint ${c.ticketId} routed to PWD (${c.aiRouting.method})`);
 
@@ -105,13 +111,13 @@ async function main() {
   ok(`public dashboard: PWD resolved=${pwdRow.resolved}, n=${pwdRow.n}`);
 
   // 6. SOS → police CPR console.
-  const sos = await call("POST", "/api/sos/women-safety", { geo: { lat: 30.3165, lng: 78.0322 } }, citizen, 201);
+  const sos = await call("POST", "/api/sos/women-safety", { geo: near(0, 0) }, citizen, 201);
   ok(`women-safety SOS raised (${sos.alert.id.slice(0, 8)})`);
   const police = (await call("POST", "/api/dept/login", { departmentId: "police", accessCode: deptCode("police") })).token as string;
   const incidents = await call("GET", "/api/cpr/incidents", undefined, police);
   if (!incidents.some((i: { id: string }) => i.id === sos.cprIncident?.id)) fail("SOS not visible in CPR incidents");
   ok("SOS visible in police CPR console");
-  const again = await call("POST", "/api/sos/women-safety", { geo: { lat: 30.3165, lng: 78.0322 } }, citizen, 200);
+  const again = await call("POST", "/api/sos/women-safety", { geo: near(0, 0) }, citizen, 200);
   if (!again.deduplicated) fail("repeat SOS not de-duplicated");
   ok("repeat SOS de-duplicated (never rate-limited)");
   await call("GET", "/api/cpr/incidents", undefined, citizen, 403); ok("citizen cannot read the CPR console");

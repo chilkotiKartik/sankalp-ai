@@ -28,7 +28,7 @@ services:
       - key: PUBLIC_BASE_URL
         sync: false
       - key: EGRESS_ALLOWLIST
-        value: api.sarvam.ai
+        value: api.sarvam.ai,newsonair.gov.in,www.pib.gov.in   # AI + official news (Government of India hosts)
       - key: SARVAM_API_KEY
         sync: false
       - key: DEFAULT_TENANT

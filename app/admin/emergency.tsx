@@ -43,8 +43,8 @@ const EMERGENCY_NUMBERS = [
   { label: "Disaster",    number: "1070", icon: "warning" as const,      color: "#F59E0B" },
   { label: "Women Help",  number: "181", icon: "female" as const,       color: "#EC4899" },
   { label: "Child Help",  number: "1098", icon: "happy" as const,        color: "#8B5CF6" },
-  { label: "Water Emrg.", number: "1916", icon: "water" as const,        color: "#06B6D4" },
-  { label: "COVID Help",  number: "104",  icon: "medical" as const,      color: "#00A651" },
+  { label: "Electricity", number: "1912", icon: "flash" as const,        color: "#06B6D4" },
+  { label: "Health",      number: "104",  icon: "medical" as const,      color: "#00A651" },
 ];
 
 function callNumber(phone: string) {

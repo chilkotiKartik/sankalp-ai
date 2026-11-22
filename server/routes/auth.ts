@@ -134,8 +134,13 @@ export function registerAuthRoutes(app: Express) {
     middleware: [authLimiter],
     params: none, query: none,
     body: z.object({ departmentId: z.string().min(2).max(20), accessCode: z.string().min(6).max(100) }),
-    handler: async ({ body }) => {
+    handler: async ({ body, res }) => {
       const dept = DEPARTMENTS[body.departmentId];
+      // A newly added state gets its access codes a few minutes after first boot: say so instead of "wrong code".
+      if (storage.s.deptCredentials.length === 0) {
+        res.setHeader("Retry-After", "60");
+        throw new AppError(503, "STATE_SETTING_UP", "Department access for this state is still being set up. Please try again in a minute.");
+      }
       const ok = await storage.verifyDeptCode(body.departmentId, body.accessCode);
       if (!dept || !ok) throw unauthorized("Invalid department or access code");
       storage.addAuditLog("dept_login", body.departmentId, dept.name, "Department portal login");

@@ -8,6 +8,7 @@ import { tenant, tenantIds, stateRegistry } from "../tenancy";
 import { aiStatus } from "../ai/gateway";
 import { route, none } from "../lib/route";
 import { readiness } from "../health";
+import { getNews } from "../news";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -73,6 +74,17 @@ export function registerPublicRoutes(app: Express) {
       res.setHeader("Cache-Control", "public, max-age=86400");
       res.type("application/geo+json").send(geoFile("india-states") ?? JSON.stringify({ type: "FeatureCollection", features: [] }));
       return undefined;
+    },
+  });
+
+  // Official news: local (All India Radio, filtered to this state) and national (PIB). Never invented.
+  route(app, {
+    method: "get", path: "/api/public/news", auth: "public", permission: "public.dashboard",
+    params: none, query: z.object({ scope: z.enum(["state", "national"]).default("state") }), body: none,
+    handler: async ({ query, res }) => {
+      res.setHeader("Cache-Control", "public, max-age=300");
+      res.setHeader("Vary", "X-Tenant, Host");
+      return getNews(query.scope, tenant().id);
     },
   });
 

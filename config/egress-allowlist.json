@@ -1,7 +1,9 @@
 {
   "$comment": "Reviewed list of every external host that may appear in source. Rule 1: citizen data may only flow to `outbound` hosts (Indian). Everything else must be justified. scripts/egress-audit.ts fails on any host not listed here.",
   "outbound": {
-    "api.sarvam.ai": "Sarvam AI (India) — text AI provider, only when SARVAM_API_KEY is set"
+    "api.sarvam.ai": "Sarvam AI (India) — text AI provider, only when SARVAM_API_KEY is set",
+    "newsonair.gov.in": "Official news (Government of India); only the state name is sent",
+    "www.pib.gov.in": "Official news (Government of India); only the state name is sent"
   },
   "optInForeign": {
     "exp.host": "Expo push relay — only used when PUSH_DRIVER=expo AND exp.host is added to EGRESS_ALLOWLIST; payload carries no personal data (M17)",
@@ -9,7 +11,10 @@
   },
   "userInitiatedLinks": {
     "www.openstreetmap.org": "Web fallback for 'open in maps' — opened only when the user taps it; Sankalp sends nothing",
-    "airquality.cpcb.gov.in": "CPCB national AQI (Government of India), opened by the user from the home screen"
+    "airquality.cpcb.gov.in": "CPCB national AQI (Government of India), opened by the user from the home screen",
+    "pib.gov.in": "Official link opened by the user",
+    "newsonair.gov.in": "Official link opened by the user",
+    "www.myscheme.gov.in": "Official link opened by the user"
   },
   "nonNetwork": {
     "react.dev": "URL inside an error message string",

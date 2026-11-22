@@ -14,6 +14,8 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { getApiUrl } from "@/lib/query-client";
 import { stateName, districtPhrase, stateNameLocal } from "@/constants/districts";
 import { getTenantId } from "@/lib/tenant";
+import { OfficialNews, relTime as relNewsTime } from "@/components/OfficialNews";
+import { NATIONAL_SCHEMES, MYSCHEME_URL, type Scheme } from "@/constants/schemes";
 
 const CATEGORY_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
   pothole:     { label: "Pothole",     icon: "alert-circle",        color: "#F59E0B", bg: "#FFF8E7" },
@@ -40,6 +42,8 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
 type NewsItem = {
   id: string; tag: string; headline: string; time: string; icon: React.ComponentProps<typeof Ionicons>["name"];
   color: string; bg: string; source: string; readTime: string; body: string;
+  /** Official original (news from All India Radio / PIB); absent for announcements posted on SANKALP. */
+  link?: string;
 };
 const ANN_STYLE: Record<string, { icon: NewsItem["icon"]; color: string; bg: string }> = {
   emergency: { icon: "warning", color: "#EF4444", bg: "#FEF2F2" },
@@ -61,7 +65,7 @@ function toNewsItems(anns: Array<{ id: string; type?: string; title: string; bod
   });
 }
 
-const SCHEMES_DATA = [
+const SCHEMES_DATA: Scheme[] = [
   {
     key: "swarojgar",
     states: ["uttarakhand"],
@@ -201,7 +205,7 @@ function HealthBar({ pct, color }: { pct: number; color: string }) {
   );
 }
 
-function SchemeModal({ scheme, onClose }: { scheme: typeof SCHEMES_DATA[0] | null; onClose: () => void }) {
+function SchemeModal({ scheme, onClose }: { scheme: Scheme | null; onClose: () => void }) {
   if (!scheme) return null;
   return (
     <Modal visible animationType="slide" transparent>
@@ -271,11 +275,11 @@ function SchemeModal({ scheme, onClose }: { scheme: typeof SCHEMES_DATA[0] | nul
 
             {/* Contact */}
             <View style={ms.contactRow}>
-              <Pressable style={[ms.contactBtn, { backgroundColor: scheme.color + "12", borderColor: scheme.color + "30" }]}
+              {scheme.helpline ? <Pressable style={[ms.contactBtn, { backgroundColor: scheme.color + "12", borderColor: scheme.color + "30" }]}
                 onPress={() => Linking.openURL(`tel:${scheme.helpline}`)}>
                 <Ionicons name="call" size={18} color={scheme.color} />
                 <Text style={[ms.contactBtnText, { color: scheme.color }]}>Helpline: {scheme.helpline}</Text>
-              </Pressable>
+              </Pressable> : null}
               <Pressable style={[ms.contactBtn, { backgroundColor: "#F9FAFB", borderColor: "#E5E7EB" }]}
                 onPress={() => Linking.openURL(`https://${scheme.website}`)}>
                 <Ionicons name="globe" size={18} color="#6B7280" />
@@ -327,9 +331,18 @@ function NewsDetailModal({ news, onClose }: { news: any; onClose: () => void }) 
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#F0FFF4", borderRadius: 10, padding: 10 }}>
                 <Ionicons name="information-circle" size={16} color="#00A651" />
                 <Text style={{ flex: 1, color: "#065F46", fontSize: 12, fontFamily: "Inter_500Medium" }}>
-                  {`This article is sourced from official ${stateName()} government press releases and verified news agencies.`}
+                  {news.link
+                    ? `Headline and summary as published by ${news.source}. Tap below to read the full story.`
+                    : `Official announcement posted on SANKALP by ${news.source}.`}
                 </Text>
               </View>
+              {news.link ? (
+                <Pressable onPress={() => Linking.openURL(news.link)} accessibilityRole="link"
+                  style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#1D4ED8", borderRadius: 10, paddingVertical: 11 }}>
+                  <Ionicons name="open-outline" size={15} color="#fff" />
+                  <Text style={{ color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" }}>Read full story</Text>
+                </Pressable>
+              ) : null}
             </View>
             <Pressable style={ms.closeBtn} onPress={onClose}>
               <Text style={ms.closeBtnText}>Close</Text>
@@ -463,7 +476,7 @@ export default function DashboardScreen() {
   const headerAnim = useRef(new Animated.Value(0)).current;
   const cardsAnim = useRef(new Animated.Value(0)).current;
 
-  const [selectedScheme, setSelectedScheme] = useState<typeof SCHEMES_DATA[0] | null>(null);
+  const [selectedScheme, setSelectedScheme] = useState<Scheme | null>(null);
   const [selectedNotice, setSelectedNotice] = useState<any>(null);
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
   const newsItems = toNewsItems(announcements as any);
@@ -778,6 +791,12 @@ export default function DashboardScreen() {
           ))}
         </View>
 
+        {/* OFFICIAL NEWS — state (All India Radio) and national (PIB) */}
+        <OfficialNews onOpen={it => setSelectedNews({
+          id: it.id, tag: "NEWS", headline: it.title, time: relNewsTime(it.publishedAt), icon: "newspaper-outline", color: "#1D4ED8", bg: "#EFF6FF",
+          source: it.source, readTime: "", body: it.summary || it.title, link: it.link,
+        })} />
+
         {/* EMERGENCY CONTACTS */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
@@ -798,7 +817,7 @@ export default function DashboardScreen() {
               { num: "108",  label: "Ambulance",      icon: "heart",     color: "#EF4444", bg: "#FEF2F2" },
               { num: "181", label: "Women Helpline",   icon: "woman",     color: "#EC4899", bg: "#FDF2F8" },
               { num: "101",  label: "Fire Brigade",   icon: "flame",     color: "#F59E0B", bg: "#FFFBEB" },
-              { num: "1095", label: "Traffic Police", icon: "car",       color: "#06B6D4", bg: "#F0FDFF" },
+              { num: "1930", label: "Cyber Crime",    icon: "lock-closed",       color: "#06B6D4", bg: "#F0FDFF" },
               { num: "1098", label: "Child Helpline", icon: "happy",     color: "#00A651", bg: "#F0FFF4" },
             ].map(e => (
               <Pressable key={e.num}
@@ -821,9 +840,9 @@ export default function DashboardScreen() {
               <Ionicons name="document-text" size={16} color="#FF9933" />
               <Text style={styles.sectionTitle}>Government Schemes</Text>
             </View>
-            <Pressable><Text style={styles.seeAll}>View All →</Text></Pressable>
+            <Pressable onPress={() => Linking.openURL(MYSCHEME_URL)} accessibilityRole="link" accessibilityLabel="Find all schemes on myScheme"><Text style={styles.seeAll}>Find more →</Text></Pressable>
           </View>
-          {SCHEMES_DATA.filter(x => !(x as { states?: string[] }).states || (x as { states?: string[] }).states!.includes(getTenantId() ?? "")).map((s, idx) => (
+          {[...SCHEMES_DATA.filter(x => !x.states || x.states.includes(getTenantId() ?? "")), ...NATIONAL_SCHEMES].map((s, idx) => (
             <Pressable key={s.key} onPress={() => setSelectedScheme(s)}
               style={[styles.schemeRow, { borderTopWidth: idx === 0 ? 0 : 1 }]}>
               <View style={[styles.schemeIcon, { backgroundColor: s.color + "15" }]}>
@@ -841,6 +860,11 @@ export default function DashboardScreen() {
               </View>
             </Pressable>
           ))}
+          <Pressable onPress={() => Linking.openURL(MYSCHEME_URL)} accessibilityRole="link"
+            style={{ marginTop: 6, padding: 12, borderRadius: 12, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA" }}>
+            <Text style={{ color: "#9A3412", fontSize: 13, fontFamily: "Inter_700Bold" }}>{`Find every scheme for ${stateName()}`}</Text>
+            <Text style={{ color: "#9A3412", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 }}>myScheme (Government of India) lists Central and State schemes and checks your eligibility. Always confirm details on the official site before applying.</Text>
+          </Pressable>
         </View>
 
         {/* GOVERNMENT NOTICES */}
