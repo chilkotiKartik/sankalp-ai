@@ -10,6 +10,9 @@ P9.14: police stations, hospitals and fire stations for every state and UT, from
    [out:csv(::type,::id,::lat,::lon,amenity,name,"name:en",phone,"contact:phone","addr:street","addr:city","addr:postcode";true;"\t")]
    [timeout:900][maxsize:1073741824];(nwr["amenity"~"^(police|hospital|fire_station)$"](6.5,68.0,37.2,97.5););out center;
 
+   Or let the script download state by state (resumable; retries busy servers):
+   python3 -I scripts/build-places.py --fetch /tmp/osm   (writes /tmp/osm/india.tsv)
+
 2. python3 -I scripts/build-places.py india.tsv
 
 Each point is kept only if it lies inside a district boundary (config/geo/<state>.json) and is tagged with that
@@ -24,7 +27,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if len(sys.argv) > 2 and sys.argv[1] == "--fetch":
     import subprocess
     d = sys.argv[2]; os.makedirs(d, exist_ok=True)
-    servers = [os.environ.get("OVERPASS_URL", "https://overpass.kumi.systems/api/interpreter")]
+    servers = [os.environ["OVERPASS_URL"]] if os.environ.get("OVERPASS_URL") else ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
     cols = '::type,::id,::lat,::lon,amenity,name,"name:en",phone,"contact:phone","addr:street","addr:city","addr:postcode"'
     header = None; rows = []
     for st in json.load(open(os.path.join(ROOT, "config", "states.json")))["states"]:
