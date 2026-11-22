@@ -25,16 +25,16 @@ class SOSErrorBoundary extends Component<{ children: React.ReactNode }, { hasErr
       return (
         <View style={{ flex: 1, backgroundColor: "#0A0A0A", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <Text style={{ fontSize: 48, marginBottom: 16 }}>🆘</Text>
-          <Text style={{ color: "#EF4444", fontSize: 18, fontFamily: "Inter_700Bold", marginBottom: 8, textAlign: "center" }}>SOS Screen Error</Text>
+          <Text style={{ color: "#F87171", fontSize: 18, fontFamily: "Inter_700Bold", marginBottom: 8, textAlign: "center" }}>SOS Screen Error</Text>
           <Text style={{ color: "#ffffff", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20, marginBottom: 24 }}>
             {this.state.error}{"\n\n"}For emergencies, call 112 directly.
           </Text>
 
-          <Pressable onPress={() => this.setState({ hasError: false, error: "" })} style={{ backgroundColor: "#EF4444", borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 }}>
+          <Pressable onPress={() => this.setState({ hasError: false, error: "" })} style={{ backgroundColor: "#DC2626", borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 }}>
             <Text style={{ color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" }}>Retry</Text>
           </Pressable>
           <Pressable onPress={() => Linking.openURL("tel:112")} style={{ marginTop: 12, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32, borderWidth: 1, borderColor: "#EF444444", backgroundColor: "#EF444411" }}>
-            <Text style={{ color: "#EF4444", fontSize: 15, fontFamily: "Inter_700Bold" }}>Call 112 Emergency</Text>
+            <Text style={{ color: "#F87171", fontSize: 15, fontFamily: "Inter_700Bold" }}>Call 112 Emergency</Text>
           </Pressable>
         </View>
       );
@@ -58,13 +58,13 @@ import type { GeoPoint } from "@/context/AppContext";
 
 const SOS_CATS = [
   { key: "gas_leak",        label: "Gas Leak",     icon: "🔴", color: "#F59E0B" },
-  { key: "water_burst",     label: "Water Burst",  icon: "💧", color: "#3B82F6" },
-  { key: "electric_hazard", label: "Electric",     icon: "⚡", color: "#EF4444" },
-  { key: "fire_risk",       label: "Fire",         icon: "🔥", color: "#EF4444" },
+  { key: "water_burst",     label: "Water Burst",  icon: "💧", color: "#60A5FA" },
+  { key: "electric_hazard", label: "Electric",     icon: "⚡", color: "#F87171" },
+  { key: "fire_risk",       label: "Fire",         icon: "🔥", color: "#F87171" },
   { key: "road_accident",   label: "Accident",     icon: "🚗", color: "#F59E0B" },
-  { key: "women_safety",    label: "Women Safety", icon: "🛡️", color: "#8B5CF6" },
+  { key: "women_safety",    label: "Women Safety", icon: "🛡️", color: "#A78BFA" },
   { key: "medical",         label: "Medical",      icon: "🏥", color: "#22C55E" },
-  { key: "infrastructure",  label: "Structure",    icon: "🏗️", color: "#6B7280" },
+  { key: "infrastructure",  label: "Structure",    icon: "🏗️", color: "#9CA3AF" },
   { key: "disaster",        label: "Disaster",     icon: "🌊", color: "#DC2626" },
   { key: "forest_fire",     label: "Forest Fire",  icon: "🌲🔥", color: "#EA580C" },
 ];
@@ -1040,7 +1040,7 @@ function SOSScreenInner() {
                 <Text style={s.cancelText}>Cancel</Text>
               </Pressable>
               <Pressable onPress={handleSOS} disabled={isTriggering} accessibilityRole="button" accessibilityLabel="Send SOS now" accessibilityHint="Alerts the police control room with your location" accessibilityState={{ busy: isTriggering }} style={{ flex: 2, borderRadius: 14, overflow: "hidden" }}>
-                <LinearGradient colors={["#7F1D1D", "#EF4444"]} style={s.sendBtn}
+                <LinearGradient colors={["#7F1D1D", "#DC2626"]} style={s.sendBtn}
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                   {isTriggering
                     ? <ActivityIndicator color="#fff" />
@@ -1173,7 +1173,7 @@ function SOSScreenInner() {
                     <View style={{ alignItems: "flex-end", gap: 4 }}>
                       <Text style={{ color: "#F59E0B", fontSize: 10, fontFamily: "Inter_700Bold" }}>{ps.distance} km</Text>
                       <Pressable onPress={() => Linking.openURL(`tel:${ps.phone}`)} style={s.callPsBtn}>
-                        <Ionicons name="call" size={10} color="#EF4444" />
+                        <Ionicons name="call" size={10} color="#F87171" />
                         <Text style={s.callPsText}>Call</Text>
                       </Pressable>
                     </View>
@@ -1192,7 +1192,7 @@ function SOSScreenInner() {
         {!triggered && (
           <View style={s.sosSection}>
             <View style={s.sosWrap}>
-              <PulsingRing color="#EF4444" delay={0} size={196} />
+              <PulsingRing color="#F87171" delay={0} size={196} />
               <PulsingRing color="#DC2626" delay={600} size={196} />
               <PulsingRing color="#B91C1C" delay={1200} size={196} />
               <Animated.View style={{ transform: [{ scale: btnScale }] }}>
@@ -1205,7 +1205,7 @@ function SOSScreenInner() {
                   accessibilityHint="Opens the SOS screen to alert police with your location"
                   style={s.sosBtn}
                 >
-                  <LinearGradient colors={["#7F1D1D", "#B91C1C", "#EF4444"]} style={s.sosBtnGrad}
+                  <LinearGradient colors={["#7F1D1D", "#B91C1C", "#DC2626"]} style={s.sosBtnGrad}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                     <Text style={s.sosBtnLabel}>SOS</Text>
                     <Text style={s.sosBtnSub}>TAP TO SEND</Text>
@@ -1222,18 +1222,18 @@ function SOSScreenInner() {
         <View style={s.card}>
           <View style={s.cardHead}>
             <View style={[s.cardHeadIcon, { backgroundColor: "#EF444420" }]}>
-              <Ionicons name="call" size={14} color="#EF4444" />
+              <Ionicons name="call" size={14} color="#F87171" />
             </View>
             <Text style={s.cardTitle}>Emergency Helplines · Tap to Call</Text>
           </View>
           <View style={s.helpGrid}>
             {[
-              { num: "112",  label: "Emergency",      color: "#EF4444" },
-              { num: "100",  label: "Police",         color: "#3B82F6" },
+              { num: "112",  label: "Emergency",      color: "#F87171" },
+              { num: "100",  label: "Police",         color: "#60A5FA" },
               { num: "108",  label: "Ambulance",      color: "#22C55E" },
               { num: "101",  label: "Fire Brigade",   color: "#F59E0B" },
               { num: "181",  label: "Women Helpline", color: "#EC4899" },
-              { num: "1091", label: "Women (Police)", color: "#8B5CF6" },
+              { num: "1091", label: "Women (Police)", color: "#A78BFA" },
               { num: "1070", label: "Disaster",       color: "#22C55E" },
               { num: "1033", label: "Highway",        color: "#06B6D4" },
               { num: "1098", label: "Child Line",     color: "#F59E0B" },
@@ -1293,14 +1293,14 @@ function SOSScreenInner() {
             {nearestCPR.map((van, i) => (
               <View key={van.id || i} style={[s.psRow, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
                 <View style={[s.psRank, { backgroundColor: van.status === "responding" ? "#EF444420" : "#2563EB20" }]}>
-                  <Ionicons name="shield-checkmark" size={12} color={van.status === "responding" ? "#EF4444" : "#2563EB"} />
+                  <Ionicons name="shield-checkmark" size={12} color={van.status === "responding" ? "#F87171" : "#2563EB"} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.psName}>{van.vanNumber || `PCR-${i + 1}`}  ·  {van.officerName || "On Patrol"}</Text>
                   <Text style={s.psAddr}>{van.zone || van.district || stateName()}</Text>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
-                    <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: van.status === "responding" ? "#EF4444" : "#4ADE80" }} />
-                    <Text style={{ color: van.status === "responding" ? "#EF4444" : "#4ADE80", fontSize: 9, fontFamily: "Inter_700Bold" }}>
+                    <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: van.status === "responding" ? "#F87171" : "#4ADE80" }} />
+                    <Text style={{ color: van.status === "responding" ? "#F87171" : "#4ADE80", fontSize: 9, fontFamily: "Inter_700Bold" }}>
                       {van.status === "responding" ? "RESPONDING" : "ON PATROL"}
                     </Text>
                   </View>
@@ -1588,7 +1588,7 @@ function SOSScreenInner() {
           <View style={s.card}>
             <View style={s.cardHead}>
               <View style={[s.cardHeadIcon, { backgroundColor: "#EF444420" }]}>
-                <Ionicons name="warning" size={14} color="#EF4444" />
+                <Ionicons name="warning" size={14} color="#F87171" />
               </View>
               <Text style={s.cardTitle}>{`Active Alerts in ${stateName()}`}</Text>
             </View>
@@ -1596,7 +1596,7 @@ function SOSScreenInner() {
               const liveGeo = alert.liveGeo || alert.geo;
               const sago = alert.liveUpdatedAt ? Math.round((Date.now() - new Date(alert.liveUpdatedAt).getTime()) / 1000) : null;
               return (
-                <View key={alert.id} style={[s.alertRow, { borderLeftColor: alert.status === "active" ? "#EF4444" : "#F59E0B" }]}>
+                <View key={alert.id} style={[s.alertRow, { borderLeftColor: alert.status === "active" ? "#F87171" : "#F59E0B" }]}>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                       <LiveDot isLive={alert.status === "active"} />
@@ -1645,13 +1645,13 @@ const s = StyleSheet.create({
   },
   volCountBadge: {
     position: "absolute", right: 46, top: 4,
-    backgroundColor: "#8B5CF6", borderRadius: 10,
+    backgroundColor: "#7C3AED", borderRadius: 10,
     paddingHorizontal: 8, paddingVertical: 3,
     minWidth: 34, alignItems: "center",
   },
   volCountText: { color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold" },
   volBtnLabel: { alignItems: "center", paddingRight: 4 },
-  volBtnLabelText: { color: "rgba(255,255,255,0.35)", fontSize: 7, fontFamily: "Inter_700Bold", lineHeight: 9 },
+  volBtnLabelText: { color: "rgba(255,255,255,0.7)", fontSize: 7, fontFamily: "Inter_700Bold", lineHeight: 9 },
 
   // Header
   header: { paddingHorizontal: 20, paddingBottom: 18, overflow: "hidden" },
@@ -1664,8 +1664,8 @@ const s = StyleSheet.create({
   headerTitle: { color: "#fff", fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
   headerSub: { color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   activeBadge: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#EF444420", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: "#EF444440" },
-  activeDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: "#EF4444" },
-  activeBadgeText: { color: "#EF4444", fontSize: 11, fontFamily: "Inter_700Bold" },
+  activeDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: "#DC2626" },
+  activeBadgeText: { color: "#F87171", fontSize: 11, fontFamily: "Inter_700Bold" },
 
   statusBar: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   statusPill: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
@@ -1699,7 +1699,7 @@ const s = StyleSheet.create({
   notifiedName: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" },
   notifiedAddr: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 },
   callPsBtn: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#EF444420", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
-  callPsText: { color: "#EF4444", fontSize: 10, fontFamily: "Inter_600SemiBold" },
+  callPsText: { color: "#F87171", fontSize: 10, fontFamily: "Inter_600SemiBold" },
   resetBtn: { backgroundColor: Colors.bgCardAlt, borderRadius: 10, padding: 10, alignItems: "center" },
   resetBtnText: { color: Colors.textMuted, fontSize: 12, fontFamily: "Inter_500Medium" },
 
@@ -1744,7 +1744,7 @@ const s = StyleSheet.create({
   womenPanicRow: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 12, padding: 12, marginTop: 4 },
   womenPanicText: { color: "#4ADE80", fontSize: 12, fontFamily: "Inter_600SemiBold", flex: 1 },
   recordingRow: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(239,68,68,0.18)", borderRadius: 12, padding: 11, borderWidth: 1, borderColor: "rgba(239,68,68,0.4)" },
-  recordingDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: "#EF4444" },
+  recordingDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: "#DC2626" },
   recordingText: { color: "#FCA5A5", fontSize: 11, fontFamily: "Inter_700Bold", flex: 1, letterSpacing: 0.5 },
   recordingSubText: { color: "rgba(252,165,165,0.7)", fontSize: 9.5, fontFamily: "Inter_400Regular" },
   holdProgressBar: { position: "absolute", bottom: 0, left: 0, height: 3, backgroundColor: "#A78BFA", borderRadius: 1.5 },

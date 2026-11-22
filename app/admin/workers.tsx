@@ -139,8 +139,8 @@ function WorkerDetailModal({ worker, complaints, onClose }: {
                         <Text style={styles.assignLoc} numberOfLines={1}>{c.location}</Text>
                       </View>
                     </View>
-                    <View style={[styles.priBadge, { backgroundColor: (c.priority === "P1" ? "#EF4444" : c.priority === "P2" ? "#F59E0B" : "#3B82F6") + "22" }]}>
-                      <Text style={[styles.priText, { color: c.priority === "P1" ? "#EF4444" : c.priority === "P2" ? "#F59E0B" : "#3B82F6" }]}>{c.priority}</Text>
+                    <View style={[styles.priBadge, { backgroundColor: (c.priority === "P1" ? "#F87171" : c.priority === "P2" ? "#F59E0B" : "#60A5FA") + "22" }]}>
+                      <Text style={[styles.priText, { color: c.priority === "P1" ? "#F87171" : c.priority === "P2" ? "#F59E0B" : "#60A5FA" }]}>{c.priority}</Text>
                     </View>
                   </View>
                 ))}

@@ -57,7 +57,7 @@ const Colors = {
   // Text
   textPrimary: "#FFF8F0",
   textSecondary: "#BFA88A",
-  textMuted: "#7A6050",
+  textMuted: "#A68D79", // WCAG AA on every dark surface (was #7A6050, 3.2:1),
 
   white: "#FFFFFF",
 

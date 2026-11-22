@@ -26,7 +26,7 @@ interface Bill {
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string; icon: string }> = {
   unpaid:  { bg:"#F59E0B22", text:"#F59E0B", label:"DUE",     icon:"time-outline" },
-  overdue: { bg:"#EF444422", text:"#EF4444", label:"OVERDUE",  icon:"warning" },
+  overdue: { bg:"#EF444422", text:"#F87171", label:"OVERDUE",  icon:"warning" },
   paid:    { bg:"#22C55E22", text:"#22C55E", label:"PAID",     icon:"checkmark-circle" },
 };
 
@@ -45,7 +45,7 @@ function MiniBar({ history, color }: { history: number[]; color: string }) {
   );
 }
 
-function AnimatedSpinner({ color="#3B82F6" }: { color?: string }) {
+function AnimatedSpinner({ color="#60A5FA" }: { color?: string }) {
   const spin = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(Animated.timing(spin,{toValue:1,duration:900,useNativeDriver:false})).start();
@@ -280,14 +280,14 @@ export default function BillsScreen() {
                 {overdueCount>0&&<Text style={{color:"#FCA5A5",fontSize:11,fontFamily:"Inter_500Medium",marginTop:4}}>⚠ {overdueCount} overdue — penalty may apply</Text>}
               </View>
               <View style={{width:52,height:52,borderRadius:16,backgroundColor:"#3B82F622",alignItems:"center",justifyContent:"center"}}>
-                <Ionicons name="receipt-outline" size={28} color="#3B82F6"/>
+                <Ionicons name="receipt-outline" size={28} color="#60A5FA"/>
               </View>
             </View>
             <View style={{flexDirection:"row",borderTopWidth:1,borderTopColor:"rgba(255,255,255,0.1)",paddingTop:14}}>
               {[
                 {label:"Paid",val:paidCount,color:"#22C55E"},
                 {label:"Due",val:dueCount,color:"#F59E0B"},
-                {label:"Overdue",val:overdueCount,color:"#EF4444"},
+                {label:"Overdue",val:overdueCount,color:"#F87171"},
                 {label:"Total",val:bills.length,color:"#60A5FA"},
               ].map((item,i,arr)=>(
                 <React.Fragment key={item.label}>
@@ -306,7 +306,7 @@ export default function BillsScreen() {
             <View style={{marginHorizontal:16,marginBottom:14,borderRadius:14,overflow:"hidden",borderWidth:1,borderColor:"#EF444440"}}>
               <LinearGradient colors={["#450A0A","#7F1D1D"]} style={{padding:14}}>
                 <View style={{flexDirection:"row",alignItems:"center",gap:8,marginBottom:8}}>
-                  <View style={{width:7,height:7,borderRadius:3.5,backgroundColor:"#EF4444"}}/>
+                  <View style={{width:7,height:7,borderRadius:3.5,backgroundColor:"#DC2626"}}/>
                   <Text style={{color:"#FCA5A5",fontSize:10,fontFamily:"Inter_700Bold",letterSpacing:1}}>LIVE DEPT ALERT</Text>
                   <Text style={{color:"#9CA3AF",fontSize:10,fontFamily:"Inter_400Regular",marginLeft:"auto" as any}}>{new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}</Text>
                 </View>
@@ -317,8 +317,8 @@ export default function BillsScreen() {
                 <View style={{flexDirection:"row",gap:8,marginTop:10,flexWrap:"wrap"}}>
                   {bills.filter(b=>b.status==="overdue").map(b=>(
                     <View key={b.id} style={{flexDirection:"row",alignItems:"center",gap:5,backgroundColor:"#EF444422",borderRadius:8,paddingHorizontal:10,paddingVertical:5}}>
-                      <Ionicons name="alert-circle" size={11} color="#EF4444"/>
-                      <Text style={{color:"#EF4444",fontSize:10,fontFamily:"Inter_700Bold"}}>{b.subtitle}</Text>
+                      <Ionicons name="alert-circle" size={11} color="#F87171"/>
+                      <Text style={{color:"#F87171",fontSize:10,fontFamily:"Inter_700Bold"}}>{b.subtitle}</Text>
                     </View>
                   ))}
                 </View>
@@ -527,7 +527,7 @@ export default function BillsScreen() {
 
             {payStep==="processing"&&(
               <View style={{alignItems:"center",padding:40,gap:20}}>
-                <AnimatedSpinner color="#3B82F6"/>
+                <AnimatedSpinner color="#60A5FA"/>
                 <Text style={{color:"#fff",fontSize:17,fontFamily:"Inter_700Bold"}}>Processing Payment</Text>
                 <Text style={{color:Colors.textMuted,fontSize:13,textAlign:"center"}}>{`Connecting to ${stateName()} e-Pay Gateway…`}</Text>
                 <View style={{flexDirection:"row",gap:8,marginTop:4}}>

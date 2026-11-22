@@ -23,7 +23,7 @@ const SLIDES = [
   {
     photo: require("@/assets/images/splash_saint.png"),
     tag: "CIVIC TECH",
-    tagColor: "#E64A19",
+    tagColor: "#C2410C",
     get heading() { return `Report Issues,\nTransform ${stateName()}`; },
     get desc() { return `File complaints for potholes, garbage, broken streetlights and more — in under 30 seconds. Track real-time resolution across ${districtPhrase()}.`; },
     bullets: [
@@ -109,7 +109,7 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
       {/* ── ORANGE TOP SECTION ── */}
       <View style={[ob.orange, { height: orangeH }]}>
         <LinearGradient
-          colors={["#D84315", "#E64A19", "#FF7043", "#FF8A65"]}
+          colors={["#D84315", "#C2410C", "#FF7043", "#FF8A65"]}
           style={StyleSheet.absoluteFillObject}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         />
@@ -203,7 +203,7 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
             ))}
           </View>
           <Pressable
-            style={[ob.nextBtn, { backgroundColor: "#E64A19" }]}
+            style={[ob.nextBtn, { backgroundColor: "#C2410C" }]}
             onPress={goNext}
           >
             <Text style={ob.nextText}>{idx === SLIDES.length - 1 ? "Get Started" : "Next"}</Text>
@@ -243,7 +243,7 @@ const ob = StyleSheet.create({
   tagPill: { alignSelf: "flex-start", borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 10 },
   tagText: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1.2 },
   heading: { fontSize: 26, fontFamily: "Inter_700Bold", color: "#111827", lineHeight: 33, marginBottom: 8 },
-  desc: { fontSize: 13, fontFamily: "Inter_400Regular", color: "#6B7280", lineHeight: 20, marginBottom: 14 },
+  desc: { fontSize: 13, fontFamily: "Inter_400Regular", color: "#4B5563", lineHeight: 20, marginBottom: 14 },
   bullets: { gap: 8, marginBottom: 14 },
   bulletRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   bulletIcon: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center" },
@@ -257,8 +257,8 @@ const ob = StyleSheet.create({
   nextBtn: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 22, paddingHorizontal: 22, paddingVertical: 12 },
   nextText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
   signInRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 12 },
-  signInPre: { fontSize: 13, color: "#9CA3AF", fontFamily: "Inter_400Regular" },
-  signInLink: { fontSize: 13, color: "#E64A19", fontFamily: "Inter_700Bold" },
+  signInPre: { fontSize: 13, color: "#6B7280", fontFamily: "Inter_400Regular" },
+  signInLink: { fontSize: 13, color: "#C2410C", fontFamily: "Inter_700Bold" },
 });
 
 // ── LOGIN SCREEN ────────────────────────────────────────────────────────────────
@@ -328,7 +328,7 @@ export default function LoginScreen() {
         >
           {/* ── HERO — inside ScrollView so it scrolls ── */}
           <LinearGradient
-            colors={["#6B0F00", "#BF360C", "#E64A19", "#F57C00"]}
+            colors={["#6B0F00", "#BF360C", "#C2410C", "#F57C00"]}
             style={[las.hero, { paddingTop: topInset + 12 }]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           >
@@ -419,13 +419,13 @@ export default function LoginScreen() {
               <View style={las.labelRow}>
                 <Text style={las.label}>6-DIGIT PIN</Text>
                 <Pressable onPress={() => setShowPin(!showPin)} style={las.showPinBtn}>
-                  <Ionicons name={showPin ? "eye-off" : "eye"} size={14} color="#9CA3AF" />
+                  <Ionicons name={showPin ? "eye-off" : "eye"} size={14} color="#6B7280" />
                   <Text style={las.showPinText}>{showPin ? "Hide" : "Show"}</Text>
                 </Pressable>
               </View>
               {showPin ? (
                 <View style={las.inputRow}>
-                  <Ionicons name="lock-closed" size={16} color="#9CA3AF" style={{ marginLeft: 16 }} />
+                  <Ionicons name="lock-closed" size={16} color="#6B7280" style={{ marginLeft: 16 }} />
                   <TextInput style={las.input} placeholder="Enter your PIN" placeholderTextColor="#9CA3AF"
                     value={pin} onChangeText={v => { setPin(v.replace(/\D/g, "").slice(0, PIN_DIGITS)); setError(""); }}
                     keyboardType="number-pad" secureTextEntry maxLength={PIN_DIGITS} />
@@ -444,7 +444,7 @@ export default function LoginScreen() {
 
             {!!error && (
               <View style={las.errorBox}>
-                <Ionicons name="alert-circle" size={14} color="#EF4444" />
+                <Ionicons name="alert-circle" size={14} color="#DC2626" />
                 <Text style={las.errorText}>{error}</Text>
               </View>
             )}
@@ -457,7 +457,7 @@ export default function LoginScreen() {
               }}
               disabled={loading}
             >
-              <LinearGradient colors={["#6B0F00", "#BF360C", "#E64A19"]} style={las.loginGrad}
+              <LinearGradient colors={["#6B0F00", "#BF360C", "#C2410C"]} style={las.loginGrad}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 {loading
                   ? <ActivityIndicator color="#fff" />
@@ -478,7 +478,7 @@ export default function LoginScreen() {
           {runtime?.demoMode && (
             <View style={las.demoBox} accessibilityLabel="Demo mode accounts">
               <View style={las.demoHeader}>
-                <Ionicons name="flask" size={12} color="#9CA3AF" />
+                <Ionicons name="flask" size={12} color="#6B7280" />
                 <Text style={las.demoTitle}>DEMO MODE — PLACEHOLDER ACCOUNTS (TAP TO FILL NUMBER)</Text>
               </View>
               {[["9000000001", "Demo citizen"], ["9000000002", "Demo district admin"], ["9000000003", "Demo state admin"]].map(([ph, label], i) => (
@@ -529,39 +529,39 @@ const las = StyleSheet.create({
   adminBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF8E7", borderRadius: 10, padding: 10, marginBottom: 14, borderWidth: 1, borderColor: "#FFCC80" },
   adminText: { color: "#FF8F00", fontSize: 12, fontFamily: "Inter_600SemiBold" },
   cardTitle: { fontSize: 24, fontFamily: "Inter_700Bold", color: "#111827", marginBottom: 4 },
-  cardSub: { fontSize: 13, fontFamily: "Inter_400Regular", color: "#6B7280", marginBottom: 22 },
+  cardSub: { fontSize: 13, fontFamily: "Inter_400Regular", color: "#4B5563", marginBottom: 22 },
   field: { marginBottom: 16 },
-  label: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#9CA3AF", letterSpacing: 0.8, marginBottom: 8 },
+  label: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#6B7280", letterSpacing: 0.8, marginBottom: 8 },
   labelRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   inputRow: { flexDirection: "row", alignItems: "center", borderWidth: 1.5, borderColor: "#E5E7EB", borderRadius: 14, backgroundColor: "#FAFAFA", overflow: "hidden" },
   prefix: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 14, borderRightWidth: 1, borderRightColor: "#E5E7EB", backgroundColor: "#F3F4F6" },
   prefixCode: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#374151" },
   input: { flex: 1, paddingHorizontal: 14, paddingVertical: 14, fontSize: 15, fontFamily: "Inter_400Regular", color: "#111827" },
   showPinBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
-  showPinText: { fontSize: 12, color: "#9CA3AF", fontFamily: "Inter_400Regular" },
+  showPinText: { fontSize: 12, color: "#6B7280", fontFamily: "Inter_400Regular" },
   pinRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 14, height: 52, backgroundColor: "#FAFAFA", borderRadius: 14, borderWidth: 1.5, borderColor: "#E5E7EB" },
   pinDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: "#D1D5DB", backgroundColor: "transparent" },
   pinDotFilled: { backgroundColor: "#BF360C", borderColor: "#BF360C" },
   pinHidden: { position: "absolute", opacity: 0, width: "100%", height: "100%" },
   errorBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 10, marginBottom: 12, borderWidth: 1, borderColor: "#FECACA" },
-  errorText: { color: "#EF4444", fontSize: 12, fontFamily: "Inter_500Medium", flex: 1 },
+  errorText: { color: "#DC2626", fontSize: 12, fontFamily: "Inter_500Medium", flex: 1 },
   loginBtn: { borderRadius: 16, overflow: "hidden", marginTop: 4 },
   loginGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 16 },
   loginText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
   divider: { flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 18 },
   divLine: { flex: 1, height: 1, backgroundColor: "#F3F4F6" },
-  divText: { color: "#9CA3AF", fontSize: 12, fontFamily: "Inter_400Regular" },
+  divText: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular" },
   registerRow: { flexDirection: "row", justifyContent: "center" },
-  registerPre: { color: "#6B7280", fontSize: 14, fontFamily: "Inter_400Regular" },
+  registerPre: { color: "#4B5563", fontSize: 14, fontFamily: "Inter_400Regular" },
   registerLink: { color: "#BF360C", fontSize: 14, fontFamily: "Inter_700Bold" },
   demoBox: { backgroundColor: "#fff", borderRadius: 16, padding: 16, marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderColor: "#F3F4F6" },
   demoHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12 },
-  demoTitle: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#9CA3AF", letterSpacing: 1 },
+  demoTitle: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#6B7280", letterSpacing: 1 },
   demoRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   demoAv: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   demoName: { fontSize: 13, fontFamily: "Inter_700Bold", color: "#374151", marginBottom: 2 },
-  demoInfo: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#9CA3AF" },
+  demoInfo: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#6B7280" },
   footer: { alignItems: "center", gap: 6, paddingHorizontal: 24, paddingBottom: 8 },
-  footerText: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_500Medium" },
+  footerText: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_500Medium" },
   footerSub: { color: "#D1D5DB", fontSize: 10, fontFamily: "Inter_400Regular" },
 });

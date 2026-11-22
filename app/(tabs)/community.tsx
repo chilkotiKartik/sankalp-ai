@@ -32,11 +32,11 @@ interface CivicEvent {
 }
 
 const EVENT_TYPE_META: Record<string, { icon: string; color: string; bg: string; label: string }> = {
-  meeting: { icon: "people", color: "#3B82F6", bg: "#EFF6FF", label: "Meeting" },
-  camp:    { icon: "medkit", color: "#00A651", bg: "#F0FFF4", label: "Health Camp" },
+  meeting: { icon: "people", color: "#2563EB", bg: "#EFF6FF", label: "Meeting" },
+  camp:    { icon: "medkit", color: "#047857", bg: "#F0FFF4", label: "Health Camp" },
   drive:   { icon: "leaf",   color: "#10B981", bg: "#ECFDF5", label: "Drive" },
-  scheme:  { icon: "document-text", color: "#F59E0B", bg: "#FFFBEB", label: "Scheme" },
-  emergency: { icon: "warning", color: "#EF4444", bg: "#FEF2F2", label: "Emergency" },
+  scheme:  { icon: "document-text", color: "#B45309", bg: "#FFFBEB", label: "Scheme" },
+  emergency: { icon: "warning", color: "#DC2626", bg: "#FEF2F2", label: "Emergency" },
 };
 
 function makeApiCall(token: string | null) {
@@ -226,7 +226,7 @@ export default function CommunityScreen() {
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator color="#2563EB" size="large" />
-          <Text style={{ color: "#9CA3AF", marginTop: 12, fontSize: 13, fontFamily: "Inter_400Regular" }}>Loading community data...</Text>
+          <Text style={{ color: "#6B7280", marginTop: 12, fontSize: 13, fontFamily: "Inter_400Regular" }}>Loading community data...</Text>
         </View>
       ) : (
         <ScrollView
@@ -248,7 +248,7 @@ export default function CommunityScreen() {
                     </Text>
                   </View>
                   <View style={[s.statusBadge, poll.status === "active" ? { backgroundColor: "#F0FFF4" } : { backgroundColor: "#F9FAFB" }]}>
-                    <Text style={[s.statusText, { color: poll.status === "active" ? "#00A651" : "#9CA3AF" }]}>
+                    <Text style={[s.statusText, { color: poll.status === "active" ? "#047857" : "#9CA3AF" }]}>
                       {poll.status === "active" ? "Open" : "Closed"}
                     </Text>
                   </View>
@@ -269,21 +269,21 @@ export default function CommunityScreen() {
                           {hasVoted && <Text style={[s.pollPct, isWinner && { color: "#2563EB", fontFamily: "Inter_700Bold" }]}>{pct}%</Text>}
                         </View>
                         {!hasVoted && poll.status === "active" && (
-                          <Ionicons name="radio-button-off" size={16} color="#9CA3AF" style={{ position: "absolute", right: 10 }} />
+                          <Ionicons name="radio-button-off" size={16} color="#6B7280" style={{ position: "absolute", right: 10 }} />
                         )}
                       </Pressable>
                     );
                   })}
                 </View>
                 {!hasVoted && poll.status === "active" && (
-                  <Text style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 8, textAlign: "center" }}>
+                  <Text style={{ color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 8, textAlign: "center" }}>
                     Tap an option to vote
                   </Text>
                 )}
                 {hasVoted && (
                   <View style={s.votedRow}>
-                    <Ionicons name="checkmark-circle" size={14} color="#00A651" />
-                    <Text style={{ color: "#00A651", fontSize: 12, fontFamily: "Inter_600SemiBold" }}>You voted · {totalVotes.toLocaleString()} total responses</Text>
+                    <Ionicons name="checkmark-circle" size={14} color="#047857" />
+                    <Text style={{ color: "#047857", fontSize: 12, fontFamily: "Inter_600SemiBold" }}>You voted · {totalVotes.toLocaleString()} total responses</Text>
                   </View>
                 )}
               </View>
@@ -302,13 +302,13 @@ export default function CommunityScreen() {
               {petitions.map(pet => {
                 const pct = Math.min(100, Math.round((pet.signerIds.length / pet.goalSignatures) * 100));
                 const hasSigned = pet.signerIds.includes(userId);
-                const statusColor = pet.status === "active" ? "#2563EB" : pet.status === "delivered" ? "#00A651" : "#9CA3AF";
+                const statusColor = pet.status === "active" ? "#2563EB" : pet.status === "delivered" ? "#047857" : "#9CA3AF";
                 return (
                   <Pressable key={pet.id} onPress={() => setSelectedPetition(pet)} style={s.card}>
                     <View style={s.cardHeader}>
                       <View style={{ flex: 1, gap: 4 }}>
                         <Text style={s.petitionTitle}>{pet.title}</Text>
-                        <Text style={{ color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular" }}>
+                        <Text style={{ color: "#4B5563", fontSize: 11, fontFamily: "Inter_400Regular" }}>
                           {pet.department} · {pet.district || "All Districts"}
                         </Text>
                       </View>
@@ -325,7 +325,7 @@ export default function CommunityScreen() {
                       </View>
                       <Text style={s.sigCount}>
                         <Text style={{ color: "#2563EB", fontFamily: "Inter_700Bold" }}>{pet.signerIds.length.toLocaleString()}</Text>
-                        <Text style={{ color: "#9CA3AF" }}> / {pet.goalSignatures.toLocaleString()} signatures · {pct}%</Text>
+                        <Text style={{ color: "#6B7280" }}> / {pet.goalSignatures.toLocaleString()} signatures · {pct}%</Text>
                       </Text>
                     </View>
                     {pet.status === "active" && (
@@ -333,8 +333,8 @@ export default function CommunityScreen() {
                         onPress={() => hasSigned ? null : handleSign(pet.id)}
                         style={[s.signBtn, hasSigned && s.signedBtn]}
                       >
-                        <Ionicons name={hasSigned ? "checkmark-circle" : "pencil"} size={15} color={hasSigned ? "#00A651" : "#fff"} />
-                        <Text style={[s.signBtnText, hasSigned && { color: "#00A651" }]}>
+                        <Ionicons name={hasSigned ? "checkmark-circle" : "pencil"} size={15} color={hasSigned ? "#047857" : "#fff"} />
+                        <Text style={[s.signBtnText, hasSigned && { color: "#047857" }]}>
                           {hasSigned ? "Signed ✓" : "Sign this Petition"}
                         </Text>
                       </Pressable>
@@ -369,15 +369,15 @@ export default function CommunityScreen() {
                 <Text style={s.eventDesc} numberOfLines={2}>{event.description}</Text>
                 <View style={s.eventMeta}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <Ionicons name="calendar-outline" size={11} color="#9CA3AF" />
+                    <Ionicons name="calendar-outline" size={11} color="#6B7280" />
                     <Text style={s.eventMetaText}>{formatDate(event.date)} · {event.time}</Text>
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <Ionicons name="location-outline" size={11} color="#9CA3AF" />
+                    <Ionicons name="location-outline" size={11} color="#6B7280" />
                     <Text style={s.eventMetaText} numberOfLines={1}>{event.location}</Text>
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <Ionicons name="people-outline" size={11} color="#9CA3AF" />
+                    <Ionicons name="people-outline" size={11} color="#6B7280" />
                     <Text style={s.eventMetaText}>{event.rsvpIds.length} going</Text>
                   </View>
                 </View>
@@ -386,8 +386,8 @@ export default function CommunityScreen() {
                     onPress={() => handleRSVP(event.id)}
                     style={[s.rsvpBtn, hasRSVP && s.rsvpedBtn]}
                   >
-                    <Ionicons name={hasRSVP ? "checkmark-circle" : "calendar"} size={14} color={hasRSVP ? "#00A651" : "#2563EB"} />
-                    <Text style={[s.rsvpBtnText, hasRSVP && { color: "#00A651" }]}>{hasRSVP ? "Going ✓" : "RSVP"}</Text>
+                    <Ionicons name={hasRSVP ? "checkmark-circle" : "calendar"} size={14} color={hasRSVP ? "#047857" : "#2563EB"} />
+                    <Text style={[s.rsvpBtnText, hasRSVP && { color: "#047857" }]}>{hasRSVP ? "Going ✓" : "RSVP"}</Text>
                   </Pressable>
                 )}
               </Pressable>
@@ -399,7 +399,7 @@ export default function CommunityScreen() {
             mapLoading ? (
               <View style={{ padding: 40, alignItems: "center" }}>
                 <ActivityIndicator color="#2563EB" size="large" />
-                <Text style={{ color: "#9CA3AF", marginTop: 12, fontSize: 13, fontFamily: "Inter_400Regular" }}>Loading district data...</Text>
+                <Text style={{ color: "#6B7280", marginTop: 12, fontSize: 13, fontFamily: "Inter_400Regular" }}>Loading district data...</Text>
               </View>
             ) : (
               <>
@@ -421,9 +421,9 @@ export default function CommunityScreen() {
                   </View>
                   <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
                     {[
-                      { label: "Police", count: policeStations.length, color: "#3B82F6" },
-                      { label: "Hospitals", count: emergencyServices.filter((e: any) => e.type === "hospital").length, color: "#EF4444" },
-                      { label: "Fire", count: emergencyServices.filter((e: any) => e.type === "fire").length, color: "#F59E0B" },
+                      { label: "Police", count: policeStations.length, color: "#2563EB" },
+                      { label: "Hospitals", count: emergencyServices.filter((e: any) => e.type === "hospital").length, color: "#DC2626" },
+                      { label: "Fire", count: emergencyServices.filter((e: any) => e.type === "fire").length, color: "#B45309" },
                       { label: "Ambulance", count: emergencyServices.filter((e: any) => e.type === "ambulance").length, color: "#22C55E" },
                     ].map(stat => (
                       <View key={stat.label} style={{ flex: 1, alignItems: "center", backgroundColor: stat.color + "15", borderRadius: 8, padding: 8 }}>
@@ -438,9 +438,9 @@ export default function CommunityScreen() {
                 <View style={s.card}>
                   <Text style={{ color: "#111827", fontSize: 14, fontFamily: "Inter_700Bold", marginBottom: 10 }}>National Emergency Numbers</Text>
                   {[
-                    { label: "Police",       number: "100",   icon: "shield" as const,   color: "#3B82F6" },
-                    { label: "Ambulance",    number: "108",   icon: "medkit" as const,   color: "#EF4444" },
-                    { label: "Fire Brigade", number: "101",   icon: "flame" as const,    color: "#F59E0B" },
+                    { label: "Police",       number: "100",   icon: "shield" as const,   color: "#2563EB" },
+                    { label: "Ambulance",    number: "108",   icon: "medkit" as const,   color: "#DC2626" },
+                    { label: "Fire Brigade", number: "101",   icon: "flame" as const,    color: "#B45309" },
                     { label: "Women Helpline",number: "181", icon: "woman" as const,    color: "#EC4899" },
                     { label: "DM Helpline",  number: "1077",  icon: "call" as const,     color: "#22C55E" },
                   ].map(svc => (
@@ -463,7 +463,7 @@ export default function CommunityScreen() {
                 {policeStations.length > 0 && (
                   <View style={s.card}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                      <Ionicons name="shield-half" size={16} color="#3B82F6" />
+                      <Ionicons name="shield-half" size={16} color="#2563EB" />
                       <Text style={{ color: "#111827", fontSize: 14, fontFamily: "Inter_700Bold" }}>Police Stations</Text>
                       <View style={{ backgroundColor: "#EFF6FF", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
                         <Text style={{ color: "#2563EB", fontSize: 10, fontFamily: "Inter_700Bold" }}>{policeStations.length}</Text>
@@ -473,18 +473,18 @@ export default function CommunityScreen() {
                       <View key={ps.id} style={{ borderTopWidth: i > 0 ? 1 : 0, borderTopColor: "#F3F4F6", paddingTop: i > 0 ? 10 : 0, marginTop: i > 0 ? 10 : 0 }}>
                         <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
                           <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
-                            <Ionicons name="shield" size={14} color="#3B82F6" />
+                            <Ionicons name="shield" size={14} color="#2563EB" />
                           </View>
                           <View style={{ flex: 1 }}>
                             <Text style={{ color: "#111827", fontSize: 13, fontFamily: "Inter_600SemiBold" }}>{ps.name}</Text>
-                            <Text style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={1}>{ps.address}</Text>
+                            <Text style={{ color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={1}>{ps.address}</Text>
                           </View>
                           <Pressable onPress={() => ps.phone && Linking.openURL(`tel:${ps.phone.replace(/[^0-9+]/g, "")}`)} style={{ backgroundColor: "#EFF6FF", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: "#BFDBFE" }}>
                             <Text style={{ color: "#2563EB", fontSize: 12, fontFamily: "Inter_700Bold" }}>Call</Text>
                           </Pressable>
                         </View>
                         {ps.phone && (
-                          <Text style={{ color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 4, marginLeft: 42 }}>{ps.phone}</Text>
+                          <Text style={{ color: "#4B5563", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 4, marginLeft: 42 }}>{ps.phone}</Text>
                         )}
                       </View>
                     ))}
@@ -495,20 +495,20 @@ export default function CommunityScreen() {
                 {emergencyServices.length > 0 && (
                   <View style={s.card}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                      <Ionicons name="medkit" size={16} color="#EF4444" />
+                      <Ionicons name="medkit" size={16} color="#DC2626" />
                       <Text style={{ color: "#111827", fontSize: 14, fontFamily: "Inter_700Bold" }}>Emergency Services</Text>
                       <View style={{ backgroundColor: "#FEF2F2", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                        <Text style={{ color: "#EF4444", fontSize: 10, fontFamily: "Inter_700Bold" }}>{emergencyServices.length}</Text>
+                        <Text style={{ color: "#DC2626", fontSize: 10, fontFamily: "Inter_700Bold" }}>{emergencyServices.length}</Text>
                       </View>
                     </View>
                     {emergencyServices.map((es: any, i: number) => {
                       const esMeta: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-                        hospital:  { icon: "medical",    color: "#EF4444" },
-                        fire:      { icon: "flame",      color: "#F59E0B" },
+                        hospital:  { icon: "medical",    color: "#DC2626" },
+                        fire:      { icon: "flame",      color: "#B45309" },
                         ambulance: { icon: "car",        color: "#22C55E" },
                         disaster:  { icon: "warning",    color: "#8B5CF6" },
                       };
-                      const m = esMeta[es.type] || { icon: "alert-circle" as const, color: "#6B7280" };
+                      const m = esMeta[es.type] || { icon: "alert-circle" as const, color: "#4B5563" };
                       return (
                         <View key={es.id} style={{ borderTopWidth: i > 0 ? 1 : 0, borderTopColor: "#F3F4F6", paddingTop: i > 0 ? 10 : 0, marginTop: i > 0 ? 10 : 0 }}>
                           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
@@ -517,7 +517,7 @@ export default function CommunityScreen() {
                             </View>
                             <View style={{ flex: 1 }}>
                               <Text style={{ color: "#111827", fontSize: 13, fontFamily: "Inter_600SemiBold" }}>{es.name}</Text>
-                              <Text style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={1}>{es.address || es.location}</Text>
+                              <Text style={{ color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={1}>{es.address || es.location}</Text>
                             </View>
                             {es.phone && (
                               <Pressable onPress={() => Linking.openURL(`tel:${es.phone.replace(/[^0-9+]/g, "")}`)} style={{ backgroundColor: m.color + "15", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: m.color + "33" }}>
@@ -536,19 +536,19 @@ export default function CommunityScreen() {
 
           {tab === "polls" && polls.length === 0 && (
             <View style={s.empty}>
-              <Ionicons name="stats-chart-outline" size={40} color="#9CA3AF" />
+              <Ionicons name="stats-chart-outline" size={40} color="#6B7280" />
               <Text style={s.emptyTitle}>No polls yet</Text>
             </View>
           )}
           {tab === "petitions" && petitions.length === 0 && (
             <View style={s.empty}>
-              <Ionicons name="pencil-outline" size={40} color="#9CA3AF" />
+              <Ionicons name="pencil-outline" size={40} color="#6B7280" />
               <Text style={s.emptyTitle}>No petitions yet</Text>
             </View>
           )}
           {tab === "events" && events.length === 0 && (
             <View style={s.empty}>
-              <Ionicons name="calendar-outline" size={40} color="#9CA3AF" />
+              <Ionicons name="calendar-outline" size={40} color="#6B7280" />
               <Text style={s.emptyTitle}>No events yet</Text>
             </View>
           )}
@@ -569,28 +569,28 @@ export default function CommunityScreen() {
                     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                       <Text style={[s.petitionTitle, { fontSize: 18, flex: 1 }]}>{selectedPetition.title}</Text>
                       <Pressable onPress={() => setSelectedPetition(null)} style={s.closeBtn}>
-                        <Ionicons name="close" size={18} color="#6B7280" />
+                        <Ionicons name="close" size={18} color="#4B5563" />
                       </Pressable>
                     </View>
                     <View style={{ gap: 4, marginBottom: 16 }}>
-                      <Text style={{ color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular" }}>Addressed to: {selectedPetition.target}</Text>
-                      <Text style={{ color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular" }}>Department: {selectedPetition.department}</Text>
-                      <Text style={{ color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular" }}>Filed by: {selectedPetition.createdBy} · {timeAgo(selectedPetition.createdAt)}</Text>
+                      <Text style={{ color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular" }}>Addressed to: {selectedPetition.target}</Text>
+                      <Text style={{ color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular" }}>Department: {selectedPetition.department}</Text>
+                      <Text style={{ color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular" }}>Filed by: {selectedPetition.createdBy} · {timeAgo(selectedPetition.createdAt)}</Text>
                     </View>
                     <Text style={{ color: "#374151", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, marginBottom: 20 }}>
                       {selectedPetition.description}
                     </Text>
                     <View style={{ backgroundColor: "#F0F9FF", borderRadius: 12, padding: 16, marginBottom: 20 }}>
                       <Text style={{ color: "#1E40AF", fontSize: 24, fontFamily: "Inter_700Bold" }}>{selectedPetition.signerIds.length.toLocaleString()}</Text>
-                      <Text style={{ color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular" }}>of {selectedPetition.goalSignatures.toLocaleString()} goal · {pct}% achieved</Text>
+                      <Text style={{ color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular" }}>of {selectedPetition.goalSignatures.toLocaleString()} goal · {pct}% achieved</Text>
                       <View style={s.sigBar}>
                         <View style={[s.sigFill, { width: `${pct}%` as any }]} />
                       </View>
                     </View>
                     {selectedPetition.status === "active" && (
                       <Pressable onPress={() => handleSign(selectedPetition.id)} style={[s.signBtn, hasSigned && s.signedBtn]}>
-                        <Ionicons name={hasSigned ? "checkmark-circle" : "pencil"} size={16} color={hasSigned ? "#00A651" : "#fff"} />
-                        <Text style={[s.signBtnText, { fontSize: 16 }, hasSigned && { color: "#00A651" }]}>{hasSigned ? "Signed ✓" : "Sign this Petition"}</Text>
+                        <Ionicons name={hasSigned ? "checkmark-circle" : "pencil"} size={16} color={hasSigned ? "#047857" : "#fff"} />
+                        <Text style={[s.signBtnText, { fontSize: 16 }, hasSigned && { color: "#047857" }]}>{hasSigned ? "Signed ✓" : "Sign this Petition"}</Text>
                       </Pressable>
                     )}
                   </View>
@@ -618,7 +618,7 @@ export default function CommunityScreen() {
                         <Ionicons name={meta.icon as any} size={24} color={meta.color} />
                       </View>
                       <Pressable onPress={() => setSelectedEvent(null)} style={s.closeBtn}>
-                        <Ionicons name="close" size={18} color="#6B7280" />
+                        <Ionicons name="close" size={18} color="#4B5563" />
                       </Pressable>
                     </View>
                     <Text style={{ color: "#111827", fontSize: 20, fontFamily: "Inter_700Bold", marginTop: 12 }}>{selectedEvent.title}</Text>
@@ -637,7 +637,7 @@ export default function CommunityScreen() {
                           <Ionicons name={row.icon as any} size={16} color={meta.color} />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_500Medium" }}>{row.label.toUpperCase()}</Text>
+                          <Text style={{ color: "#6B7280", fontSize: 10, fontFamily: "Inter_500Medium" }}>{row.label.toUpperCase()}</Text>
                           <Text style={{ color: "#111827", fontSize: 13, fontFamily: "Inter_600SemiBold" }}>{row.val}</Text>
                         </View>
                       </View>
@@ -652,14 +652,14 @@ export default function CommunityScreen() {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: "#2563EB", fontSize: 13, fontFamily: "Inter_600SemiBold" }}>Get Directions</Text>
-                        <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 }}>Opens Google Maps with live location</Text>
+                        <Text style={{ color: "#6B7280", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 }}>Opens Google Maps with live location</Text>
                       </View>
-                      <Ionicons name="open-outline" size={14} color="#9CA3AF" />
+                      <Ionicons name="open-outline" size={14} color="#6B7280" />
                     </Pressable>
                     {!isPast && (
                       <Pressable onPress={() => handleRSVP(selectedEvent.id)} style={[s.signBtn, hasRSVP && s.signedBtn, { marginTop: 4 }]}>
-                        <Ionicons name={hasRSVP ? "checkmark-circle" : "calendar"} size={16} color={hasRSVP ? "#00A651" : "#fff"} />
-                        <Text style={[s.signBtnText, { fontSize: 16 }, hasRSVP && { color: "#00A651" }]}>{hasRSVP ? "Going ✓" : "RSVP — I'll Attend"}</Text>
+                        <Ionicons name={hasRSVP ? "checkmark-circle" : "calendar"} size={16} color={hasRSVP ? "#047857" : "#fff"} />
+                        <Text style={[s.signBtnText, { fontSize: 16 }, hasRSVP && { color: "#047857" }]}>{hasRSVP ? "Going ✓" : "RSVP — I'll Attend"}</Text>
                       </Pressable>
                     )}
                   </View>
@@ -679,7 +679,7 @@ export default function CommunityScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 16 }}>
                 <Text style={{ color: "#111827", fontSize: 20, fontFamily: "Inter_700Bold" }}>Start a Petition</Text>
                 <Pressable onPress={() => setShowNewPetition(false)} style={s.closeBtn}>
-                  <Ionicons name="close" size={18} color="#6B7280" />
+                  <Ionicons name="close" size={18} color="#4B5563" />
                 </Pressable>
               </View>
               <View style={{ paddingHorizontal: 20 }}>
@@ -723,17 +723,17 @@ const s = StyleSheet.create({
   statusText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
 
   pollQ: { color: "#111827", fontSize: 15, fontFamily: "Inter_700Bold", marginBottom: 4, lineHeight: 22 },
-  pollMeta: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular" },
+  pollMeta: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular" },
   pollOption: { position: "relative", backgroundColor: "#F9FAFB", borderRadius: 10, borderWidth: 1, borderColor: "#E5E7EB", overflow: "hidden", minHeight: 44, justifyContent: "center" },
   pollBar: { position: "absolute", left: 0, top: 0, bottom: 0, borderRadius: 10 },
   pollOptionInner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 10, zIndex: 1 },
   pollOptionText: { color: "#374151", fontSize: 13, fontFamily: "Inter_500Medium", flex: 1 },
-  pollPct: { color: "#9CA3AF", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  pollPct: { color: "#6B7280", fontSize: 13, fontFamily: "Inter_600SemiBold" },
   votedRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, backgroundColor: "#F0FFF4", borderRadius: 8, padding: 8 },
 
   petitionTitle: { color: "#111827", fontSize: 15, fontFamily: "Inter_700Bold", lineHeight: 22 },
-  petitionDesc: { color: "#6B7280", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18, marginTop: 8 },
-  petitionMeta: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 10, lineHeight: 16 },
+  petitionDesc: { color: "#4B5563", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18, marginTop: 8 },
+  petitionMeta: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 10, lineHeight: 16 },
   signatureRow: { gap: 6, marginTop: 12 },
   sigBar: { height: 6, backgroundColor: "#E5E7EB", borderRadius: 3, overflow: "hidden", marginVertical: 6 },
   sigFill: { height: 6, backgroundColor: "#2563EB", borderRadius: 3 },
@@ -745,12 +745,12 @@ const s = StyleSheet.create({
   eventHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   eventTypeBadge: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   eventTitle: { color: "#111827", fontSize: 14, fontFamily: "Inter_700Bold", lineHeight: 20 },
-  eventOrg: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  eventOrg: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   dateChip: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   dateChipText: { fontSize: 10, fontFamily: "Inter_700Bold" },
-  eventDesc: { color: "#6B7280", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18, marginTop: 8 },
+  eventDesc: { color: "#4B5563", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18, marginTop: 8 },
   eventMeta: { gap: 4, marginTop: 10 },
-  eventMetaText: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular" },
+  eventMetaText: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular" },
   rsvpBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#EFF6FF", borderRadius: 10, padding: 10, marginTop: 10, justifyContent: "center", borderWidth: 1, borderColor: "#BFDBFE" },
   rsvpedBtn: { backgroundColor: "#F0FFF4", borderColor: "#A7F3D0" },
   rsvpBtnText: { color: "#2563EB", fontSize: 13, fontFamily: "Inter_700Bold" },
@@ -765,6 +765,6 @@ const s = StyleSheet.create({
   sheetHandle: { width: 40, height: 4, backgroundColor: "#E5E7EB", borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 8 },
   closeBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
 
-  fieldLabel: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_700Bold", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginTop: 12 },
+  fieldLabel: { color: "#4B5563", fontSize: 10, fontFamily: "Inter_700Bold", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginTop: 12 },
   textInput: { backgroundColor: "#F9FAFB", borderRadius: 12, padding: 14, color: "#111827", fontSize: 14, fontFamily: "Inter_400Regular", borderWidth: 1, borderColor: "#E5E7EB", marginBottom: 4 },
 });

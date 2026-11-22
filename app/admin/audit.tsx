@@ -24,18 +24,18 @@ interface AuditLog {
 }
 
 const ACTION_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string; label: string }> = {
-  complaint_created:   { icon: "document-text",   color: "#3B82F6", label: "Complaint Filed" },
-  complaint_resolved:  { icon: "checkmark-circle", color: "#00A651", label: "Complaint Resolved" },
-  complaint_rejected:  { icon: "close-circle",     color: "#EF4444", label: "Complaint Rejected" },
+  complaint_created:   { icon: "document-text",   color: "#60A5FA", label: "Complaint Filed" },
+  complaint_resolved:  { icon: "checkmark-circle", color: "#34D399", label: "Complaint Resolved" },
+  complaint_rejected:  { icon: "close-circle",     color: "#F87171", label: "Complaint Rejected" },
   complaint_escalated: { icon: "arrow-up-circle",  color: "#F59E0B", label: "SLA Escalated" },
-  sos_triggered:       { icon: "warning",          color: "#EF4444", label: "SOS Triggered" },
-  sos_resolved:        { icon: "shield-checkmark", color: "#00A651", label: "SOS Resolved" },
-  user_registered:     { icon: "person-add",       color: "#8B5CF6", label: "User Registered" },
+  sos_triggered:       { icon: "warning",          color: "#F87171", label: "SOS Triggered" },
+  sos_resolved:        { icon: "shield-checkmark", color: "#34D399", label: "SOS Resolved" },
+  user_registered:     { icon: "person-add",       color: "#A78BFA", label: "User Registered" },
   rti_filed:           { icon: "mail",             color: "#06B6D4", label: "RTI Filed" },
-  rti_responded:       { icon: "mail-open",        color: "#00A651", label: "RTI Responded" },
+  rti_responded:       { icon: "mail-open",        color: "#34D399", label: "RTI Responded" },
   poll_voted:          { icon: "checkmark-done",   color: "#F59E0B", label: "Poll Voted" },
-  petition_signed:     { icon: "pencil",           color: "#8B5CF6", label: "Petition Signed" },
-  admin_login:         { icon: "log-in",           color: "#6B7280", label: "Admin Login" },
+  petition_signed:     { icon: "pencil",           color: "#A78BFA", label: "Petition Signed" },
+  admin_login:         { icon: "log-in",           color: "#9CA3AF", label: "Admin Login" },
   announcement_posted: { icon: "megaphone",        color: "#FF9933", label: "Announcement" },
 };
 

@@ -19,34 +19,34 @@ import { getSecure } from "@/lib/secure-session";
 import { deptForCategory } from "@/constants/districts";
 
 const CATS = [
-  { key: "pothole",      label: "Pothole",       icon: "alert-circle"        as const, color: "#F59E0B", bg: "#FFFBEB", get dept() { return deptForCategory("pothole").short; }, get deptFull() { return deptForCategory("pothole").name; } },
+  { key: "pothole",      label: "Pothole",       icon: "alert-circle"        as const, color: "#B45309", bg: "#FFFBEB", get dept() { return deptForCategory("pothole").short; }, get deptFull() { return deptForCategory("pothole").name; } },
   { key: "road_damage",  label: "Road Damage",   icon: "construct"           as const, color: "#D97706", bg: "#FEF3C7", get dept() { return deptForCategory("road_damage").short; }, get deptFull() { return deptForCategory("road_damage").name; } },
-  { key: "garbage",      label: "Garbage",       icon: "trash"               as const, color: "#EF4444", bg: "#FEF2F2", get dept() { return deptForCategory("garbage").short; }, get deptFull() { return deptForCategory("garbage").name; } },
-  { key: "drain",        label: "Drain Block",   icon: "git-network"         as const, color: "#06B6D4", bg: "#F0FDFF", get dept() { return deptForCategory("drain").short; }, get deptFull() { return deptForCategory("drain").name; } },
+  { key: "garbage",      label: "Garbage",       icon: "trash"               as const, color: "#DC2626", bg: "#FEF2F2", get dept() { return deptForCategory("garbage").short; }, get deptFull() { return deptForCategory("garbage").name; } },
+  { key: "drain",        label: "Drain Block",   icon: "git-network"         as const, color: "#0E7490", bg: "#F0FDFF", get dept() { return deptForCategory("drain").short; }, get deptFull() { return deptForCategory("drain").name; } },
   { key: "sewage",       label: "Sewage",        icon: "water-outline"       as const, color: "#64748B", bg: "#F8FAFC", get dept() { return deptForCategory("sewage").short; }, get deptFull() { return deptForCategory("sewage").name; } },
-  { key: "water",        label: "Water Supply",  icon: "water"               as const, color: "#3B82F6", bg: "#EFF6FF", get dept() { return deptForCategory("water").short; }, get deptFull() { return deptForCategory("water").name; } },
+  { key: "water",        label: "Water Supply",  icon: "water"               as const, color: "#2563EB", bg: "#EFF6FF", get dept() { return deptForCategory("water").short; }, get deptFull() { return deptForCategory("water").name; } },
   { key: "electricity",  label: "Electricity",   icon: "flash"               as const, color: "#8B5CF6", bg: "#F5F3FF", get dept() { return deptForCategory("electricity").short; }, get deptFull() { return deptForCategory("electricity").name; } },
-  { key: "streetlight",  label: "Streetlight",   icon: "bulb"                as const, color: "#F59E0B", bg: "#FFFBEB", get dept() { return deptForCategory("streetlight").short; }, get deptFull() { return deptForCategory("streetlight").name; } },
+  { key: "streetlight",  label: "Streetlight",   icon: "bulb"                as const, color: "#B45309", bg: "#FFFBEB", get dept() { return deptForCategory("streetlight").short; }, get deptFull() { return deptForCategory("streetlight").name; } },
   { key: "transformer",  label: "Transformer",   icon: "hardware-chip"       as const, color: "#7C3AED", bg: "#F5F3FF", get dept() { return deptForCategory("transformer").short; }, get deptFull() { return deptForCategory("transformer").name; } },
-  { key: "tree",         label: "Tree / Park",   icon: "leaf"                as const, color: "#00A651", bg: "#F0FFF4", get dept() { return deptForCategory("tree").short; }, get deptFull() { return deptForCategory("tree").name; } },
+  { key: "tree",         label: "Tree / Park",   icon: "leaf"                as const, color: "#047857", bg: "#F0FFF4", get dept() { return deptForCategory("tree").short; }, get deptFull() { return deptForCategory("tree").name; } },
   { key: "noise",        label: "Noise/Nuisance",icon: "volume-high"         as const, color: "#EC4899", bg: "#FDF2F8", get dept() { return deptForCategory("noise").short; }, get deptFull() { return deptForCategory("noise").name; } },
   { key: "health_hazard",label: "Health Hazard", icon: "medkit"              as const, color: "#DC2626", bg: "#FEF2F2", get dept() { return deptForCategory("health_hazard").short; }, get deptFull() { return deptForCategory("health_hazard").name; } },
   { key: "disaster",     label: "Flood/Disaster",icon: "rainy"               as const, color: "#7C3AED", bg: "#F5F3FF", get dept() { return deptForCategory("disaster").short; }, get deptFull() { return deptForCategory("disaster").name; } },
-  { key: "other",        label: "Other Issue",   icon: "ellipsis-horizontal" as const, color: "#6B7280", bg: "#F9FAFB", get dept() { return deptForCategory("other").short; }, get deptFull() { return deptForCategory("other").name; } },
+  { key: "other",        label: "Other Issue",   icon: "ellipsis-horizontal" as const, color: "#4B5563", bg: "#F9FAFB", get dept() { return deptForCategory("other").short; }, get deptFull() { return deptForCategory("other").name; } },
 ];
 
 const PRIORITIES = [
-  { key: "P1", label: "Critical", color: "#EF4444" },
-  { key: "P2", label: "High",     color: "#F59E0B" },
-  { key: "P3", label: "Medium",   color: "#3B82F6" },
-  { key: "P4", label: "Low",      color: "#6B7280" },
+  { key: "P1", label: "Critical", color: "#DC2626" },
+  { key: "P2", label: "High",     color: "#B45309" },
+  { key: "P3", label: "Medium",   color: "#2563EB" },
+  { key: "P4", label: "Low",      color: "#4B5563" },
 ];
 
 const STATUS_META: Record<string, { color: string; bg: string }> = {
-  pending:     { color: "#F59E0B", bg: "#FFFBEB" },
-  in_progress: { color: "#3B82F6", bg: "#EFF6FF" },
-  resolved:    { color: "#00A651", bg: "#F0FFF4" },
-  closed:      { color: "#6B7280", bg: "#F9FAFB" },
+  pending:     { color: "#B45309", bg: "#FFFBEB" },
+  in_progress: { color: "#2563EB", bg: "#EFF6FF" },
+  resolved:    { color: "#047857", bg: "#F0FFF4" },
+  closed:      { color: "#4B5563", bg: "#F9FAFB" },
 };
 
 /** Resolve a server media path (e.g. /uploads/<id>.jpg) to an absolute URL. */
@@ -144,13 +144,13 @@ function ComplaintCard({ item, onPress, onUpvote, userId, index = 0 }: {
           <Text style={cs.cardDesc} numberOfLines={2}>{item.description}</Text>
           <View style={cs.cardBottom}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flex: 1 }}>
-              <Ionicons name="location-outline" size={11} color="#9CA3AF" />
+              <Ionicons name="location-outline" size={11} color="#6B7280" />
               <Text style={cs.cardLoc} numberOfLines={1}>{item.location}</Text>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               {isBreached && (
                 <View style={{ backgroundColor: "#FEF2F2", borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 }}>
-                  <Text style={{ color: "#EF4444", fontSize: 9, fontFamily: "Inter_700Bold" }}>SLA!</Text>
+                  <Text style={{ color: "#DC2626", fontSize: 9, fontFamily: "Inter_700Bold" }}>SLA!</Text>
                 </View>
               )}
               <View style={cs.aiScore}>
@@ -163,9 +163,9 @@ function ComplaintCard({ item, onPress, onUpvote, userId, index = 0 }: {
                 </View>
               )}
               <Animated.View style={{ transform: [{ scale: upvoteAnim }] }}>
-                <Pressable onPress={doUpvote} style={[cs.upvoteBtn, hasUpvoted && { backgroundColor: "#F0FFF4", borderColor: "#00A65133" }]}>
-                  <Ionicons name={hasUpvoted ? "chevron-up" : "chevron-up-outline"} size={13} color={hasUpvoted ? "#00A651" : "#9CA3AF"} />
-                  <Text style={[cs.upvoteCount, hasUpvoted && { color: "#00A651" }]}>{item.upvotes}</Text>
+                <Pressable onPress={doUpvote} style={[cs.upvoteBtn, hasUpvoted && { backgroundColor: "#F0FFF4", borderColor: "#04785733" }]}>
+                  <Ionicons name={hasUpvoted ? "chevron-up" : "chevron-up-outline"} size={13} color={hasUpvoted ? "#047857" : "#9CA3AF"} />
+                  <Text style={[cs.upvoteCount, hasUpvoted && { color: "#047857" }]}>{item.upvotes}</Text>
                 </Pressable>
               </Animated.View>
             </View>
@@ -442,7 +442,7 @@ export default function ComplaintsScreen() {
   return (
     <View style={cs.container}>
       {/* Header */}
-      <LinearGradient colors={["#BF360C", "#E64A19", "#FF8F00"]} style={[cs.header, { paddingTop: topPad + 12 }]}>
+      <LinearGradient colors={["#BF360C", "#C2410C", "#FF8F00"]} style={[cs.header, { paddingTop: topPad + 12 }]}>
         <View style={cs.headerContent}>
           <View>
             <Text style={cs.headerTitle}>Civic Reports</Text>
@@ -464,7 +464,7 @@ export default function ComplaintsScreen() {
       {/* Search */}
       <View style={cs.filterSection}>
         <View style={cs.searchBox}>
-          <Ionicons name="search" size={16} color="#9CA3AF" />
+          <Ionicons name="search" size={16} color="#6B7280" />
           <TextInput
             style={cs.searchInput}
             placeholder="Search ticket, location, description..."
@@ -474,7 +474,7 @@ export default function ComplaintsScreen() {
           />
           {search.length > 0 && (
             <Pressable onPress={() => setSearch("")}>
-              <Ionicons name="close-circle" size={16} color="#9CA3AF" />
+              <Ionicons name="close-circle" size={16} color="#6B7280" />
             </Pressable>
           )}
         </View>
@@ -485,7 +485,7 @@ export default function ComplaintsScreen() {
             const active = sortKey === s.key;
             return (
               <Pressable key={s.key} onPress={() => setSortKey(s.key)} style={[cs.sortPill, active && cs.sortPillActive]}>
-                <Ionicons name={s.icon as any} size={11} color={active ? "#E64A19" : "#6B7280"} />
+                <Ionicons name={s.icon as any} size={11} color={active ? "#C2410C" : "#6B7280"} />
                 <Text style={[cs.sortPillText, active && cs.sortPillTextActive]}>{s.label}</Text>
               </Pressable>
             );
@@ -495,11 +495,11 @@ export default function ComplaintsScreen() {
         {/* Status Filter */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={cs.pillRow}>
           {[
-            { key: "all",         label: "All",         icon: "list",              color: "#6B7280" },
-            { key: "pending",     label: "Pending",     icon: "time",              color: "#F59E0B" },
-            { key: "in_progress", label: "In Progress", icon: "refresh-circle",    color: "#3B82F6" },
-            { key: "resolved",    label: "Resolved",    icon: "checkmark-circle",  color: "#00A651" },
-            { key: "closed",      label: "Closed",      icon: "lock-closed",       color: "#9CA3AF" },
+            { key: "all",         label: "All",         icon: "list",              color: "#4B5563" },
+            { key: "pending",     label: "Pending",     icon: "time",              color: "#B45309" },
+            { key: "in_progress", label: "In Progress", icon: "refresh-circle",    color: "#2563EB" },
+            { key: "resolved",    label: "Resolved",    icon: "checkmark-circle",  color: "#047857" },
+            { key: "closed",      label: "Closed",      icon: "lock-closed",       color: "#6B7280" },
           ].map(st => {
             const active = filterStatus === st.key;
             return (
@@ -545,7 +545,7 @@ export default function ComplaintsScreen() {
         ListEmptyComponent={
           <View style={cs.empty}>
             <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="document-text-outline" size={36} color="#9CA3AF" />
+              <Ionicons name="document-text-outline" size={36} color="#6B7280" />
             </View>
             <Text style={cs.emptyTitle}>No complaints found</Text>
             <Text style={cs.emptySub}>Try adjusting your filters or tap + to file a new report</Text>
@@ -555,7 +555,7 @@ export default function ComplaintsScreen() {
 
       {/* FAB */}
       <Pressable onPress={() => setShowSubmit(true)} style={[cs.fab, { bottom: botPad + 100 }]}>
-        <LinearGradient colors={["#E64A19", "#FF8F00"]} style={cs.fabGrad}>
+        <LinearGradient colors={["#C2410C", "#FF8F00"]} style={cs.fabGrad}>
           <Ionicons name="add" size={26} color="#fff" />
         </LinearGradient>
       </Pressable>
@@ -592,27 +592,27 @@ export default function ComplaintsScreen() {
                           </View>
                           {slaBreached && (
                             <View style={[cs.badge, { backgroundColor: "#FEF2F2" }]}>
-                              <Text style={[cs.badgeText, { color: "#EF4444" }]}>SLA Breached</Text>
+                              <Text style={[cs.badgeText, { color: "#DC2626" }]}>SLA Breached</Text>
                             </View>
                           )}
                         </View>
                       </View>
                       <Pressable onPress={() => setSelectedC(null)} style={cs.closeBtn}>
-                        <Ionicons name="close" size={18} color="#6B7280" />
+                        <Ionicons name="close" size={18} color="#4B5563" />
                       </Pressable>
                     </LinearGradient>
 
                     <View style={{ paddingHorizontal: 20 }}>
                       <Text style={cs.detailDesc}>{selectedC.description}</Text>
                       <View style={cs.detailLocRow}>
-                        <Ionicons name="location" size={14} color="#9CA3AF" />
+                        <Ionicons name="location" size={14} color="#6B7280" />
                         <Text style={cs.detailLoc}>{selectedC.location}</Text>
                       </View>
 
                       {/* SLA Info */}
                       <View style={[cs.slaRow, slaBreached && cs.slaRowBad]}>
-                        <Ionicons name="time" size={13} color={slaBreached ? "#EF4444" : "#6B7280"} />
-                        <Text style={[cs.slaText, slaBreached && { color: "#EF4444" }]}>
+                        <Ionicons name="time" size={13} color={slaBreached ? "#DC2626" : "#6B7280"} />
+                        <Text style={[cs.slaText, slaBreached && { color: "#DC2626" }]}>
                           {hoursElapsed}h elapsed · SLA: {sla}h · {slaBreached ? "⚠️ Overdue" : `${sla - hoursElapsed}h remaining`}
                         </Text>
                       </View>
@@ -620,9 +620,9 @@ export default function ComplaintsScreen() {
                       {/* Stats */}
                       <View style={cs.statsRow}>
                         {[
-                          { label: "Upvotes", val: selectedC.upvotes, color: "#00A651" },
+                          { label: "Upvotes", val: selectedC.upvotes, color: "#047857" },
                           { label: "AI Score", val: `${selectedC.aiScore}%`, color: "#8B5CF6" },
-                          { label: "Worker", val: selectedC.workerName || "—", color: "#3B82F6" },
+                          { label: "Worker", val: selectedC.workerName || "—", color: "#2563EB" },
                         ].map(s => (
                           <View key={s.label} style={cs.statBox}>
                             <Text style={[cs.statVal, { color: s.color }]}>{s.val}</Text>
@@ -640,31 +640,31 @@ export default function ComplaintsScreen() {
                               <Image source={{ uri: mediaUri(selectedC.beforePhoto)! }} accessibilityLabel="Photo submitted with the complaint" style={[cs.proofImg, { width: "100%", height: 90 }]} resizeMode="cover" />
                             ) : (
                               <View style={[cs.proofImg, { width: "100%", height: 90, borderStyle: "dashed" }]}>
-                                <Ionicons name="image-outline" size={22} color="#9CA3AF" />
+                                <Ionicons name="image-outline" size={22} color="#6B7280" />
                                 <Text style={cs.proofLabel}>No photo</Text>
                               </View>
                             )}
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#EF4444" }} />
-                              <Text style={[cs.proofLabel, { color: "#EF4444" }]}>Before</Text>
+                              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#DC2626" }} />
+                              <Text style={[cs.proofLabel, { color: "#DC2626" }]}>Before</Text>
                             </View>
                           </View>
                           <View style={{ alignItems: "center", gap: 4 }}>
-                            <Ionicons name="arrow-forward" size={16} color="#9CA3AF" />
-                            <Text style={{ fontSize: 8, color: "#9CA3AF", fontFamily: "Inter_400Regular" }}>{selectedC.status === "closed" ? "Citizen verified" : "Proof"}</Text>
+                            <Ionicons name="arrow-forward" size={16} color="#6B7280" />
+                            <Text style={{ fontSize: 8, color: "#6B7280", fontFamily: "Inter_400Regular" }}>{selectedC.status === "closed" ? "Citizen verified" : "Proof"}</Text>
                           </View>
                           <View style={{ flex: 1, gap: 4 }}>
                             {mediaUri((selectedC as any).proofPhoto || selectedC.afterPhoto) ? (
                               <Image source={{ uri: mediaUri((selectedC as any).proofPhoto || selectedC.afterPhoto)! }} accessibilityLabel="Proof photo of the completed work" style={[cs.proofImg, { width: "100%", height: 90, borderColor: "#A7F3D0" }]} resizeMode="cover" />
                             ) : (
                               <View style={[cs.proofImg, { width: "100%", height: 90, borderStyle: "dashed" }]}>
-                                <Ionicons name="camera-outline" size={22} color="#9CA3AF" />
+                                <Ionicons name="camera-outline" size={22} color="#6B7280" />
                                 <Text style={cs.proofLabel}>Pending</Text>
                               </View>
                             )}
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: selectedC.afterPhoto ? "#00A651" : "#9CA3AF" }} />
-                              <Text style={[cs.proofLabel, { color: selectedC.afterPhoto ? "#00A651" : "#9CA3AF" }]}>After</Text>
+                              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: selectedC.afterPhoto ? "#047857" : "#9CA3AF" }} />
+                              <Text style={[cs.proofLabel, { color: selectedC.afterPhoto ? "#047857" : "#9CA3AF" }]}>After</Text>
                             </View>
                           </View>
                         </View>
@@ -675,7 +675,7 @@ export default function ComplaintsScreen() {
                           <Text style={cs.ratingLabel}>Citizen Rating</Text>
                           <View style={{ flexDirection: "row", gap: 3 }}>
                             {[1,2,3,4,5].map(n => (
-                              <Ionicons key={n} name={n <= selectedC.rating! ? "star" : "star-outline"} size={18} color="#F59E0B" />
+                              <Ionicons key={n} name={n <= selectedC.rating! ? "star" : "star-outline"} size={18} color="#B45309" />
                             ))}
                           </View>
                           {selectedC.feedback && <Text style={cs.feedbackText}>&quot;{selectedC.feedback}&quot;</Text>}
@@ -684,22 +684,22 @@ export default function ComplaintsScreen() {
 
                       {/* Chat Button */}
                       <Pressable onPress={() => handleOpenChat(selectedC)} style={[cs.actionBtn, { borderColor: "#BFDBFE", marginBottom: 8 }]}>
-                        <Ionicons name="chatbubbles" size={16} color="#3B82F6" />
-                        <Text style={[cs.actionText, { color: "#3B82F6" }]}>Message Officer</Text>
+                        <Ionicons name="chatbubbles" size={16} color="#2563EB" />
+                        <Text style={[cs.actionText, { color: "#2563EB" }]}>Message Officer</Text>
                         <View style={{ flex: 1 }} />
-                        <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
+                        <Ionicons name="chevron-forward" size={14} color="#6B7280" />
                       </Pressable>
 
                       {(selectedC.status === "pending" || selectedC.status === "in_progress") && (
                         <View style={{ gap: 8, marginTop: 4 }}>
                           <Pressable onPress={() => handleUpvote(selectedC.id)} style={cs.actionBtn}>
-                            <Ionicons name="chevron-up" size={16} color="#00A651" />
-                            <Text style={[cs.actionText, { color: "#00A651" }]}>Upvote ({selectedC.upvotes})</Text>
+                            <Ionicons name="chevron-up" size={16} color="#047857" />
+                            <Text style={[cs.actionText, { color: "#047857" }]}>Upvote ({selectedC.upvotes})</Text>
                           </Pressable>
                           {(selectedC as any).isMine && selectedC.status === "pending" && (
                             <Pressable accessibilityRole="button" accessibilityLabel="Withdraw this complaint" onPress={() => handleCancel(selectedC.id)} style={[cs.actionBtn, { borderColor: "#FECACA" }]}>
-                              <Ionicons name="close-circle-outline" size={16} color="#EF4444" />
-                              <Text style={[cs.actionText, { color: "#EF4444" }]}>Withdraw complaint</Text>
+                              <Ionicons name="close-circle-outline" size={16} color="#DC2626" />
+                              <Text style={[cs.actionText, { color: "#DC2626" }]}>Withdraw complaint</Text>
                             </Pressable>
                           )}
                         </View>
@@ -708,12 +708,12 @@ export default function ComplaintsScreen() {
                       {selectedC.status === "resolved" && (selectedC as any).isMine && (
                         <View style={{ gap: 8, marginTop: 8 }}>
                           <Pressable onPress={() => setShowResolution(true)} style={[cs.actionBtn, { borderColor: "#A7F3D0" }]}>
-                            <Ionicons name="checkmark-circle" size={16} color="#00A651" />
-                            <Text style={[cs.actionText, { color: "#00A651" }]}>Yes, it is fixed — confirm & rate</Text>
+                            <Ionicons name="checkmark-circle" size={16} color="#047857" />
+                            <Text style={[cs.actionText, { color: "#047857" }]}>Yes, it is fixed — confirm & rate</Text>
                           </Pressable>
                           <Pressable onPress={handleReject} style={[cs.actionBtn, { borderColor: "#FECACA" }]}>
-                            <Ionicons name="close-circle" size={16} color="#EF4444" />
-                            <Text style={[cs.actionText, { color: "#EF4444" }]}>Not fixed — reopen</Text>
+                            <Ionicons name="close-circle" size={16} color="#DC2626" />
+                            <Text style={[cs.actionText, { color: "#DC2626" }]}>Not fixed — reopen</Text>
                           </Pressable>
                         </View>
                       )}
@@ -733,39 +733,39 @@ export default function ComplaintsScreen() {
           <View style={[cs.sheet, { height: "80%" }]}>
             <View style={cs.sheetHandle} />
             <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, marginBottom: 12 }}>
-              <Ionicons name="chatbubbles" size={20} color="#3B82F6" />
+              <Ionicons name="chatbubbles" size={20} color="#2563EB" />
               <View style={{ flex: 1, marginLeft: 10 }}>
                 <Text style={{ color: "#111827", fontSize: 16, fontFamily: "Inter_700Bold" }}>Message Officer</Text>
-                <Text style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular" }}>{selectedC?.ticketId}</Text>
+                <Text style={{ color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular" }}>{selectedC?.ticketId}</Text>
               </View>
               <Pressable onPress={() => setShowChatModal(false)} style={cs.closeBtn}>
-                <Ionicons name="close" size={18} color="#6B7280" />
+                <Ionicons name="close" size={18} color="#4B5563" />
               </Pressable>
             </View>
             <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} showsVerticalScrollIndicator={false}>
               {chatLoading ? (
                 <View style={{ padding: 40, alignItems: "center" }}>
-                  <ActivityIndicator color="#3B82F6" />
-                  <Text style={{ color: "#9CA3AF", marginTop: 8, fontSize: 12, fontFamily: "Inter_400Regular" }}>Loading messages...</Text>
+                  <ActivityIndicator color="#2563EB" />
+                  <Text style={{ color: "#6B7280", marginTop: 8, fontSize: 12, fontFamily: "Inter_400Regular" }}>Loading messages...</Text>
                 </View>
               ) : chatMessages.length === 0 ? (
                 <View style={{ padding: 40, alignItems: "center" }}>
                   <Text style={{ fontSize: 36 }}>💬</Text>
                   <Text style={{ color: "#374151", fontSize: 14, fontFamily: "Inter_600SemiBold", marginTop: 8 }}>No messages yet</Text>
-                  <Text style={{ color: "#9CA3AF", fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center", marginTop: 4 }}>Send a message to communicate with the responsible officer</Text>
+                  <Text style={{ color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center", marginTop: 4 }}>Send a message to communicate with the responsible officer</Text>
                 </View>
               ) : chatMessages.map((msg, i) => {
                 const isOfficer = msg.senderRole === "officer" || msg.senderRole === "system";
                 return (
                   <View key={i} style={{ flexDirection: isOfficer ? "row" : "row-reverse", gap: 8, marginBottom: 12, alignItems: "flex-end" }}>
                     <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: isOfficer ? "#EFF6FF" : "#F0FFF4", alignItems: "center", justifyContent: "center" }}>
-                      <Ionicons name={isOfficer ? "shield-half" : "person"} size={14} color={isOfficer ? "#3B82F6" : "#00A651"} />
+                      <Ionicons name={isOfficer ? "shield-half" : "person"} size={14} color={isOfficer ? "#3B82F6" : "#047857"} />
                     </View>
                     <View style={{ maxWidth: "75%" }}>
-                      <View style={{ backgroundColor: isOfficer ? "#EFF6FF" : "#E64A19", borderRadius: 12, padding: 10, borderBottomLeftRadius: isOfficer ? 4 : 12, borderBottomRightRadius: isOfficer ? 12 : 4 }}>
+                      <View style={{ backgroundColor: isOfficer ? "#EFF6FF" : "#C2410C", borderRadius: 12, padding: 10, borderBottomLeftRadius: isOfficer ? 4 : 12, borderBottomRightRadius: isOfficer ? 12 : 4 }}>
                         <Text style={{ color: isOfficer ? "#1E40AF" : "#fff", fontSize: 13, fontFamily: "Inter_400Regular" }}>{msg.message}</Text>
                       </View>
-                      <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 3, textAlign: isOfficer ? "left" : "right" }}>{msg.senderName}</Text>
+                      <Text style={{ color: "#6B7280", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 3, textAlign: isOfficer ? "left" : "right" }}>{msg.senderName}</Text>
                     </View>
                   </View>
                 );
@@ -781,7 +781,7 @@ export default function ComplaintsScreen() {
                 onChangeText={setChatInput}
                 onSubmitEditing={handleSendChat}
               />
-              <Pressable onPress={handleSendChat} style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: "#E64A19", alignItems: "center", justifyContent: "center" }}>
+              <Pressable onPress={handleSendChat} style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: "#C2410C", alignItems: "center", justifyContent: "center" }}>
                 <Ionicons name="send" size={16} color="#fff" />
               </Pressable>
             </View>
@@ -799,17 +799,17 @@ export default function ComplaintsScreen() {
               <>
                 <Text style={cs.modalSub}>Add after-photo to verify the fix</Text>
                 <Pressable onPress={() => setProofAdded(true)} style={cs.cameraBtn}>
-                  <Ionicons name="camera" size={24} color="#00A651" />
-                  <Text style={[cs.actionText, { color: "#00A651" }]}>Capture After Photo</Text>
+                  <Ionicons name="camera" size={24} color="#047857" />
+                  <Text style={[cs.actionText, { color: "#047857" }]}>Capture After Photo</Text>
                 </Pressable>
                 <View style={cs.gpsRow}>
-                  <Ionicons name="location" size={13} color="#00A651" />
+                  <Ionicons name="location" size={13} color="#047857" />
                   <Text style={cs.gpsText}>GPS Verified · Location Match ✓</Text>
                 </View>
               </>
             ) : (
               <View style={cs.proofAddedBox}>
-                <Ionicons name="checkmark-circle" size={20} color="#00A651" />
+                <Ionicons name="checkmark-circle" size={20} color="#047857" />
                 <Text style={cs.proofAddedText}>After photo uploaded ✓</Text>
               </View>
             )}
@@ -860,10 +860,10 @@ export default function ComplaintsScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, marginBottom: 4 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={[cs.modalTitle, { paddingHorizontal: 0 }]}>File Civic Report</Text>
-                  <Text style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular" }}>All reports are auto-routed to the correct department</Text>
+                  <Text style={{ color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular" }}>All reports are auto-routed to the correct department</Text>
                 </View>
                 <Pressable onPress={() => { setShowSubmit(false); resetForm(); }} style={cs.closeBtn}>
-                  <Ionicons name="close" size={18} color="#6B7280" />
+                  <Ionicons name="close" size={18} color="#4B5563" />
                 </Pressable>
               </View>
 
@@ -873,7 +873,7 @@ export default function ComplaintsScreen() {
                 {/* ── SECTION: DESCRIBE ── */}
                 <View style={cs.sectionCard}>
                   <View style={cs.sectionHeader}>
-                    <View style={[cs.sectionDot, { backgroundColor: "#E64A19" }]} />
+                    <View style={[cs.sectionDot, { backgroundColor: "#C2410C" }]} />
                     <Text style={cs.sectionTitle}>DESCRIBE THE ISSUE</Text>
                   </View>
                   <View style={{ position: "relative" }}>
@@ -899,7 +899,7 @@ export default function ComplaintsScreen() {
                         </Text>
                       </View>
                       <Pressable onPress={() => setAiDetected("")} style={{ padding: 2 }}>
-                        <Ionicons name="close" size={14} color="#9CA3AF" />
+                        <Ionicons name="close" size={14} color="#6B7280" />
                       </Pressable>
                     </View>
                   )}
@@ -935,7 +935,7 @@ export default function ComplaintsScreen() {
                         <Ionicons name={selected.icon} size={20} color={selected.color} />
                         <View style={{ flex: 1 }}>
                           <Text style={{ color: selected.color, fontSize: 12, fontFamily: "Inter_700Bold" }}>Routes to: {selected.deptFull}</Text>
-                          <Text style={{ color: "#6B7280", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 }}>Dept code: {selected.dept} · Auto-assigned based on category</Text>
+                          <Text style={{ color: "#4B5563", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 }}>Dept code: {selected.dept} · Auto-assigned based on category</Text>
                         </View>
                         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: selected.color }} />
                       </View>
@@ -948,7 +948,7 @@ export default function ComplaintsScreen() {
                   <View style={cs.sectionHeader}>
                     <View style={[cs.sectionDot, { backgroundColor: "#8B5CF6" }]} />
                     <Text style={cs.sectionTitle}>PHOTO EVIDENCE</Text>
-                    <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginLeft: 6 }}>AI will verify authenticity</Text>
+                    <Text style={{ color: "#6B7280", fontSize: 10, fontFamily: "Inter_400Regular", marginLeft: 6 }}>AI will verify authenticity</Text>
                   </View>
                   {newPhoto ? (
                     <View style={{ borderRadius: 14, overflow: "hidden", height: 150, borderWidth: 1, borderColor: "#E5E7EB" }}>
@@ -986,7 +986,7 @@ export default function ComplaintsScreen() {
                         </Text>
                         <Text style={cs.photoPickerSub}>A clear photo helps officers locate and fix the issue faster</Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                      <Ionicons name="chevron-forward" size={16} color="#6B7280" />
                     </Pressable>
                   )}
                   {!photoAiLoading && photoAiResult && photoAiResult.isReal === false && (
@@ -1002,24 +1002,24 @@ export default function ComplaintsScreen() {
                 {/* ── SECTION: LOCATION ── */}
                 <View style={cs.sectionCard}>
                   <View style={cs.sectionHeader}>
-                    <View style={[cs.sectionDot, { backgroundColor: "#00A651" }]} />
+                    <View style={[cs.sectionDot, { backgroundColor: "#047857" }]} />
                     <Text style={cs.sectionTitle}>LOCATION DETAILS</Text>
                   </View>
                   <View style={{ flexDirection: "row", gap: 8, alignItems: "center", marginBottom: 10 }}>
                     <View style={[cs.inputWrap, { flex: 1, marginBottom: 0 }]}>
-                      <Ionicons name="location" size={16} color={newLoc.startsWith("GPS:") ? "#00A651" : "#9CA3AF"} />
+                      <Ionicons name="location" size={16} color={newLoc.startsWith("GPS:") ? "#047857" : "#9CA3AF"} />
                       <TextInput style={cs.inputField} placeholder="Area, street or colony..." placeholderTextColor="#9CA3AF" value={newLoc} onChangeText={setNewLoc} />
                     </View>
                     <Pressable onPress={handleDetectLocation} disabled={detectingLoc}
                       style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: detectingLoc ? "#E5E7EB" : "#F0FFF4", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, borderWidth: 1, borderColor: detectingLoc ? "#E5E7EB" : "#A7F3D0" }}>
-                      {detectingLoc ? <ActivityIndicator size="small" color="#00A651" /> : <Ionicons name="navigate" size={14} color="#00A651" />}
-                      <Text style={{ color: "#00A651", fontSize: 11, fontFamily: "Inter_700Bold" }}>
+                      {detectingLoc ? <ActivityIndicator size="small" color="#047857" /> : <Ionicons name="navigate" size={14} color="#047857" />}
+                      <Text style={{ color: "#047857", fontSize: 11, fontFamily: "Inter_700Bold" }}>
                         {detectingLoc ? "..." : "GPS"}
                       </Text>
                     </Pressable>
                   </View>
                   <View style={cs.inputWrap}>
-                    <Ionicons name="flag" size={16} color="#9CA3AF" />
+                    <Ionicons name="flag" size={16} color="#6B7280" />
                     <TextInput style={cs.inputField} placeholder="Landmark nearby (optional)" placeholderTextColor="#9CA3AF" value={newLandmark} onChangeText={setNewLandmark} />
                   </View>
                 </View>
@@ -1027,7 +1027,7 @@ export default function ComplaintsScreen() {
                 {/* ── SECTION: PRIORITY ── */}
                 <View style={cs.sectionCard}>
                   <View style={cs.sectionHeader}>
-                    <View style={[cs.sectionDot, { backgroundColor: "#F59E0B" }]} />
+                    <View style={[cs.sectionDot, { backgroundColor: "#B45309" }]} />
                     <Text style={cs.sectionTitle}>PRIORITY LEVEL</Text>
                   </View>
                   <View style={{ flexDirection: "row", gap: 8 }}>
@@ -1063,7 +1063,7 @@ export default function ComplaintsScreen() {
                     </View>
                   )}
                 </Pressable>
-                <Text style={{ textAlign: "center", color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 8, marginBottom: 20 }}>
+                <Text style={{ textAlign: "center", color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 8, marginBottom: 20 }}>
                   Auto-routed to {CATS.find(c => c.key === newCat)?.deptFull} · Ticket generated instantly
                 </Text>
               </View>
@@ -1094,9 +1094,9 @@ const cs = StyleSheet.create({
   pillText: { color: "#374151", fontSize: 10, fontFamily: "Inter_500Medium" },
 
   sortPill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB" },
-  sortPillActive: { backgroundColor: "#FFF3E0", borderColor: "#E64A19" },
-  sortPillText: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_500Medium" },
-  sortPillTextActive: { color: "#E64A19", fontFamily: "Inter_700Bold" },
+  sortPillActive: { backgroundColor: "#FFF3E0", borderColor: "#C2410C" },
+  sortPillText: { color: "#4B5563", fontSize: 10, fontFamily: "Inter_500Medium" },
+  sortPillTextActive: { color: "#C2410C", fontFamily: "Inter_700Bold" },
 
   catPill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB" },
   catPillText: { color: "#374151", fontSize: 10, fontFamily: "Inter_500Medium" },
@@ -1106,79 +1106,79 @@ const cs = StyleSheet.create({
   cardTop: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 6 },
   catIconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   cardTicket: { color: "#111827", fontSize: 13, fontFamily: "Inter_700Bold" },
-  cardCat: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 },
+  cardCat: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 },
   badge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
   badgeText: { fontSize: 9, fontFamily: "Inter_600SemiBold", textTransform: "capitalize" },
   cardDesc: { color: "#374151", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18, marginBottom: 8 },
   cardBottom: { flexDirection: "row", alignItems: "center" },
-  cardLoc: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular" },
+  cardLoc: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_400Regular" },
   aiScore: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#F5F3FF", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   aiScoreText: { color: "#8B5CF6", fontSize: 9, fontFamily: "Inter_600SemiBold" },
   clusterBadge: { backgroundColor: "#F0FDFF", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  clusterText: { color: "#06B6D4", fontSize: 9, fontFamily: "Inter_600SemiBold" },
+  clusterText: { color: "#0E7490", fontSize: 9, fontFamily: "Inter_600SemiBold" },
   upvoteBtn: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#F9FAFB", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: "#E5E7EB" },
-  upvoteCount: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  upvoteCount: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_600SemiBold" },
   empty: { padding: 40, alignItems: "center", gap: 8 },
   emptyTitle: { color: "#374151", fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  emptySub: { color: "#9CA3AF", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" },
+  emptySub: { color: "#6B7280", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" },
   fab: { position: "absolute", right: 20, zIndex: 10 },
-  fabGrad: { width: 58, height: 58, borderRadius: 29, alignItems: "center", justifyContent: "center", shadowColor: "#E64A19", shadowRadius: 12, shadowOpacity: 0.5, elevation: 8 },
+  fabGrad: { width: 58, height: 58, borderRadius: 29, alignItems: "center", justifyContent: "center", shadowColor: "#C2410C", shadowRadius: 12, shadowOpacity: 0.5, elevation: 8 },
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   sheet: { backgroundColor: "#fff", borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "92%", overflow: "hidden" },
   sheetHandle: { width: 40, height: 4, backgroundColor: "#E5E7EB", borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 16 },
   detailHero: { flexDirection: "row", alignItems: "flex-start", gap: 14, padding: 20 },
   detailTicket: { color: "#111827", fontSize: 18, fontFamily: "Inter_700Bold" },
-  detailCat: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  detailCat: { color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
   closeBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
   detailDesc: { color: "#374151", fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22, marginBottom: 10 },
   detailLocRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
-  detailLoc: { color: "#9CA3AF", fontSize: 12, fontFamily: "Inter_400Regular", flex: 1 },
+  detailLoc: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular", flex: 1 },
   slaRow: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#F9FAFB", borderRadius: 8, padding: 8, marginBottom: 14 },
   slaRowBad: { backgroundColor: "#FEF2F2" },
-  slaText: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_500Medium" },
+  slaText: { color: "#4B5563", fontSize: 11, fontFamily: "Inter_500Medium" },
   statsRow: { flexDirection: "row", gap: 8, backgroundColor: "#F9FAFB", borderRadius: 14, padding: 14, marginBottom: 14 },
   statBox: { flex: 1, alignItems: "center" },
   statVal: { fontSize: 18, fontFamily: "Inter_700Bold" },
-  statLabel: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 2 },
+  statLabel: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 2 },
   proofRow: { flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 14 },
   proofImg: { width: 90, height: 70, backgroundColor: "#F9FAFB", borderRadius: 10, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#E5E7EB", gap: 4 },
-  proofLabel: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_500Medium" },
+  proofLabel: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_500Medium" },
   ratingBox: { alignItems: "center", gap: 4, marginBottom: 14 },
-  ratingLabel: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_500Medium" },
-  feedbackText: { color: "#9CA3AF", fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic" },
+  ratingLabel: { color: "#4B5563", fontSize: 12, fontFamily: "Inter_500Medium" },
+  feedbackText: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic" },
   actionBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#F9FAFB", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#E5E7EB" },
   actionText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   modalTitle: { color: "#111827", fontSize: 20, fontFamily: "Inter_700Bold", paddingHorizontal: 20, marginBottom: 4 },
-  modalSub: { color: "#9CA3AF", fontSize: 13, fontFamily: "Inter_400Regular", paddingHorizontal: 20, marginBottom: 8 },
+  modalSub: { color: "#6B7280", fontSize: 13, fontFamily: "Inter_400Regular", paddingHorizontal: 20, marginBottom: 8 },
   cameraBtn: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#F0FFF4", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#A7F3D0", justifyContent: "center", marginHorizontal: 20, marginBottom: 8 },
   gpsRow: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#F0FFF4", borderRadius: 8, padding: 10, marginHorizontal: 20, marginBottom: 8 },
-  gpsText: { color: "#00A651", fontSize: 12, fontFamily: "Inter_500Medium" },
+  gpsText: { color: "#047857", fontSize: 12, fontFamily: "Inter_500Medium" },
   proofAddedBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#F0FFF4", borderRadius: 10, padding: 12, marginHorizontal: 20, marginBottom: 8 },
-  proofAddedText: { color: "#00A651", fontSize: 13, fontFamily: "Inter_500Medium" },
+  proofAddedText: { color: "#047857", fontSize: 13, fontFamily: "Inter_500Medium" },
   textArea: { backgroundColor: "#F9FAFB", borderRadius: 12, padding: 14, color: "#111827", fontSize: 14, fontFamily: "Inter_400Regular", borderWidth: 1, borderColor: "#E5E7EB", minHeight: 80, textAlignVertical: "top", marginBottom: 8 },
   cancelBtn: { flex: 1, backgroundColor: "#F9FAFB", borderRadius: 12, padding: 14, alignItems: "center", borderWidth: 1, borderColor: "#E5E7EB", marginLeft: 20 },
-  cancelText: { color: "#6B7280", fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  confirmBtn: { flex: 2, backgroundColor: "#00A651", borderRadius: 12, padding: 14, alignItems: "center", marginRight: 20 },
+  cancelText: { color: "#4B5563", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  confirmBtn: { flex: 2, backgroundColor: "#047857", borderRadius: 12, padding: 14, alignItems: "center", marginRight: 20 },
   confirmText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
-  fieldLabel: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_700Bold", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginTop: 12 },
+  fieldLabel: { color: "#4B5563", fontSize: 10, fontFamily: "Inter_700Bold", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginTop: 12 },
   catGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 4 },
   catCard: { width: "22%", backgroundColor: "#F9FAFB", borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1, borderColor: "#E5E7EB", gap: 4 },
-  catCardText: { color: "#9CA3AF", fontSize: 9, fontFamily: "Inter_500Medium", textAlign: "center" },
+  catCardText: { color: "#6B7280", fontSize: 9, fontFamily: "Inter_500Medium", textAlign: "center" },
   inputWrap: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#F9FAFB", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14, borderWidth: 1, borderColor: "#E5E7EB", marginBottom: 12 },
   inputField: { flex: 1, color: "#111827", fontSize: 14, fontFamily: "Inter_400Regular" },
   prBtn: { flex: 1, backgroundColor: "#F9FAFB", borderRadius: 10, padding: 10, alignItems: "center", borderWidth: 1, borderColor: "#E5E7EB" },
   prBtnText: { color: "#374151", fontSize: 13, fontFamily: "Inter_700Bold" },
-  prBtnSub: { color: "#9CA3AF", fontSize: 9, fontFamily: "Inter_400Regular", marginTop: 2 },
+  prBtnSub: { color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular", marginTop: 2 },
   photoPreview: { width: "100%", height: 160, borderRadius: 12, backgroundColor: "#F3F4F6", marginBottom: 4 },
   removePhoto: { position: "absolute", top: 8, right: 8 },
   photoPicker: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#EFF6FF", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#BFDBFE", marginBottom: 16 },
   photoPickerIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
-  photoPickerTitle: { color: "#3B82F6", fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  photoPickerSub: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
-  submitBtn: { backgroundColor: "#E64A19", borderRadius: 14, padding: 18, alignItems: "center", marginTop: 4 },
+  photoPickerTitle: { color: "#2563EB", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  photoPickerSub: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  submitBtn: { backgroundColor: "#C2410C", borderRadius: 14, padding: 18, alignItems: "center", marginTop: 4 },
   submitBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
   aiDetectRow: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF8E7", borderRadius: 10, padding: 10, marginBottom: 8 },
-  aiDetectText: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_500Medium" },
+  aiDetectText: { color: "#4B5563", fontSize: 12, fontFamily: "Inter_500Medium" },
   sectionCard: { backgroundColor: "#FAFAFA", borderRadius: 16, padding: 14, marginTop: 12, borderWidth: 1, borderColor: "#F0F0F0" },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
   sectionDot: { width: 8, height: 8, borderRadius: 4 },

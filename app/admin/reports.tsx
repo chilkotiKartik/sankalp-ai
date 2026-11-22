@@ -13,17 +13,17 @@ import Colors from "@/constants/colors";
 
 const CATEGORY_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
   pothole:     { label: "Pothole",     icon: "alert-circle",    color: "#F59E0B" },
-  garbage:     { label: "Garbage",     icon: "trash",           color: "#EF4444" },
+  garbage:     { label: "Garbage",     icon: "trash",           color: "#F87171" },
   streetlight: { label: "Streetlight", icon: "bulb",            color: "#FCD34D" },
-  water:       { label: "Water",       icon: "water",           color: "#3B82F6" },
+  water:       { label: "Water",       icon: "water",           color: "#60A5FA" },
   drain:       { label: "Drain",       icon: "git-network",     color: "#06B6D4" },
-  electricity: { label: "Electricity", icon: "flash",           color: "#8B5CF6" },
+  electricity: { label: "Electricity", icon: "flash",           color: "#A78BFA" },
   tree:        { label: "Tree",        icon: "leaf",            color: "#22C55E" },
-  other:       { label: "Other",       icon: "ellipsis-horizontal", color: "#6B7280" },
+  other:       { label: "Other",       icon: "ellipsis-horizontal", color: "#9CA3AF" },
 };
 
-const PRIORITY_COLORS: Record<string, string> = { P1: "#EF4444", P2: "#F59E0B", P3: "#3B82F6", P4: "#6B7280" };
-const STATUS_COLORS: Record<string, string> = { pending: "#F59E0B", in_progress: "#3B82F6", resolved: "#22C55E", closed: "#6B7280" };
+const PRIORITY_COLORS: Record<string, string> = { P1: "#F87171", P2: "#F59E0B", P3: "#60A5FA", P4: "#9CA3AF" };
+const STATUS_COLORS: Record<string, string> = { pending: "#F59E0B", in_progress: "#60A5FA", resolved: "#22C55E", closed: "#9CA3AF" };
 
 type SortKey = "submittedAt" | "priority" | "upvotes" | "aiScore";
 type FilterCat = "all" | "pothole" | "garbage" | "streetlight" | "water" | "drain" | "electricity" | "tree" | "other";
@@ -38,8 +38,8 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
   const [loading, setLoading] = useState(false);
   if (!complaint) return null;
   const meta = CATEGORY_META[complaint.category] || CATEGORY_META.other;
-  const priColor = PRIORITY_COLORS[complaint.priority] || "#6B7280";
-  const statusColor = STATUS_COLORS[complaint.status] || "#6B7280";
+  const priColor = PRIORITY_COLORS[complaint.priority] || "#9CA3AF";
+  const statusColor = STATUS_COLORS[complaint.status] || "#9CA3AF";
   const timeAgo = (iso: string) => {
     const diff = Date.now() - new Date(iso).getTime();
     const h = Math.floor(diff / 3600000);
@@ -132,7 +132,7 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
             {/* Stats */}
             <View style={styles.statsGrid}>
               <View style={styles.statItem}><Ionicons name="chevron-up" size={14} color={Colors.green} /><Text style={styles.statVal}>{complaint.upvotes}</Text><Text style={styles.statLbl}>Upvotes</Text></View>
-              <View style={styles.statItem}><Ionicons name="hardware-chip" size={14} color="#8B5CF6" /><Text style={styles.statVal}>{complaint.aiScore}%</Text><Text style={styles.statLbl}>AI Score</Text></View>
+              <View style={styles.statItem}><Ionicons name="hardware-chip" size={14} color="#A78BFA" /><Text style={styles.statVal}>{complaint.aiScore}%</Text><Text style={styles.statLbl}>AI Score</Text></View>
               <View style={styles.statItem}><Ionicons name="shield" size={14} color={Colors.amber} /><Text style={styles.statVal}>{complaint.aiConfidence}%</Text><Text style={styles.statLbl}>Confidence</Text></View>
               {complaint.rating && <View style={styles.statItem}><Ionicons name="star" size={14} color={Colors.amber} /><Text style={styles.statVal}>{complaint.rating}/5</Text><Text style={styles.statLbl}>Rating</Text></View>}
             </View>
@@ -151,7 +151,7 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
                   {loading ? <ActivityIndicator color="#fff" size="small" /> : <><Ionicons name="checkmark-circle" size={16} color="#fff" /><Text style={styles.resolveBtnText}>Upload proof & mark fixed</Text></>}
                 </Pressable>
                 <Pressable onPress={doReject} disabled={loading} style={styles.rejectBtn}>
-                  <Ionicons name="close-circle" size={16} color="#EF4444" />
+                  <Ionicons name="close-circle" size={16} color="#F87171" />
                   <Text style={styles.rejectBtnText}>Start work</Text>
                 </Pressable>
               </View>
@@ -272,8 +272,8 @@ export default function AdminReports() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20 }}
         renderItem={({ item: c }) => {
           const meta = CATEGORY_META[c.category] || CATEGORY_META.other;
-          const priColor = PRIORITY_COLORS[c.priority] || "#6B7280";
-          const statusColor = STATUS_COLORS[c.status] || "#6B7280";
+          const priColor = PRIORITY_COLORS[c.priority] || "#9CA3AF";
+          const statusColor = STATUS_COLORS[c.status] || "#9CA3AF";
           return (
             <Pressable onPress={() => setSelectedC(c)} style={styles.card}>
               <View style={styles.cardTop}>
@@ -308,7 +308,7 @@ export default function AdminReports() {
                 </View>
                 <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
-                    <Ionicons name="hardware-chip" size={11} color="#8B5CF6" />
+                    <Ionicons name="hardware-chip" size={11} color="#A78BFA" />
                     <Text style={styles.aiText}>{c.aiScore}%</Text>
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   cardDesc: { color: "#D1D5DB", fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18, marginBottom: 8 },
   cardBottom: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   cardLoc: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular" },
-  aiText: { color: "#8B5CF6", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  aiText: { color: "#A78BFA", fontSize: 11, fontFamily: "Inter_600SemiBold" },
   upvoteText: { color: Colors.green, fontSize: 11, fontFamily: "Inter_600SemiBold" },
   // Modal styles
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.8)", justifyContent: "flex-end" },
@@ -388,5 +388,5 @@ const styles = StyleSheet.create({
   resolveBtn: { flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: Colors.green, borderRadius: 12, padding: 12 },
   resolveBtnText: { color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" },
   rejectBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#EF444422", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#EF444444" },
-  rejectBtnText: { color: "#EF4444", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  rejectBtnText: { color: "#F87171", fontSize: 13, fontFamily: "Inter_600SemiBold" },
 });

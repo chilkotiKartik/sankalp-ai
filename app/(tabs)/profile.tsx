@@ -20,19 +20,19 @@ const LEVEL_TITLES = ["", "Resident", "Active Resident", "Engaged Citizen", "Civ
   "Community Leader", "City Guardian", "Civic Champion", "State Hero", "Urban Warrior", "City Legend"];
 
 const BADGE_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string; color: string }> = {
-  new_citizen:    { icon: "leaf",             label: "New Citizen",   color: "#00A651" },
-  active_citizen: { icon: "star",             label: "Active Citizen",color: "#F59E0B" },
+  new_citizen:    { icon: "leaf",             label: "New Citizen",   color: "#047857" },
+  active_citizen: { icon: "star",             label: "Active Citizen",color: "#B45309" },
   civic_hero:     { icon: "ribbon",           label: "Civic Hero",    color: "#8B5CF6" },
-  city_champion:  { icon: "trophy",           label: "City Champion", color: "#EF4444" },
-  first_report:   { icon: "document-text",    label: "First Report",  color: "#3B82F6" },
-  system_admin:   { icon: "shield-checkmark", label: "System Admin",  color: "#06B6D4" },
+  city_champion:  { icon: "trophy",           label: "City Champion", color: "#DC2626" },
+  first_report:   { icon: "document-text",    label: "First Report",  color: "#2563EB" },
+  system_admin:   { icon: "shield-checkmark", label: "System Admin",  color: "#0E7490" },
 };
 
 /** No remote stock portraits: profiles show initials until users upload their own photo. */
 const INDIAN_PHOTOS: Record<string, string> = {};
 
 function BadgeChip({ badge }: { badge: string }) {
-  const cfg = BADGE_CONFIG[badge] || { icon: "medal" as const, label: badge, color: "#9CA3AF" };
+  const cfg = BADGE_CONFIG[badge] || { icon: "medal" as const, label: badge, color: "#6B7280" };
   return (
     <View style={[bs.chip, { borderColor: cfg.color + "44", backgroundColor: cfg.color + "11" }]}>
       <Ionicons name={cfg.icon as any} size={13} color={cfg.color} />
@@ -171,8 +171,8 @@ export default function ProfileScreen() {
         {/* STATS ROW */}
         <View style={styles.statsRow}>
           {[
-            { val: myComplaints.length, label: "Reports Filed", color: "#FF9933", bg: "#FFF8E7" },
-            { val: myComplaints.filter(c => c.status === "resolved").length, label: "Resolved", color: "#00A651", bg: "#F0FFF4" },
+            { val: myComplaints.length, label: "Reports Filed", color: "#C2410C", bg: "#FFF8E7" },
+            { val: myComplaints.filter(c => c.status === "resolved").length, label: "Resolved", color: "#047857", bg: "#F0FFF4" },
             { val: badges.length, label: "Badges", color: "#8B5CF6", bg: "#F5F3FF" },
           ].map((s, i) => (
             <View key={i} style={[styles.statCard, { borderColor: s.color + "20" }]}>
@@ -187,12 +187,12 @@ export default function ProfileScreen() {
           <Text style={styles.cardTitle}>Quick Services</Text>
           <View style={styles.servicesGrid}>
             {[
-              { icon: "receipt-outline" as const,      label: "Pay Bills",    color: "#FF9933", nav: "/(tabs)/bills" },
-              { icon: "list-outline" as const,         label: "My Reports",   color: "#3B82F6", nav: "/(tabs)/complaints" },
+              { icon: "receipt-outline" as const,      label: "Pay Bills",    color: "#C2410C", nav: "/(tabs)/bills" },
+              { icon: "list-outline" as const,         label: "My Reports",   color: "#2563EB", nav: "/(tabs)/complaints" },
               { icon: "people-outline" as const,       label: "Community",    color: "#8B5CF6", nav: "/(tabs)/community" },
-              { icon: "document-text-outline" as const, label: "File RTI",   color: "#00A651", nav: "/(tabs)/rti" },
-              { icon: "warning-outline" as const,      label: "SOS Alert",    color: "#EF4444", nav: "/(tabs)/sos" },
-              { icon: "analytics-outline" as const,    label: "Analytics",    color: "#06B6D4", nav: "/(tabs)/analytics" },
+              { icon: "document-text-outline" as const, label: "File RTI",   color: "#047857", nav: "/(tabs)/rti" },
+              { icon: "warning-outline" as const,      label: "SOS Alert",    color: "#DC2626", nav: "/(tabs)/sos" },
+              { icon: "analytics-outline" as const,    label: "Analytics",    color: "#0E7490", nav: "/(tabs)/analytics" },
             ].map((s, i) => (
               <Pressable key={i} onPress={() => router.push(s.nav as any)}
                 style={({ pressed }) => [styles.serviceCard, { borderColor: s.color + "25", opacity: pressed ? 0.75 : 1 }]}>
@@ -234,7 +234,7 @@ export default function ProfileScreen() {
           <Text style={styles.cardTitle}>Settings</Text>
           <View style={styles.settingRow}>
             <View style={[styles.settingIcon, { backgroundColor: "#FFF8E7" }]}>
-              <Ionicons name="notifications-outline" size={16} color="#FF9933" />
+              <Ionicons name="notifications-outline" size={16} color="#C2410C" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Push Notifications</Text>
@@ -247,7 +247,7 @@ export default function ProfileScreen() {
             onPress={() => setShowLangModal(true)}
           >
             <View style={[styles.settingIcon, { backgroundColor: "#F0FFF4" }]}>
-              <Ionicons name="language-outline" size={16} color="#00A651" />
+              <Ionicons name="language-outline" size={16} color="#047857" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Language</Text>
@@ -255,7 +255,7 @@ export default function ProfileScreen() {
             </View>
             <View style={[styles.langPill, { flexDirection: "row", alignItems: "center", gap: 5 }]}>
               <Text style={styles.langPillText}>{language.toUpperCase()}</Text>
-              <Ionicons name="chevron-down" size={10} color="#00A651" />
+              <Ionicons name="chevron-down" size={10} color="#047857" />
             </View>
           </Pressable>
           {/* P9: switch state — accounts and complaints belong to one state, so this signs you out first. */}
@@ -272,13 +272,13 @@ export default function ProfileScreen() {
             }}
           >
             <View style={[styles.settingIcon, { backgroundColor: "#FFF7ED" }]}>
-              <Ionicons name="map-outline" size={16} color="#FF9933" />
+              <Ionicons name="map-outline" size={16} color="#C2410C" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>State / UT</Text>
               <Text style={styles.settingDesc}>{stateName()}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
+            <Ionicons name="chevron-forward" size={14} color="#6B7280" />
           </Pressable>
         </View>
 
@@ -299,13 +299,13 @@ export default function ProfileScreen() {
                 >
                   <Text style={{ fontSize: 28 }}>{lang.flag}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={[ls.langOptionLabel, language === lang.code && { color: "#00A651" }]}>
+                    <Text style={[ls.langOptionLabel, language === lang.code && { color: "#047857" }]}>
                       {lang.native}
                     </Text>
                     <Text style={ls.langOptionDesc}>{lang.desc}</Text>
                   </View>
                   {language === lang.code && (
-                    <Ionicons name="checkmark-circle" size={22} color="#00A651" />
+                    <Ionicons name="checkmark-circle" size={22} color="#047857" />
                   )}
                 </Pressable>
               ))}
@@ -337,7 +337,7 @@ export default function ProfileScreen() {
           ].map(item => (
             <View key={item.action} style={styles.earnRow}>
               <View style={styles.earnIcon}>
-                <Ionicons name={item.icon} size={15} color="#00A651" />
+                <Ionicons name={item.icon} size={15} color="#047857" />
               </View>
               <Text style={styles.earnAction}>{item.action}</Text>
               <View style={styles.earnBadge}>
@@ -362,10 +362,10 @@ export default function ProfileScreen() {
                 <Text style={styles.reportDesc} numberOfLines={1}>{c.description}</Text>
               </View>
               <View style={[styles.statusBadge, {
-                backgroundColor: (c.status === "resolved" ? "#00A651" : c.status === "pending" ? "#F59E0B" : "#3B82F6") + "18"
+                backgroundColor: (c.status === "resolved" ? "#047857" : c.status === "pending" ? "#B45309" : "#3B82F6") + "18"
               }]}>
                 <Text style={[styles.statusText, {
-                  color: c.status === "resolved" ? "#00A651" : c.status === "pending" ? "#F59E0B" : "#3B82F6"
+                  color: c.status === "resolved" ? "#047857" : c.status === "pending" ? "#B45309" : "#3B82F6"
                 }]}>{c.status.replace("_", " ")}</Text>
               </View>
             </View>
@@ -395,20 +395,20 @@ export default function ProfileScreen() {
         <Pressable onPress={() => router.push("/(tabs)/bills")} style={styles.billsCard}>
           <View style={styles.billsLeft}>
             <View style={[styles.billsIcon, { backgroundColor: "#EFF6FF" }]}>
-              <Ionicons name="receipt-outline" size={22} color="#3B82F6" />
+              <Ionicons name="receipt-outline" size={22} color="#2563EB" />
             </View>
             <View>
               <Text style={styles.billsTitle}>Pay Government Bills</Text>
               <Text style={styles.billsSub}>Property Tax · Water · Electricity</Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+          <Ionicons name="chevron-forward" size={18} color="#6B7280" />
         </Pressable>
 
         {/* SIGN OUT */}
         <PrivacyControls />
         <Pressable onPress={handleLogout} style={styles.logoutBtn}>
-          <LinearGradient colors={["#DC2626", "#EF4444"]} style={styles.logoutGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+          <LinearGradient colors={["#DC2626", "#DC2626"]} style={styles.logoutGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <Ionicons name="log-out-outline" size={20} color="#fff" />
             <Text style={styles.logoutText}>Sign Out of SANKALP AI</Text>
           </LinearGradient>
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   avatarCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "rgba(255,255,255,0.6)" },
   avatarText: { color: "#fff", fontSize: 22, fontFamily: "Inter_700Bold" },
   levelDot: { position: "absolute", bottom: -2, right: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#FF9933" },
-  levelDotText: { color: "#FF9933", fontSize: 9, fontFamily: "Inter_700Bold" },
+  levelDotText: { color: "#C2410C", fontSize: 9, fontFamily: "Inter_700Bold" },
   idName: { color: "#fff", fontSize: 17, fontFamily: "Inter_700Bold" },
   idPhone: { color: "rgba(255,255,255,0.8)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 3 },
   idCitizenId: { color: "rgba(255,255,255,0.65)", fontSize: 10, fontFamily: "Inter_400Regular", letterSpacing: 0.5, marginTop: 2 },
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: "row", paddingHorizontal: 16, gap: 10, marginBottom: 14 },
   statCard: { flex: 1, backgroundColor: "#fff", borderRadius: 14, padding: 14, alignItems: "center", borderWidth: 1 },
   statVal: { fontSize: 24, fontFamily: "Inter_700Bold" },
-  statLabel: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_500Medium", marginTop: 4, textAlign: "center" },
+  statLabel: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_500Medium", marginTop: 4, textAlign: "center" },
 
   card: { marginHorizontal: 16, backgroundColor: "#fff", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "#E5E7EB", marginBottom: 14 },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
@@ -469,17 +469,17 @@ const styles = StyleSheet.create({
   notifRowUnread: { backgroundColor: "#FFFBEB" },
   notifDot: { width: 8, height: 8, borderRadius: 4 },
   notifTitle: { color: "#374151", fontSize: 12, fontFamily: "Inter_600SemiBold" },
-  notifBody: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  notifBody: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   unreadBadge: { backgroundColor: "#FFF8E7", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 },
-  unreadBadgeText: { color: "#FF9933", fontSize: 10, fontFamily: "Inter_700Bold" },
-  markRead: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginLeft: "auto" },
+  unreadBadgeText: { color: "#C2410C", fontSize: 10, fontFamily: "Inter_700Bold" },
+  markRead: { color: "#6B7280", fontSize: 10, fontFamily: "Inter_400Regular", marginLeft: "auto" },
 
   settingRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   settingIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   settingLabel: { color: "#111827", fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  settingDesc: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
-  langPill: { backgroundColor: "#F0FFF4", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: "#00A65130" },
-  langPillText: { color: "#00A651", fontSize: 12, fontFamily: "Inter_700Bold" },
+  settingDesc: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  langPill: { backgroundColor: "#F0FFF4", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: "#04785730" },
+  langPillText: { color: "#047857", fontSize: 12, fontFamily: "Inter_700Bold" },
 
   badgesWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
 
@@ -487,17 +487,17 @@ const styles = StyleSheet.create({
   earnIcon: { width: 30, height: 30, borderRadius: 8, backgroundColor: "#F0FFF4", alignItems: "center", justifyContent: "center" },
   earnAction: { flex: 1, color: "#374151", fontSize: 12, fontFamily: "Inter_500Medium" },
   earnBadge: { backgroundColor: "#F0FFF4", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  earnPts: { color: "#00A651", fontSize: 13, fontFamily: "Inter_700Bold" },
+  earnPts: { color: "#047857", fontSize: 13, fontFamily: "Inter_700Bold" },
 
   reportRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: "#F3F4F6" },
   reportId: { color: "#374151", fontSize: 12, fontFamily: "Inter_600SemiBold", textTransform: "uppercase" },
-  reportDesc: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  reportDesc: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   statusBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
   statusText: { fontSize: 10, fontFamily: "Inter_500Medium", textTransform: "capitalize" },
   emptyState: { alignItems: "center", paddingVertical: 24, gap: 10 },
-  emptyText: { color: "#9CA3AF", fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center" },
+  emptyText: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center" },
 
-  seeAll: { color: "#FF9933", fontSize: 12, fontFamily: "Inter_500Medium", marginLeft: "auto" },
+  seeAll: { color: "#C2410C", fontSize: 12, fontFamily: "Inter_500Medium", marginLeft: "auto" },
 
   adminCard: { marginHorizontal: 16, borderRadius: 16, overflow: "hidden", marginBottom: 14 },
   adminGrad: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
@@ -508,23 +508,23 @@ const styles = StyleSheet.create({
   billsLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
   billsIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   billsTitle: { color: "#111827", fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  billsSub: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  billsSub: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
 
   logoutBtn: { marginHorizontal: 16, borderRadius: 16, overflow: "hidden", marginBottom: 14 },
   logoutGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 18 },
   logoutText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
 
-  footer: { textAlign: "center", color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 8, letterSpacing: 0.5 },
+  footer: { textAlign: "center", color: "#6B7280", fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 8, letterSpacing: 0.5 },
 });
 
 const ls = StyleSheet.create({
   langOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center", padding: 24 },
   langCard: { backgroundColor: "#fff", borderRadius: 24, padding: 24, width: "100%", maxWidth: 360, shadowColor: "#000", shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.18, shadowRadius: 32, elevation: 20 },
   langTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#111827", marginBottom: 4 },
-  langSub: { fontSize: 13, fontFamily: "Inter_400Regular", color: "#6B7280", marginBottom: 18 },
+  langSub: { fontSize: 13, fontFamily: "Inter_400Regular", color: "#4B5563", marginBottom: 18 },
   langOption: { flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 16, borderWidth: 1.5, borderColor: "#E5E7EB", marginBottom: 10 },
-  langOptionActive: { borderColor: "#00A651", backgroundColor: "#F0FFF4" },
+  langOptionActive: { borderColor: "#047857", backgroundColor: "#F0FFF4" },
   langOptionLabel: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#111827", marginBottom: 2 },
-  langOptionDesc: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#6B7280" },
-  langNote: { marginTop: 12, fontSize: 12, fontFamily: "Inter_500Medium", color: "#00A651", backgroundColor: "#F0FFF4", borderRadius: 10, padding: 10, textAlign: "center" },
+  langOptionDesc: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#4B5563" },
+  langNote: { marginTop: 12, fontSize: 12, fontFamily: "Inter_500Medium", color: "#047857", backgroundColor: "#F0FFF4", borderRadius: 10, padding: 10, textAlign: "center" },
 });

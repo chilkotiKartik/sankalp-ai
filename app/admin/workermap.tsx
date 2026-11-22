@@ -33,7 +33,7 @@ interface Worker {
 const STATUS_META = {
   active:   { color: "#00C060", bg: "#00C06022", label: "Active",   icon: "radio-button-on"  as const },
   idle:     { color: "#FFAB00", bg: "#FFAB0022", label: "Idle",     icon: "pause-circle"     as const },
-  on_leave: { color: "#6B7280", bg: "#6B728022", label: "On Leave", icon: "moon"             as const },
+  on_leave: { color: "#9CA3AF", bg: "#6B728022", label: "On Leave", icon: "moon"             as const },
 };
 
 const { width: SW } = Dimensions.get("window");
@@ -178,7 +178,7 @@ export default function WorkerMapScreen() {
     setTimeout(() => focusOnMap(w), 120);
   };
 
-  const liveColor = liveStatus === "live" ? "#00C060" : liveStatus === "connecting" ? "#FFAB00" : "#EF4444";
+  const liveColor = liveStatus === "live" ? "#00C060" : liveStatus === "connecting" ? "#FFAB00" : "#F87171";
   const liveLabel = liveStatus === "live" ? "Live · 8s refresh" : liveStatus === "connecting" ? "Connecting…" : "Offline";
 
   return (
@@ -213,7 +213,7 @@ export default function WorkerMapScreen() {
         {([
           { label: "Active",  count: activeCount,    color: "#00C060", icon: "radio-button-on" as const, st: "active"   as const },
           { label: "Idle",    count: idleCount,      color: "#FFAB00", icon: "pause-circle"    as const, st: "idle"     as const },
-          { label: "Leave",   count: leaveCount,     color: "#6B7280", icon: "moon"            as const, st: "on_leave" as const },
+          { label: "Leave",   count: leaveCount,     color: "#9CA3AF", icon: "moon"            as const, st: "on_leave" as const },
           { label: "Total",   count: workers.length, color: Colors.saffron, icon: "people"     as const, st: "all"      as const },
         ]).map(item => (
           <Pressable key={item.label} onPress={() => setFilterStatus(filterStatus === item.st && item.st !== "all" ? "all" : item.st)}
@@ -411,7 +411,7 @@ export default function WorkerMapScreen() {
                   <View style={s.statsGrid}>
                     {[
                       { label: "Today",  value: selectedWorker.resolvedToday,                icon: "today"          as const, color: "#00C060" },
-                      { label: "Total",  value: selectedWorker.totalResolved,                icon: "checkmark-done" as const, color: "#3B82F6" },
+                      { label: "Total",  value: selectedWorker.totalResolved,                icon: "checkmark-done" as const, color: "#60A5FA" },
                       { label: "Rating", value: `★${selectedWorker.avgRating.toFixed(1)}`,  icon: "star"           as const, color: Colors.turmeric },
                       { label: "Score",  value: selectedWorker.score,                        icon: "trophy"         as const, color: Colors.saffron },
                     ].map(item => (

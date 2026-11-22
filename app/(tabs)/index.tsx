@@ -18,21 +18,21 @@ import { OfficialNews, relTime as relNewsTime } from "@/components/OfficialNews"
 import { NATIONAL_SCHEMES, MYSCHEME_URL, type Scheme } from "@/constants/schemes";
 
 const CATEGORY_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
-  pothole:     { label: "Pothole",     icon: "alert-circle",        color: "#F59E0B", bg: "#FFF8E7" },
-  garbage:     { label: "Garbage",     icon: "trash",               color: "#EF4444", bg: "#FEF2F2" },
-  streetlight: { label: "Streetlight", icon: "bulb",                color: "#F59E0B", bg: "#FFF8E7" },
-  water:       { label: "Water",       icon: "water",               color: "#3B82F6", bg: "#EFF6FF" },
-  drain:       { label: "Drain",       icon: "git-network",         color: "#06B6D4", bg: "#F0FDFF" },
+  pothole:     { label: "Pothole",     icon: "alert-circle",        color: "#B45309", bg: "#FFF8E7" },
+  garbage:     { label: "Garbage",     icon: "trash",               color: "#DC2626", bg: "#FEF2F2" },
+  streetlight: { label: "Streetlight", icon: "bulb",                color: "#B45309", bg: "#FFF8E7" },
+  water:       { label: "Water",       icon: "water",               color: "#2563EB", bg: "#EFF6FF" },
+  drain:       { label: "Drain",       icon: "git-network",         color: "#0E7490", bg: "#F0FDFF" },
   electricity: { label: "Electricity", icon: "flash",               color: "#8B5CF6", bg: "#F5F3FF" },
-  tree:        { label: "Tree",        icon: "leaf",                color: "#00A651", bg: "#F0FFF4" },
-  other:       { label: "Other",       icon: "ellipsis-horizontal", color: "#6B7280", bg: "#F9FAFB" },
+  tree:        { label: "Tree",        icon: "leaf",                color: "#047857", bg: "#F0FFF4" },
+  other:       { label: "Other",       icon: "ellipsis-horizontal", color: "#4B5563", bg: "#F9FAFB" },
 };
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  pending:     { label: "Pending",     color: "#F59E0B", bg: "#FFF8E7" },
-  in_progress: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
-  resolved:    { label: "Resolved",    color: "#00A651", bg: "#F0FFF4" },
-  closed:      { label: "Closed",      color: "#6B7280", bg: "#F9FAFB" },
+  pending:     { label: "Pending",     color: "#B45309", bg: "#FFF8E7" },
+  in_progress: { label: "In Progress", color: "#2563EB", bg: "#EFF6FF" },
+  resolved:    { label: "Resolved",    color: "#047857", bg: "#F0FFF4" },
+  closed:      { label: "Closed",      color: "#4B5563", bg: "#F9FAFB" },
 };
 
 /**
@@ -46,12 +46,12 @@ type NewsItem = {
   link?: string;
 };
 const ANN_STYLE: Record<string, { icon: NewsItem["icon"]; color: string; bg: string }> = {
-  emergency: { icon: "warning", color: "#EF4444", bg: "#FEF2F2" },
-  scheme: { icon: "ribbon-outline", color: "#3B82F6", bg: "#EFF6FF" },
+  emergency: { icon: "warning", color: "#DC2626", bg: "#FEF2F2" },
+  scheme: { icon: "ribbon-outline", color: "#2563EB", bg: "#EFF6FF" },
   welfare: { icon: "heart-outline", color: "#EC4899", bg: "#FDF2F8" },
-  tender: { icon: "document-text-outline", color: "#F59E0B", bg: "#FFFBEB" },
+  tender: { icon: "document-text-outline", color: "#B45309", bg: "#FFFBEB" },
   holiday: { icon: "calendar-outline", color: "#8B5CF6", bg: "#F5F3FF" },
-  general: { icon: "megaphone-outline", color: "#6B7280", bg: "#F9FAFB" },
+  general: { icon: "megaphone-outline", color: "#4B5563", bg: "#F9FAFB" },
 };
 function relTime(iso: string): string {
   const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -72,7 +72,7 @@ const SCHEMES_DATA: Scheme[] = [
     title: "CM Swarojgar Yojana",
     sub: "Self-employment loans for hill residents",
     tag: "EMPLOYMENT",
-    color: "#3B82F6",
+    color: "#2563EB",
     icon: "briefcase" as const,
     fullTitle: "Mukhyamantri Swarojgar Yojana — Uttarakhand",
     tagline: "Empowering mountain entrepreneurs with financial support",
@@ -99,7 +99,7 @@ const SCHEMES_DATA: Scheme[] = [
     title: "Ayushman Bharat",
     sub: "₹5 lakh health coverage per family",
     tag: "HEALTH",
-    color: "#EF4444",
+    color: "#DC2626",
     icon: "medkit" as const,
     fullTitle: "Ayushman Bharat — Pradhan Mantri Jan Arogya Yojana (AB-PMJAY)",
     tagline: "World's largest government-funded health assurance scheme",
@@ -127,7 +127,7 @@ const SCHEMES_DATA: Scheme[] = [
     title: "Gaura Devi Kanya Dhan",
     sub: "₹51,000 grant for girl students",
     tag: "EDUCATION",
-    color: "#00A651",
+    color: "#047857",
     icon: "school" as const,
     fullTitle: "Gaura Devi Kanya Dhan Yojana — Uttarakhand",
     tagline: "Empowering girl children from Uttarakhand's hills",
@@ -232,7 +232,7 @@ function SchemeModal({ scheme, onClose }: { scheme: Scheme | null; onClose: () =
             <View style={ms.section}>
               <View style={ms.sectionHeader}>
                 <View style={[ms.sectionIcon, { backgroundColor: "#FFF8E7" }]}>
-                  <Ionicons name="person-circle" size={16} color="#F59E0B" />
+                  <Ionicons name="person-circle" size={16} color="#B45309" />
                 </View>
                 <Text style={ms.sectionTitle}>Who Can Apply?</Text>
               </View>
@@ -248,13 +248,13 @@ function SchemeModal({ scheme, onClose }: { scheme: Scheme | null; onClose: () =
             <View style={ms.section}>
               <View style={ms.sectionHeader}>
                 <View style={[ms.sectionIcon, { backgroundColor: "#F0FFF4" }]}>
-                  <Ionicons name="gift" size={16} color="#00A651" />
+                  <Ionicons name="gift" size={16} color="#047857" />
                 </View>
                 <Text style={ms.sectionTitle}>Key Benefits</Text>
               </View>
               {scheme.benefits.map((b, i) => (
                 <View key={i} style={ms.bullet}>
-                  <Ionicons name="checkmark-circle" size={16} color="#00A651" />
+                  <Ionicons name="checkmark-circle" size={16} color="#047857" />
                   <Text style={ms.bulletText}>{b}</Text>
                 </View>
               ))}
@@ -264,7 +264,7 @@ function SchemeModal({ scheme, onClose }: { scheme: Scheme | null; onClose: () =
             <View style={ms.section}>
               <View style={ms.sectionHeader}>
                 <View style={[ms.sectionIcon, { backgroundColor: "#EFF6FF" }]}>
-                  <Ionicons name="document-text" size={16} color="#3B82F6" />
+                  <Ionicons name="document-text" size={16} color="#2563EB" />
                 </View>
                 <Text style={ms.sectionTitle}>How to Apply</Text>
               </View>
@@ -282,8 +282,8 @@ function SchemeModal({ scheme, onClose }: { scheme: Scheme | null; onClose: () =
               </Pressable> : null}
               <Pressable style={[ms.contactBtn, { backgroundColor: "#F9FAFB", borderColor: "#E5E7EB" }]}
                 onPress={() => Linking.openURL(`https://${scheme.website}`)}>
-                <Ionicons name="globe" size={18} color="#6B7280" />
-                <Text style={[ms.contactBtnText, { color: "#6B7280" }]}>Website</Text>
+                <Ionicons name="globe" size={18} color="#4B5563" />
+                <Text style={[ms.contactBtnText, { color: "#4B5563" }]}>Website</Text>
               </Pressable>
             </View>
 
@@ -315,11 +315,11 @@ function NewsDetailModal({ news, onClose }: { news: any; onClose: () => void }) 
                   <View style={[ms.tagPill, { backgroundColor: news.color + "18" }]}>
                     <Text style={[ms.tagText, { color: news.color }]}>{news.tag}</Text>
                   </View>
-                  <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular" }}>{news.readTime}</Text>
+                  <Text style={{ color: "#4B5563", fontSize: 10, fontFamily: "Inter_400Regular" }}>{news.readTime}</Text>
                 </View>
                 <Text style={ms.modalTitle}>{news.headline}</Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 }}>
-                  <Ionicons name="newspaper-outline" size={12} color="#9CA3AF" />
+                  <Ionicons name="newspaper-outline" size={12} color="#6B7280" />
                   <Text style={ms.modalTagline}>{news.source} · {news.time}</Text>
                 </View>
               </View>
@@ -329,7 +329,7 @@ function NewsDetailModal({ news, onClose }: { news: any; onClose: () => void }) 
             </View>
             <View style={[ms.contactRow, { flexDirection: "column", gap: 8 }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#F0FFF4", borderRadius: 10, padding: 10 }}>
-                <Ionicons name="information-circle" size={16} color="#00A651" />
+                <Ionicons name="information-circle" size={16} color="#047857" />
                 <Text style={{ flex: 1, color: "#065F46", fontSize: 12, fontFamily: "Inter_500Medium" }}>
                   {news.link
                     ? `Headline and summary as published by ${news.source}. Tap below to read the full story.`
@@ -372,11 +372,11 @@ function NoticeModal({ notice, onClose }: { notice: any; onClose: () => void }) 
               </View>
             )}
             <View style={[ms.tagPill, { backgroundColor: "#FFF8E7" }]}>
-              <Text style={[ms.tagText, { color: "#FF9933" }]}>{notice.department?.toUpperCase() || "GOVERNMENT"}</Text>
+              <Text style={[ms.tagText, { color: "#C2410C" }]}>{notice.department?.toUpperCase() || "GOVERNMENT"}</Text>
             </View>
             <Text style={ms.modalTitle}>{notice.title}</Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Ionicons name="calendar-outline" size={13} color="#9CA3AF" />
+              <Ionicons name="calendar-outline" size={13} color="#6B7280" />
               <Text style={ms.modalTagline}>{dateStr}</Text>
             </View>
           </View>
@@ -417,13 +417,13 @@ function AICityAlertCard() {
             <Text style={{ fontSize: 18 }}>🤖</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: "#FF9933", fontSize: 12, fontFamily: "Inter_700Bold" }}>AI City Intelligence</Text>
-            <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular" }}>
+            <Text style={{ color: "#C2410C", fontSize: 12, fontFamily: "Inter_700Bold" }}>AI City Intelligence</Text>
+            <Text style={{ color: "#4B5563", fontSize: 10, fontFamily: "Inter_400Regular" }}>
               {alerts.length} civic issue{alerts.length !== 1 ? "s" : ""} detected{critical > 0 ? ` · ${critical} critical` : ""}
             </Text>
           </View>
           <Pressable onPress={() => setDismissed(true)} style={{ padding: 6 }}>
-            <Ionicons name="close" size={16} color="#6B7280" />
+            <Ionicons name="close" size={16} color="#4B5563" />
           </Pressable>
         </View>
         {alerts.slice(0, 2).map((a: any, i: number) => (
@@ -433,7 +433,7 @@ function AICityAlertCard() {
             </Text>
             <View style={{ flex: 1 }}>
               <Text style={{ color: a.severity === "critical" ? "#F87171" : a.severity === "high" ? "#FCD34D" : "#93C5FD", fontSize: 11, fontFamily: "Inter_700Bold" }}>{a.title}</Text>
-              <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 }} numberOfLines={2}>{a.description}</Text>
+              <Text style={{ color: "#4B5563", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 }} numberOfLines={2}>{a.description}</Text>
             </View>
           </View>
         ))}
@@ -496,7 +496,7 @@ export default function DashboardScreen() {
     return d.toDateString() === now.toDateString();
   });
   const avgHealth = stats.avgHealth;
-  const healthColor = avgHealth >= 70 ? "#00A651" : avgHealth >= 50 ? "#F59E0B" : "#EF4444";
+  const healthColor = avgHealth >= 70 ? "#047857" : avgHealth >= 50 ? "#B45309" : "#DC2626";
   const total = complaints.length || 1;
 
   const catBreakdown = Object.entries(CATEGORY_META).map(([key, meta]) => ({
@@ -535,7 +535,7 @@ export default function DashboardScreen() {
       >
         {/* HEADER */}
         <LinearGradient
-          colors={["#FF6B00", "#FF9933", "#FFBA5C"]}
+          colors={["#9A3412", "#C2410C", "#C2410C"]} // deep saffron: white text stays readable (WCAG AA)
           style={[styles.header, { paddingTop: Platform.OS === "web" ? 80 : insets.top + 16 }]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         >
@@ -559,7 +559,7 @@ export default function DashboardScreen() {
                 </Pressable>
                 {(user?.role === "admin" || user?.role === "super_admin") && (
                   <Pressable onPress={() => router.push("/admin")} style={styles.adminBtn}>
-                    <Ionicons name="shield-checkmark" size={18} color="#FF9933" />
+                    <Ionicons name="shield-checkmark" size={18} color="#C2410C" />
                   </Pressable>
                 )}
               </View>
@@ -575,10 +575,10 @@ export default function DashboardScreen() {
               <View style={styles.healthCardLeft}>
                 <Text style={styles.healthCardLabel}>{t("City Health Score", HI.cityHealth)}</Text>
                 <Text style={styles.healthCardSub}>{lang === "HI" ? HI.blocksMonitored(wards.length) : `${stateName()} · ${wards.length} ${wards.length === 1 ? "area" : "areas"} monitored`}</Text>
-                <HealthBar pct={avgHealth} color={healthColor} />
+                <HealthBar pct={avgHealth} color={healthColor === "#047857" ? "#4ADE80" : healthColor === "#B45309" ? "#FCD34D" : "#FCA5A5"} />
               </View>
-              <View style={[styles.healthScoreBubble, { borderColor: healthColor + "44" }]}>
-                <Text style={[styles.healthScore, { color: healthColor }]}>{avgHealth}</Text>
+              <View style={[styles.healthScoreBubble, { borderColor: healthColor === "#047857" ? "#4ADE80" : healthColor === "#B45309" ? "#FCD34D" : "#FCA5A5" }]}>
+                <Text style={[styles.healthScore, { color: "#FFFFFF" }]}>{avgHealth}</Text>
                 <Text style={styles.healthScoreOf}>/100</Text>
               </View>
             </View>
@@ -612,7 +612,7 @@ export default function DashboardScreen() {
                 <Text style={{ color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>
                   ⚡ CITY-WIDE EMERGENCY ALERT
                 </Text>
-                <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={2}>
+                <Text style={{ color: "rgba(255,255,255,0.95)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={2}>
                   {emergencyAlert.message}
                 </Text>
               </View>
@@ -630,13 +630,13 @@ export default function DashboardScreen() {
             <View style={styles.activityHeader}>
               <View style={styles.activityTitleRow}>
                 <View style={[styles.kpiIconWrap, { backgroundColor: "#FFF0E6" }]}>
-                  <Ionicons name="person-circle" size={16} color="#FF9933" />
+                  <Ionicons name="person-circle" size={16} color="#C2410C" />
                 </View>
                 <Text style={styles.activityTitle}>{t("My Civic Activity", HI.myActivity)}</Text>
               </View>
               <Pressable onPress={() => router.push("/(tabs)/complaints")} style={styles.activitySeeAll}>
                 <Text style={styles.activitySeeAllText}>{t("See All", HI.seeAll)}</Text>
-                <Ionicons name="chevron-forward" size={12} color="#FF9933" />
+                <Ionicons name="chevron-forward" size={12} color="#C2410C" />
               </Pressable>
             </View>
             <View style={styles.activityStats}>
@@ -645,10 +645,10 @@ export default function DashboardScreen() {
                 const myR = myC.filter(c => c.status === "resolved");
                 const myP = myC.filter(c => c.status === "pending" || c.status === "in_progress");
                 return [
-                  { label: t("Filed",    HI.filed),    value: myC.length,  color: "#FF9933", icon: "document-text" as const, bg: "#FFF8E7" },
-                  { label: t("Pending",  HI.pending),  value: myP.length,  color: "#F59E0B", icon: "time" as const,          bg: "#FFFBEB" },
-                  { label: t("Resolved", HI.resolved), value: myR.length,  color: "#00A651", icon: "checkmark-circle" as const, bg: "#F0FFF4" },
-                  { label: t("City SOS", HI.citySos),  value: activeAlerts.length, color: "#EF4444", icon: "warning" as const, bg: "#FEF2F2" },
+                  { label: t("Filed",    HI.filed),    value: myC.length,  color: "#C2410C", icon: "document-text" as const, bg: "#FFF8E7" },
+                  { label: t("Pending",  HI.pending),  value: myP.length,  color: "#B45309", icon: "time" as const,          bg: "#FFFBEB" },
+                  { label: t("Resolved", HI.resolved), value: myR.length,  color: "#047857", icon: "checkmark-circle" as const, bg: "#F0FFF4" },
+                  { label: t("City SOS", HI.citySos),  value: activeAlerts.length, color: "#DC2626", icon: "warning" as const, bg: "#FEF2F2" },
                 ];
               })().map((item, i) => (
                 <View key={i} style={[styles.activityStatItem, { backgroundColor: item.bg, borderColor: item.color + "28" }]}>
@@ -677,17 +677,17 @@ export default function DashboardScreen() {
           <Text style={styles.sectionLabel}>{t("QUICK ACCESS", HI.quickAccess)}</Text>
           <View style={styles.quickGrid}>
             {[
-              { icon: "chatbubbles" as const,         label: t("AI Chat",    HI.aiChat),    color: "#FF9933", bg: "#FFF8E7", nav: "/(tabs)/ai" },
-              { icon: "map" as const,               label: t("Live Map",   HI.liveMap),   color: "#3B82F6", bg: "#EFF6FF", nav: "/(tabs)/map" },
+              { icon: "chatbubbles" as const,         label: t("AI Chat",    HI.aiChat),    color: "#C2410C", bg: "#FFF8E7", nav: "/(tabs)/ai" },
+              { icon: "map" as const,               label: t("Live Map",   HI.liveMap),   color: "#2563EB", bg: "#EFF6FF", nav: "/(tabs)/map" },
               { icon: "receipt-outline" as const,   label: t("Pay Bills",  HI.payBills),  color: "#8B5CF6", bg: "#F5F3FF", nav: "/(tabs)/bills" },
-              { icon: "warning-outline" as const,   label: t("SOS Alert",  HI.sosAlert),  color: "#EF4444", bg: "#FEF2F2", nav: "/(tabs)/sos" },
-              { icon: "document-text" as const,     label: t("Reports",    HI.reports),   color: "#00A651", bg: "#F0FFF4", nav: "/(tabs)/complaints" },
+              { icon: "warning-outline" as const,   label: t("SOS Alert",  HI.sosAlert),  color: "#DC2626", bg: "#FEF2F2", nav: "/(tabs)/sos" },
+              { icon: "document-text" as const,     label: t("Reports",    HI.reports),   color: "#047857", bg: "#F0FFF4", nav: "/(tabs)/complaints" },
               { icon: "people" as const,            label: "Community",                   color: "#6366F1", bg: "#EEF2FF", nav: "/(tabs)/community" },
               { icon: "document-lock" as const,     label: "File RTI",                    color: "#059669", bg: "#ECFDF5", nav: "/(tabs)/rti" },
-              { icon: "analytics" as const,         label: t("Analytics",  HI.analytics), color: "#06B6D4", bg: "#F0FDFF", nav: "/(tabs)/analytics" },
-              { icon: "bar-chart" as const,         label: "Budget",                      color: "#F59E0B", bg: "#FFFBEB", nav: "/(tabs)/budget" },
+              { icon: "analytics" as const,         label: t("Analytics",  HI.analytics), color: "#0E7490", bg: "#F0FDFF", nav: "/(tabs)/analytics" },
+              { icon: "bar-chart" as const,         label: "Budget",                      color: "#B45309", bg: "#FFFBEB", nav: "/(tabs)/budget" },
               { icon: "trophy" as const,            label: "Leaderboard",                 color: "#FFD700", bg: "#FFFEF0", nav: "/(tabs)/leaderboard" },
-              { icon: "medkit" as const,            label: "Emergency",                   color: "#EF4444", bg: "#FEF2F2", nav: "/(tabs)/emergency" },
+              { icon: "medkit" as const,            label: "Emergency",                   color: "#DC2626", bg: "#FEF2F2", nav: "/(tabs)/emergency" },
             ].map(item => (
               <Pressable key={item.label} onPress={() => router.push(item.nav as any)} style={[styles.quickCard, { backgroundColor: item.bg, borderColor: item.color + "30" }]}>
                 <View style={[styles.quickCardIcon, { backgroundColor: item.color + "18" }]}>
@@ -702,7 +702,7 @@ export default function DashboardScreen() {
         {/* AI BANNER */}
         <Pressable onPress={() => router.push("/(tabs)/ai")} style={styles.aiBanner}>
           <LinearGradient
-            colors={["#FF6B00", "#FF9933", "#FFBA5C"]}
+            colors={["#9A3412", "#C2410C", "#C2410C"]} // deep saffron: white text stays readable (WCAG AA)
             style={styles.aiBannerGrad}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
           >
@@ -741,10 +741,10 @@ export default function DashboardScreen() {
           </LinearGradient>
           <View style={styles.aqiBreakdown}>
             {[
-              { label: "Emergency", val: "112", color: "#EF4444" },
+              { label: "Emergency", val: "112", color: "#DC2626" },
               { label: "Ambulance", val: "108", color: "#22C55E" },
               { label: "Women", val: "181", color: "#EC4899" },
-              { label: "Disaster", val: "1070", color: "#F59E0B" },
+              { label: "Disaster", val: "1070", color: "#B45309" },
             ].map(m => (
               <Pressable key={m.label} style={styles.aqiMetric} onPress={() => Linking.openURL(`tel:${m.val}`)} accessibilityRole="button" accessibilityLabel={`Call ${m.label} ${m.val}`}>
                 <Text style={[styles.aqiMetricVal, { color: m.color }]}>{m.val}</Text>
@@ -759,17 +759,17 @@ export default function DashboardScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrap}>
               <View style={[styles.kpiIconWrap, { backgroundColor: "#EFF6FF" }]}>
-                <Ionicons name="newspaper" size={14} color="#3B82F6" />
+                <Ionicons name="newspaper" size={14} color="#2563EB" />
               </View>
               <Text style={styles.sectionTitle}>{t("Official announcements", HI.news)}</Text>
             </View>
             <View style={styles.livePill}>
-              <PulsingDot color="#3B82F6" />
-              <Text style={[styles.liveText, { color: "#3B82F6" }]}>Official</Text>
+              <PulsingDot color="#2563EB" />
+              <Text style={[styles.liveText, { color: "#2563EB" }]}>Official</Text>
             </View>
           </View>
           {newsItems.length === 0 && (
-            <Text style={[styles.newsHeadline, { color: "#9CA3AF", paddingVertical: 10 }]}>No official announcements for your district yet.</Text>
+            <Text style={[styles.newsHeadline, { color: "#4B5563", paddingVertical: 10 }]}>No official announcements for your district yet.</Text>
           )}
           {newsItems.map((item, idx) => (
             <Pressable key={item.id} onPress={() => setSelectedNews(item)} style={[styles.newsRow, idx > 0 && { borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
@@ -802,23 +802,23 @@ export default function DashboardScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrap}>
               <View style={[styles.kpiIconWrap, { backgroundColor: "#FEF2F2" }]}>
-                <Ionicons name="call" size={14} color="#EF4444" />
+                <Ionicons name="call" size={14} color="#DC2626" />
               </View>
               <Text style={styles.sectionTitle}>Emergency Helplines</Text>
             </View>
             <View style={styles.livePill}>
-              <PulsingDot color="#EF4444" />
-              <Text style={[styles.liveText, { color: "#EF4444" }]}>24/7</Text>
+              <PulsingDot color="#DC2626" />
+              <Text style={[styles.liveText, { color: "#DC2626" }]}>24/7</Text>
             </View>
           </View>
           <View style={styles.emergGrid}>
             {[
               { num: "100",  label: "Police",        icon: "shield",    color: "#1A237E", bg: "#E8EAFF" },
-              { num: "108",  label: "Ambulance",      icon: "heart",     color: "#EF4444", bg: "#FEF2F2" },
+              { num: "108",  label: "Ambulance",      icon: "heart",     color: "#DC2626", bg: "#FEF2F2" },
               { num: "181", label: "Women Helpline",   icon: "woman",     color: "#EC4899", bg: "#FDF2F8" },
-              { num: "101",  label: "Fire Brigade",   icon: "flame",     color: "#F59E0B", bg: "#FFFBEB" },
-              { num: "1930", label: "Cyber Crime",    icon: "lock-closed",       color: "#06B6D4", bg: "#F0FDFF" },
-              { num: "1098", label: "Child Helpline", icon: "happy",     color: "#00A651", bg: "#F0FFF4" },
+              { num: "101",  label: "Fire Brigade",   icon: "flame",     color: "#B45309", bg: "#FFFBEB" },
+              { num: "1930", label: "Cyber Crime",    icon: "lock-closed",       color: "#0E7490", bg: "#F0FDFF" },
+              { num: "1098", label: "Child Helpline", icon: "happy",     color: "#047857", bg: "#F0FFF4" },
             ].map(e => (
               <Pressable key={e.num}
                 onPress={() => Linking.openURL(`tel:${e.num}`)}
@@ -837,7 +837,7 @@ export default function DashboardScreen() {
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrap}>
-              <Ionicons name="document-text" size={16} color="#FF9933" />
+              <Ionicons name="document-text" size={16} color="#C2410C" />
               <Text style={styles.sectionTitle}>Government Schemes</Text>
             </View>
             <Pressable onPress={() => Linking.openURL(MYSCHEME_URL)} accessibilityRole="link" accessibilityLabel="Find all schemes on myScheme"><Text style={styles.seeAll}>Find more →</Text></Pressable>
@@ -856,7 +856,7 @@ export default function DashboardScreen() {
                 <View style={[styles.schemeTag, { backgroundColor: s.color + "15" }]}>
                   <Text style={[styles.schemeTagText, { color: s.color }]}>{s.tag}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
+                <Ionicons name="chevron-forward" size={14} color="#6B7280" />
               </View>
             </Pressable>
           ))}
@@ -873,7 +873,7 @@ export default function DashboardScreen() {
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleWrap}>
                 <View style={styles.megaphoneIcon}>
-                  <Ionicons name="megaphone" size={14} color="#FF9933" />
+                  <Ionicons name="megaphone" size={14} color="#C2410C" />
                 </View>
                 <Text style={styles.sectionTitle}>Government Notices</Text>
               </View>
@@ -894,7 +894,7 @@ export default function DashboardScreen() {
                   {ann.priority === "urgent" && (
                     <View style={styles.urgentBadge}><Text style={styles.urgentText}>URGENT</Text></View>
                   )}
-                  <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
+                  <Ionicons name="chevron-forward" size={14} color="#6B7280" />
                 </View>
               </Pressable>
             ))}
@@ -905,7 +905,7 @@ export default function DashboardScreen() {
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrap}>
-              <Ionicons name="pie-chart" size={16} color="#3B82F6" />
+              <Ionicons name="pie-chart" size={16} color="#2563EB" />
               <Text style={styles.sectionTitle}>Issue Breakdown</Text>
             </View>
             <Pressable onPress={() => router.push("/(tabs)/analytics")}>
@@ -930,7 +930,7 @@ export default function DashboardScreen() {
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrap}>
-              <Ionicons name="list" size={16} color="#00A651" />
+              <Ionicons name="list" size={16} color="#047857" />
               <Text style={styles.sectionTitle}>Recent Reports</Text>
             </View>
             <Pressable onPress={() => router.push("/(tabs)/complaints")}>
@@ -949,12 +949,12 @@ export default function DashboardScreen() {
                   <View style={styles.complaintTopRow}>
                     <Text style={styles.complaintId}>{c.ticketId}</Text>
                     <View style={[styles.priorityPill, { backgroundColor: c.priority === "P1" ? "#FEF2F2" : c.priority === "P2" ? "#FFFBEB" : "#F0FFF4" }]}>
-                      <Text style={[styles.priorityText, { color: c.priority === "P1" ? "#EF4444" : c.priority === "P2" ? "#F59E0B" : "#00A651" }]}>{c.priority}</Text>
+                      <Text style={[styles.priorityText, { color: c.priority === "P1" ? "#DC2626" : c.priority === "P2" ? "#B45309" : "#047857" }]}>{c.priority}</Text>
                     </View>
                   </View>
                   <Text style={styles.complaintDesc} numberOfLines={1}>{c.description}</Text>
                   <View style={styles.complaintLocation}>
-                    <Ionicons name="location-outline" size={10} color="#9CA3AF" />
+                    <Ionicons name="location-outline" size={10} color="#6B7280" />
                     <Text style={styles.complaintLocationText} numberOfLines={1}>{c.location}</Text>
                   </View>
                 </View>
@@ -976,7 +976,7 @@ export default function DashboardScreen() {
           </View>
           <View style={styles.wardGrid}>
             {wards.slice(0, 12).map(ward => {
-              const c = ward.healthScore >= 70 ? "#00A651" : ward.healthScore >= 50 ? "#F59E0B" : "#EF4444";
+              const c = ward.healthScore >= 70 ? "#047857" : ward.healthScore >= 50 ? "#B45309" : "#DC2626";
               return (
                 <Pressable key={ward.id} onPress={() => router.push("/(tabs)/analytics")} style={[styles.wardChip, { borderColor: c + "44", backgroundColor: c + "10" }]}>
                   <View style={[styles.wardDot, { backgroundColor: c }]} />
@@ -1007,7 +1007,7 @@ const ms = StyleSheet.create({
   tagPill: { alignSelf: "flex-start", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 6 },
   tagText: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1 },
   modalTitle: { color: "#111827", fontSize: 18, fontFamily: "Inter_700Bold", lineHeight: 24, marginBottom: 4 },
-  modalTagline: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular" },
+  modalTagline: { color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular" },
   section: { paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderTopColor: "#F3F4F6" },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
   sectionIcon: { width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center" },
@@ -1021,7 +1021,7 @@ const ms = StyleSheet.create({
   contactBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, paddingVertical: 14, borderWidth: 1 },
   contactBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   closeBtn: { marginHorizontal: 20, marginBottom: 28, marginTop: 4, backgroundColor: "#F3F4F6", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
-  closeBtnText: { color: "#6B7280", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  closeBtnText: { color: "#4B5563", fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
 
 const nm = StyleSheet.create({
@@ -1037,7 +1037,7 @@ const styles = StyleSheet.create({
   headerBgCircle1: { position: "absolute", width: 200, height: 200, borderRadius: 100, backgroundColor: "rgba(255,255,255,0.08)", top: -60, right: -40 },
   headerBgCircle2: { position: "absolute", width: 120, height: 120, borderRadius: 60, backgroundColor: "rgba(255,255,255,0.06)", bottom: 0, left: 30 },
   headerTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 },
-  greeting: { color: "rgba(255,255,255,0.85)", fontSize: 13, fontFamily: "Inter_400Regular" },
+  greeting: { color: "rgba(255,255,255,0.95)", fontSize: 13, fontFamily: "Inter_400Regular" },
   userName: { color: "#fff", fontSize: 26, fontFamily: "Inter_700Bold", marginTop: 2 },
   livePill: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
   liveText: { color: "rgba(255,255,255,0.9)", fontSize: 11, fontFamily: "Inter_500Medium" },
@@ -1046,19 +1046,19 @@ const styles = StyleSheet.create({
   avatarBtnText: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold" },
   adminBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.2)", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)", alignItems: "center", justifyContent: "center" },
   tricolor: { height: 3, flexDirection: "row", borderRadius: 1.5, overflow: "hidden", marginBottom: 14 },
-  healthCard: { backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
+  healthCard: { backgroundColor: "rgba(0,0,0,0.14)", borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   healthCardLeft: { flex: 1, gap: 6 },
   healthCardLabel: { color: "#fff", fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  healthCardSub: { color: "rgba(255,255,255,0.75)", fontSize: 11, fontFamily: "Inter_400Regular" },
+  healthCardSub: { color: "#FFFFFF", fontSize: 11, fontFamily: "Inter_400Regular" },
   healthScoreBubble: { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center", borderWidth: 2 },
   healthScore: { fontSize: 26, fontFamily: "Inter_700Bold" },
-  healthScoreOf: { color: "rgba(255,255,255,0.7)", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: -2 },
+  healthScoreOf: { color: "rgba(255,255,255,0.9)", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: -2 },
 
   sosBanner: { marginHorizontal: 16, marginTop: 14, borderRadius: 14, overflow: "hidden" },
   sosBannerInner: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
   sosIconWrap: { width: 34, height: 34, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
   sosBannerTitle: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold" },
-  sosBannerSub: { color: "rgba(255,255,255,0.75)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  sosBannerSub: { color: "rgba(255,255,255,0.95)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
 
   kpiIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
 
@@ -1067,16 +1067,16 @@ const styles = StyleSheet.create({
   activityTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   activityTitle: { color: "#111827", fontSize: 14, fontFamily: "Inter_700Bold" },
   activitySeeAll: { flexDirection: "row", alignItems: "center", gap: 3 },
-  activitySeeAllText: { color: "#FF9933", fontSize: 12, fontFamily: "Inter_500Medium" },
+  activitySeeAllText: { color: "#C2410C", fontSize: 12, fontFamily: "Inter_500Medium" },
   activityStats: { flexDirection: "row", gap: 8, marginBottom: 12 },
   activityStatItem: { flex: 1, borderRadius: 12, padding: 10, alignItems: "center", gap: 5, borderWidth: 1 },
   activityStatNum: { fontSize: 20, fontFamily: "Inter_700Bold" },
-  activityStatLabel: { color: "#9CA3AF", fontSize: 9, fontFamily: "Inter_500Medium", textAlign: "center" },
+  activityStatLabel: { color: "#4B5563", fontSize: 9, fontFamily: "Inter_500Medium", textAlign: "center" },
   motivRow: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#FFFBEB", borderRadius: 12, padding: 12 },
   motivText: { flex: 1, color: "#92400E", fontSize: 12, fontFamily: "Inter_500Medium", lineHeight: 17 },
 
   quickNav: { paddingHorizontal: 16, marginTop: 14, marginBottom: 4 },
-  sectionLabel: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1.5, marginBottom: 10 },
+  sectionLabel: { color: "#4B5563", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1.5, marginBottom: 10 },
   quickGrid: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   quickCard: { width: "22%", flexGrow: 1, borderRadius: 14, padding: 12, alignItems: "center", gap: 8, borderWidth: 1 },
   quickCardIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
@@ -1087,10 +1087,10 @@ const styles = StyleSheet.create({
   aiBannerLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
   aiBannerIcon: { width: 50, height: 50, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
   aiBannerTitle: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
-  aiBannerSub: { color: "rgba(255,255,255,0.8)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  aiBannerSub: { color: "rgba(255,255,255,0.95)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   aiBannerStats: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10, padding: 10 },
   aiBannerStatNum: { color: "#fff", fontSize: 18, fontFamily: "Inter_700Bold" },
-  aiBannerStatLabel: { color: "rgba(255,255,255,0.8)", fontSize: 9, fontFamily: "Inter_400Regular" },
+  aiBannerStatLabel: { color: "rgba(255,255,255,0.95)", fontSize: 9, fontFamily: "Inter_400Regular" },
   aiBannerArrow: { width: 32, height: 32, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
 
   aqiCard: { marginHorizontal: 16, marginTop: 14, marginBottom: 4, borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: "#FCA5A5" },
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
   aqiTitle: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
   aqiLivePill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10, paddingHorizontal: 7, paddingVertical: 3 },
   aqiLiveText: { color: "#4ADE80", fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 1 },
-  aqiSub: { color: "rgba(255,255,255,0.8)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  aqiSub: { color: "rgba(255,255,255,0.95)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   aqiAdvice: { color: "#FCA5A5", fontSize: 11, fontFamily: "Inter_500Medium", marginTop: 4 },
   aqiRight: { alignItems: "flex-end" },
   aqiNum: { color: "#fff", fontSize: 36, fontFamily: "Inter_700Bold", lineHeight: 38 },
@@ -1110,18 +1110,18 @@ const styles = StyleSheet.create({
   aqiBreakdown: { flexDirection: "row", backgroundColor: "#FFF5F5", paddingVertical: 12, paddingHorizontal: 16 },
   aqiMetric: { flex: 1, alignItems: "center" },
   aqiMetricVal: { fontSize: 15, fontFamily: "Inter_700Bold" },
-  aqiMetricLabel: { color: "#9CA3AF", fontSize: 9, fontFamily: "Inter_500Medium", marginTop: 2 },
+  aqiMetricLabel: { color: "#4B5563", fontSize: 9, fontFamily: "Inter_500Medium", marginTop: 2 },
 
   emergGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   emergCard: { width: "30%", borderRadius: 14, padding: 10, alignItems: "center", borderWidth: 1, gap: 4 },
   emergIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   emergNum: { fontSize: 18, fontFamily: "Inter_700Bold" },
-  emergLabel: { color: "#6B7280", fontSize: 9, fontFamily: "Inter_500Medium", textAlign: "center" },
+  emergLabel: { color: "#4B5563", fontSize: 9, fontFamily: "Inter_500Medium", textAlign: "center" },
 
   schemeRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, borderTopColor: "#F3F4F6" },
   schemeIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   schemeTitle: { color: "#111827", fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  schemeSub: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  schemeSub: { color: "#4B5563", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   schemeTag: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   schemeTagText: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
 
@@ -1129,15 +1129,15 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
   sectionTitleWrap: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
   sectionTitle: { color: "#111827", fontSize: 14, fontFamily: "Inter_700Bold" },
-  seeAll: { color: "#FF9933", fontSize: 12, fontFamily: "Inter_500Medium" },
+  seeAll: { color: "#C2410C", fontSize: 12, fontFamily: "Inter_500Medium" },
   megaphoneIcon: { width: 28, height: 28, borderRadius: 8, backgroundColor: "#FFF8E7", alignItems: "center", justifyContent: "center" },
   tricolorThin: { height: 2, flexDirection: "row", borderRadius: 1, overflow: "hidden", marginBottom: 12 },
   annRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: "#F3F4F6" },
   annDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#FF9933" },
   annTitle: { color: "#111827", fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  annDept: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 2 },
+  annDept: { color: "#4B5563", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 2 },
   urgentBadge: { backgroundColor: "#FEF2F2", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  urgentText: { color: "#EF4444", fontSize: 9, fontFamily: "Inter_700Bold" },
+  urgentText: { color: "#DC2626", fontSize: 9, fontFamily: "Inter_700Bold" },
 
   catRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7, borderTopWidth: 1, borderTopColor: "#F9FAFB" },
   catIconWrap: { width: 28, height: 28, borderRadius: 7, alignItems: "center", justifyContent: "center" },
@@ -1150,9 +1150,9 @@ const styles = StyleSheet.create({
   complaintId: { color: "#374151", fontSize: 12, fontFamily: "Inter_700Bold", textTransform: "uppercase" },
   priorityPill: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   priorityText: { fontSize: 9, fontFamily: "Inter_700Bold" },
-  complaintDesc: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular" },
+  complaintDesc: { color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular" },
   complaintLocation: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
-  complaintLocationText: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular" },
+  complaintLocationText: { color: "#4B5563", fontSize: 10, fontFamily: "Inter_400Regular" },
   statusBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
   statusText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
 
@@ -1160,12 +1160,12 @@ const styles = StyleSheet.create({
   wardChip: { flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
   wardDot: { width: 7, height: 7, borderRadius: 3.5 },
   wardName: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
-  wardScore: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular" },
+  wardScore: { color: "#4B5563", fontSize: 10, fontFamily: "Inter_400Regular" },
 
   newsRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
   newsIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   newsTag: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
   newsTagText: { fontSize: 8, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
-  newsTime: { color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular" },
+  newsTime: { color: "#4B5563", fontSize: 10, fontFamily: "Inter_400Regular" },
   newsHeadline: { color: "#111827", fontSize: 13, fontFamily: "Inter_500Medium", lineHeight: 18 },
 });
