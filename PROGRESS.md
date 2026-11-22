@@ -145,5 +145,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P9.8 Installable web app (PWA) for iPhone/Android/desktop: manifest, icons, iOS tags, service worker (offline shell; never caches API/SOS), in-app install prompt — tests/pwa.test.ts
 - [x] P9.7 Android APK (sideload build, debug-signed, arm64-v8a + armeabi-v7a, points at sankalp-ai.onrender.com); not committed — build with `npx expo prebuild -p android` + `gradlew assembleRelease` (JDK 17)
 
+- [x] P9.14 Indian map tiles by default (ISRO Bhuvan WMS, D-050; tile retry, plain fallback); 10 more Indian languages, marked needs_review (D-052); police/hospital/fire loader for every state from config/places (OpenStreetMap, D-051) with bounded, nearest-first endpoints and counts-only public config — tests/places.test.ts. Station data file build: `python3 -I scripts/build-places.py --fetch <dir>` then `build-places.py <dir>/india.tsv`
+
 ## Baseline failures out of scope
 See docs/BASELINE.md.

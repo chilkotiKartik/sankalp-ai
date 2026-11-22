@@ -61,7 +61,7 @@ function setupCors(app: Express) {
 }
 
 function setupSecurityHeaders(app: Express) {
-  const tile = config().mapTileUrl;
+  const tile = config().mapTileUrl?.replace(/^wms:/, "");
   const tileOrigins = tile ? [tile.replace(/\{s\}\./, "").match(/^https?:\/\/[^/]+/)?.[0] ?? ""].filter(Boolean) : [];
   if (tile?.includes("{s}.")) for (const s of ["a", "b", "c"]) tileOrigins.push(tile.replace("{s}", s).match(/^https?:\/\/[^/]+/)![0]);
   app.use(helmet({

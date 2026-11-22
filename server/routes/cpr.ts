@@ -145,10 +145,19 @@ export function registerCprRoutes(app: Express) {
   // Reference data — safe to be public (no personal data).
   route(app, {
     method: "get", path: "/api/cpr/emergency-locations", auth: "public", permission: "public.reference",
-    params: none, query: none, body: none,
-    handler: () => storage.getEmergencyServices().filter(s => s.type === "hospital" || s.type === "fire").map(s => ({
+    params: none,
+    query: z.object({ district: z.string().max(60).optional(), bbox: z.string().regex(/^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$/).optional(), limit: z.coerce.number().int().min(1).max(1500).default(800) }),
+    body: none,
+    handler: ({ query }) => {
+      const [s0, w0, n0, e0] = query.bbox ? query.bbox.split(",").map(Number) : [-90, -180, 90, 180];
+      return storage.getEmergencyServices()
+        .filter(s => s.type === "hospital" || s.type === "fire")
+        .filter(s => !query.district || s.district === query.district)
+        .filter(s => s.geo.lat >= s0 && s.geo.lat <= n0 && s.geo.lng >= w0 && s.geo.lng <= e0)
+        .slice(0, query.limit).map(s => ({
       id: s.id, type: s.type, name: s.name, district: s.district, address: s.address, phone: s.phone, beds: s.beds, available: s.available, lat: s.geo.lat, lng: s.geo.lng,
-    })),
+    }));
+    },
   });
 
   route(app, {

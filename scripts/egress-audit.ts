@@ -11,7 +11,7 @@ const ROOTS = ["server", "app", "components", "lib", "context", "constants", "sc
 const SKIP = /node_modules|[\\/]vendor[\\/]|\.test\.ts$/;
 const allow = JSON.parse(fs.readFileSync("config/egress-allowlist.json", "utf8"));
 const allowed = new Map<string, string>();
-for (const group of ["outbound", "optInForeign", "userInitiatedLinks", "nonNetwork"]) for (const h of Object.keys(allow[group] ?? {})) allowed.set(h, group);
+for (const group of ["outbound", "indianClient", "optInForeign", "userInitiatedLinks", "nonNetwork"]) for (const h of Object.keys(allow[group] ?? {})) allowed.set(h, group);
 
 const files: string[] = [];
 const walk = (d: string) => {
