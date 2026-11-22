@@ -104,6 +104,8 @@ var typeLabels={
 };
 
 var markersData=${markersJson};
+// CSP-safe: no inline handlers; one delegated listener for the call buttons in popups.
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('.popup-call');if(!b)return;var m=markersData[+b.getAttribute('data-mi')];if(m&&m.phone)window.open('tel:'+String(m.phone).replace(/[^0-9+]/g,''),'_self');});
 
 markersData.forEach(function(m,mi){
   if(m.type==='risk'){
@@ -144,7 +146,7 @@ markersData.forEach(function(m,mi){
     +'<div class="popup-title">'+esc(m.title)+'</div>'
     +'<div class="popup-sub">'+esc(m.subtitle)+'</div>';
   if(m.phone&&(m.type==='police'||m.type==='hospital'||m.type==='fire')){
-    popupHTML+='<div><button class="popup-call" onclick="window.open(\'tel:\'+String(markersData['+mi+'].phone).replace(/[^0-9+]/g,\'\'),\'_self\')">📞 '+esc(m.phone)+'</button></div>';
+    popupHTML+='<div><button class="popup-call" data-mi="'+mi+'">📞 '+esc(m.phone)+'</button></div>';
   }
   popupHTML+='</div>';
   marker.bindPopup(popupHTML,{maxWidth:260,closeButton:false});
