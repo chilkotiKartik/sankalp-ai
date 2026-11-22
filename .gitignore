@@ -44,7 +44,9 @@ yarn-error.*
 *.zip
 
 # Runtime data (snapshots, uploads, evidence, one-time codes)
-data/
+/data/
+# server/data/ is source code (reference tables), not runtime data
+!server/data/
 uploads/
 server_dist/
 coverage/
