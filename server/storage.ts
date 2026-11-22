@@ -814,6 +814,13 @@ export class AppStorage {
     if (!a) return null;
     a.liveGeo = geo;
     a.liveUpdatedAt = now();
+    // The police command-centre incident follows the person: CPR/PCR maps move the marker live.
+    const inc = a.cprRequestId ? this.s.safetyIncidents.find(i => i.id === a.cprRequestId) : undefined;
+    if (inc && inc.status !== "safe" && inc.status !== "closed") {
+      inc.geo = { lat: geo.lat, lng: geo.lng };
+      if (/^GPS:/.test(inc.location)) inc.location = `GPS: ${geo.lat.toFixed(4)}, ${geo.lng.toFixed(4)} (moving)`;
+      cprEmitter.emit("event", { type: "incident_updated", incident: inc });
+    }
     this.touch();
     bus.emit("sos", { type: "sos_location_update", alert: a });
     return a;
