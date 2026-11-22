@@ -146,6 +146,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P9.7 Android APK (sideload build, debug-signed, arm64-v8a + armeabi-v7a, points at sankalp-ai.onrender.com); not committed — build with `npx expo prebuild -p android` + `gradlew assembleRelease` (JDK 17)
 
 - [x] P9.14 Indian map tiles by default (ISRO Bhuvan WMS, D-050; tile retry, plain fallback); 10 more Indian languages, marked needs_review (D-052); police/hospital/fire loader for every state from config/places (OpenStreetMap, D-051) with bounded, nearest-first endpoints and counts-only public config — tests/places.test.ts. Station data file build: `python3 -I scripts/build-places.py --fetch <dir>` then `build-places.py <dir>/india.tsv`
+- [x] P9.15 Free always-on hosting in India: `deploy/oracle-free.sh` (Oracle Cloud Always Free, Mumbai/Hyderabad; Caddy HTTPS, firewall, swap, daily encrypted backup, optional station build), guide in docs/DEPLOYMENT.md (D-053)
 
 ## Baseline failures out of scope
 See docs/BASELINE.md.

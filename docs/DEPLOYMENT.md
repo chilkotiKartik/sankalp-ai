@@ -52,6 +52,26 @@ It installs Node 22 if needed and creates a locked-down `sankalp` system user. I
 
 No outbound internet is needed beyond the hosts you allow in `EGRESS_ALLOWLIST`, and none are required: AI falls back to the rules engine and photos to manual review. Docker Compose and Helm were deliberately not built (DECISIONS D-024). The systemd install is the supported on-premise path.
 
+### Oracle Cloud Always Free, Mumbai or Hyderabad — free, always on, in India (recommended for pilots)
+Oracle's Always Free tier gives a VM that never sleeps and keeps its disk. The Ampere ARM shape has up to 4 cores, 24 GB RAM and 200 GB of disk. Data stays in India because the VM runs in an Indian region (D-053).
+
+1. Sign up at cloud.oracle.com and choose **India West (Mumbai)** or **India South (Hyderabad)** as the home region. The home region cannot be changed later. A card is asked for to verify identity; Always Free resources are not charged.
+2. **Compute → Instances → Create instance**:
+   - Image: **Ubuntu 24.04**.
+   - Shape: **VM.Standard.A1.Flex** (Ampere ARM), 2–4 OCPU and 12–24 GB RAM. If ARM capacity is unavailable, use **VM.Standard.E2.1.Micro**; the script adds swap.
+   - Add your SSH key and keep the public IP.
+3. **Networking → your VCN → Security List → Add ingress rules** for TCP 80 and 443 from `0.0.0.0/0`.
+4. SSH in (`ssh ubuntu@<public-ip>`), then:
+```bash
+git clone https://github.com/chilkotiKartik/sankalp-ai.git && cd sankalp-ai
+```
+```bash
+sudo bash deploy/oracle-free.sh <public-ip>
+```
+The app is then live at `https://<ip-with-dashes>.sslip.io` with a free HTTPS certificate. With your own domain, point its A record at the IP and pass the domain instead of the IP. The script installs Caddy for HTTPS, opens the VM firewall, adds swap and sets up a daily encrypted backup to `/var/backups/sankalp`, kept for 14 days. Re-run it after `git pull` to upgrade; data and secrets are kept.
+
+5. Rebuild the Android app against the new address (`EXPO_PUBLIC_DOMAIN=<your-domain>`, see MOBILE_BUILD.md). The current APK points at Render.
+
 ### Render (current pilot hosting — not in India)
 `render.yaml` is the blueprint for the live service: web service with a 10 GB persistent disk at `DATA_DIR`, health check `/healthz`, generated JWT secrets. **It has no automatic off-site backup:** Render disks attach to one service, so a cron service cannot read them. Render has no Indian region either. Keep it for pilots and demos, and use the install above (where `scripts/backup.sh` runs from cron) for production data.
 - **Build:** `npm ci && npm run expo:static:build && npm run server:build`
