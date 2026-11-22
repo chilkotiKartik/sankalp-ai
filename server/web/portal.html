@@ -803,7 +803,7 @@ function SubmitComplaint({token,user,onDone,addToast}){
     if(!loc.trim())return addToast('error','Location required');
     setLoading(true);
     try{
-      const r=await api.post('/api/complaints',{category:cat,description:desc,location:loc,priority,geo:{lat:30.3165,lng:78.0322},ward:user.district+' Ward 1',wardNumber:1},token);
+      const r=await api.post('/api/complaints',{category:cat,description:desc,location:loc,priority,geo:sankalpBestGeo(user.district)},token);
       setDone(r);addToast('success','Complaint submitted! Ticket: '+r.ticketId);
     }catch(e){addToast('error',e.message);}
     setLoading(false);
@@ -844,7 +844,7 @@ function SubmitComplaint({token,user,onDone,addToast}){
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
             <input className="input" style={{flex:1,marginBottom:0}} placeholder="e.g. Near the main market, Station Road" value={loc} onChange={e=>setLoc(e.target.value)} required/>
             <button type="button" className="btn btn-ghost btn-sm" style={{flexShrink:0,whiteSpace:'nowrap',borderColor:'var(--green)',color:'var(--green)'}}
-              onClick={()=>{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(p=>{setLoc('GPS: '+p.coords.latitude.toFixed(5)+'°N, '+p.coords.longitude.toFixed(5)+'°E');},()=>{setLoc(user.district+', '+SK.state);},{enableHighAccuracy:true,timeout:6000});}else{setLoc(user.district+', '+SK.state);}}}>
+              onClick={()=>{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(p=>{window.sankalpGeo={lat:p.coords.latitude,lng:p.coords.longitude};setLoc('GPS: '+p.coords.latitude.toFixed(5)+'°N, '+p.coords.longitude.toFixed(5)+'°E');},()=>{setLoc(user.district+', '+SK.state);},{enableHighAccuracy:true,timeout:6000});}else{setLoc(user.district+', '+SK.state);}}}>
               📍 Detect
             </button>
           </div>
@@ -982,7 +982,7 @@ function SOSPage({token,user,activeSos,addToast,onDone}){
     e.preventDefault();setSending(true);
     try{
       const endpoint=cat==='women_safety'?'/api/sos/women-safety':'/api/sos';
-      const body={category:cat,description:desc||'Emergency via SANKALP portal',location:loc||user.district,geo:{lat:30.3165,lng:78.0322},ward:user.district+' Block',wardNumber:1};
+      const body={category:cat,description:desc||'Emergency via SANKALP portal',location:loc||user.district,geo:sankalpBestGeo(user.district)};
       const r=await api.post(endpoint,body,token);
       setSent(r.alert||r);addToast('success','SOS Alert Sent! Emergency services notified.');
       pushNotify('SOS Alert Sent','Emergency services have been notified. Stay calm.');
@@ -1138,7 +1138,7 @@ function LiveMapPage({complaints,sos,wards,token,addToast}){
   /* ── Init map once ─── */
   useEffect(()=>{
     if(!mapRef.current||mapInstRef.current)return;
-    const m=L.map(mapRef.current,{center:[30.3165,78.0322],zoom:9,zoomControl:true});
+    const m=L.map(mapRef.current,{center:SK.center,zoom:SK.zoom,zoomControl:true});
     sankalpTileLayer(L,m);
     sankalpDistrictLayer(L,m,true);
     layerRef.current=L.layerGroup().addTo(m);

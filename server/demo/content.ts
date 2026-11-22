@@ -263,12 +263,12 @@ export function demoEvents(): Omit<CivicEvent, "id">[] {
 
 export const DEMO_BUDGET = [
       { department: "Public Works Department", category: "Road Repair", allocated: 8500, spent: 6200, description: "National and state highway pothole repairs and resurfacing" },
-      { department: "Uttarakhand Jal Sansthan", category: "Water Infrastructure", allocated: 5200, spent: 4100, description: "Pipeline replacement, bore wells, water treatment plant upgrade" },
+      { department: "Water Supply Department", category: "Water Infrastructure", allocated: 5200, spent: 4100, description: "Pipeline replacement, bore wells, water treatment plant upgrade" },
       { department: "Urban Local Body", category: "Solid Waste Management", allocated: 3800, spent: 2900, description: "Garbage trucks, sweeping machines, landfill management" },
       { department: "ULB Electric Wing", category: "Street Lighting", allocated: 2400, spent: 1800, description: "LED street light installation and maintenance across wards" },
       { department: "Forest Department", category: "Green Cover", allocated: 1600, spent: 900, description: "Tree plantation, hill slope stabilization, eco-parks" },
       { department: "Health Department", category: "Primary Health", allocated: 4500, spent: 3200, description: "PHC upgrades, medicine stock, health camps, ambulances" },
-      { department: "UPCL", category: "Power Infrastructure", allocated: 6100, spent: 5400, description: "Transformer upgrades, last-mile connectivity, smart metering" },
+      { department: "Power Distribution Company", category: "Power Infrastructure", allocated: 6100, spent: 5400, description: "Transformer upgrades, last-mile connectivity, smart metering" },
       { department: "Disaster Management", category: "Emergency Preparedness", allocated: 2800, spent: 1400, description: "Landslide barriers, flood early warning, rescue equipment" },
 ];
 

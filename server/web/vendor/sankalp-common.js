@@ -21,10 +21,24 @@
     var fromUrl = qs.get("tenant");
     var stored = null;
     try { stored = localStorage.getItem(TKEY); } catch (e) {}
+    if (fromUrl && T && fromUrl !== T.id) {
+      // The server did not recognise that state and served its default: forget the stale choice.
+      try { localStorage.removeItem(TKEY); } catch (e) {}
+      qs.delete("tenant");
+      history.replaceState(null, "", location.pathname + (qs.toString() ? "?" + qs.toString() : "") + location.hash);
+      return;
+    }
     if (fromUrl) { try { localStorage.setItem(TKEY, fromUrl); } catch (e) {} return; }
     if (stored && T && stored !== T.id) { qs.set("tenant", stored); location.replace(location.pathname + "?" + qs.toString() + location.hash); }
   })();
   window.sankalpTenant = T;
+  /** Best location for a report: the device GPS if the user shared it, else the district centre (approximate). */
+  window.sankalpGeo = null;
+  window.sankalpBestGeo = function (district) {
+    if (window.sankalpGeo) return window.sankalpGeo;
+    var c = (window.SK && window.SK.centers[district]) || (window.SK && window.SK.center) || [22.9734, 78.6569];
+    return { lat: c[0], lng: c[1] };
+  };
   // Portal-wide state data (read by the page scripts): name, districts, map view, departments, category owners.
   var SK = window.SK = { id: T ? T.id : "", state: T ? (T.stateLabel || T.name) : "your state", stateLocal: T ? (T.nameLocal || T.name) : "",
     districts: [], centers: {}, center: [22.9734, 78.6569], zoom: 5, depts: {}, catDept: {}, helplines: (T && T.helplines) || {} };
@@ -44,7 +58,11 @@
   };
   window.sankalpSetTenant = function (id) {
     try { localStorage.setItem(TKEY, id); } catch (e) {}
-    window.sankalpAuth && window.sankalpAuth.clear(); // a staff token is valid for one state only
+    // Sessions are valid for one state only: drop every stored session before switching.
+    try {
+      ["sankalp_staff_token", "dept_token"].forEach(function (k) { sessionStorage.removeItem(k); });
+      ["portal_session", "sankalp_refresh", "sankalp_token", "dept_token"].forEach(function (k) { localStorage.removeItem(k); });
+    } catch (e) {}
     var qs = new URLSearchParams(location.search); qs.set("tenant", id);
     location.href = location.pathname + "?" + qs.toString();
   };
@@ -134,7 +152,7 @@
     var rt = refreshToken();
     if (!rt || !origFetch) return Promise.resolve(null);
     if (!inflight) {
-      inflight = origFetch("/api/auth/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refreshToken: rt }) })
+      inflight = origFetch("/api/auth/refresh", { method: "POST", headers: T ? { "Content-Type": "application/json", "X-Tenant": T.id } : { "Content-Type": "application/json" }, body: JSON.stringify({ refreshToken: rt }) })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (j) { if (j && j.accessToken) { storeRefreshed(oldTok, j); return j.accessToken; } return null; })
         .catch(function () { return null; })

@@ -1,4 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { AppState } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiUrl, queryClient } from "@/lib/query-client";
 import { getTenantId, loadTenantId, setTenantId, onTenantChange, installTenantFetch } from "@/lib/tenant";
 import { setStateGeography, setStateDepartments, setStateMeta } from "@/constants/districts";
@@ -35,7 +37,7 @@ interface Ctx {
   tenants: TenantSummary[];
   loadingTenants: boolean;
   error: string | null;
-  selectState: (id: string) => Promise<void>;
+  selectState: (id: string) => Promise<boolean>;
   refreshTenants: () => Promise<void>;
   /** Display label, e.g. "Uttarakhand". Falls back to "your state" until loaded. */
   stateName: string;
@@ -43,6 +45,8 @@ interface Ctx {
 }
 
 const TenantContext = createContext<Ctx | null>(null);
+
+const CFG_KEY = "sankalp_state_cfg_";
 
 async function getJson<T>(path: string, tenantId?: string | null): Promise<T> {
   const url = new URL(path, getApiUrl()).toString();
@@ -70,15 +74,26 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [loadingTenants, setLoadingTenants] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadConfig = useCallback(async (id: string) => {
+  const apply = useCallback((t: TenantInfo) => { setTenant(t); applyGeography(t); }, []);
+
+  /** Loads the state's config; the last good copy is cached so an offline launch still has districts and departments. */
+  const loadConfig = useCallback(async (id: string): Promise<boolean> => {
     try {
       const cfg = await getJson<{ tenant: TenantInfo }>("/api/public/config", id);
-      if (cfg?.tenant) { setTenant(cfg.tenant); applyGeography(cfg.tenant); setError(null); }
+      if (!cfg?.tenant) throw new Error("no tenant");
+      apply(cfg.tenant); setError(null);
+      AsyncStorage.setItem(`${CFG_KEY}${id}`, JSON.stringify(cfg.tenant)).catch(() => {});
+      return true;
     } catch (e) {
+      if ((e as Error).message === "404") { await setTenantId(null); setTenant(null); return false; } // state removed → pick again
+      try {
+        const cached = await AsyncStorage.getItem(`${CFG_KEY}${id}`);
+        if (cached) { apply(JSON.parse(cached) as TenantInfo); return true; }
+      } catch { /* fall through */ }
       setError("Could not load the state's settings. Check your connection.");
-      if ((e as Error).message === "404") await setTenantId(null); // state removed on the server → pick again
+      return false;
     }
-  }, []);
+  }, [apply]);
 
   const refreshTenants = useCallback(async () => {
     setLoadingTenants(true);
@@ -94,16 +109,35 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const off = onTenantChange(id => setId(id));
     loadTenantId().then(async id => {
+      // Migration: an install signed in before state selection existed belongs to the server's default state.
+      if (!id && (await AsyncStorage.getItem("@sankalp_user").catch(() => null))) {
+        try {
+          const cfg = await getJson<{ tenant?: { id: string } }>("/api/public/config");
+          if (cfg.tenant?.id) { await setTenantId(cfg.tenant.id); id = cfg.tenant.id; }
+        } catch { /* offline: the picker will ask */ }
+      }
       if (id) await loadConfig(id);
       setReady(true);
     });
     return off;
   }, [loadConfig]);
 
-  const selectState = useCallback(async (id: string) => {
+  // Retry when the app comes back to the foreground if the config is still missing (e.g. launched offline).
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", st => {
+      const id = getTenantId();
+      if (st === "active" && id && (!tenant || tenant.id !== id)) loadConfig(id);
+    });
+    return () => sub.remove();
+  }, [tenant, loadConfig]);
+
+  const selectState = useCallback(async (id: string): Promise<boolean> => {
+    await queryClient.cancelQueries();
     queryClient.clear();
     await setTenantId(id);
-    await loadConfig(id);
+    const ok = await loadConfig(id);
+    queryClient.clear(); // anything that resolved during the switch belonged to the previous state
+    return ok;
   }, [loadConfig]);
 
   const value = useMemo<Ctx>(() => ({

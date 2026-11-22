@@ -73,6 +73,13 @@ describe("public state endpoints", () => {
     expect(s.features.length).toBe(36);
   });
 
+  it("a stale ?tenant= never locks a portal page, but APIs still fail closed", async () => {
+    const page = await request(app()).get("/web/portal?tenant=atlantis");
+    expect(page.status).toBe(200);
+    expect(page.text).toContain('"id":"uttarakhand"');
+    expect((await request(app()).get("/api/public/config?tenant=atlantis")).status).toBe(404);
+  });
+
   it("portals receive the selected state's config, not a hard-coded one", async () => {
     const r = await request(app()).get("/web/portal?tenant=punjab");
     expect(r.status).toBe(200);

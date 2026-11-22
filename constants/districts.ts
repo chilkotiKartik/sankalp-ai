@@ -38,12 +38,17 @@ export interface StateDept { id: string; name: string; categories: string[]; hel
 let depts: StateDept[] = [];
 export const setStateDepartments = (d: StateDept[]) => { depts = d; };
 export const stateDepartments = () => depts;
+/** "State Disaster Management Authority" → "SDMA"; single words keep the id ("FOREST"). */
+function acronym(name: string, id: string): string {
+  const words = name.replace(/[^A-Za-z ]/g, " ").split(/\s+/).filter(w => w && !/^(of|and|the|for|&)$/i.test(w));
+  return words.length >= 2 ? words.map(w => w[0].toUpperCase()).join("").slice(0, 6) : id.toUpperCase();
+}
 /** Owner department for a complaint category: short label ("PWD") and full name, from the state's own config. */
 export function deptForCategory(category: string): { id: string; short: string; name: string } {
   const d = depts.find(x => x.categories.includes(category)) ?? depts.find(x => x.categories.includes("other"));
   if (!d) return { id: "", short: "Dept", name: "Concerned department" };
   const [head, tail] = d.name.split(" — ");
-  return { id: d.id, short: tail ? head : d.id.toUpperCase(), name: tail ?? d.name };
+  return { id: d.id, short: tail ? head : acronym(d.name, d.id), name: tail ?? d.name };
 }
 
 // ── Name in the local script and languages of the selected state ──

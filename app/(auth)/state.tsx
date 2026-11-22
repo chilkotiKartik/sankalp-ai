@@ -7,6 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import { useTenant, type TenantSummary } from "@/context/TenantContext";
+import { useAuth } from "@/context/AuthContext";
 
 /** P9 state picker: every Indian state and UT comes from the server; "Use my location" picks the one you are in. */
 function containing(list: TenantSummary[], lat: number, lng: number): TenantSummary | undefined {
@@ -25,6 +26,7 @@ export default function StatePicker() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [locMsg, setLocMsg] = useState<string | null>(null);
+  const { user, logout } = useAuth();
 
   useEffect(() => { if (!tenants.length) refreshTenants(); }, []);
 
@@ -40,7 +42,9 @@ export default function StatePicker() {
   const choose = async (id: string) => {
     setBusy(id);
     try {
-      await selectState(id);
+      // Accounts belong to one state: a signed-in user switching state is signed out first.
+      if (user && id !== tenantId) await logout();
+      if (!(await selectState(id))) { setLocMsg("Could not load that state's settings. Check your connection and try again."); return; }
       const onboarded = await AsyncStorage.getItem("@sankalp_onboarded");
       router.replace(onboarded === "true" ? "/(auth)/login" : "/(auth)/onboarding");
     } finally { setBusy(null); }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getApiUrl } from "@/lib/query-client";
-import { getTenantId } from "@/lib/tenant";
+import { getTenantId, onTenantChange } from "@/lib/tenant";
 
 /**
  * P9.2 district boundaries of the selected state (GeoJSON from /api/public/geo/districts; boundaries
@@ -25,7 +25,14 @@ export function loadDistrictGeo(): Promise<DistrictGeo | null> {
 
 export function useDistrictGeo(): DistrictGeo | null {
   const [g, setG] = useState<DistrictGeo | null>(() => cache.get(getTenantId() ?? "_default") ?? null);
-  useEffect(() => { let alive = true; loadDistrictGeo().then(x => { if (alive) setG(x); }); return () => { alive = false; }; }, []);
+  const [tid, setTid] = useState(getTenantId());
+  useEffect(() => onTenantChange(setTid), []);
+  useEffect(() => {
+    let alive = true;
+    setG(cache.get(tid ?? "_default") ?? null); // never show the previous state's outlines
+    loadDistrictGeo().then(x => { if (alive) setG(x); });
+    return () => { alive = false; };
+  }, [tid]);
   return g;
 }
 

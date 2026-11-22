@@ -242,7 +242,10 @@ export function createApp(): Built {
   });
   // P1.3: bind every request to exactly one tenant (X-Tenant header → ?tenant= (EventSource/links) → Host → default).
   app.use((req, res, next) => {
-    const id = resolveTenantFromRequest(req.header("x-tenant") || (typeof req.query?.tenant === "string" ? req.query.tenant : undefined), req.header("host") || undefined);
+    let id = resolveTenantFromRequest(req.header("x-tenant") || (typeof req.query?.tenant === "string" ? req.query.tenant : undefined), req.header("host") || undefined);
+    // A stale ?tenant= on a page (state removed, STATE_REGISTRY=off) must not lock the portal: serve the
+    // host/default state and let the page clear the stale choice. APIs keep failing closed with 404.
+    if (!id && req.method === "GET" && !req.path.startsWith("/api/") && !req.header("x-tenant")) id = resolveTenantFromRequest(undefined, req.header("host") || undefined);
     if (!id) return res.status(404).json({ code: "UNKNOWN_TENANT", message: "Unknown tenant" });
     res.setHeader("X-Tenant", id);
     runInTenant(id, () => next());

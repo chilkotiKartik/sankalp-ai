@@ -878,7 +878,7 @@ function SOSScreenInner() {
               <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🔥</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={s.sheetTitle}>Report Forest Fire</Text>
-                <Text style={s.sheetSub}>High-priority → Forest Dept & State Disaster Mgmt Disaster Mgmt</Text>
+                <Text style={s.sheetSub}>High-priority → Forest Dept & State Disaster Mgmt</Text>
               </View>
             </LinearGradient>
             <View style={{ padding: 20, gap: 14 }}>
@@ -1562,7 +1562,7 @@ function SOSScreenInner() {
                   <Ionicons name="checkmark-circle" size={16} color="#4ADE80" />
                   <Text style={{ color: "#4ADE80", fontSize: 12, fontFamily: "Inter_700Bold" }}>Forest Fire Alert Active</Text>
                 </View>
-                <Text style={{ color: "#6EE7B7", fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 }}>Forest Department & State Disaster Management Disaster Management have been notified and are responding.</Text>
+                <Text style={{ color: "#6EE7B7", fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 }}>Forest Department & State Disaster Management have been notified and are responding.</Text>
                 <Text style={{ color: "#4ADE80", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>📍 GPS location being shared live with responders.</Text>
               </View>
             )}

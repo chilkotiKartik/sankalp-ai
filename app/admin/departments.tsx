@@ -56,7 +56,7 @@ function getDeptMeta(name: string): { icon: keyof typeof Ionicons.glyphMap; colo
   if (!d) return { icon: "business", color: Colors.saffron, short: name.split(/[ (—]/)[0].slice(0, 6).toUpperCase() || "DEP" };
   const icon = d.categories.map(c => ICON_BY_CATEGORY[c]).find(Boolean) ?? "business";
   const [head, tail] = d.name.split(" — ");
-  return { icon, color: d.color || Colors.saffron, short: tail ? head : d.id.toUpperCase() };
+  return { icon, color: d.color || Colors.saffron, short: tail ? head : deptForCategory(d.categories[0] ?? "other").short };
 }
 
 const PRIORITY_COLORS: Record<string, string> = { P1: "#EF4444", P2: "#F59E0B", P3: "#3B82F6", P4: "#6B7280" };

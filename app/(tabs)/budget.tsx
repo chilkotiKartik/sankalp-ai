@@ -27,24 +27,21 @@ interface BudgetItem {
 
 const DEPT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   "Public Works Department": "construct",
-  "Uttarakhand Jal Sansthan": "water",
   "Water Supply Department": "water",
+  "Power Distribution Company": "flash",
   "Urban Local Body": "trash",
   "ULB Electric Wing": "bulb",
   "Forest Department": "leaf",
   "Health Department": "medkit",
-  "UPCL": "flash",
   "Disaster Management": "warning",
 };
 
 const DEPT_COLORS: Record<string, string> = {
   "Public Works Department": "#F59E0B",
-  "Uttarakhand Jal Sansthan": "#3B82F6",
   "Urban Local Body": "#EF4444",
   "ULB Electric Wing": "#FBBF24",
   "Forest Department": "#00A651",
   "Health Department": "#EC4899",
-  "UPCL": "#8B5CF6",
   "Disaster Management": "#F97316",
 };
 

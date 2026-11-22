@@ -181,7 +181,7 @@ function SOSModal({onClose,onSubmit,userGeo}){
     if(!name.trim()||!loc.trim())return;
     setSub(true);
     try{
-      const r=await fetch(`${API}/api/cpr/incidents`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({citizenName:name.trim(),district,location:loc.trim(),lat:geo?.lat||30.3165,lng:geo?.lng||78.0322,phone:phone.trim(),emergencyType:type})});
+      const r=await fetch(`${API}/api/cpr/incidents`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({citizenName:name.trim(),district,location:loc.trim(),lat:geo?.lat||sankalpBestGeo(district).lat,lng:geo?.lng||sankalpBestGeo(district).lng,phone:phone.trim(),emergencyType:type})});
       const inc=await r.json();
       onSubmit(inc);
     }catch(e){alert("Failed: "+e.message);}
@@ -607,7 +607,7 @@ function PCRPortal(){
   // Map init
   useEffect(()=>{
     if(!mapRef.current||mapObj.current)return;
-    const map=L.map(mapRef.current,{center:[30.3165,78.0322],zoom:10,zoomControl:true});
+    const map=L.map(mapRef.current,{center:SK.center,zoom:SK.zoom,zoomControl:true});
     sankalpTileLayer(L,map);
     sankalpDistrictLayer(L,map,false);
     mapObj.current=map;
