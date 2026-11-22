@@ -343,7 +343,7 @@ export default function StateMap({
       baseUrl,
       runtime?.mapTileUrl ?? null,
       districtGeo,
-      !userLocation && !(userDistrict && districtCenters()[userDistrict])
+      !runtime?.mapTileUrl || (!userLocation && !(userDistrict && districtCenters()[userDistrict]))
     ),
     [markers, center, userLocation, baseUrl, runtime?.mapTileUrl, districtGeo, userDistrict]
   );

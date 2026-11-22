@@ -14,9 +14,17 @@ export function scriptJson(v: unknown): string {
 
 export const ESC_JS = `function esc(s){return String(s==null?'':s).replace(/[&<>"'\\x60]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','\\x60':'&#96;'}[c];});}`;
 
+/**
+ * Base map. Never shows an error to the user: with no tile server configured, or when tiles stop loading
+ * (offline, blocked network), the map quietly falls back to the state/district outlines drawn on top.
+ */
 export function tileLayerJs(tileUrl: string | null | undefined, mapVar = "map"): string {
+  // Without tiles, zooming past district level shows nothing: cap it so the outlines always give context.
+  const plain = `try{${mapVar}.getContainer().style.background='#EEF2F7';${mapVar}.setMaxZoom(10);}catch(e){}`;
   if (!tileUrl || !/^https:\/\/[\w.{}-]+\/[\w{}./@-]+$/.test(tileUrl)) {
-    return `(function(){var d=document.createElement('div');d.textContent='Base map not configured (MAP_TILE_URL) — markers shown on blank canvas';d.style.cssText='position:absolute;bottom:6px;left:6px;z-index:999;font:11px sans-serif;background:rgba(0,0,0,.6);color:#fff;padding:3px 6px;border-radius:4px';document.body.appendChild(d);})();`;
+    return `${plain}if(window.console)console.info('SANKALP map: no tile server configured, showing district outlines');`;
   }
-  return `L.tileLayer(${scriptJson(tileUrl)},{maxZoom:19,subdomains:'abc',attribution:'&copy; OpenStreetMap contributors'}).addTo(${mapVar});`;
+  return `(function(){var t=L.tileLayer(${scriptJson(tileUrl)},{maxZoom:19,subdomains:'abc',attribution:'&copy; OpenStreetMap contributors'}).addTo(${mapVar});
+var bad=0,good=0;t.on('tileload',function(){good++;});
+t.on('tileerror',function(){bad++;if(bad>=6&&good===0){${mapVar}.removeLayer(t);${plain}if(window.console)console.info('SANKALP map: tiles unavailable, showing district outlines');}});})();`;
 }

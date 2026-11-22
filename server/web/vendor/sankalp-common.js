@@ -88,15 +88,15 @@
     clear: function () { try { sessionStorage.removeItem(KEY); } catch (e) {} },
   };
 
+  /** Base map. Never shows an error: without tiles (not configured, offline, blocked) the district outlines are the map. */
   window.sankalpTileLayer = function (L, map) {
-    if (!cfg.mapTileUrl) {
-      var n = document.createElement("div");
-      n.textContent = "Base map not configured (MAP_TILE_URL) — markers shown without background tiles";
-      n.style.cssText = "position:fixed;bottom:8px;left:8px;z-index:10000;font:12px sans-serif;background:rgba(0,0,0,.7);color:#fff;padding:4px 8px;border-radius:6px";
-      document.body.appendChild(n);
-      return null;
-    }
-    return L.tileLayer(cfg.mapTileUrl, { maxZoom: 19, subdomains: "abc", attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
+    var plain = function () { try { map.getContainer().style.background = "#EEF2F7"; map.setMaxZoom(10); } catch (e) {} }; // outlines stay readable
+    if (!cfg.mapTileUrl) { plain(); if (window.console) console.info("SANKALP map: no tile server configured, showing district outlines"); return null; }
+    var t = L.tileLayer(cfg.mapTileUrl, { maxZoom: 19, subdomains: "abc", attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
+    var bad = 0, good = 0;
+    t.on("tileload", function () { good++; });
+    t.on("tileerror", function () { bad++; if (bad >= 6 && good === 0) { map.removeLayer(t); plain(); if (window.console) console.info("SANKALP map: tiles unavailable, showing district outlines"); } });
+    return t;
   };
 
   /** P9.2: outline the selected state's districts (boundaries © OpenStreetMap contributors, ODbL). */
@@ -212,6 +212,7 @@
     var deps = (T && T.departments) || [];
     var units = deps.filter(function (d) { return d.id === "police" || (d.categories || []).indexOf("disaster") !== -1 || (d.categories || []).indexOf("noise") !== -1; });
     if (!units.length) units = [{ id: "police", name: "State Police" }];
+    units.sort(function (a, b) { return (a.id === "police" ? 0 : 1) - (b.id === "police" ? 0 : 1); }); // police first
     return units.map(function (d) { return '<option value="' + esc(d.id) + '">' + esc(d.name) + "</option>"; }).join("");
   }
 

@@ -361,7 +361,7 @@ export default function StateMap({
       userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : null,
       runtime?.mapTileUrl ?? null,
       districtGeo,
-      !userLocation && !(userDistrict && districtCenters()[userDistrict])
+      !runtime?.mapTileUrl || (!userLocation && !(userDistrict && districtCenters()[userDistrict]))
     ),
     [markers, center, userLocation, runtime?.mapTileUrl, districtGeo, userDistrict]
   );

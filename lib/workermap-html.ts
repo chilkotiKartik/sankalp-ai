@@ -3,6 +3,7 @@ import { scriptJson, ESC_JS, tileLayerJs } from "./map-safety";
 // Shared Leaflet HTML builder for Worker GPS Map
 // Used by both native (WebView) and web (iframe) versions
 import { LEAFLET_CSS, LEAFLET_JS } from "./leaflet-bundle";
+import { districtLayerJs, type DistrictGeo } from "@/lib/geo";
 
 export interface WorkerMapData {
   id: string;
@@ -41,7 +42,8 @@ export function buildWorkerMapHTML(
   showHeat: boolean,
   isWebPlatform: boolean,
   origin = "",
-  tileUrl: string | null = null
+  tileUrl: string | null = null,
+  districtGeo: DistrictGeo | null = null
 ): string {
   const wJson = scriptJson(workers);
   const hJson = scriptJson(heatData);
@@ -134,10 +136,12 @@ var isWeb=${isWebJs};
 
 var map=L.map('map',{
   center:[${+sc.lat},${+sc.lng}],zoom:${+sc.zoom},
-  zoomControl:true,attributionControl:true,preferCanvas:false
+  zoomControl:false,attributionControl:true,preferCanvas:false
 });
+L.control.zoom({position:'topright'}).addTo(map); // keeps the heat legend (bottom-left) readable
 ${tileLayerJs(tileUrl)}
 ${ESC_JS}
+${districtLayerJs(scriptJson(districtGeo), false)}
 
 // ── HEAT COLOR FUNCTION ──────────────────────────────────────────────────────
 function heatColor(count,avgScore,maxCount){
@@ -162,7 +166,7 @@ if(showHeat){
 
 heatData.forEach(function(d){
   var center=districtCenters[d.district];
-  if(!center)return;
+  if(!center||!d.count)return; // no workers in this district → nothing to shade
   var col=heatColor(d.count,d.avgScore,maxCount);
   var circle=L.circle([center[0],center[1]],{
     radius:38000,

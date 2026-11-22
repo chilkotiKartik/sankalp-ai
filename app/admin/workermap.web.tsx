@@ -19,6 +19,8 @@ import {
 } from "@/lib/workermap-html";
 import { getSecure } from "@/lib/secure-session";
 import { getDistrictCenter } from "@/constants/districts";
+import { useDistrictGeo } from "@/lib/geo";
+import { tenantQuery } from "@/lib/tenant";
 
 interface Worker {
   id: string; name: string; phone: string;
@@ -107,6 +109,7 @@ function WebMap({
 
 export default function WorkerMapScreen() {
   const runtime = useRuntimeConfig();
+  const districtGeo = useDistrictGeo();
   const insets = useSafeAreaInsets();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,7 +197,8 @@ export default function WorkerMapScreen() {
       const base = getApiUrl();
       if (typeof EventSource !== "undefined") {
         try {
-          const es = new EventSource(`${base}api/workers/stream?token=${encodeURIComponent(tok)}`);
+          const tq = tenantQuery(); // EventSource cannot send X-Tenant: name the state in the URL
+          const es = new EventSource(`${base}api/workers/stream?token=${encodeURIComponent(tok)}${tq ? `&${tq}` : ""}`);
           esRef.current = es;
           es.onopen = () => { setLiveStatus("live"); setLastUpdate(new Date()); };
           es.onerror = () => {
@@ -250,8 +254,8 @@ export default function WorkerMapScreen() {
   useEffect(() => {
     const hd = buildHeatData(workers);
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    setHtmlContent(buildWorkerMapHTML(toMapData(filtered), hd, mapFocusId, showHeat, true, origin, runtime?.mapTileUrl ?? null));
-  }, [filtered.length, filterStatus, filterDistrict, searchQuery, mapFocusId, showHeat, workers.length]);
+    setHtmlContent(buildWorkerMapHTML(toMapData(filtered), hd, mapFocusId, showHeat, true, origin, runtime?.mapTileUrl ?? null, districtGeo));
+  }, [filtered.length, filterStatus, filterDistrict, searchQuery, mapFocusId, showHeat, workers.length, runtime?.mapTileUrl, districtGeo]);
 
   const heatData = buildHeatData(workers);
   const activeCount = workers.filter(w => w.status === "active").length;

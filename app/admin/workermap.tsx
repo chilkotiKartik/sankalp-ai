@@ -20,6 +20,7 @@ import {
 } from "@/lib/workermap-html";
 import { getSecure } from "@/lib/secure-session";
 import { getDistrictCenter } from "@/constants/districts";
+import { useDistrictGeo } from "@/lib/geo";
 
 interface Worker {
   id: string; name: string; phone: string;
@@ -61,6 +62,7 @@ function toMapData(workers: Worker[]): WorkerMapData[] {
 
 export default function WorkerMapScreen() {
   const runtime = useRuntimeConfig();
+  const districtGeo = useDistrictGeo();
   const insets = useSafeAreaInsets();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,7 +157,7 @@ export default function WorkerMapScreen() {
   });
 
   const heatData = buildHeatData(workers);
-  const htmlContent = buildWorkerMapHTML(toMapData(filtered), heatData, mapFocusId, showHeat, false, "", runtime?.mapTileUrl ?? null);
+  const htmlContent = buildWorkerMapHTML(toMapData(filtered), heatData, mapFocusId, showHeat, false, "", runtime?.mapTileUrl ?? null, districtGeo);
 
   const activeCount = workers.filter(w => w.status === "active").length;
   const idleCount   = workers.filter(w => w.status === "idle").length;

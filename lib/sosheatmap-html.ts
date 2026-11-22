@@ -2,6 +2,7 @@ import { districtCenterPairs } from "./workermap-html";
 import { getStateCenter } from "@/constants/districts";
 import { scriptJson, ESC_JS, tileLayerJs } from "./map-safety";
 import { LEAFLET_CSS, LEAFLET_JS } from "./leaflet-bundle";
+import { districtLayerJs, type DistrictGeo } from "@/lib/geo";
 
 export interface SosHeatEntry {
   district: string;
@@ -11,7 +12,7 @@ export interface SosHeatEntry {
   critical: number; // P1
 }
 
-export function buildSosHeatmapHTML(entries: SosHeatEntry[], origin = "", tileUrl: string | null = null): string {
+export function buildSosHeatmapHTML(entries: SosHeatEntry[], origin = "", tileUrl: string | null = null, districtGeo: DistrictGeo | null = null): string {
   const eJson = scriptJson(entries);
   const centersJson = scriptJson(districtCenterPairs());
   const sc = getStateCenter();
@@ -70,6 +71,7 @@ var centers=${centersJson};
 var map=L.map('map',{center:[${+sc.lat},${+sc.lng}],zoom:${+sc.zoom},zoomControl:true,attributionControl:true,preferCanvas:false});
 ${tileLayerJs(tileUrl)}
 ${ESC_JS}
+${districtLayerJs(scriptJson(districtGeo), false)}
 
 var maxTotal=Math.max.apply(null,entries.map(function(e){return e.total;})||[1]);
 if(maxTotal===0)maxTotal=1;
