@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Privacy notice — SANKALP</title>
+<style>
+  :root{--bg:#fff;--fg:#111827;--muted:#4B5563;--accent:#047857}
+  @media (prefers-color-scheme:dark){:root{--bg:#0B1120;--fg:#F3F4F6;--muted:#9CA3AF;--accent:#34D399}}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,sans-serif}
+  main{max-width:760px;margin:0 auto;padding:24px 16px}
+  h1{font-size:1.6rem;margin:.2em 0} h2{font-size:1.1rem;margin-top:1.4em}
+  .muted{color:var(--muted)} button{min-height:44px;padding:0 14px;border-radius:8px;border:1px solid var(--muted);background:transparent;color:var(--fg);cursor:pointer}
+  .sos{color:#B91C1C;font-weight:600}
+</style>
+</head>
+<body>
+<main>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+    <h1 id="t">गोपनीयता सूचना</h1>
+    <button id="lang" type="button" aria-label="Switch language">English</button>
+  </div>
+  <p class="muted" id="ver"></p>
+  <div id="body" aria-live="polite">Loading…</div>
+</main>
+<script>
+(function(){
+  var lang="hi";
+  var esc=window.sankalpEsc||function(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});};
+  function list(xs){return "<ul>"+xs.map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+"</ul>";}
+  function load(){
+    fetch("/api/public/privacy-notice?lang="+lang).then(function(r){return r.json();}).then(function(n){
+      var hi=lang==="hi";
+      document.documentElement.lang=lang;
+      document.getElementById("t").textContent=hi?"गोपनीयता सूचना":"Privacy notice";
+      document.getElementById("lang").textContent=hi?"English":"हिन्दी";
+      document.getElementById("ver").textContent=(hi?"संस्करण ":"Version ")+n.version;
+      var y=function(d){return Math.round(d/365);};
+      document.getElementById("body").innerHTML=
+        "<p>"+esc(n.controller)+". "+esc(n.processor)+".</p>"+
+        "<h2>"+(hi?"उद्देश्य":"Purposes")+"</h2>"+list(n.purposes.map(function(p){return p.text;}))+
+        "<h2>"+(hi?"कौन सा डेटा":"Data collected")+"</h2>"+list(n.dataCollected)+
+        "<h2>"+(hi?"अवधि":"Retention")+"</h2>"+list([(hi?"शिकायतें: ":"Complaints: ")+y(n.retention.complaintsDays)+(hi?" वर्ष":" years"),(hi?"फोटो: ":"Photos: ")+y(n.retention.mediaDaysAfterClosure)+(hi?" वर्ष (बंद होने के बाद)":" year after closure"),(hi?"SOS सबूत: ":"SOS evidence: ")+y(n.retention.sosEvidenceDays)+(hi?" वर्ष":" year")])+
+        "<h2>"+(hi?"आपके अधिकार":"Your rights")+"</h2>"+list(n.rights)+
+        "<p>"+esc(n.sharing)+"</p><p class='sos'>"+esc(n.sosNote)+"</p>"+
+        "<h2>"+(hi?"शिकायत अधिकारी":"Grievance officer")+"</h2><p>"+esc(n.grievanceOfficer.name)+"<br>"+esc(n.grievanceOfficer.email)+" · "+esc(n.grievanceOfficer.phone)+"<br>"+esc(n.grievanceOfficer.address)+"</p>";
+    }).catch(function(){document.getElementById("body").textContent="Could not load the notice.";});
+  }
+  document.getElementById("lang").onclick=function(){lang=lang==="hi"?"en":"hi";load();};
+  load();
+})();
+</script>
+</body>
+</html>

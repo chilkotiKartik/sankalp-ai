@@ -1,7 +1,9 @@
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import React, { useRef, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { buildSosHeatmapHTML, SosHeatEntry } from "@/lib/sosheatmap-html";
 import type { SOSAlert } from "@/context/AppContext";
+import { useDistrictGeo } from "@/lib/geo";
 
 interface Props {
   sosAlerts: SOSAlert[];
@@ -11,7 +13,7 @@ interface Props {
 function buildEntries(sosAlerts: SOSAlert[]): SosHeatEntry[] {
   const map: Record<string, SosHeatEntry> = {};
   for (const a of sosAlerts) {
-    const d = (a as any).district || "Dehradun";
+    const d = (a as any).district || "Unknown district";
     if (!map[d]) map[d] = { district: d, total: 0, active: 0, womenSafety: 0, critical: 0 };
     map[d].total++;
     if (a.status === "active") map[d].active++;
@@ -24,8 +26,10 @@ function buildEntries(sosAlerts: SOSAlert[]): SosHeatEntry[] {
 export default function SosHeatmapCard({ sosAlerts, height = 200 }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const entries = buildEntries(sosAlerts);
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://sankalp-ai.replit.app";
-  const html = buildSosHeatmapHTML(entries, origin);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const runtime = useRuntimeConfig();
+  const districtGeo = useDistrictGeo();
+  const html = buildSosHeatmapHTML(entries, origin, runtime?.mapTileUrl ?? null, districtGeo);
 
   useEffect(() => {
     const iframe = iframeRef.current;

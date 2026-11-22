@@ -1,8 +1,11 @@
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import React, { useRef, useEffect } from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import WebView from "react-native-webview";
 import { buildSosHeatmapHTML, SosHeatEntry } from "@/lib/sosheatmap-html";
 import type { SOSAlert } from "@/context/AppContext";
+import { getApiUrl } from "@/lib/query-client";
+import { useDistrictGeo } from "@/lib/geo";
 
 interface Props {
   sosAlerts: SOSAlert[];
@@ -12,7 +15,7 @@ interface Props {
 function buildEntries(sosAlerts: SOSAlert[]): SosHeatEntry[] {
   const map: Record<string, SosHeatEntry> = {};
   for (const a of sosAlerts) {
-    const d = (a as any).district || "Dehradun";
+    const d = (a as any).district || "Unknown district";
     if (!map[d]) map[d] = { district: d, total: 0, active: 0, womenSafety: 0, critical: 0 };
     map[d].total++;
     if (a.status === "active") map[d].active++;
@@ -24,11 +27,13 @@ function buildEntries(sosAlerts: SOSAlert[]): SosHeatEntry[] {
 
 export default function SosHeatmapCard({ sosAlerts, height = 200 }: Props) {
   const entries = buildEntries(sosAlerts);
-  const html = buildSosHeatmapHTML(entries);
+  const runtime = useRuntimeConfig();
+  const districtGeo = useDistrictGeo();
+  const html = buildSosHeatmapHTML(entries, "", runtime?.mapTileUrl ?? null, districtGeo);
   return (
     <View style={[s.wrap, { height }]}>
       <WebView
-        source={{ html }}
+        source={{ html, baseUrl: getApiUrl() }}
         style={s.map}
         scrollEnabled={false}
         javaScriptEnabled

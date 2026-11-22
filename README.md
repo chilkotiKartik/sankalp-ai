@@ -9,8 +9,8 @@
 <br/><br/>
 
 [![Author](https://img.shields.io/badge/Author-Kartik%20Chilkoti-FF9933?style=for-the-badge&logo=github&logoColor=white)](https://github.com/chilkotiKartik)
-[![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red?style=for-the-badge)](#license--legal-notice)
-[![Status](https://img.shields.io/badge/Status-Production%20Ready-138808?style=for-the-badge)](#)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Pilot%20Hardening-B45309?style=for-the-badge)](#)
 
 <br/>
 
@@ -63,7 +63,7 @@ A civic operating system built on a single pledge: every citizen of Uttarakhand 
 - [Folder Structure](#folder-structure)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
-- [Demo Credentials](#demo-credentials)
+- [Demo Mode](#demo-mode)
 - [Deployment](#deployment)
 - [Building the Android APK](#building-the-android-apk)
 - [Roadmap](#roadmap)
@@ -90,8 +90,8 @@ It is not a complaint box. It is a full civic operating system that fuses live G
 
 | AI Civic Assistant | Live District Map |
 |:---:|:---:|
-| <img src="./attached_assets/image_1778445688811.png" width="380"/> | <img src="./attached_assets/image_1778039632004.png" width="380"/> |
-| Bilingual GPT-4o-mini chat with live civic data injected into every reply | All 13 districts, live markers, police stations, and risk zones — centered on real GPS, never hardcoded |
+| <img src="./docs/images/screenshot-dashboard.png" width="380"/> | <img src="./docs/images/screenshot-map.png" width="380"/> |
+| Bilingual civic assistant (Sarvam / self-hosted / rules) grounded in recorded data | All 13 districts, live markers, police stations, and risk zones — centered on real GPS, never hardcoded |
 
 </div>
 
@@ -175,23 +175,22 @@ Tap any pin for one-touch calling. The GPS dot is always live — this map track
 
 ---
 
-### AI Civic Assistant — 4-Tier Failover
+### Sovereign AI Assistant
 
 ```mermaid
 flowchart TD
-    Q["Citizen Query"] --> T1{"OpenAI GPT-4o-mini"}
-    T1 -- Success --> R["Contextual Bilingual Reply"]
-    T1 -- Unavailable --> T2{"Groq LLaMA 3.1 8B"}
-    T2 -- Success --> R
-    T2 -- Unavailable --> T3{"NVIDIA LLaMA 3.1"}
-    T3 -- Success --> R
-    T3 -- Unavailable --> T4["Local Rule-Based Engine"]
+    Q["Citizen Query"] --> G{"server/ai/gateway.ts"}
+    G -- SARVAM_API_KEY set --> S["Sarvam AI (India)"]
+    G -- AI_TEXT_BASE_URL set --> H["Self-hosted model on Indian infrastructure"]
+    G -- neither / failure --> T4["Deterministic rules engine (on-server)"]
+    S --> R["Bilingual Reply"]
+    H --> R
     T4 --> R
-    style Q fill:#FF9933,color:#161210
-    style R fill:#00A651,color:#fff
 ```
 
-Zero downtime, by design. Every reply is injected live with:
+Citizen data never goes to a foreign AI provider: every outbound call passes `safeFetch()` and the `EGRESS_ALLOWLIST`, and `npm run egress:audit` fails the build if any non-reviewed host appears in the code. Photo analysis uses a self-hosted vision model when configured; otherwise photos go to **manual review**. Nothing is auto-approved.
+
+Every reply is grounded in recorded data (never invented numbers):
 
 - The citizen's district complaint count, resolution rate, and active SOS count
 - Best and worst ward health scores, in real time
@@ -237,7 +236,7 @@ Zero-build React 18 portals (CDN + Babel Standalone) — deploy-anywhere HTML, n
 | Portal | Route | Purpose |
 |---|---|---|
 | Unified Governance Portal | `/web/portal` | Full admin command — complaints, SOS, workers, analytics, broadcast |
-| Department Portal | `/web/dept` | Live SSE stream, complaints appear the instant they arrive. Access: `{deptId}_2026` |
+| Department Portal | `/web/dept` | Live SSE stream, complaints appear the instant they arrive. Access: per-department code issued by the state admin |
 | CPR Safety Command | `/web/cpr` | 15 patrol vans on a live map, plus officer leaderboard |
 | Public Civic Dashboard | `/web/public` | No-login live transparency stats for press and public |
 | RTI Filing Portal | `/web/rti` | AI-drafted RTI applications with 30-day deadline tracking |
@@ -298,11 +297,18 @@ A plain-language description becomes a full AI-drafted RTI application, with the
 
 | Layer | Implementation |
 |---|---|
-| Auth | Phone + 6-digit PIN |
-| Tokens | JWT, 24-hour expiry |
-| Roles | `citizen`, `district_admin`, `super_admin` |
-| Rate Limiting | AI at 30 req/min, SOS at 10 req/min |
-| Middleware | Every route protected by auth middleware |
+| Auth | Phone + PIN (bcrypt) or one-time SMS code (citizens only; staff need their PIN). Attempts limited per phone and per IP |
+| Sessions | 15-minute JWT access tokens bound to state + session; 30-day refresh tokens rotated on every use, with reuse detection |
+| Roles | citizen, worker, officer, dept_admin, district_admin, police, disaster_authority, state_admin, super_admin — deny by default |
+| Authorisation | Every API route declares auth level + permission + tenant scope + zod schemas; a test fails if one doesn't |
+| Proof of fix | A case closes only with proof **and** the citizen's "yes". Reused or far-away photos go to an independent human reviewer |
+| SOS | Never blocked or rate-limited (duplicates merged). Trusted contacts get a signed, expiring live-location link, never coordinates in the SMS |
+| Evidence | AES-256-GCM at rest (key ids, rotation), private originals, 5-minute signed links, every view audited |
+| Privacy (DPDP) | Consent, export, erasure with legal hold, retention dry run until legal sign-off; open data k-anonymous (< 5 suppressed) |
+| Data residency | All outbound HTTP through one allow-listed client; the only data host is Sarvam (India). CI fails on any foreign AI SDK |
+| Headers | helmet (CSP without `unsafe-eval`, HSTS), CORS allow-list, gzip; portals pass axe WCAG 2.1 AA |
+
+See [docs/ASVS.md](docs/ASVS.md) (OWASP ASVS L2 self-assessment), [SECURITY.md](SECURITY.md), [DATA_RESIDENCY.md](DATA_RESIDENCY.md) and the review reports in [docs/reports/](docs/reports/).
 
 </div>
 
@@ -332,11 +338,10 @@ graph TB
         RTI["RTI Portal /web/rti"]
     end
 
-    subgraph AI["AI Failover Chain"]
-        OpenAI["OpenAI GPT-4o-mini"]
-        Groq["Groq LLaMA 3.1"]
-        Nvidia["NVIDIA LLaMA 3.1"]
-        Local["Local Rule Engine"]
+    subgraph AI["Sovereign AI gateway"]
+        Sarvam["Sarvam AI (India)"]
+        SelfHosted["Self-hosted model (Indian infra)"]
+        Rules["On-server rules engine"]
     end
 
     Mobile --> API
@@ -371,9 +376,6 @@ graph TB
 ![Node.js](https://img.shields.io/badge/Node.js%2020-339933?style=for-the-badge&logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express.js%205-000000?style=for-the-badge&logo=express&logoColor=white)
 ![WebSocket](https://img.shields.io/badge/WebSocket-black?style=for-the-badge&logo=socket.io&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT%20Auth-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
-![OpenAI](https://img.shields.io/badge/OpenAI%20GPT--4o--mini-412991?style=for-the-badge&logo=openai&logoColor=white)
-![Groq](https://img.shields.io/badge/Groq%20LLaMA%203.1-F55036?style=for-the-badge&logo=groq&logoColor=white)
 ![Leaflet](https://img.shields.io/badge/Leaflet.js-199900?style=for-the-badge&logo=leaflet&logoColor=white)
 ![Drizzle](https://img.shields.io/badge/Drizzle%20ORM-C5F74F?style=for-the-badge&logo=drizzle&logoColor=black)
 
@@ -388,13 +390,13 @@ graph TB
 | Backend | Express.js 5 + TypeScript on Node.js 20 |
 | Database | In-memory store, with the interface already ready for PostgreSQL via Drizzle ORM |
 | Maps | Leaflet.js 1.9.4 + CartoDB Light tiles + `react-native-maps` |
-| AI | OpenAI GPT-4o-mini → Groq LLaMA 3.1 8B → NVIDIA LLaMA 3.1 → Local engine |
+| AI | Sarvam AI (India) or self-hosted model → on-server rules engine; vision → self-hosted or manual review |
 | Real-Time | WebSocket (`ws`) + Server-Sent Events (Node `EventEmitter`) |
 | Push | Expo Push Notifications Server SDK |
 | Voice | `expo-speech` (TTS) + `expo-av` (recording) |
 | GPS | `expo-location` (native) + `navigator.geolocation` (web) |
 | Animation | React Native Reanimated 4 + Animated API (60fps) |
-| Auth | JWT (24h) + bcrypt (12 salt rounds) |
+| Auth | Opaque HMAC-hashed sessions + bcrypt (cost 12) |
 
 </div>
 
@@ -421,7 +423,7 @@ sankalp-ai/
 │   └── web/                      #   The five zero-build HTML command portals
 ├── shared/                       # Shared Zod schemas + Drizzle models
 ├── scripts/build.js              # Builds the Expo web bundle for production
-└── assets/ · attached_assets/    # Icons, splash art, and product screenshots
+└── assets/ · docs/images/        # Icons, splash art, and product screenshots
 ```
 
 ---
@@ -456,31 +458,30 @@ Scan the printed QR code with Expo Go on a physical device, or press `w` to laun
 
 | Variable | Purpose | Required |
 |---|---|:---:|
-| `EXPO_PUBLIC_DOMAIN` | Production domain for the Expo web bundle | Yes |
-| `GROQ_API_KEY` | Primary AI engine (LLaMA 3.1 8B) | Yes — minimum one AI key |
-| `NVIDIA_API_KEY` | Secondary AI + RTI draft generation | Recommended |
-| `OPENAI_API_KEY` | Tertiary AI fallback (GPT-4o-mini) | Optional |
-| `SESSION_SECRET` | Express / JWT session signing secret | Yes |
+| `JWT_SECRET` | Session token HMAC key (≥ 32 random chars) | Yes — server refuses to start without it |
+| `DEPT_JWT_SECRET` | Department-portal token signing key (≥ 32 chars, different from `JWT_SECRET`) | Yes |
+| `CORS_ORIGINS` | Comma-separated browser origins allowed to call the API | Production |
+| `PUBLIC_BASE_URL` | Public URL of this server | Production |
+| `MAP_TILE_URL` | Base-map tile template (self-hosted / Indian provider) | Production |
+| `SARVAM_API_KEY` / `AI_TEXT_BASE_URL` | Indian text AI (optional — rules engine otherwise) | Optional |
+| `AI_VISION_BASE_URL` | Self-hosted vision model (optional — manual review otherwise) | Optional |
+| `DEMO_MODE` | `true` only for demos; shows a DEMO badge everywhere | Optional |
+
+Full list: [.env.example](.env.example). Never commit real values.
 
 </div>
 
 ---
 
-## Demo Credentials
+## Demo Mode
 
-<div align="center">
+There are **no built-in accounts**. For a demo, run the server with `DEMO_MODE=true` and seed placeholder data:
 
-| Role | Phone | PIN / Code |
-|---|:---:|:---:|
-| Citizen — Champawat, Rank #17 | `9876543210` | `123456` |
-| Super Admin | `9999999999` | `000000` |
-| Dept Portal — PWD | — | `pwd_2026` |
-| Dept Portal — Police | — | `police_2026` |
-| CPR Safety Command | — | `cpr_2026` |
+```bash
+DEMO_MODE=true npm run seed:demo
+```
 
-</div>
-
-Tap the SANKALP logo on the login screen five times to reveal the admin gateway.
+The seed creates clearly flagged demo records and placeholder accounts (`9000000001`–`9000000004`), with a fresh random PIN and fresh department codes written to `data/demo-credentials.txt` (mode 0600). Every screen shows a **DEMO** badge while demo mode is on. When the server starts without `DEMO_MODE`, demo records are purged automatically. The click-through script is in [DEMO.md](DEMO.md).
 
 ---
 
@@ -494,7 +495,7 @@ npm run server:prod       # Serves everything from a single Node process
 
 The Express server serves everything from one process — `/api/*` for REST and WebSocket, `/web/*` for the five HTML command portals, and `/*` for the Expo web SPA. One deploy, one URL, five command centers.
 
-Full step-by-step guides live in [`DEPLOY.md`](./DEPLOY.md), [`DEPLOYMENT_GUIDE.md`](./DEPLOYMENT_GUIDE.md), and [`DEPLOY_RAILWAY.md`](./DEPLOY_RAILWAY.md).
+Full step-by-step guide: [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md).
 
 ---
 
@@ -506,7 +507,7 @@ eas login
 eas build --platform android --profile apk
 ```
 
-Full guide with prerequisites and troubleshooting: [`APK_BUILD_GUIDE.md`](./APK_BUILD_GUIDE.md) · [`EXPO_GO_DEPLOYMENT.md`](./EXPO_GO_DEPLOYMENT.md)
+Full guide: [`docs/MOBILE_BUILD.md`](./docs/MOBILE_BUILD.md)
 
 ---
 
@@ -568,7 +569,7 @@ Every line of code, every system design decision, and every feature in this plat
 
 <div align="center">
 
-![All Rights Reserved](https://img.shields.io/badge/©%202026-Kartik%20Chilkoti%20·%20All%20Rights%20Reserved-black?style=for-the-badge)
+![MIT](https://img.shields.io/badge/©%202026-Kartik%20Chilkoti%20·%20MIT%20Licence-black?style=for-the-badge)
 
 </div>
 
@@ -579,7 +580,7 @@ This repository, SANKALP AI, and all associated source code, architecture, desig
 - Any misuse, plagiarism, unauthorized claim of authorship, or copyright infringement related to this project may result in formal legal action under applicable copyright and intellectual property law.
 - For licensing inquiries, collaboration, or permission requests, reach out via [GitHub](https://github.com/chilkotiKartik).
 
-All third-party libraries, frameworks, and APIs used within this project — Expo, React Native, OpenAI, Groq, NVIDIA, Leaflet, and others — remain the property of their respective owners and are used strictly under their own applicable licenses.
+All third-party libraries, frameworks, and APIs used within this project — Expo, React Native, Leaflet, and others — remain the property of their respective owners and are used strictly under their own applicable licenses.
 
 ---
 

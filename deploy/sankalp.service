@@ -1,0 +1,26 @@
+# systemd unit for a VM / State Data Centre install (P7.2). Installed by deploy/install-onprem.sh.
+[Unit]
+Description=SANKALP AI civic platform
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sankalp
+Group=sankalp
+WorkingDirectory=/opt/sankalp
+EnvironmentFile=/etc/sankalp/sankalp.env
+ExecStart=/usr/bin/node /opt/sankalp/server_dist/index.mjs
+Restart=always
+RestartSec=3
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/sankalp
+CapabilityBoundingSet=
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

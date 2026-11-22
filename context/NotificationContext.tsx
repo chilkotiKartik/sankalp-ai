@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { stateName } from "@/constants/districts";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -44,47 +45,16 @@ function minsAgo(mins: number) {
   return new Date(Date.now() - mins * 60000).toISOString();
 }
 
-const DEMO_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: genId(), type: "achievement",
-    title: "Badge Unlocked — Active Citizen",
-    body: "You've earned 50+ civic points. Keep contributing to make Uttarakhand better!",
-    timestamp: minsAgo(5), read: false,
-  },
-  {
-    id: genId(), type: "complaint_update",
-    title: "Complaint Resolved",
-    body: "Your pothole report at Rajpur Road has been marked resolved by Nagar Nigam.",
-    timestamp: minsAgo(35), read: false,
-  },
-  {
-    id: genId(), type: "announcement",
-    title: "New Govt Scheme: PM Awas Yojana",
-    body: "Applications open for affordable housing. Apply before 31 March 2026 at dda.org.in.",
-    timestamp: minsAgo(90), read: false,
-  },
-  {
-    id: genId(), type: "sos_alert",
-    title: "SOS Alert Resolved Nearby",
-    body: "A women safety alert near Paltan Bazaar, Dehradun has been responded to and resolved.",
-    timestamp: minsAgo(180), read: true,
-  },
-  {
-    id: genId(), type: "system",
-    title: "Welcome to SANKALP AI",
-    body: "Uttarakhand's civic nervous system is ready. Report issues, track progress, stay safe.",
-    timestamp: minsAgo(360), read: true,
-  },
-  {
-    id: genId(), type: "announcement",
-    title: "Water Supply Disruption — Haridwar",
-    body: "Water supply disrupted in Haridwar Sectors 4–9 from 10 PM to 6 AM. Tankers deployed.",
-    timestamp: minsAgo(480), read: true,
-  },
-];
+// No invented notifications: the list starts with one welcome note and fills from real push / in-app events.
+const initialNotifications = (): AppNotification[] => [{
+  id: genId(), type: "system",
+  title: "Welcome to SANKALP AI",
+  body: `Report civic issues, track them to a verified fix and stay safe in ${stateName()}.`,
+  timestamp: new Date().toISOString(), read: true,
+}];
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const [notifications, setNotifications] = useState<AppNotification[]>(DEMO_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications);
   const listenerRef = useRef<Notifications.EventSubscription | null>(null);
 
   useEffect(() => {

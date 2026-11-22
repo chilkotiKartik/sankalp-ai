@@ -8,10 +8,12 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
+import { captureProofPhoto, proofLocation } from "@/lib/proof";
 import { useApp, type Complaint, type RiskZone, type PoliceStation, type Worker } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
 import SosHeatmapCard from "@/components/SosHeatmapCard";
+import { stateName, districtPhrase } from "@/constants/districts";
 
 const ADMIN_TABS = [
   { key: "command",       label: "War Room",     icon: "radio" as const,            route: null },
@@ -185,7 +187,7 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
             {complaint.feedback && (
               <View style={styles.feedbackBox}>
                 <Ionicons name="chatbubble" size={12} color={Colors.textMuted} />
-                <Text style={styles.feedbackText}>"{complaint.feedback}"</Text>
+                <Text style={styles.feedbackText}>&quot;{complaint.feedback}&quot;</Text>
               </View>
             )}
 
@@ -193,11 +195,11 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
               <View style={styles.detailActions}>
                 <Pressable onPress={() => onResolve(complaint.id)} style={styles.resolveBtn}>
                   <Ionicons name="checkmark-circle" size={16} color="#fff" />
-                  <Text style={styles.resolveBtnText}>Mark Resolved</Text>
+                  <Text style={styles.resolveBtnText}>Upload proof & mark fixed</Text>
                 </Pressable>
                 <Pressable onPress={() => onReject(complaint.id)} style={styles.rejectBtn}>
                   <Ionicons name="close-circle" size={16} color="#EF4444" />
-                  <Text style={styles.rejectBtnText}>Reject</Text>
+                  <Text style={styles.rejectBtnText}>Start work</Text>
                 </Pressable>
               </View>
             )}
@@ -291,10 +293,10 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
   const handleBroadcast = async () => {
     setBroadcastLoading(true);
     try {
-      await broadcastEmergency(broadcastMsg || "STATE-WIDE EMERGENCY: All 13 districts on high alert. Follow official instructions.");
+      await broadcastEmergency(broadcastMsg || `STATE-WIDE EMERGENCY: All ${districtPhrase()} on high alert. Follow official instructions.`);
       setBroadcastMsg("");
       setShowBroadcast(false);
-      Alert.alert("Broadcast Sent ✓", "State-wide emergency alert pushed to all 13 districts");
+      Alert.alert("Broadcast Sent ✓", `State-wide emergency alert pushed to all ${districtPhrase()}`);
     } catch {
       Alert.alert("Error", "Broadcast failed");
     }
@@ -312,7 +314,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
               <Text style={{ color: "#F59E0B", fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 1 }}>LIVE</Text>
             </Animated.View>
           </View>
-          <Text style={sas.sub}>Super Admin · {user?.name} · All 13 Districts</Text>
+          <Text style={sas.sub}>Super Admin · {user?.name} · All {districtPhrase()}</Text>
         </View>
         <Pressable onPress={() => setShowBroadcast(true)} style={sas.broadcastBtn}>
           <Ionicons name="radio-outline" size={16} color="#EF4444" />
@@ -392,7 +394,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
         <View style={{ marginHorizontal: 16, backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border, marginBottom: 12 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <Ionicons name="grid" size={14} color="#F59E0B" />
-            <Text style={{ color: "#fff", fontSize: 14, fontFamily: "Inter_600SemiBold", flex: 1 }}>Heatmap — All 13 Districts</Text>
+            <Text style={{ color: "#fff", fontSize: 14, fontFamily: "Inter_600SemiBold", flex: 1 }}>Heatmap — All {districtPhrase()}</Text>
             <View style={{ flexDirection: "row", gap: 6 }}>
               {[{ label: "Good", color: "#22C55E" }, { label: "Ok", color: "#F59E0B" }, { label: "Risk", color: "#EF4444" }].map(l => (
                 <View key={l.label} style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
@@ -449,7 +451,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
               <Ionicons name="warning" size={20} color="#fff" />
               <View style={{ flex: 1 }}>
                 <Text style={{ color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold" }}>
-                  {activeSos.length} ACTIVE SOS ACROSS UTTARAKHAND
+                  {activeSos.length} ACTIVE SOS ACROSS {stateName().toUpperCase()}
                 </Text>
                 <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>Tap to view and respond</Text>
               </View>
@@ -476,7 +478,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
           <View style={{ padding: 40, alignItems: "center" }}>
             <ActivityIndicator color="#F59E0B" size="large" />
             <Text style={{ color: Colors.textMuted, marginTop: 10, fontSize: 13, fontFamily: "Inter_400Regular" }}>
-              Loading all 13 districts…
+              Loading all {districtPhrase()}…
             </Text>
           </View>
         ) : (
@@ -561,7 +563,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: "#fff", fontSize: 18, fontFamily: "Inter_700Bold" }}>{selectedDistrict.district}</Text>
                       <Text style={{ color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>
-                        District Administration · Uttarakhand
+                        District Administration · {stateName()}
                       </Text>
                     </View>
                     <Pressable onPress={() => { setSelectedDistrict(null); setAssignTask(""); }} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.bg, alignItems: "center", justifyContent: "center" }}>
@@ -672,7 +674,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
               <View style={{ flex: 1 }}>
                 <Text style={{ color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" }}>State Emergency Broadcast</Text>
                 <Text style={{ color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>
-                  Alerts all 13 districts simultaneously
+                  Alerts all {districtPhrase()} simultaneously
                 </Text>
               </View>
               <Pressable onPress={() => setShowBroadcast(false)}>
@@ -718,7 +720,7 @@ export default function AdminDashboard() {
 // ── DISTRICT ADMIN WAR ROOM ────────────────────────────────────────────────────
 function DistrictAdminDashboard() {
   const insets = useSafeAreaInsets();
-  const { complaints, sosAlerts, riskZones, workers, policeStations, isLoading, refresh, getStats, broadcastEmergency, resolveComplaint, rejectComplaint } = useApp();
+  const { complaints, sosAlerts, riskZones, workers, policeStations, isLoading, refresh, getStats, broadcastEmergency, updateComplaintStatus } = useApp();
   const { user, logout } = useAuth();
 
   const [emergencyMode, setEmergencyMode] = useState(false);
@@ -786,23 +788,26 @@ function DistrictAdminDashboard() {
   const handleResolve = useCallback(async (id: string) => {
     setResolvingId(id);
     try {
-      await resolveComplaint(id, 4, "Admin resolved");
+      const proofPhoto = await captureProofPhoto();
+      if (!proofPhoto) return;
+      const proofGeo = await proofLocation();
+      await updateComplaintStatus(id, "resolved", { proofPhoto, proofNote: "Proof captured by officer", proofGeo });
       setSelectedComplaint(null);
     } catch (e: any) {
       Alert.alert("Error", e.message);
     } finally {
       setResolvingId(null);
     }
-  }, [resolveComplaint]);
+  }, [updateComplaintStatus]);
 
   const handleReject = useCallback(async (id: string) => {
     try {
-      await rejectComplaint(id);
+      await updateComplaintStatus(id, "in_progress");
       setSelectedComplaint(null);
     } catch (e: any) {
       Alert.alert("Error", e.message);
     }
-  }, [rejectComplaint]);
+  }, [updateComplaintStatus]);
 
   return (
     <View style={[styles.container, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>

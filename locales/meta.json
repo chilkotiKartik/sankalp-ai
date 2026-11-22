@@ -1,0 +1,124 @@
+{
+  "source": "en",
+  "complete": [
+    "en",
+    "hi"
+  ],
+  "needs_review": {
+    "gbm": "Garhwali first draft (Devanagari). Strings not yet adapted fall back to Hindi. Needs native-speaker review before release.",
+    "kfy": "Kumaoni first draft (Devanagari). Strings not yet adapted fall back to Hindi. Needs native-speaker review before release."
+  },
+  "scheduled_languages": [
+    {
+      "code": "as",
+      "name": "Assamese",
+      "status": "not_started"
+    },
+    {
+      "code": "bn",
+      "name": "Bengali",
+      "status": "not_started"
+    },
+    {
+      "code": "brx",
+      "name": "Bodo",
+      "status": "not_started"
+    },
+    {
+      "code": "doi",
+      "name": "Dogri",
+      "status": "not_started"
+    },
+    {
+      "code": "gu",
+      "name": "Gujarati",
+      "status": "not_started"
+    },
+    {
+      "code": "hi",
+      "name": "Hindi",
+      "status": "complete"
+    },
+    {
+      "code": "kn",
+      "name": "Kannada",
+      "status": "not_started"
+    },
+    {
+      "code": "ks",
+      "name": "Kashmiri",
+      "status": "not_started"
+    },
+    {
+      "code": "kok",
+      "name": "Konkani",
+      "status": "not_started"
+    },
+    {
+      "code": "mai",
+      "name": "Maithili",
+      "status": "not_started"
+    },
+    {
+      "code": "ml",
+      "name": "Malayalam",
+      "status": "not_started"
+    },
+    {
+      "code": "mni",
+      "name": "Manipuri",
+      "status": "not_started"
+    },
+    {
+      "code": "mr",
+      "name": "Marathi",
+      "status": "not_started"
+    },
+    {
+      "code": "ne",
+      "name": "Nepali",
+      "status": "not_started"
+    },
+    {
+      "code": "or",
+      "name": "Odia",
+      "status": "not_started"
+    },
+    {
+      "code": "pa",
+      "name": "Punjabi",
+      "status": "not_started"
+    },
+    {
+      "code": "sa",
+      "name": "Sanskrit",
+      "status": "not_started"
+    },
+    {
+      "code": "sat",
+      "name": "Santali",
+      "status": "not_started"
+    },
+    {
+      "code": "sd",
+      "name": "Sindhi",
+      "status": "not_started"
+    },
+    {
+      "code": "ta",
+      "name": "Tamil",
+      "status": "not_started"
+    },
+    {
+      "code": "te",
+      "name": "Telugu",
+      "status": "not_started"
+    },
+    {
+      "code": "ur",
+      "name": "Urdu",
+      "status": "not_started"
+    }
+  ],
+  "howto": "npm run i18n:translate -- <code> uses Sarvam Translate (India) and writes locales/<code>.json marked needs_review."
+}

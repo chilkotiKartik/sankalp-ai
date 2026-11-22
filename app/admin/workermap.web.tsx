@@ -1,4 +1,5 @@
 // Web version — uses iframe + srcDoc (no react-native-webview needed)
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
@@ -13,9 +14,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 import {
-  buildWorkerMapHTML, DISTRICT_CENTERS,
+  buildWorkerMapHTML, districtCenterPairs,
   type WorkerMapData, type DistrictHeatData,
 } from "@/lib/workermap-html";
+import { getSecure } from "@/lib/secure-session";
+import { getDistrictCenter } from "@/constants/districts";
+import { useDistrictGeo } from "@/lib/geo";
+import { tenantQuery } from "@/lib/tenant";
 
 interface Worker {
   id: string; name: string; phone: string;
@@ -31,16 +36,16 @@ const STATUS_META = {
   on_leave: { color: "#6B7280", bg: "#6B728022", label: "On Leave", icon: "moon"             as const },
 };
 
-const DISTRICTS = Object.keys(DISTRICT_CENTERS);
 const { width: SW } = Dimensions.get("window");
 const MAP_H = Math.min(Math.round(SW * 0.55), 480);
 
 function buildHeatData(workers: Worker[]): DistrictHeatData[] {
-  return DISTRICTS.map(d => {
+  const centers = districtCenterPairs();
+  return Object.keys(centers).map(d => {
     const dw = workers.filter(w => w.district === d);
     const active = dw.filter(w => w.status === "active").length;
     const avgScore = dw.length ? dw.reduce((s, w) => s + w.score, 0) / dw.length : 0;
-    const [lat, lng] = DISTRICT_CENTERS[d];
+    const [lat, lng] = centers[d];
     return { district: d, lat, lng, count: dw.length, active, avgScore };
   });
 }
@@ -48,7 +53,7 @@ function buildHeatData(workers: Worker[]): DistrictHeatData[] {
 function toMapData(workers: Worker[]): WorkerMapData[] {
   return workers.map(w => ({
     id: w.id, name: w.name, status: w.status,
-    lat: w.geo?.lat ?? 30.0, lng: w.geo?.lng ?? 78.5,
+    lat: w.geo?.lat ?? getDistrictCenter(w.district).lat, lng: w.geo?.lng ?? getDistrictCenter(w.district).lng,
     district: w.district, ward: w.ward, score: w.score,
     task: w.currentTask ?? "", resolvedToday: w.resolvedToday,
     totalResolved: w.totalResolved, avgRating: w.avgRating, phone: w.phone,
@@ -103,6 +108,8 @@ function WebMap({
 }
 
 export default function WorkerMapScreen() {
+  const runtime = useRuntimeConfig();
+  const districtGeo = useDistrictGeo();
   const insets = useSafeAreaInsets();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,7 +169,7 @@ export default function WorkerMapScreen() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       if (!tok) { setLoading(false); setRefreshing(false); return; }
       const base = getApiUrl();
       let res = await fetch(`${base}api/admin/workers`, { headers: { Authorization: `Bearer ${tok}` } });
@@ -185,12 +192,13 @@ export default function WorkerMapScreen() {
 
   useEffect(() => {
     const start = async () => {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       if (!tok) { load(); return; }
       const base = getApiUrl();
       if (typeof EventSource !== "undefined") {
         try {
-          const es = new EventSource(`${base}api/workers/stream`);
+          const tq = tenantQuery(); // EventSource cannot send X-Tenant: name the state in the URL
+          const es = new EventSource(`${base}api/workers/stream?token=${encodeURIComponent(tok)}${tq ? `&${tq}` : ""}`);
           esRef.current = es;
           es.onopen = () => { setLiveStatus("live"); setLastUpdate(new Date()); };
           es.onerror = () => {
@@ -245,9 +253,9 @@ export default function WorkerMapScreen() {
   // Only rebuild HTML when filtered workers, heatData, or focus changes
   useEffect(() => {
     const hd = buildHeatData(workers);
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://sankalp-ai.replit.app";
-    setHtmlContent(buildWorkerMapHTML(toMapData(filtered), hd, mapFocusId, showHeat, true, origin));
-  }, [filtered.length, filterStatus, filterDistrict, searchQuery, mapFocusId, showHeat, workers.length]);
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    setHtmlContent(buildWorkerMapHTML(toMapData(filtered), hd, mapFocusId, showHeat, true, origin, runtime?.mapTileUrl ?? null, districtGeo));
+  }, [filtered.length, filterStatus, filterDistrict, searchQuery, mapFocusId, showHeat, workers.length, runtime?.mapTileUrl, districtGeo]);
 
   const heatData = buildHeatData(workers);
   const activeCount = workers.filter(w => w.status === "active").length;
@@ -560,7 +568,7 @@ export default function WorkerMapScreen() {
             <View style={s.handle} />
             <Text style={s.pickerTitle}>Filter by District</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {["all", ...DISTRICTS].map(d => {
+              {["all", ...Object.keys(districtCenterPairs())].map(d => {
                 const hw = d !== "all" ? heatData.find(x => x.district === d) : null;
                 return (
                   <Pressable key={d} onPress={() => { setFilterDistrict(d); setShowDistrictPicker(false); }}

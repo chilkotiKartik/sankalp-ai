@@ -42,3 +42,17 @@ yarn-error.*
 
 # Build artifacts
 *.zip
+
+# Runtime data (snapshots, uploads, evidence, one-time codes)
+data/
+uploads/
+server_dist/
+coverage/
+dist-web/
+zipFile.zip
+attached_assets/
+
+# Locally built APKs (sideload builds; not committed)
+dist-apk/
+*.apk
+screenshots/

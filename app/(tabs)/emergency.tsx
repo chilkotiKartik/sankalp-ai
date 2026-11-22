@@ -1,3 +1,4 @@
+import { openInMaps, openInMapsQuery } from "@/lib/maps";
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, Pressable, ScrollView, Linking,
@@ -9,6 +10,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getSecure } from "@/lib/secure-session";
+import { stateName, allDistricts } from "@/constants/districts";
 
 const QUICK_DIAL = [
   { number: "112", label: "All Emergency", icon: "🆘", color: "#EF4444", bg: "#7F1D1D" },
@@ -54,7 +57,7 @@ export default function EmergencyScreen() {
 
   const load = useCallback(async () => {
     try {
-      const t = token || await AsyncStorage.getItem("@sankalp_token");
+      const t = token || await getSecure("@sankalp_token");
       const base = getApiUrl();
       const res = await fetch(`${base}api/emergency-services`, {
         headers: t ? { Authorization: `Bearer ${t}` } : {},
@@ -82,7 +85,7 @@ export default function EmergencyScreen() {
       {/* HEADER */}
       <LinearGradient colors={["#7F1D1D", "#991B1B", "#B91C1C"]} style={styles.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
         <Text style={styles.headerTitle}>🆘 Emergency Services</Text>
-        <Text style={styles.headerSub}>Uttarakhand · Quick dial & nearest services</Text>
+        <Text style={styles.headerSub}>{`${stateName()} · Quick dial & nearest services`}</Text>
       </LinearGradient>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}>
@@ -105,7 +108,7 @@ export default function EmergencyScreen() {
         <View style={styles.infoBanner}>
           <Ionicons name="information-circle" size={16} color="#93C5FD" />
           <Text style={styles.infoText}>
-            <Text style={{ color: "#93C5FD", fontFamily: "Inter_700Bold" }}>112</Text> is the unified emergency number for all services in Uttarakhand.
+            <Text style={{ color: "#93C5FD", fontFamily: "Inter_700Bold" }}>112</Text> is the unified emergency number for all services in {stateName()}.
           </Text>
         </View>
 
@@ -239,7 +242,7 @@ export default function EmergencyScreen() {
                   )}
                 </View>
                 <Pressable style={styles.mapsBtn}
-                  onPress={() => Linking.openURL(`https://maps.google.com/?q=${selected.geo.lat},${selected.geo.lng}`)}>
+                  onPress={() => openInMaps(selected.geo.lat, selected.geo.lng)}>
                   <Ionicons name="map-outline" size={16} color="#FF9933" />
                   <Text style={styles.mapsBtnText}>Open in Maps</Text>
                 </Pressable>

@@ -1,4 +1,5 @@
 // Native version — uses react-native-webview (works in Expo Go)
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
@@ -14,9 +15,12 @@ import { WebView } from "react-native-webview";
 import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 import {
-  buildWorkerMapHTML, DISTRICT_CENTERS,
+  buildWorkerMapHTML, districtCenterPairs,
   type WorkerMapData, type DistrictHeatData,
 } from "@/lib/workermap-html";
+import { getSecure } from "@/lib/secure-session";
+import { getDistrictCenter } from "@/constants/districts";
+import { useDistrictGeo } from "@/lib/geo";
 
 interface Worker {
   id: string; name: string; phone: string;
@@ -32,16 +36,16 @@ const STATUS_META = {
   on_leave: { color: "#6B7280", bg: "#6B728022", label: "On Leave", icon: "moon"             as const },
 };
 
-const DISTRICTS = Object.keys(DISTRICT_CENTERS);
 const { width: SW } = Dimensions.get("window");
 const MAP_H = Math.round(SW * 0.78);
 
 function buildHeatData(workers: Worker[]): DistrictHeatData[] {
-  return DISTRICTS.map(d => {
+  const centers = districtCenterPairs();
+  return Object.keys(centers).map(d => {
     const dw = workers.filter(w => w.district === d);
     const active = dw.filter(w => w.status === "active").length;
     const avgScore = dw.length ? dw.reduce((s, w) => s + w.score, 0) / dw.length : 0;
-    const [lat, lng] = DISTRICT_CENTERS[d];
+    const [lat, lng] = centers[d];
     return { district: d, lat, lng, count: dw.length, active, avgScore };
   });
 }
@@ -49,7 +53,7 @@ function buildHeatData(workers: Worker[]): DistrictHeatData[] {
 function toMapData(workers: Worker[]): WorkerMapData[] {
   return workers.map(w => ({
     id: w.id, name: w.name, status: w.status,
-    lat: w.geo?.lat ?? 30.0, lng: w.geo?.lng ?? 78.5,
+    lat: w.geo?.lat ?? getDistrictCenter(w.district).lat, lng: w.geo?.lng ?? getDistrictCenter(w.district).lng,
     district: w.district, ward: w.ward, score: w.score,
     task: w.currentTask ?? "", resolvedToday: w.resolvedToday,
     totalResolved: w.totalResolved, avgRating: w.avgRating, phone: w.phone,
@@ -57,6 +61,8 @@ function toMapData(workers: Worker[]): WorkerMapData[] {
 }
 
 export default function WorkerMapScreen() {
+  const runtime = useRuntimeConfig();
+  const districtGeo = useDistrictGeo();
   const insets = useSafeAreaInsets();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +115,7 @@ export default function WorkerMapScreen() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       if (!tok) { setLoading(false); setRefreshing(false); return; }
       const base = getApiUrl();
       let res = await fetch(`${base}api/admin/workers`, { headers: { Authorization: `Bearer ${tok}` } });
@@ -151,7 +157,7 @@ export default function WorkerMapScreen() {
   });
 
   const heatData = buildHeatData(workers);
-  const htmlContent = buildWorkerMapHTML(toMapData(filtered), heatData, mapFocusId, showHeat, false);
+  const htmlContent = buildWorkerMapHTML(toMapData(filtered), heatData, mapFocusId, showHeat, false, "", runtime?.mapTileUrl ?? null, districtGeo);
 
   const activeCount = workers.filter(w => w.status === "active").length;
   const idleCount   = workers.filter(w => w.status === "idle").length;
@@ -276,7 +282,7 @@ export default function WorkerMapScreen() {
               <WebView
                 ref={wvRef}
                 style={{ flex: 1, backgroundColor: "#0d1117" }}
-                source={{ html: htmlContent }}
+                source={{ html: htmlContent, baseUrl: getApiUrl() }}
                 javaScriptEnabled domStorageEnabled
                 onMessage={onMsg}
                 scrollEnabled={false} bounces={false}
@@ -455,7 +461,7 @@ export default function WorkerMapScreen() {
             <View style={s.handle} />
             <Text style={s.pickerTitle}>Filter by District</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {["all", ...DISTRICTS].map(d => {
+              {["all", ...Object.keys(districtCenterPairs())].map(d => {
                 const hw = d !== "all" ? buildHeatData(workers).find(x => x.district === d) : null;
                 return (
                   <Pressable key={d} onPress={() => { setFilterDistrict(d); setShowDistrictPicker(false); }}

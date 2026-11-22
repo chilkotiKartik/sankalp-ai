@@ -1,3 +1,5 @@
+import { useRuntimeConfig } from "@/lib/runtime-config";
+import { normalizeIndianMobile, isIndianMobile } from "@/lib/india";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, TextInput, Pressable,
@@ -11,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
+import { stateName, districtPhrase, allDistricts } from "@/constants/districts";
 
 const { width: W, height: H } = Dimensions.get("window");
 const PIN_DIGITS = 6;
@@ -21,42 +24,42 @@ const SLIDES = [
     photo: require("@/assets/images/splash_saint.png"),
     tag: "CIVIC TECH",
     tagColor: "#E64A19",
-    heading: "Report Issues,\nTransform Uttarakhand",
-    desc: "File complaints for potholes, garbage, broken streetlights and more — in under 30 seconds. Track real-time resolution across 13 districts.",
+    get heading() { return `Report Issues,\nTransform ${stateName()}`; },
+    get desc() { return `File complaints for potholes, garbage, broken streetlights and more — in under 30 seconds. Track real-time resolution across ${districtPhrase()}.`; },
     bullets: [
       { icon: "analytics" as const,        text: "AI-powered complaint routing" },
       { icon: "time" as const,             text: "Real-time status tracking" },
       { icon: "bar-chart" as const,        text: "District health scoreboard" },
     ],
-    stat1: "13",    stat1Label: "Districts",
-    stat2: "98%",   stat2Label: "Resolved",
+    get stat1() { return String(allDistricts().length || "—"); }, stat1Label: "Districts",
+    stat2: "✓",     stat2Label: "Citizen-verified",
   },
   {
     photo: require("@/assets/images/splash_girl.png"),
     tag: "WOMEN SAFETY",
     tagColor: "#7C3AED",
     heading: "Your Safety,\nOur Priority",
-    desc: "5 panic modes: shake phone 5 times, hold button, tap 5×, volume press, side button. Nearest police auto-notified with live GPS in under 2 seconds.",
+    desc: "5 panic modes: shake phone 5 times, hold button, tap 5×, volume press, side button. The police control room is alerted with your live GPS.",
     bullets: [
       { icon: "pulse" as const,            text: "5-shake instant panic mode" },
-      { icon: "shield-checkmark" as const, text: "2 nearest police auto-notified" },
+      { icon: "shield-checkmark" as const, text: "Police control room alerted" },
       { icon: "navigate" as const,         text: "Live GPS location streaming" },
     ],
     stat1: "28",    stat1Label: "Police Stns",
-    stat2: "< 2s",  stat2Label: "Response",
+    stat2: "24×7",  stat2Label: "SOS",
   },
   {
     photo: require("@/assets/images/splash_musicians.png"),
     tag: "AI POWERED",
     tagColor: "#059669",
-    heading: "Uttarakhand's Smartest\nCivic Platform",
-    desc: "AI scores every complaint for priority, routes to the right department, and tracks district health across Devbhoomi's 13 districts.",
+    get heading() { return `${stateName()}'s Smartest\nCivic Platform`; },
+    get desc() { return `AI scores every complaint for priority, routes to the right department, and tracks district health across ${districtPhrase()}.`; },
     bullets: [
       { icon: "flash" as const,            text: "AI priority scoring on every report" },
       { icon: "map" as const,              text: "District-aware live monitoring" },
-      { icon: "people" as const,           text: "5,000+ active Uttarakhand citizens" },
+      { icon: "people" as const,           text: "Works in every state and UT" },
     ],
-    stat1: "AQI",   stat1Label: "Live Data",
+    stat1: "हि/EN", stat1Label: "Bilingual",
     stat2: "100%",  stat2Label: "Free",
   },
 ];
@@ -99,7 +102,7 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
   }, [onDone]);
 
   const slide = SLIDES[idx];
-  const orangeH = H * 0.48;
+  const orangeH = H * 0.48; // the text area below scrolls on shorter phones
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -120,7 +123,7 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
             <View style={ob.logoIcon}><Text style={{ fontSize: 20 }}>🏛️</Text></View>
             <View>
               <Text style={ob.logoName}>SANKALP AI</Text>
-              <Text style={ob.logoGov}>Govt of Uttarakhand — देवभूमि</Text>
+              <Text style={ob.logoGov}>{`Citizen services · ${stateName()}`}</Text>
             </View>
           </View>
           <Pressable onPress={onDone} style={ob.skipBtn}>
@@ -161,7 +164,7 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
 
       {/* ── WHITE BOTTOM SECTION ── */}
       <View style={ob.bottom}>
-        <Animated.View style={{ opacity: bottomFade, flex: 1 }}>
+        <Animated.ScrollView style={{ opacity: bottomFade, flex: 1 }} contentContainerStyle={{ paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
           {/* Tag pill */}
           <View style={[ob.tagPill, { borderColor: slide.tagColor + "55", backgroundColor: slide.tagColor + "12" }]}>
             <Text style={[ob.tagText, { color: slide.tagColor }]}>{slide.tag}</Text>
@@ -190,7 +193,7 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
             <View style={[ob.dividerStrip, { backgroundColor: "#fff", flex: 1, borderWidth: 0.5, borderColor: "#E5E7EB" }]} />
             <View style={[ob.dividerStrip, { backgroundColor: "#138808", flex: 2 }]} />
           </View>
-        </Animated.View>
+        </Animated.ScrollView>
 
         {/* Bottom nav row */}
         <View style={ob.navRow}>
@@ -264,6 +267,7 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [phone, setPhone] = useState("");
+  const runtime = useRuntimeConfig();
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -291,11 +295,12 @@ export default function LoginScreen() {
   ]).start();
 
   const handleLogin = async (overridePhone?: string, overridePin?: string) => {
-    const p = (overridePhone ?? phone).trim();
+    const p = normalizeIndianMobile((overridePhone ?? phone).trim()); // m17
     const n = overridePin ?? pin;
     setError("");
     if (overridePhone) { setPhone(overridePhone); setPin(overridePin ?? ""); }
     if (!p) { setError("Please enter your mobile number"); shake(); return; }
+    if (!isIndianMobile(p)) { setError("Enter a valid 10-digit Indian mobile number"); shake(); return; }
     if (p.length !== 10) { setError("Mobile number must be 10 digits"); shake(); return; }
     if (n.length !== PIN_DIGITS) { setError("Please enter your 6-digit PIN"); shake(); return; }
     setLoading(true);
@@ -337,7 +342,7 @@ export default function LoginScreen() {
               <View style={las.brandIcon}><Text style={{ fontSize: 24 }}>🏛️</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={las.brandName}>SANKALP AI</Text>
-                <Text style={las.brandGov}>Government of Uttarakhand — देवभूमि</Text>
+                <Text style={las.brandGov}>{`Citizen services · ${stateName()}`}</Text>
               </View>
               <View style={las.govBadge}>
                 <Ionicons name="shield-checkmark" size={10} color="#BF360C" />
@@ -375,7 +380,7 @@ export default function LoginScreen() {
 
             <View style={las.taglinePill}>
               <Text style={{ fontSize: 12 }}>🙏</Text>
-              <Text style={las.taglineText}>Uttarakhand's citizens powering civic change</Text>
+              <Text style={las.taglineText}>{`${stateName()}'s citizens powering civic change`}</Text>
             </View>
           </LinearGradient>
 
@@ -384,7 +389,7 @@ export default function LoginScreen() {
             {adminHint && (
               <View style={las.adminBox}>
                 <Ionicons name="shield-checkmark" size={14} color={Colors.saffron} />
-                <Text style={las.adminText}>Admin: 9999999999 · PIN 000000</Text>
+                <Text style={las.adminText}>Staff: sign in with the phone + PIN issued by your administrator</Text>
               </View>
             )}
 
@@ -470,48 +475,23 @@ export default function LoginScreen() {
             </Pressable>
           </Animated.View>
 
-          <View style={las.demoBox}>
-            <View style={las.demoHeader}>
-              <Ionicons name="flask" size={12} color="#9CA3AF" />
-              <Text style={las.demoTitle}>DEMO CREDENTIALS — TAP TO AUTO-FILL</Text>
+          {runtime?.demoMode && (
+            <View style={las.demoBox} accessibilityLabel="Demo mode accounts">
+              <View style={las.demoHeader}>
+                <Ionicons name="flask" size={12} color="#9CA3AF" />
+                <Text style={las.demoTitle}>DEMO MODE — PLACEHOLDER ACCOUNTS (TAP TO FILL NUMBER)</Text>
+              </View>
+              {[["9000000001", "Demo citizen"], ["9000000002", "Demo district admin"], ["9000000003", "Demo state admin"]].map(([ph, label], i) => (
+                <Pressable key={ph} accessibilityRole="button" accessibilityLabel={`Fill ${label}`} onPress={() => setPhone(ph)} style={[las.demoRow, i ? { paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F3F4F6" } : null]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={las.demoName}>{label}</Text>
+                    <Text style={las.demoInfo}>{ph} · PIN from the demo operator</Text>
+                  </View>
+                  <Ionicons name="arrow-forward-circle" size={20} color="#22C55E" />
+                </Pressable>
+              ))}
             </View>
-
-            <Pressable onPress={() => handleLogin("9876543210", "123456")} style={las.demoRow}>
-              <View style={[las.demoAv, { backgroundColor: "#E8F5E9" }]}><Text style={{ fontSize: 18 }}>👤</Text></View>
-              <View style={{ flex: 1 }}>
-                <Text style={las.demoName}>Citizen · Champawat</Text>
-                <Text style={las.demoInfo}>9876543210 · PIN 123456</Text>
-              </View>
-              <Ionicons name="arrow-forward-circle" size={20} color="#22C55E" />
-            </Pressable>
-
-            <Pressable onPress={() => handleLogin("9999000003", "333333")} style={[las.demoRow, { paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
-              <View style={[las.demoAv, { backgroundColor: "#EFF6FF" }]}><Text style={{ fontSize: 18 }}>🏛️</Text></View>
-              <View style={{ flex: 1 }}>
-                <Text style={[las.demoName, { color: "#3B82F6" }]}>District Admin (DM) · Champawat</Text>
-                <Text style={las.demoInfo}>9999000003 · PIN 333333</Text>
-              </View>
-              <Ionicons name="arrow-forward-circle" size={20} color="#3B82F6" />
-            </Pressable>
-
-            <Pressable onPress={() => handleLogin("9999000002", "222222")} style={[las.demoRow, { paddingTop: 8, borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
-              <View style={[las.demoAv, { backgroundColor: "#F0FFF4" }]}><Text style={{ fontSize: 18 }}>🏔️</Text></View>
-              <View style={{ flex: 1 }}>
-                <Text style={[las.demoName, { color: "#22C55E" }]}>District Admin (DM) · Haridwar</Text>
-                <Text style={las.demoInfo}>9999000002 · PIN 222222</Text>
-              </View>
-              <Ionicons name="arrow-forward-circle" size={20} color="#22C55E" />
-            </Pressable>
-
-            <Pressable onPress={() => handleLogin("9999999999", "000000")} style={[las.demoRow, { paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
-              <View style={[las.demoAv, { backgroundColor: "#FFF0E6" }]}><Text style={{ fontSize: 18 }}>⚡</Text></View>
-              <View style={{ flex: 1 }}>
-                <Text style={[las.demoName, { color: Colors.saffron }]}>Super Admin · Uttarakhand</Text>
-                <Text style={las.demoInfo}>9999999999 · PIN 000000</Text>
-              </View>
-              <Ionicons name="arrow-forward-circle" size={20} color={Colors.saffron} />
-            </Pressable>
-          </View>
+          )}
 
           <View style={las.footer}>
             <View style={{ flexDirection: "row", gap: 5 }}>
@@ -520,7 +500,9 @@ export default function LoginScreen() {
               ))}
             </View>
             <Text style={las.footerText}>सत्यमेव जयते — Truth Alone Triumphs</Text>
-            <Text style={las.footerSub}>SANKALP AI · Uttarakhand · 2025</Text>
+            <Pressable onPress={() => router.replace("/(auth)/state")} accessibilityRole="button" accessibilityLabel={`State: ${stateName()}. Change state`}>
+              <Text style={las.footerSub}>{`SANKALP AI · ${stateName()} · Change state`}</Text>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

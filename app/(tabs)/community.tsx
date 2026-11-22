@@ -1,3 +1,4 @@
+import { openInMaps, openInMapsQuery } from "@/lib/maps";
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator,
@@ -9,6 +10,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { getApiUrl } from "@/lib/query-client";
 import { useAuth } from "@/context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getSecure } from "@/lib/secure-session";
+import { stateName, allDistricts } from "@/constants/districts";
 
 type TabKey = "polls" | "petitions" | "events" | "map";
 
@@ -96,7 +99,7 @@ export default function CommunityScreen() {
 
   useEffect(() => {
     if (user) {
-      AsyncStorage.getItem("@sankalp_token").then(t => {
+      getSecure("@sankalp_token").then(t => {
         if (t) setToken(t);
         else setLoading(false);
       });
@@ -407,7 +410,7 @@ export default function CommunityScreen() {
                       <Ionicons name="map" size={22} color="#60A5FA" />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" }}>{user?.district || "Uttarakhand"} District</Text>
+                      <Text style={{ color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" }}>{user?.district || stateName()} District</Text>
                       <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 }}>
                         {policeStations.length} police stations · {emergencyServices.length} emergency services
                       </Text>
@@ -438,7 +441,7 @@ export default function CommunityScreen() {
                     { label: "Police",       number: "100",   icon: "shield" as const,   color: "#3B82F6" },
                     { label: "Ambulance",    number: "108",   icon: "medkit" as const,   color: "#EF4444" },
                     { label: "Fire Brigade", number: "101",   icon: "flame" as const,    color: "#F59E0B" },
-                    { label: "Women Helpline",number: "1090", icon: "woman" as const,    color: "#EC4899" },
+                    { label: "Women Helpline",number: "181", icon: "woman" as const,    color: "#EC4899" },
                     { label: "DM Helpline",  number: "1077",  icon: "call" as const,     color: "#22C55E" },
                   ].map(svc => (
                     <Pressable key={svc.label} onPress={() => Linking.openURL(`tel:${svc.number}`)} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 9, borderTopWidth: 1, borderTopColor: "#F3F4F6" }}>
@@ -641,7 +644,7 @@ export default function CommunityScreen() {
                     ))}
                     {/* Get Directions / Live Location */}
                     <Pressable
-                      onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(selectedEvent.location + ", Uttarakhand")}`)}
+                      onPress={() => openInMapsQuery(`${selectedEvent.location}, ${stateName()}`)}
                       style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#EFF6FF", borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: "#BFDBFE" }}
                     >
                       <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}>
@@ -681,11 +684,11 @@ export default function CommunityScreen() {
               </View>
               <View style={{ paddingHorizontal: 20 }}>
                 <Text style={s.fieldLabel}>PETITION TITLE *</Text>
-                <TextInput style={s.textInput} placeholder="e.g. Fix potholes on NH-58 near Haridwar" placeholderTextColor="#9CA3AF" value={newTitle} onChangeText={setNewTitle} />
+                <TextInput style={s.textInput} placeholder="e.g. Fix potholes on the highway near the bus stand" placeholderTextColor="#9CA3AF" value={newTitle} onChangeText={setNewTitle} />
                 <Text style={s.fieldLabel}>DESCRIPTION *</Text>
                 <TextInput style={[s.textInput, { minHeight: 100, textAlignVertical: "top" }]} placeholder="Explain the problem and why action is needed..." placeholderTextColor="#9CA3AF" value={newDesc} onChangeText={setNewDesc} multiline numberOfLines={4} />
                 <Text style={s.fieldLabel}>ADDRESSED TO *</Text>
-                <TextInput style={s.textInput} placeholder="e.g. District Collector, Dehradun / PWD Department" placeholderTextColor="#9CA3AF" value={newTarget} onChangeText={setNewTarget} />
+                <TextInput style={s.textInput} placeholder="e.g. District Collector / PWD Department" placeholderTextColor="#9CA3AF" value={newTarget} onChangeText={setNewTarget} />
                 <Pressable onPress={handleNewPetition} disabled={submitting} style={[s.signBtn, { marginTop: 8, marginBottom: 20 }]}>
                   {submitting ? <ActivityIndicator color="#fff" /> : (
                     <>

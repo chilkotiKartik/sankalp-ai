@@ -1,0 +1,64 @@
+# P1.11 — runs the zero-error gate on every push and pull request. No secrets are needed:
+# tests use generated throwaway secrets and an in-process PGlite database.
+name: CI
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Tests (with coverage)
+        run: npm run test:coverage
+      - name: Locale completeness (en/hi complete; gbm/kfy needs_review)
+        run: npm run i18n:check
+      - name: AI eval (fails on a >2-point accuracy drop vs eval/baseline.json)
+        run: npm run eval
+      - name: Egress audit (data stays in India)
+        run: npm run egress:audit
+      - name: Secret scan (patterns)
+        run: npm run secrets:scan
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Dependency audit
+        run: npm run deps:audit
+      - name: OpenAPI is up to date
+        run: npm run openapi && git diff --exit-code docs/openapi.json
+      - name: Smoke test against a booted server
+        run: |
+          export JWT_SECRET=$(openssl rand -hex 32) DEPT_JWT_SECRET=$(openssl rand -hex 32) DATA_DIR=$RUNNER_TEMP/data PORT=5099 NODE_ENV=development
+          npx tsx server/index.ts > $RUNNER_TEMP/server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf localhost:5099/healthz && break; sleep 1; done
+          SMOKE_BASE_URL=http://localhost:5099 npm run smoke
+      - name: Accessibility (axe, WCAG 2.1 AA) on the portals
+        run: |
+          npx playwright install --with-deps chromium
+          A11Y_BASE_URL=http://localhost:5099 npm run a11y
+      - name: Smoke test on the Postgres driver (PGlite)
+        run: |
+          export JWT_SECRET=$(openssl rand -hex 32) DEPT_JWT_SECRET=$(openssl rand -hex 32) DATA_DIR=$RUNNER_TEMP/pg PORT=5098 NODE_ENV=development STORAGE_DRIVER=postgres DATABASE_URL=pglite:$RUNNER_TEMP/pg/db
+          mkdir -p $RUNNER_TEMP/pg
+          npx tsx server/index.ts > $RUNNER_TEMP/server-pg.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf localhost:5098/healthz && break; sleep 1; done
+          SMOKE_BASE_URL=http://localhost:5098 npm run smoke

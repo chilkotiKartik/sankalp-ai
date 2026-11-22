@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SANKALP AI — Department Portal</title>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="/web/vendor/react-18.3.1.production.min.js"></script>
+<script src="/web/vendor/react-dom-18.3.1.production.min.js"></script>
+<script src="/web/vendor/babel-standalone-7.26.10.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
 :root{--orange:#FF9933;--bg:#0d1117;--sidebar:#080d18;--card:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--dimmed:#6e7681;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--yellow:#d29922;--purple:#bc8cff}
@@ -143,16 +143,7 @@ const {useState,useEffect,useRef,useCallback,useMemo}=React;
 const API=window.location.origin;
 
 /* ── DEPT METADATA ─────────────────────────────────────────────────────────── */
-const DEPTS={
-  pwd:{id:'pwd',name:'PWD — Public Works',nameHindi:'लोक निर्माण विभाग',icon:'🏗️',color:'#F59E0B',categories:['pothole','other'],helpline:'1800-180-4244',helpline2:'0135-2714400',sla:24,head:'Chief Engineer, PWD Uttarakhand',address:'Construction Bhawan, Subhash Road, Dehradun — 248001',email:'ce.pwd@uk.gov.in'},
-  ulb:{id:'ulb',name:'ULB — Municipal Corp',nameHindi:'नगर पालिका / नगर निगम',icon:'🗑️',color:'#10B981',categories:['garbage','drain'],helpline:'1533',helpline2:'0135-2654321',sla:48,head:'Commissioner, Urban Local Bodies',address:'Municipal Bhawan, Paltan Bazaar, Dehradun — 248001',email:'commissioner.ulb@uk.gov.in'},
-  jal:{id:'jal',name:'Jal Sansthan',nameHindi:'उत्तराखण्ड जल संस्थान',icon:'💧',color:'#3B82F6',categories:['water'],helpline:'1916',helpline2:'0135-2723456',sla:12,head:'General Manager, Jal Sansthan',address:'Jal Sansthan Bhawan, Haridwar Road, Dehradun',email:'gm.jal@uk.gov.in'},
-  upcl:{id:'upcl',name:'UPCL — Power Corp',nameHindi:'उत्तराखण्ड पावर कॉर्पोरेशन',icon:'⚡',color:'#8B5CF6',categories:['electricity','streetlight'],helpline:'1912',helpline2:'0135-2770501',sla:6,head:'Managing Director, UPCL',address:'Ranipur Mor, Haridwar Road, Dehradun — 249407',email:'md.upcl@uk.gov.in'},
-  forest:{id:'forest',name:'Forest Department',nameHindi:'वन विभाग',icon:'🌳',color:'#22c55e',categories:['tree'],helpline:'1800-180-4288',helpline2:'0135-2756083',sla:96,head:'Principal Chief Conservator of Forests',address:'Van Bhawan, Nehru Colony, Dehradun — 248001',email:'pccf@uk.gov.in'},
-  health:{id:'health',name:'Health & Family Welfare',nameHindi:'स्वास्थ्य विभाग',icon:'🏥',color:'#EF4444',categories:[],helpline:'104',helpline2:'0135-2606012',sla:24,head:'Director General of Health Services',address:'Swasthya Bhawan, Jolly Grant, Dehradun',email:'dg.health@uk.gov.in'},
-  usdma:{id:'usdma',name:'USDMA — Disaster Mgmt',nameHindi:'आपदा प्रबंधन प्राधिकरण',icon:'🆘',color:'#DC2626',categories:[],helpline:'1070',helpline2:'0135-2710334',sla:2,head:'CEO, USDMA (IAS Officer)',address:'USDMA Bhawan, Rajpur Road, Dehradun — 248001',email:'ceo.usdma@uk.gov.in'},
-  police:{id:'police',name:'Uttarakhand Police',nameHindi:'उत्तराखण्ड पुलिस',icon:'🚔',color:'#60a5fa',categories:[],helpline:'100',helpline2:'112',sla:1,head:'Director General of Police, Uttarakhand',address:'Police Headquarters, Subhash Road, Dehradun — 248001',email:'dgp@uk.gov.in'},
-};
+const DEPTS=SK.depts; // P9: the selected state's departments
 
 const DEPT_LIST=Object.values(DEPTS);
 const PC={P1:'badge-P1',P2:'badge-P2',P3:'badge-P3',P4:'badge-P4'};
@@ -185,7 +176,9 @@ function Toast({msg,type,onDone}){
 /* ── COMPLAINT DETAIL MODAL ──────────────────────────────────────────────── */
 function ComplaintModal({c,onClose,token,onRefresh,addToast}){
   if(!c)return null;
-  const [status,setStatus]=useState(c.status||'pending');
+  const [status,setStatus]=useState(c.status==='pending'?'in_progress':(c.status||'in_progress'));
+  const [proof,setProof]=useState(null);
+  const [proofNote,setProofNote]=useState('');
   const [saving,setSaving]=useState(false);
   const [showAssign,setShowAssign]=useState(false);
   const [wName,setWName]=useState(c.assignedWorkerName||'');
@@ -198,7 +191,11 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
   async function save(){
     setSaving(true);
     try{
-      await api.put(`/api/dept/complaints/${c.id}`,{status},token);
+      if(status==='resolved'&&!proof){addToast('Attach a proof photo first','error');setSaving(false);return;}
+      // P3.1: device GPS at upload time (best effort, 5 s) — checked against the complaint location.
+      const proofGeo=status==='resolved'?await new Promise(res=>{if(!navigator.geolocation)return res(undefined);navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(undefined),{enableHighAccuracy:true,timeout:5000,maximumAge:60000});}):undefined;
+      const r=await api.put(`/api/dept/complaints/${c.id}`,status==='resolved'?{status,proofPhoto:proof,proofNote:proofNote||undefined,proofGeo}:{status},token);
+      if(r&&r.state==='NEEDS_REVIEW')addToast('Proof flagged for review: '+((r.verification&&r.verification.flags||[]).join(', ').replace(/_/g,' ')||'needs a check'),'error');
       addToast('Complaint updated','success');
       onRefresh();onClose();
     }catch(e){addToast(e.message,'error');}
@@ -224,6 +221,7 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
         <div>
           <div style={{fontSize:18,fontWeight:700,color:'var(--orange)',fontFamily:'monospace'}}>{c.ticketId||c.id?.slice(0,8).toUpperCase()}</div>
           <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{fmtDate(c.submittedAt)}</div>
+          {c.aiRouting&&<div style={{fontSize:11,color:'var(--muted)',marginTop:4}} title={c.aiRouting.method}>🤖 Routed {c.aiRouting.method&&c.aiRouting.method.startsWith('model')?'by AI model':'by rules'}: {c.aiRouting.reason}</div>}
         </div>
         <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
       </div>
@@ -292,7 +290,7 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
       {c.assignedWorkerName&&!assignResult&&<div style={{background:'rgba(255,153,51,.07)',border:'1px solid rgba(255,153,51,.25)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
         <div style={{fontWeight:600,color:'var(--orange)',marginBottom:4}}>👷 Assigned Worker</div>
         <div>{c.assignedWorkerName} · 📞 {c.assignedWorkerPhone}</div>
-        <div style={{color:'var(--muted)',marginTop:4,fontFamily:'monospace'}}>PIN: {c.assignedWorkerPin}</div>
+        <div style={{color:'var(--muted)',marginTop:4,fontSize:11}}>The worker PIN was shown once at assignment and is not stored. Re-assign to issue a new PIN.</div>
       </div>}
 
       {/* Assign Worker Panel */}
@@ -311,7 +309,7 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
         </div>
         {showAssign&&<div style={{display:'flex',flexDirection:'column',gap:10}}>
           <div><label>Worker Name</label><input className="input" placeholder="e.g. Ramesh Kumar" value={wName} onChange={e=>setWName(e.target.value)}/></div>
-          <div><label>Worker Phone (10 digits)</label><input className="input" placeholder="e.g. 9876543210" maxLength={10} value={wPhone} onChange={e=>setWPhone(e.target.value.replace(/\D/g,''))}/></div>
+          <div><label>Worker Phone (10 digits)</label><input className="input" placeholder="10-digit mobile" maxLength={10} value={wPhone} onChange={e=>setWPhone(e.target.value.replace(/\D/g,''))}/></div>
           <button className="btn btn-orange" onClick={assignWorker} disabled={assigning} style={{justifyContent:'center'}}>
             {assigning?<Spinner/>:'🔑 Generate Worker Credentials & Assign'}
           </button>
@@ -320,9 +318,16 @@ function ComplaintModal({c,onClose,token,onRefresh,addToast}){
 
       <div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:4}}>
         <label>Update Status</label>
-        <select className="select" style={{marginBottom:12}} value={status} onChange={e=>setStatus(e.target.value)}>
-          {['pending','in_progress','resolved','closed'].map(s=><option key={s} value={s}>{SL[s]}</option>)}
+        <select aria-label="Status" className="select" style={{marginBottom:12}} value={status} onChange={e=>setStatus(e.target.value)}>
+          {['in_progress','resolved'].map(s=><option key={s} value={s}>{s==='resolved'?'Fixed — submit proof photo':SL[s]}</option>)}
         </select>
+        {status==='resolved'&&<div style={{marginBottom:12}}>
+          <label htmlFor="proof-file">Proof photo of the completed work (required)</label>
+          <input id="proof-file" className="input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onloadend=()=>setProof(r.result);r.readAsDataURL(f);}}/>
+          {proof&&<img src={proof} alt="Proof preview" style={{marginTop:8,width:'100%',maxWidth:220,borderRadius:8}}/>}
+          <input className="input" style={{marginTop:8}} placeholder="Note (optional)" value={proofNote} onChange={e=>setProofNote(e.target.value)}/>
+          <div style={{fontSize:11,color:'var(--muted)',marginTop:6}}>The citizen confirms the fix before the case closes.</div>
+        </div>}
         <div style={{display:'flex',gap:8}}>
           <button className="btn btn-orange" style={{flex:1,justifyContent:'center'}} onClick={save} disabled={saving}>
             {saving?<Spinner/>:'💾 Save Changes'}
@@ -353,6 +358,9 @@ function ComplaintCard({c,isNew,token,onRefresh,addToast}){
         {/* Header row */}
         <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:7,flexWrap:'wrap'}}>
           <span className="ticket">{c.ticketId||`UK-${(c.id||'').slice(0,6).toUpperCase()}`}</span>
+          {c.affectedCount>1&&<span title="Linked duplicate reports (P4.1)" style={{marginLeft:6,fontSize:10,fontWeight:800,background:'rgba(255,153,51,.15)',color:'var(--orange)',borderRadius:6,padding:'1px 6px'}}>👥 {c.affectedCount} citizens affected</span>}
+          {c.duplicateOf&&<span title="Linked to another ticket — unmerge if this is a different problem" style={{marginLeft:6,fontSize:10,color:'var(--muted)'}}>🔗 duplicate</span>}
+          {c.slaLevel>0&&<span title="SLA escalation level" style={{marginLeft:6,fontSize:10,fontWeight:800,color:c.slaLevel>=3?'#ff7b72':'#e3b341'}}>⏱ L{c.slaLevel}</span>}
           {isNew&&<span style={{fontSize:9,fontWeight:800,background:'var(--orange)',color:'#000',padding:'1px 5px',borderRadius:8,animation:'pulse 1.5s infinite'}}>🔔 NEW</span>}
           <span className={'badge '+(PC[c.priority]||'badge-muted')}>{c.priority}</span>
           <span className={'badge '+(SC[c.status]||'badge-muted')}>{(c.status||'pending').replace('_',' ')}</span>
@@ -385,7 +393,7 @@ function ComplaintCard({c,isNew,token,onRefresh,addToast}){
 function DashboardPage({token,dept,complaints,stats,workers,newIds,onRefresh,addToast}){
   const color=dept.color||'var(--orange)';
   const districtData={};
-  complaints.forEach(c=>{const k=c.district||'Uttarakhand';districtData[k]=(districtData[k]||0)+1;});
+  complaints.forEach(c=>{const k=c.district||SK.state;districtData[k]=(districtData[k]||0)+1;});
   const topDists=Object.entries(districtData).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const maxD=topDists[0]?.[1]||1;
   const recentResolved=complaints.filter(c=>c.status==='resolved'||c.status==='closed');
@@ -451,7 +459,7 @@ function DashboardPage({token,dept,complaints,stats,workers,newIds,onRefresh,add
 }
 
 /* ── COMPLAINTS PAGE ─────────────────────────────────────────────────────── */
-const UK_DISTRICTS=['All Districts','Dehradun','Haridwar','Tehri Garhwal','Pauri Garhwal','Rudraprayag','Chamoli','Uttarkashi','Pithoragarh','Bageshwar','Almora','Champawat','Nainital','Udham Singh Nagar'];
+const UK_DISTRICTS=['All Districts',...SK.districts];
 
 function ComplaintsPage({token,dept,complaints,newIds,onRefresh,addToast}){
   const [filter,setFilter]=useState('all');
@@ -480,10 +488,10 @@ function ComplaintsPage({token,dept,complaints,newIds,onRefresh,addToast}){
     <div className="card" style={{marginBottom:16}}>
       <div style={{display:'flex',gap:10,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
         <input className="search" placeholder="🔍 Search complaints, ticket IDs, locations…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:200}}/>
-        <select className="select" value={distFilter} onChange={e=>setDistFilter(e.target.value)} style={{width:'auto',minWidth:160}}>
+        <select aria-label="Filter by district" className="select" value={distFilter} onChange={e=>setDistFilter(e.target.value)} style={{width:'auto',minWidth:160}}>
           {UK_DISTRICTS.map(d=><option key={d} value={d}>{d}{d!=='All Districts'&&distCounts[d]?` (${distCounts[d]})`:''}</option>)}
         </select>
-        <select className="select" value={sort} onChange={e=>setSort(e.target.value)} style={{width:'auto',minWidth:130}}>
+        <select aria-label="Sort order" className="select" value={sort} onChange={e=>setSort(e.target.value)} style={{width:'auto',minWidth:130}}>
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
           <option value="priority">Priority</option>
@@ -570,7 +578,7 @@ function WorkerModal({w,onClose}){
       {w.geo&&<div style={{background:'rgba(88,166,255,.06)',border:'1px solid rgba(88,166,255,.2)',borderRadius:8,padding:12,marginBottom:14,fontSize:12}}>
         <div style={{fontWeight:700,color:'var(--blue)',marginBottom:4}}>📍 Live GPS Location</div>
         <div style={{fontFamily:'monospace',color:'var(--text)'}}>{w.geo.lat.toFixed(5)}°N, {w.geo.lng.toFixed(5)}°E</div>
-        <a href={`https://maps.google.com/?q=${w.geo.lat},${w.geo.lng}`} target="_blank" style={{color:'var(--blue)',textDecoration:'none',fontSize:11,marginTop:4,display:'block'}}>🗺️ View on Google Maps →</a>
+        <a href={`https://www.openstreetmap.org/?mlat=${w.geo.lat}&mlon=${w.geo.lng}#map=17/${w.geo.lat}/${w.geo.lng}`} target="_blank" rel="noopener noreferrer" style={{color:'var(--blue)',textDecoration:'none',fontSize:11,marginTop:4,display:'block'}}>🗺️ View on Google Maps →</a>
       </div>}
 
       {/* Task History */}
@@ -604,7 +612,7 @@ function WorkersPage({token,dept}){
   const [selWorker,setSelWorker]=useState(null);
   const [statusFilter,setStatusFilter]=useState('all');
 
-  const UK_DISTS_W=['All Districts','Dehradun','Haridwar','Tehri Garhwal','Pauri Garhwal','Rudraprayag','Chamoli','Uttarkashi','Pithoragarh','Bageshwar','Almora','Champawat','Nainital','Udham Singh Nagar'];
+  const UK_DISTS_W=['All Districts',...SK.districts];
 
   useEffect(()=>{
     api.get(`/api/dept/${dept.id}/workers`,token).then(d=>{setWorkers(Array.isArray(d)?d:d.workers||[]);}).catch(()=>{}).finally(()=>setLoading(false));
@@ -646,7 +654,7 @@ function WorkersPage({token,dept}){
     <div className="card" style={{marginBottom:16}}>
       <div style={{display:'flex',gap:10,marginBottom:12,flexWrap:'wrap'}}>
         <input className="search" placeholder="🔍 Search by name, ward, district…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:180}}/>
-        <select className="select" value={distFilter} onChange={e=>setDistFilter(e.target.value)} style={{width:'auto',minWidth:140}}>
+        <select aria-label="Filter by district" className="select" value={distFilter} onChange={e=>setDistFilter(e.target.value)} style={{width:'auto',minWidth:140}}>
           {UK_DISTS_W.map(d=><option key={d} value={d}>{d}</option>)}
         </select>
       </div>
@@ -689,6 +697,75 @@ function WorkersPage({token,dept}){
 }
 
 /* ── SOS ALERTS PAGE ─────────────────────────────────────────────────────── */
+/* ── PROOF REVIEW QUEUE (Phase 3.7) ─────────────────────────────────────────── */
+function ReviewPage({token,dept,addToast}){
+  const [items,setItems]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [busy,setBusy]=useState(null);
+  const [notes,setNotes]=useState({});
+  const load=useCallback(()=>{
+    setLoading(true);
+    api.get('/api/dept/review-queue',token).then(d=>setItems(Array.isArray(d)?d:[])).catch(()=>setItems([])).finally(()=>setLoading(false));
+  },[token]);
+  useEffect(()=>{load();},[load]);
+  const decide=async(c,decision)=>{
+    setBusy(c.id);
+    try{
+      const r=await api.put(`/api/dept/complaints/${c.id}/review`,{decision,note:notes[c.id]||undefined},token);
+      addToast(decision==='reopen'?'Sent back for rework':r.state==='CLOSED'?'Proof accepted — case closed (citizen had confirmed)':'Proof accepted — waiting for the citizen to confirm','success');
+      load();
+    }catch(e){addToast(e.message||'Failed','error');}
+    finally{setBusy(null);}
+  };
+  const pct=x=>x==null?'—':Math.round(x*100)+'%';
+  const label={geo:'📍 Location',reuse:'🔁 Photo reuse',scene:'🏞️ Same place',change:'🔧 Fixed (vision)',citizen:'🙋 Citizen',neighbour:'🏘️ Neighbours'};
+  return <div className="page">
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+      <div>
+        <h2 style={{margin:0,fontSize:18}}>🔍 Proof review queue</h2>
+        <div style={{fontSize:12,color:'var(--muted)'}}>Cases the verification engine could not accept on its own. A case closes only when the citizen has also said it is fixed.</div>
+      </div>
+      <button className="btn btn-ghost btn-sm" onClick={load}>↺ Refresh</button>
+    </div>
+    {loading?<div style={{padding:30,textAlign:'center'}}><Spinner/></div>
+    :items.length===0?<div className="card" style={{padding:24,textAlign:'center',color:'var(--muted)'}}>Nothing to review 🎉</div>
+    :items.map(c=>{
+      const v=c.verification||{signals:[],flags:[]};
+      return <div key={c.id} className="card" style={{padding:16,marginBottom:12}}>
+        <div style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+          <div>
+            <div style={{fontWeight:700}}>{c.ticketId} · {c.category}</div>
+            <div style={{fontSize:12,color:'var(--muted)'}}>{c.location} · {c.district}</div>
+          </div>
+          <div style={{textAlign:'right',fontSize:12}}>
+            <div>Score <b>{pct(v.score)}</b> · coverage {pct(v.coverage)}</div>
+            <div style={{color:c.citizenAnswer==='yes'?'var(--green)':'var(--muted)'}}>{c.citizenAnswer==='yes'?'Citizen said fixed ('+(c.citizenAnswerChannel||'app')+')':'Citizen has not confirmed yet'}</div>
+          </div>
+        </div>
+        {v.flags.length>0&&<div style={{margin:'10px 0',display:'flex',gap:6,flexWrap:'wrap'}}>
+          {v.flags.map(f=><span key={f} style={{background:'rgba(218,54,51,.15)',color:'#ff7b72',border:'1px solid rgba(218,54,51,.4)',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:700}}>⚠ {f.replace(/_/g,' ')}</span>)}
+        </div>}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:8,margin:'10px 0'}}>
+          {v.signals.map(sg=><div key={sg.name} style={{background:'rgba(255,255,255,.03)',border:'1px solid var(--border)',borderRadius:8,padding:8,fontSize:12}}>
+            <div style={{display:'flex',justifyContent:'space-between'}}><b>{label[sg.name]||sg.name}</b><span>{sg.score==null?'unknown':pct(sg.score)}</span></div>
+            <div style={{color:'var(--muted)',marginTop:2}}>{sg.detail}</div>
+          </div>)}
+        </div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
+          {c.beforePhoto&&<a href={c.beforePhoto} target="_blank" rel="noopener noreferrer" style={{fontSize:12}}>Before photo ↗</a>}
+          {c.proofPhoto&&<a href={c.proofPhoto} target="_blank" rel="noopener noreferrer" style={{fontSize:12}}>Proof photo ↗</a>}
+          <input className="input" aria-label="Review note" placeholder="Note (optional)" value={notes[c.id]||''} onChange={e=>setNotes({...notes,[c.id]:e.target.value})} style={{flex:1,minWidth:160}}/>
+          {(()=>{const fraud=v.flags.filter(f=>['reused_photo','proof_is_before_photo','proof_far_from_site','gps_sources_disagree','photo_taken_before_complaint'].includes(f));
+            return fraud.length
+              ?<span style={{fontSize:11,color:'var(--muted)'}} title="Your department submitted this proof, so a district or state reviewer must clear these flags">🔒 Needs district/state reviewer</span>
+              :<button className="btn btn-sm" disabled={busy===c.id} onClick={()=>decide(c,'verify')} style={{background:'var(--green)',color:'#fff'}}>✓ Proof OK</button>;})()}
+          <button className="btn btn-ghost btn-sm" disabled={busy===c.id} onClick={()=>decide(c,'reopen')}>↩ Reopen</button>
+        </div>
+      </div>;
+    })}
+  </div>;
+}
+
 function SOSPage({token,dept,addToast}){
   const [alerts,setAlerts]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -775,9 +852,9 @@ function SOSPage({token,dept,addToast}){
         {selected.description&&<div style={{background:'#1c2128',borderRadius:8,padding:12,fontSize:13,lineHeight:1.6,marginBottom:14}}>{selected.description}</div>}
         {selected.audioRecordingUrl&&<div style={{background:'rgba(188,140,255,.1)',border:'1px solid rgba(188,140,255,.25)',borderRadius:8,padding:12,marginBottom:14}}>
           <div style={{color:'var(--purple)',fontWeight:600,fontSize:13,marginBottom:4}}>🎙️ Audio Recording Available</div>
-          <audio controls src={selected.audioRecordingUrl} style={{width:'100%'}}/>
+          <audio controls src={selected.audioRecordingUrl+"?token="+encodeURIComponent(token||"")} style={{width:"100%"}}/>
         </div>}
-        {selected.geo&&<a href={`https://maps.google.com/?q=${selected.geo.lat},${selected.geo.lng}`} target="_blank" style={{display:'block',marginTop:10}}>
+        {selected.geo&&<a href={`https://www.openstreetmap.org/?mlat=${selected.geo.lat}&mlon=${selected.geo.lng}#map=17/${selected.geo.lat}/${selected.geo.lng}`} target="_blank" rel="noopener noreferrer" style={{display:'block',marginTop:10}}>
           <button className="btn btn-blue" style={{width:'100%',justifyContent:'center'}}>🗺️ Open in Google Maps</button>
         </a>}
       </div>
@@ -873,7 +950,7 @@ function DeptInfoPage({dept}){
     {l:'Office Address',v:dept.address},
     {l:'Primary Helpline',v:dept.helpline},
     {l:'Secondary Contact',v:dept.helpline2},
-    {l:'Email',v:dept.email||`info.${dept.id}@uk.gov.in`},
+    {l:'Email',v:dept.email||'—'},
     {l:'SLA Target',v:`${dept.sla} hours first response`},
     {l:'Complaint Categories',v:dept.categories.length>0?dept.categories.join(', '):'All civic categories'},
   ];
@@ -894,7 +971,7 @@ function DeptInfoPage({dept}){
           <div>
             <div style={{fontWeight:700,fontSize:16}}>{dept.name}</div>
             <div style={{fontSize:13,color:'var(--muted)',marginTop:2}}>{dept.nameHindi}</div>
-            <div style={{fontSize:11,color:'var(--orange)',marginTop:4,fontWeight:600}}>Government of Uttarakhand</div>
+            <div style={{fontSize:11,color:'var(--orange)',marginTop:4,fontWeight:600}}>Government of {SK.state}</div>
           </div>
         </div>
         {info.map(({l,v})=><div key={l} style={{display:'flex',gap:12,marginBottom:14,fontSize:13}}>
@@ -916,7 +993,7 @@ function DeptInfoPage({dept}){
           </div>
           <div style={{marginTop:14,borderTop:'1px solid var(--border)',paddingTop:12,fontSize:12}}>
             <div style={{color:'var(--muted)',marginBottom:6}}>National Emergency Numbers</div>
-            {[['Police','100'],['Ambulance','108'],['Women Helpline','1090'],['Disaster','1070'],['Unified Emergency','112']].map(([l,n])=>
+            {[['Police','100'],['Ambulance','108'],['Women Helpline','181'],['Disaster','1070'],['Unified Emergency','112']].map(([l,n])=>
               <div key={l} style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
                 <span style={{color:'var(--muted)'}}>{l}</span>
                 <span style={{fontWeight:600,color:'var(--orange)',fontFamily:'monospace'}}>{n}</span>
@@ -940,7 +1017,7 @@ const ANN_TYPES=['general','scheme','emergency','welfare','tender','holiday'];
 const ANN_ICONS={general:'📢',scheme:'🎁',emergency:'🚨',welfare:'❤️',tender:'📑',holiday:'🎉'};
 const ANN_PRIORITY_COL={urgent:'var(--red)',important:'var(--orange)',normal:'var(--muted)'};
 const ANN_PRIORITY_LABEL={urgent:'🔴 URGENT',important:'🟠 IMPORTANT',normal:'🔵 NORMAL'};
-const UK_DISTS_ANN=['all','Dehradun','Haridwar','Tehri Garhwal','Pauri Garhwal','Rudraprayag','Chamoli','Uttarkashi','Pithoragarh','Bageshwar','Almora','Champawat','Nainital','Udham Singh Nagar'];
+const UK_DISTS_ANN=['all',...SK.districts];
 
 function AnnouncementsPage({token,dept,announcements,onRefresh,addToast}){
   const [compose,setCompose]=useState(false);
@@ -1016,7 +1093,7 @@ function AnnouncementsPage({token,dept,announcements,onRefresh,addToast}){
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:14}}>
         <div>
           <label>Target District</label>
-          <select className="select" value={form.targetDistrict} onChange={e=>setForm(f=>({...f,targetDistrict:e.target.value}))}>
+          <select aria-label="Target district" className="select" value={form.targetDistrict} onChange={e=>setForm(f=>({...f,targetDistrict:e.target.value}))}>
             {UK_DISTS_ANN.map(d=><option key={d} value={d}>{d==='all'?'All Districts':d}</option>)}
           </select>
         </div>
@@ -1070,7 +1147,7 @@ function AnnouncementsPage({token,dept,announcements,onRefresh,addToast}){
         </div>
         <div style={{fontSize:13,color:'var(--text)',lineHeight:1.6,marginBottom:8,background:'#1c2128',borderRadius:8,padding:'10px 12px'}}>{a.body}</div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          {a.link&&<a href={a.link} target="_blank" style={{fontSize:12,color:'var(--blue)',textDecoration:'none'}}>🔗 Reference Link</a>}
+          {a.link&&<a href={a.link} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:'var(--blue)',textDecoration:'none'}}>🔗 Reference Link</a>}
           {a.expiresAt&&!expired&&<span style={{fontSize:11,color:'var(--muted)'}}>⏱ Expires: {new Date(a.expiresAt).toLocaleDateString('en-IN')}</span>}
           <span style={{fontSize:11,color:'var(--muted)',marginLeft:'auto'}}>👁 {a.views} views</span>
           {isOwn&&<button className="btn btn-sm btn-ghost" style={{color:'var(--red)',borderColor:'rgba(248,81,73,.3)'}} onClick={()=>del(a.id)} disabled={deleting===a.id}>
@@ -1100,7 +1177,8 @@ function Dashboard({token,dept,onLogout}){
   const removeToast=useCallback(id=>setToasts(prev=>prev.filter(t=>t.id!==id)),[]);
 
   const loadData=useCallback(()=>{
-    api.get(`/api/dept/${dept.id}/complaints`,token).then(d=>{setComplaints(d.complaints||[]);}).catch(()=>{});
+    // D-046: follow the pages (1000 each, up to 10) so no open work is hidden behind the first page.
+    (async()=>{try{let all=[],cursor=null;for(let i=0;i<10;i++){const d=await api.get(`/api/dept/${dept.id}/complaints?limit=1000${cursor?`&cursor=${encodeURIComponent(cursor)}`:''}`,token);all=all.concat(d.complaints||[]);if(!d.hasMore)break;cursor=d.nextCursor;}setComplaints(all);}catch(e){}})();
     api.get(`/api/dept/${dept.id}/stats`,token).then(setStats).catch(()=>{});
     api.get('/api/sos',token).then(d=>{setSosCount((Array.isArray(d)?d:d.alerts||[]).filter(a=>a.status==='active').length);}).catch(()=>{});
     api.get(`/api/dept/${dept.id}/announcements`,token).then(d=>{setAnnouncements(Array.isArray(d)?d:[]);}).catch(()=>{});
@@ -1159,6 +1237,7 @@ function Dashboard({token,dept,onLogout}){
   const navItems=[
     {id:'dashboard',icon:'🏠',label:'Dashboard'},
     {id:'complaints',icon:'📋',label:'Complaints',badge:newIds.size||null},
+    {id:'review',icon:'🔍',label:'Proof Review'},
     {id:'workers',icon:'👥',label:'Workers'},
     {id:'sos',icon:'🆘',label:'SOS Alerts',badge:sosCount||null},
     {id:'announcements',icon:'📢',label:'Announcements',badge:newAnnCount||null},
@@ -1219,6 +1298,7 @@ function Dashboard({token,dept,onLogout}){
 
       {page==='dashboard'&&<DashboardPage token={token} dept={dept} complaints={complaints} stats={stats} workers={workers} newIds={newIds} onRefresh={loadData} addToast={addToast}/>}
       {page==='complaints'&&<ComplaintsPage token={token} dept={dept} complaints={complaints} newIds={newIds} onRefresh={loadData} addToast={addToast}/>}
+      {page==='review'&&<ReviewPage token={token} dept={dept} addToast={addToast}/>}
       {page==='workers'&&<WorkersPage token={token} dept={dept}/>}
       {page==='sos'&&<SOSPage token={token} dept={dept} addToast={addToast}/>}
       {page==='announcements'&&<AnnouncementsPage token={token} dept={dept} announcements={announcements} onRefresh={()=>{api.get(`/api/dept/${dept.id}/announcements`,token).then(d=>{setAnnouncements(Array.isArray(d)?d:[]);setNewAnnCount(0);}).catch(()=>{});}} addToast={addToast}/>}
@@ -1255,19 +1335,19 @@ function Login({onLogin}){
       <div style={{textAlign:'center',marginBottom:28}}>
         <div style={{fontSize:40,marginBottom:10}}>🏛️</div>
         <div style={{fontSize:22,fontWeight:800,color:'#fff',letterSpacing:.5}}>SANKALP <span style={{color:'var(--orange)'}}>AI</span></div>
-        <div style={{fontSize:12,color:'var(--muted)',marginTop:4}}>Department Portal — Government of Uttarakhand</div>
+        <div style={{fontSize:12,color:'var(--muted)',marginTop:4}}>Department Portal — Government of {SK.state}</div>
       </div>
 
       <div style={{marginBottom:16}}>
         <label>Select Your Department</label>
-        <select className="select" value={deptId} onChange={e=>setDeptId(e.target.value)}>
+        <select aria-label="Department" className="select" value={deptId} onChange={e=>setDeptId(e.target.value)}>
           <option value="">— Select Department —</option>
           {DEPT_LIST.map(d=><option key={d.id} value={d.id}>{d.icon} {d.name}</option>)}
         </select>
       </div>
       <div style={{marginBottom:20}}>
         <label>Access Code</label>
-        <input className="input" type="password" placeholder="e.g. pwd_2026" value={code}
+        <input className="input" type="password" placeholder="Department access code" value={code}
           onChange={e=>setCode(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()}/>
       </div>
       {error&&<div style={{background:'rgba(248,81,73,.12)',border:'1px solid rgba(248,81,73,.3)',borderRadius:8,padding:10,marginBottom:14,fontSize:13,color:'var(--red)'}}>✗ {error}</div>}
@@ -1275,14 +1355,8 @@ function Login({onLogin}){
         {loading?<><Spinner/> Signing in…</>:'🔑 Sign In to Department Portal'}
       </button>
 
-      <div style={{background:'rgba(255,153,51,.06)',border:'1px solid rgba(255,153,51,.15)',borderRadius:10,padding:14,marginTop:20,fontSize:12,color:'var(--muted)'}}>
-        <div style={{fontWeight:600,marginBottom:6,color:'var(--orange)'}}>Demo Access Codes</div>
-        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-          {['pwd_2026','ulb_2026','jal_2026','upcl_2026','forest_2026','health_2026','usdma_2026','police_2026'].map(c=>
-            <code key={c} style={{background:'rgba(255,153,51,.1)',padding:'2px 7px',borderRadius:5,cursor:'pointer',color:'var(--orange)'}} onClick={()=>{const [d]=c.split('_');setDeptId(d);setCode(c);}}>{c}</code>
-          )}
-        </div>
-        <div style={{marginTop:8,fontSize:11,opacity:.7}}>Click any code to auto-fill</div>
+      <div style={{marginTop:20,fontSize:12,color:'var(--muted)'}}>
+        Access codes are issued by the state administrator and can be rotated at any time. Never share your code.
       </div>
 
       <div style={{marginTop:16,display:'flex',gap:6,justifyContent:'center',flexWrap:'wrap'}}>

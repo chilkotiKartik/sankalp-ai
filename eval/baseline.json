@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "accuracy": 78.2,
+    "n": 307,
+    "date": "2026-11-21"
+  },
+  "rules:holdout": {
+    "accuracy": 77.8,
+    "n": 36,
+    "date": "2026-11-21"
+  }
+}

@@ -8,6 +8,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { getApiUrl } from "@/lib/query-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getSecure } from "@/lib/secure-session";
+import { stateName, allDistricts } from "@/constants/districts";
 
 interface RTIRequest {
   id: string; ticketId: string; subject: string; description: string;
@@ -18,10 +20,10 @@ interface RTIRequest {
 
 const DEPARTMENTS = [
   "Public Works Department (PWD)",
-  "Uttarakhand Jal Sansthan (UJN)",
+  "Water Supply Department",
   "Urban Local Body (ULB)",
   "Forest Department",
-  "Uttarakhand Power Corporation Ltd (UPCL)",
+  "Power Distribution Company",
   "Health & Family Welfare Department",
   "District Magistrate Office",
   "Revenue Department",
@@ -85,7 +87,7 @@ export default function RTIScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem("@sankalp_token").then(t => { setToken(t); });
+    getSecure("@sankalp_token").then(t => { setToken(t); });
   }, []);
 
   const loadRTIs = useCallback(async (tok: string | null) => {
@@ -232,7 +234,7 @@ export default function RTIScreen() {
             { icon: "time", color: "#3B82F6", title: "30-Day Response Deadline", body: "Under Section 7 of RTI Act 2005, the Public Information Officer must provide information within 30 days of receipt of RTI application." },
             { icon: "cash", color: "#00A651", title: "₹10 Application Fee", body: "RTI applications attract a nominal fee of ₹10. BPL card holders are exempt from this fee. Fee can be paid via IPO, DD, or cash." },
             { icon: "shield-checkmark", color: "#F59E0B", title: "First Appeal", body: "If dissatisfied, you can file a First Appeal within 30 days to the First Appellate Authority of the same department." },
-            { icon: "people", color: "#8B5CF6", title: "Central Information Commission", body: "For second appeal or complaint, approach the State Information Commission of Uttarakhand within 90 days of first appeal decision." },
+            { icon: "people", color: "#8B5CF6", title: "Central Information Commission", body: "For second appeal or complaint, approach your State Information Commission within 90 days of first appeal decision." },
           ].map(info => (
             <View key={info.title} style={s.infoCard}>
               <View style={[s.infoIcon, { backgroundColor: info.color + "15" }]}>
@@ -429,7 +431,7 @@ export default function RTIScreen() {
                   { step: "2", title: "Acknowledgement", body: "The Public Information Officer (PIO) must acknowledge your application within 5 days. You receive a tracking number.", color: "#8B5CF6" },
                   { step: "3", title: "30-Day Deadline", body: "The PIO must provide the requested information within 30 days. For matters concerning life and liberty, it's 48 hours.", color: "#F59E0B" },
                   { step: "4", title: "First Appeal", body: "If information is denied or unsatisfactory, file a First Appeal within 30 days to the First Appellate Authority.", color: "#EF4444" },
-                  { step: "5", title: "State Information Commission", body: "If First Appeal is rejected, approach the Uttarakhand State Information Commission within 90 days.", color: "#00A651" },
+                  { step: "5", title: "State Information Commission", body: "If First Appeal is rejected, approach the State Information Commission within 90 days.", color: "#00A651" },
                 ].map(step => (
                   <View key={step.step} style={{ flexDirection: "row", gap: 14, marginBottom: 20 }}>
                     <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: step.color, alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -444,7 +446,7 @@ export default function RTIScreen() {
                 <View style={{ backgroundColor: "#FFF8E7", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#FDE68A" }}>
                   <Text style={{ color: "#B45309", fontSize: 12, fontFamily: "Inter_700Bold", marginBottom: 4 }}>Emergency Contact</Text>
                   <Text style={{ color: "#6B7280", fontSize: 12, fontFamily: "Inter_400Regular" }}>
-                    Uttarakhand Chief Information Commission: 0135-2714000{"\n"}Central RTI Portal: rtionline.gov.in
+                    {`${stateName()} State Information Commission — see the state RTI portal`}{"\n"}Central RTI Portal: rtionline.gov.in
                   </Text>
                 </View>
                 <View style={{ height: 20 }} />

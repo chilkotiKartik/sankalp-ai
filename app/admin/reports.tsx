@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { captureProofPhoto, proofLocation } from "@/lib/proof";
 import { useApp, type Complaint } from "@/context/AppContext";
 import Colors from "@/constants/colors";
 
@@ -139,7 +140,7 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
             {complaint.feedback && (
               <View style={styles.feedbackBox}>
                 <Ionicons name="chatbubble-ellipses" size={12} color={Colors.textMuted} />
-                <Text style={styles.feedbackText}>"{complaint.feedback}"</Text>
+                <Text style={styles.feedbackText}>&quot;{complaint.feedback}&quot;</Text>
               </View>
             )}
 
@@ -147,11 +148,11 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
             {(complaint.status === "pending" || complaint.status === "in_progress") && (
               <View style={styles.actionRow}>
                 <Pressable onPress={doResolve} disabled={loading} style={styles.resolveBtn}>
-                  {loading ? <ActivityIndicator color="#fff" size="small" /> : <><Ionicons name="checkmark-circle" size={16} color="#fff" /><Text style={styles.resolveBtnText}>Mark Resolved</Text></>}
+                  {loading ? <ActivityIndicator color="#fff" size="small" /> : <><Ionicons name="checkmark-circle" size={16} color="#fff" /><Text style={styles.resolveBtnText}>Upload proof & mark fixed</Text></>}
                 </Pressable>
                 <Pressable onPress={doReject} disabled={loading} style={styles.rejectBtn}>
                   <Ionicons name="close-circle" size={16} color="#EF4444" />
-                  <Text style={styles.rejectBtnText}>Reject</Text>
+                  <Text style={styles.rejectBtnText}>Start work</Text>
                 </Pressable>
               </View>
             )}
@@ -164,7 +165,7 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
 
 export default function AdminReports() {
   const insets = useSafeAreaInsets();
-  const { complaints, resolveComplaint, rejectComplaint, refresh, isLoading } = useApp();
+  const { complaints, updateComplaintStatus, refresh, isLoading } = useApp();
 
   const [sortKey, setSortKey] = useState<SortKey>("submittedAt");
   const [filterCat, setFilterCat] = useState<FilterCat>("all");
@@ -185,14 +186,17 @@ export default function AdminReports() {
     });
 
   const handleResolve = useCallback(async (id: string) => {
-    await resolveComplaint(id, 4, "Admin resolved");
+    const proofPhoto = await captureProofPhoto();
+    if (!proofPhoto) return;
+    const proofGeo = await proofLocation();
+      await updateComplaintStatus(id, "resolved", { proofPhoto, proofNote: "Proof captured by officer", proofGeo });
     setSelectedC(null);
-  }, [resolveComplaint]);
+  }, [updateComplaintStatus]);
 
   const handleReject = useCallback(async (id: string) => {
-    await rejectComplaint(id);
+    await updateComplaintStatus(id, "in_progress");
     setSelectedC(null);
-  }, [rejectComplaint]);
+  }, [updateComplaintStatus]);
 
   return (
     <View style={[styles.container, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>

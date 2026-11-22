@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, Pressable, Animated,
   Dimensions, FlatList, Image, Platform,
-  NativeSyntheticEvent, NativeScrollEvent,
+  NativeSyntheticEvent, NativeScrollEvent, type ImageSourcePropType,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,17 +10,18 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { stateName, districtPhrase, allDistricts } from "@/constants/districts";
 
 const { width: W, height: H } = Dimensions.get("window");
 
-// Indian citizen avatar with real photo
+// Illustration card (local asset — no remote images, no invented people)
 function IndianAvatar({ name, role, photo, size = 160 }: {
-  name: string; role: string; photo: string; size?: number;
+  name: string; role: string; photo: ImageSourcePropType; size?: number;
 }) {
   return (
     <View style={{ alignItems: "center" }}>
       <View style={[avs.outer, { width: size + 28, height: size + 28, borderRadius: (size + 28) / 2 }]}>
-        <Image source={{ uri: photo }} style={{ width: size, height: size, borderRadius: size / 2 }} />
+        <Image source={photo} accessibilityIgnoresInvertColors style={{ width: size, height: size, borderRadius: size / 2 }} />
       </View>
       <View style={avs.namePill}>
         <Text style={avs.nameText}>{name}</Text>
@@ -41,37 +42,34 @@ const SLIDES = [
   {
     id: "0",
     gradients: ["#BF360C", "#E64A19", "#FF8F00"] as const,
-    bgImage: "https://images.unsplash.com/photo-1587474260584-136574528ed5?w=800&h=600&fit=crop",
-    avatar: { name: "Rahul Kumar", role: "Block Officer, Uttarakhand", photo: "https://randomuser.me/api/portraits/men/32.jpg" },
+    avatar: { name: "Report in 30 seconds", role: "Illustration", photo: require("@/assets/images/indian_men_namaste.png") },
     badge: "🏛️",
     pill: "CIVIC TECH",
-    title: "Report Issues,\nTransform Uttarakhand",
-    sub: "File complaints for potholes, garbage, broken streetlights and more — in under 30 seconds. Track real-time resolution across 13 districts.",
+    get title() { return `Report Issues,\nTransform ${stateName()}`; },
+    get sub() { return `File complaints for potholes, garbage, broken streetlights and more — in under 30 seconds. Track real-time resolution across ${districtPhrase()}.`; },
     features: ["AI-powered complaint routing", "Real-time status tracking", "Ward health scoreboard"],
     featureIcons: ["hardware-chip", "navigate-circle", "bar-chart"] as const,
   },
   {
     id: "1",
     gradients: ["#1A237E", "#283593", "#3949AB"] as const,
-    bgImage: "https://images.unsplash.com/photo-1537944434965-cf4679d1a598?w=800&h=600&fit=crop",
-    avatar: { name: "Priya Sharma", role: "Tech Officer, Govt of UK", photo: "https://randomuser.me/api/portraits/women/62.jpg" },
+    avatar: { name: "Help in Hindi & English", role: "Illustration", photo: require("@/assets/images/indian_youth.png") },
     badge: "🤖",
     pill: "AI POWERED",
     title: "Your Personal\nAI Civic Assistant",
-    sub: "SANKALP AI answers civic questions 24/7 — from government schemes to emergency helplines, all in plain English.",
+    sub: "SANKALP AI answers civic questions 24/7 — from government schemes to emergency helplines, in Hindi and English.",
     features: ["Instant scheme eligibility", "24/7 helpline directory", "Smart complaint suggestions"],
     featureIcons: ["chatbubble-ellipses", "call", "bulb"] as const,
   },
   {
     id: "2",
     gradients: ["#1B5E20", "#2E7D32", "#43A047"] as const,
-    bgImage: "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800&h=600&fit=crop",
-    avatar: { name: "Sunita Verma", role: "Citizen, Uttarakhand", photo: "https://randomuser.me/api/portraits/women/44.jpg" },
+    avatar: { name: "Safety, one tap away", role: "Illustration", photo: require("@/assets/images/indian_elder.png") },
     badge: "🛡️",
     pill: "ALWAYS SAFE",
     title: "Women Safety\n& Emergency SOS",
-    sub: "One-tap SOS sends your location to police and family. Access Uttarakhand emergency services — police 100, women helpline 1090.",
-    features: ["One-tap SOS broadcast", "Women helpline 1090", "Nearest police locator"],
+    get sub() { return `One-tap SOS sends your location to the police control room. Emergency 112 works everywhere in ${stateName()}; women helpline 181.`; },
+    features: ["One-tap SOS broadcast", "Women helpline 181", "Nearest police locator"],
     featureIcons: ["warning", "shield-checkmark", "location"] as const,
   },
 ];
@@ -81,7 +79,6 @@ type Slide = typeof SLIDES[0];
 function SlideView({ slide }: { slide: Slide }) {
   return (
     <View style={[sv.container, { width: W }]}>
-      <Image source={{ uri: slide.bgImage }} style={sv.bgImage} resizeMode="cover" />
       <LinearGradient
         colors={[slide.gradients[0] + "CC", slide.gradients[1] + "E5", slide.gradients[2] + "F5"]}
         style={StyleSheet.absoluteFill}
@@ -106,12 +103,12 @@ function SlideView({ slide }: { slide: Slide }) {
 
       {/* Float stats */}
       <View style={sv.floatCard1}>
-        <Text style={sv.floatNum}>12K+</Text>
-        <Text style={sv.floatLabel}>Citizens</Text>
+        <Text style={sv.floatNum}>{allDistricts().length || "—"}</Text>
+        <Text style={sv.floatLabel}>Districts</Text>
       </View>
       <View style={sv.floatCard2}>
-        <Text style={sv.floatNum}>98%</Text>
-        <Text style={sv.floatLabel}>Resolved</Text>
+        <Text style={sv.floatNum}>24×7</Text>
+        <Text style={sv.floatLabel}>SOS</Text>
       </View>
     </View>
   );
@@ -171,7 +168,7 @@ export default function OnboardingScreen() {
           <View style={ob.brandIcon}><Text style={{ fontSize: 22 }}>🏛️</Text></View>
           <View>
             <Text style={ob.brandName}>SANKALP AI</Text>
-            <Text style={ob.brandGov}>Government of Uttarakhand</Text>
+            <Text style={ob.brandGov}>{stateName()}</Text>
           </View>
         </View>
         <Pressable onPress={handleSkip} style={ob.skipBtn}>

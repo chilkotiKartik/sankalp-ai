@@ -1,3 +1,4 @@
+import { openInMaps, openInMapsQuery } from "@/lib/maps";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable, Platform, Animated,
@@ -10,6 +11,7 @@ import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
 import { useApp, type SOSAlert } from "@/context/AppContext";
+import { stateName, districtPhrase } from "@/constants/districts";
 
 const SOS_META: Record<string, { label: string; icon: string; color: string; priority: string }> = {
   gas_leak:        { label: "Gas Leak",        icon: "🔴", color: "#F59E0B", priority: "P1-CRITICAL" },
@@ -171,12 +173,12 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
                 </View>
                 <Text style={rm.gpsAddrText}>{alert.location}</Text>
                 <View style={rm.gpsActions}>
-                  <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${liveGeo.lat},${liveGeo.lng}`)}
+                  <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng)}
                     style={rm.mapsBtn}>
                     <Ionicons name="map" size={14} color="#4ADE80" />
                     <Text style={rm.mapsBtnText}>Open in Google Maps</Text>
                   </Pressable>
-                  <Pressable onPress={() => Linking.openURL(`https://waze.com/ul?ll=${liveGeo.lat},${liveGeo.lng}&navigate=yes`)}
+                  <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng, "Navigate")}
                     style={rm.wazeBtn}>
                     <Ionicons name="navigate" size={14} color="#3B82F6" />
                     <Text style={rm.wazeBtnText}>Navigate (Waze)</Text>
@@ -293,7 +295,7 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
               <View style={rm.section}>
                 <Text style={rm.sectionLabel}>ADMIN ACTIONS</Text>
                 <View style={rm.adminActions}>
-                  <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${liveGeo.lat},${liveGeo.lng}`)}
+                  <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng)}
                     style={rm.adminBtn}>
                     <Ionicons name="map-outline" size={16} color="#4ADE80" />
                     <Text style={[rm.adminBtnText, { color: "#4ADE80" }]}>Live Map</Text>
@@ -454,7 +456,7 @@ function AlertCard({ alert, onResolve, onViewReport }: {
           <Ionicons name="document-text" size={13} color="#3B82F6" />
           <Text style={[ac.actionText, { color: "#3B82F6" }]}>Full Report</Text>
         </Pressable>
-        <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${liveGeo.lat},${liveGeo.lng}`)}
+        <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng)}
           style={[ac.actionBtn, { backgroundColor: "#14532D" }]}>
           <Ionicons name="map" size={13} color="#4ADE80" />
           <Text style={[ac.actionText, { color: "#4ADE80" }]}>Maps</Text>
@@ -589,7 +591,7 @@ export default function AdminAlerts() {
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={ms.headerTitle}>SOS Command Center</Text>
-            <Text style={ms.headerSub}>Uttarakhand Emergency Response · Live GPS Tracking</Text>
+            <Text style={ms.headerSub}>{`${stateName()} Emergency Response · Live GPS Tracking`}</Text>
           </View>
           {active.length > 0 && (
             <Animated.View style={[ms.activeBadge, { opacity: flashBadge }]}>

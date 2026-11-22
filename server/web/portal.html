@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>SANKALP AI — Unified Governance Portal</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>"/>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="/web/vendor/react-18.3.1.production.min.js"></script>
+<script src="/web/vendor/react-dom-18.3.1.production.min.js"></script>
+<script src="/web/vendor/babel-standalone-7.26.10.min.js"></script>
 <link rel="stylesheet" href="/leaflet/leaflet.css"/>
 <script src="/leaflet/leaflet.js"></script>
 <style>
@@ -122,17 +122,8 @@ const {useState,useEffect,useRef,useCallback,useMemo}=React;
 function bc(active,col){return '1px solid '+(active?(col||'var(--orange)'):'var(--border)');}
 
 /* ── CONSTANTS ─────────────────────────────────────────────────────────────── */
-const DEPTS={
-  pwd:{id:'pwd',name:'PWD — Public Works',nameHindi:'लोक निर्माण विभाग',icon:'🏗️',color:'#F59E0B',categories:['pothole','other'],helpline:'1800-180-4244',helpline2:'0135-2714400',sla:24,head:'Chief Engineer, PWD Uttarakhand',address:'Construction Bhawan, Subhash Road, Dehradun — 248001'},
-  ulb:{id:'ulb',name:'ULB — Municipal Corp',nameHindi:'नगर पालिका / नगर निगम',icon:'🗑️',color:'#10B981',categories:['garbage','drain'],helpline:'1533',helpline2:'0135-2654321',sla:48,head:'Commissioner, Urban Local Bodies',address:'Municipal Bhawan, Paltan Bazaar, Dehradun — 248001'},
-  jal:{id:'jal',name:'Jal Sansthan',nameHindi:'उत्तराखण्ड जल संस्थान',icon:'💧',color:'#3B82F6',categories:['water'],helpline:'1916',helpline2:'0135-2723456',sla:12,head:'General Manager, Jal Sansthan',address:'Jal Sansthan Bhawan, Haridwar Road, Dehradun'},
-  upcl:{id:'upcl',name:'UPCL — Power Corp',nameHindi:'उत्तराखण्ड पावर कॉर्पोरेशन',icon:'⚡',color:'#8B5CF6',categories:['electricity','streetlight'],helpline:'1912',helpline2:'0135-2770501',sla:6,head:'Managing Director, UPCL',address:'Ranipur Mor, Haridwar Road, Dehradun — 249407'},
-  forest:{id:'forest',name:'Forest Department',nameHindi:'वन विभाग',icon:'🌳',color:'#22c55e',categories:['tree'],helpline:'1800-180-4288',helpline2:'0135-2756083',sla:96,head:'Principal Chief Conservator of Forests',address:'Van Bhawan, Nehru Colony, Dehradun — 248001'},
-  health:{id:'health',name:'Health & Family Welfare',nameHindi:'स्वास्थ्य विभाग',icon:'🏥',color:'#EF4444',categories:[],helpline:'104',helpline2:'0135-2606012',sla:24,head:'Director General of Health Services',address:'Swasthya Bhawan, Jolly Grant, Dehradun'},
-  usdma:{id:'usdma',name:'USDMA — Disaster Mgmt',nameHindi:'आपदा प्रबंधन प्राधिकरण',icon:'🆘',color:'#DC2626',categories:[],helpline:'1070',helpline2:'0135-2710334',sla:2,head:'CEO, USDMA (IAS Officer)',address:'USDMA Bhawan, Rajpur Road, Dehradun — 248001'},
-  police:{id:'police',name:'Uttarakhand Police',nameHindi:'उत्तराखण्ड पुलिस',icon:'🚔',color:'#60a5fa',categories:[],helpline:'100',helpline2:'112',sla:1,head:'Director General of Police, Uttarakhand',address:'Police Headquarters, Subhash Road, Dehradun — 248001'},
-};
-const CAT_DEPT={pothole:'pwd',road_damage:'pwd',garbage:'ulb',drain:'ulb',sewage:'ulb',water:'jal',electricity:'upcl',streetlight:'upcl',transformer:'upcl',tree:'forest',noise:'police',health_hazard:'health',disaster:'usdma',other:'pwd'};
+const DEPTS=SK.depts; // P9: the selected state's departments
+const CAT_DEPT=SK.catDept;
 const CATEGORIES=[
   {id:'pothole',label:'Pothole',icon:'🕳️'},
   {id:'road_damage',label:'Road Damage',icon:'🛣️'},
@@ -155,7 +146,7 @@ const SOS_CATS=[
   {id:'electric_hazard',label:'Electric Hazard',icon:'⚡'},{id:'infrastructure',label:'Infrastructure Collapse',icon:'🏚️'},
   {id:'women_safety',label:'Women Safety / Panic',icon:'🆘'},{id:'gas_leak',label:'Gas Leak',icon:'💨'},
 ];
-const DISTRICTS=['Dehradun','Haridwar','Tehri Garhwal','Pauri Garhwal','Rudraprayag','Chamoli','Uttarkashi','Pithoragarh','Bageshwar','Almora','Champawat','Nainital','Udham Singh Nagar'];
+const DISTRICTS=SK.districts;
 const PC={P1:'badge-red',P2:'badge-orange',P3:'badge-yellow',P4:'badge-muted'};
 const SC={pending:'badge-yellow',in_progress:'badge-blue',resolved:'badge-green',closed:'badge-muted'};
 const SL={pending:'Pending',in_progress:'In Progress',resolved:'Resolved',closed:'Closed'};
@@ -206,6 +197,7 @@ function Toast({toasts}){
 function Spinner({size}){size=size||18;return <div style={{width:size,height:size,border:'2px solid var(--border)',borderTop:'2px solid var(--orange)',borderRadius:'50%'}} className="spin"/>;}
 
 /* ── LIVE ANNOUNCEMENTS TICKER ───────────────────────────────────────────────── */
+const HELPLINES=[{id:'h1',title:'🆘 Emergency: 112 · Police 100 · Ambulance 108 · Fire 101 · Women Helpline 181',priority:'urgent'}];
 function LiveTicker({token}){
   const [items,setItems]=useState([]);
   const [lastRefresh,setLastRefresh]=useState(Date.now());
@@ -214,21 +206,11 @@ function LiveTicker({token}){
     const url='/api/announcements'+(token?'':'');
     const headers=token?{Authorization:'Bearer '+token}:{};
     fetch(url,{headers}).then(r=>r.json()).then(d=>{
+      // No invented announcements (rule: no fake data). Without real items we show only official helplines.
       if(Array.isArray(d)&&d.length>0)setItems(d.slice(0,10));
-      else{
-        setItems([
-          {id:'a1',title:'📢 SANKALP AI — Uttarakhand Civic Portal is LIVE',priority:'normal'},
-          {id:'a2',title:'🌐 File complaints, track status & get real-time updates across 8 departments',priority:'normal'},
-          {id:'a3',title:'🆘 SOS Emergency? Call 112 immediately · Women Safety: 1090',priority:'urgent'},
-          {id:'a4',title:'📊 All 13 Uttarakhand districts connected · Live complaint tracking active',priority:'normal'},
-        ]);
-      }
+      else setItems(HELPLINES);
     }).catch(()=>{
-      setItems([
-        {id:'f1',title:'📢 SANKALP AI — Real-time governance for Uttarakhand',priority:'normal'},
-        {id:'f2',title:'🆘 Emergency services: Police 100 · Ambulance 108 · Fire 101 · SDRF 1070',priority:'urgent'},
-        {id:'f3',title:'📝 Submit civic complaints and track resolution in real-time across all 8 departments',priority:'normal'},
-      ]);
+      setItems(HELPLINES);
     });
     setLastRefresh(Date.now());
   },[token]);
@@ -350,7 +332,7 @@ function ComplaintModal({c,onClose,token,deptToken,addToast,onRefresh,isAdmin}){
           <span className={'badge '+(SC[c.status]||'badge-muted')} style={{fontSize:12,padding:'3px 10px'}}>{SL[c.status]||c.status}</span>
           {slaBreached&&<span className="badge badge-red">⚠️ SLA Overdue {hoursElapsed-slaHours}h</span>}
           {!slaBreached&&(c.status==='pending'||c.status==='in_progress')&&<span style={{fontSize:11,color:'var(--muted)',background:'rgba(255,255,255,.05)',padding:'2px 8px',borderRadius:5}}>⏳ {hoursElapsed}h / {slaHours}h SLA</span>}
-          {c.geo?.lat&&<a href={'https://maps.google.com/?q='+c.geo.lat+','+c.geo.lng} target="_blank" className="btn btn-ghost btn-sm" style={{fontSize:11,marginLeft:'auto',color:'var(--blue)',borderColor:'rgba(88,166,255,.3)'}}>🗺️ Open on Map</a>}
+          {c.geo?.lat&&<a href={'https://www.openstreetmap.org/?mlat='+c.geo.lat+'&mlon='+c.geo.lng+'#map=17/'+c.geo.lat+'/'+c.geo.lng} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{fontSize:11,marginLeft:'auto',color:'var(--blue)',borderColor:'rgba(88,166,255,.3)'}}>🗺️ Open on Map</a>}
         </div>
 
         {/* ── SLA PROGRESS BAR ── */}
@@ -386,7 +368,7 @@ function ComplaintModal({c,onClose,token,deptToken,addToast,onRefresh,isAdmin}){
         <div className="grid2" style={{gap:8,marginBottom:14,fontSize:12}}>
           {[
             ['📍 Location',c.location||'—',null],
-            ['🗺️ District',c.district||'Uttarakhand',null],
+            ['🗺️ District',c.district||SK.state,null],
             ['🏘️ Ward',c.ward||'—',null],
             ['📂 Category',(catInfo?.icon||'')+' '+(catInfo?.label||c.category||'—'),null],
             ['🤖 AI Score',(c.aiScore||0)+'/100',c.aiScore>=70?'var(--green)':c.aiScore>=40?'var(--yellow)':'var(--red)'],
@@ -453,7 +435,7 @@ function ComplaintModal({c,onClose,token,deptToken,addToast,onRefresh,isAdmin}){
             <a href={'tel:112'} className="btn btn-sm" style={{background:'rgba(248,81,73,.1)',color:'var(--red)',border:'1px solid rgba(248,81,73,.3)'}}>📞 Call 112</a>
             <a href={'tel:'+(dept?.helpline||'1800180')} className="btn btn-sm" style={{background:'rgba(255,153,51,.1)',color:'var(--orange)',border:'1px solid rgba(255,153,51,.3)'}}>☎️ Dept Helpline</a>
             <button className="btn btn-ghost btn-sm" onClick={()=>{navigator.clipboard?.writeText(c.ticketId||'');addToast&&addToast('success','Ticket ID copied to clipboard');}}>📋 Copy Ticket ID</button>
-            {c.geo?.lat&&<a href={'https://maps.google.com/?q='+c.geo.lat+','+c.geo.lng} target="_blank" className="btn btn-ghost btn-sm">🗺️ View Location</a>}
+            {c.geo?.lat&&<a href={'https://www.openstreetmap.org/?mlat='+c.geo.lat+'&mlon='+c.geo.lng+'#map=17/'+c.geo.lat+'/'+c.geo.lng} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">🗺️ View Location</a>}
           </div>
         </div>}
 
@@ -499,7 +481,7 @@ function Sidebar({nav,active,setActive,user,onLogout,role,badge,badgeFor,extra})
         <div style={{fontSize:26,lineHeight:1,flexShrink:0}}>🏛️</div>
         <div className="sidebar-logo-text">
           <div style={{fontWeight:800,fontSize:13.5,letterSpacing:.5,color:'#fff'}}>SANKALP AI</div>
-          <div style={{fontSize:10,color:'var(--muted)',marginTop:1}}>Uttarakhand Govt</div>
+          <div style={{fontSize:10,color:'var(--muted)',marginTop:1}}>{SK.state}</div>
         </div>
       </div>
       {user&&<div className="sidebar-logo-text" style={{marginTop:12,padding:'8px 10px',background:'rgba(255,255,255,.04)',borderRadius:8,borderLeft:'3px solid '+rc}}>
@@ -535,7 +517,7 @@ function LoginScreen({onLogin}){
   const [phone,setPhone]=useState('');
   const [pin,setPin]=useState('');
   const [name,setName]=useState('');
-  const [district,setDistrict]=useState('Dehradun');
+  const [district,setDistrict]=useState(SK.districts[0]||"");
   const [isReg,setIsReg]=useState(false);
   const [deptId,setDeptId]=useState('pwd');
   const [code,setCode]=useState('');
@@ -571,7 +553,7 @@ function LoginScreen({onLogin}){
     {icon:'🔴',title:'Live Feed',desc:'Real-time SSE complaint stream'},
     {icon:'🆘',title:'SOS Alerts',desc:'Emergency services in seconds'},
     {icon:'🗺️',title:'Civic Map',desc:'Live complaints on Leaflet map'},
-    {icon:'🏗️',title:'8 Depts',desc:'All Uttarakhand departments'},
+    {icon:'🏗️',title:`${Object.keys(SK.depts).length} Depts`,desc:`All ${SK.state} departments`},
     {icon:'📊',title:'Analytics',desc:'District health scores & KPIs'},
   ];
 
@@ -582,7 +564,7 @@ function LoginScreen({onLogin}){
         <div style={{fontSize:64,marginBottom:16,lineHeight:1}}>🏛️</div>
         <div style={{fontSize:36,fontWeight:800,color:'#fff',lineHeight:1.2,marginBottom:10}}>SANKALP AI</div>
         <div style={{fontSize:16,color:'var(--orange)',fontWeight:600,marginBottom:8}}>सरकार आपके द्वार — Government at Your Doorstep</div>
-        <div style={{fontSize:14,color:'var(--muted)',lineHeight:1.7,marginBottom:28}}>Unified civic governance portal for Uttarakhand citizens, department staff, and administrators. One platform, real-time data, all 8 departments.</div>
+        <div style={{fontSize:14,color:'var(--muted)',lineHeight:1.7,marginBottom:28}}>Unified civic governance portal for {SK.state} citizens, department staff, and administrators. One platform, real-time data, every department.</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
           {features.map((f,i)=><div key={i} className="fade-in" style={{animationDelay:(i*.06)+'s',background:'rgba(255,153,51,.05)',border:'1px solid rgba(255,153,51,.12)',borderRadius:10,padding:'12px',textAlign:'center',cursor:'default'}}>
             <div style={{fontSize:22,marginBottom:5}}>{f.icon}</div>
@@ -608,14 +590,14 @@ function LoginScreen({onLogin}){
             <form onSubmit={doLogin}>
               <div style={{marginBottom:14}}>
                 <label>Department</label>
-                <select className="select" value={deptId} onChange={e=>setDeptId(e.target.value)}>
+                <select aria-label="Department" className="select" value={deptId} onChange={e=>setDeptId(e.target.value)}>
                   {Object.values(DEPTS).map(d=><option key={d.id} value={d.id}>{d.icon} {d.name}</option>)}
                 </select>
               </div>
               <div style={{marginBottom:18}}>
                 <label>Access Code</label>
-                <input className="input" type="password" placeholder="e.g. pwd_2026" value={code} onChange={e=>setCode(e.target.value)} required/>
-                <div style={{fontSize:11,color:'var(--muted)',marginTop:6}}>Format: {'<deptId>_2026'} (e.g. pwd_2026, jal_2026)</div>
+                <input className="input" type="password" placeholder="Department access code" value={code} onChange={e=>setCode(e.target.value)} required/>
+                <div style={{fontSize:11,color:'var(--muted)',marginTop:6}}>Use the access code issued by the state administrator.</div>
               </div>
               {err&&<div style={{background:'rgba(248,81,73,.12)',border:'1px solid rgba(248,81,73,.3)',borderRadius:8,padding:10,marginBottom:14,fontSize:13,color:'var(--red)'}}>✗ {err}</div>}
               <button className="btn btn-orange" style={{width:'100%',justifyContent:'center',padding:'12px',fontSize:14}} disabled={loading}>
@@ -634,7 +616,7 @@ function LoginScreen({onLogin}){
               </div>
               {isReg&&<div style={{marginBottom:14}}>
                 <label>District</label>
-                <select className="select" value={district} onChange={e=>setDistrict(e.target.value)}>
+                <select aria-label="District" className="select" value={district} onChange={e=>setDistrict(e.target.value)}>
                   {DISTRICTS.map(d=><option key={d}>{d}</option>)}
                 </select>
               </div>}
@@ -652,12 +634,6 @@ function LoginScreen({onLogin}){
             </form>
           )}
 
-          <div style={{marginTop:18,padding:'12px',background:'rgba(255,153,51,.06)',borderRadius:8,fontSize:12,color:'var(--muted)'}}>
-            <div style={{fontWeight:600,marginBottom:6,color:'var(--orange)'}}>Demo Credentials</div>
-            <div>Citizen: <span style={{color:'var(--orange)'}}>9876543210 / 123456</span></div>
-            <div style={{marginTop:3}}>Admin: <span style={{color:'var(--orange)'}}>9999999999 / 000000</span></div>
-            <div style={{marginTop:3}}>Dept code: <span style={{color:'var(--orange)'}}>pwd_2026</span> (any dept)</div>
-          </div>
         </div>
 
         <div style={{marginTop:14,display:'flex',gap:8,justifyContent:'center'}}>
@@ -669,7 +645,7 @@ function LoginScreen({onLogin}){
     </div>
 
     <div style={{marginTop:32,fontSize:12,color:'var(--muted)',textAlign:'center'}}>
-      Government of Uttarakhand · SANKALP AI Civic Portal · Data is demo/prototype · Emergency: 112
+      {SK.state} · SANKALP AI Civic Portal · Emergency: 112
     </div>
   </div>;
 }
@@ -827,7 +803,7 @@ function SubmitComplaint({token,user,onDone,addToast}){
     if(!loc.trim())return addToast('error','Location required');
     setLoading(true);
     try{
-      const r=await api.post('/api/complaints',{category:cat,description:desc,location:loc,priority,geo:{lat:30.3165,lng:78.0322},ward:user.district+' Ward 1',wardNumber:1},token);
+      const r=await api.post('/api/complaints',{category:cat,description:desc,location:loc,priority,geo:sankalpBestGeo(user.district)},token);
       setDone(r);addToast('success','Complaint submitted! Ticket: '+r.ticketId);
     }catch(e){addToast('error',e.message);}
     setLoading(false);
@@ -866,9 +842,9 @@ function SubmitComplaint({token,user,onDone,addToast}){
         <div style={{marginBottom:14}}>
           <label>Location / Landmark <span style={{color:'var(--red)'}}>*</span></label>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <input className="input" style={{flex:1,marginBottom:0}} placeholder="e.g. Near Clock Tower, Rajpur Road, Dehradun" value={loc} onChange={e=>setLoc(e.target.value)} required/>
+            <input className="input" style={{flex:1,marginBottom:0}} placeholder="e.g. Near the main market, Station Road" value={loc} onChange={e=>setLoc(e.target.value)} required/>
             <button type="button" className="btn btn-ghost btn-sm" style={{flexShrink:0,whiteSpace:'nowrap',borderColor:'var(--green)',color:'var(--green)'}}
-              onClick={()=>{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(p=>{setLoc('GPS: '+p.coords.latitude.toFixed(5)+'°N, '+p.coords.longitude.toFixed(5)+'°E');},()=>{setLoc(user.district+', Uttarakhand');},{enableHighAccuracy:true,timeout:6000});}else{setLoc(user.district+', Uttarakhand');}}}>
+              onClick={()=>{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(p=>{window.sankalpGeo={lat:p.coords.latitude,lng:p.coords.longitude};setLoc('GPS: '+p.coords.latitude.toFixed(5)+'°N, '+p.coords.longitude.toFixed(5)+'°E');},()=>{setLoc(user.district+', '+SK.state);},{enableHighAccuracy:true,timeout:6000});}else{setLoc(user.district+', '+SK.state);}}}>
               📍 Detect
             </button>
           </div>
@@ -1006,7 +982,7 @@ function SOSPage({token,user,activeSos,addToast,onDone}){
     e.preventDefault();setSending(true);
     try{
       const endpoint=cat==='women_safety'?'/api/sos/women-safety':'/api/sos';
-      const body={category:cat,description:desc||'Emergency via SANKALP portal',location:loc||user.district,geo:{lat:30.3165,lng:78.0322},ward:user.district+' Block',wardNumber:1};
+      const body={category:cat,description:desc||'Emergency via SANKALP portal',location:loc||user.district,geo:sankalpBestGeo(user.district)};
       const r=await api.post(endpoint,body,token);
       setSent(r.alert||r);addToast('success','SOS Alert Sent! Emergency services notified.');
       pushNotify('SOS Alert Sent','Emergency services have been notified. Stay calm.');
@@ -1064,7 +1040,7 @@ function SOSPage({token,user,activeSos,addToast,onDone}){
       <div>
         <div className="card" style={{marginBottom:12,border:'1px solid rgba(248,81,73,.2)'}}>
           <div style={{fontWeight:700,marginBottom:12,color:'var(--red)'}}>🚨 Emergency Numbers</div>
-          {[['Police','100 / 112'],['Ambulance','108'],['Fire','101'],['USDMA','1070'],['Women Helpline','1090'],['Child Helpline','1098'],['SDRF Uttarakhand','9557444486']].map(([s,n])=><div key={s} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
+          {[['Police','100 / 112'],['Ambulance','108'],['Fire','101'],['Disaster (SDMA)','1070'],['Women Helpline','181'],['Child Helpline','1098'],['Cyber Crime','1930']].map(([s,n])=><div key={s} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
             <span style={{color:'var(--muted)'}}>{s}</span>
             <span style={{fontWeight:700,color:'var(--orange)'}}>{n}</span>
           </div>)}
@@ -1108,7 +1084,7 @@ function RTIPage({token,user,addToast}){
           </div>
           <div style={{marginBottom:18}}>
             <label>Target Department</label>
-            <select className="select" value={dept} onChange={e=>setDept(e.target.value)}>
+            <select aria-label="Department" className="select" value={dept} onChange={e=>setDept(e.target.value)}>
               {Object.values(DEPTS).map(d=><option key={d.id}>{d.name.replace('—',' –')} ({d.nameHindi})</option>)}
             </select>
           </div>
@@ -1162,11 +1138,9 @@ function LiveMapPage({complaints,sos,wards,token,addToast}){
   /* ── Init map once ─── */
   useEffect(()=>{
     if(!mapRef.current||mapInstRef.current)return;
-    const m=L.map(mapRef.current,{center:[30.3165,78.0322],zoom:9,zoomControl:true});
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-      attribution:'&copy; <a href="https://www.openstreetmap.org">OSM</a> &copy; <a href="https://carto.com">CARTO</a>',
-      subdomains:'abcd',maxZoom:19
-    }).addTo(m);
+    const m=L.map(mapRef.current,{center:SK.center,zoom:SK.zoom,zoomControl:true});
+    sankalpTileLayer(L,m);
+    sankalpDistrictLayer(L,m,true);
     layerRef.current=L.layerGroup().addTo(m);
     mapInstRef.current=m;
     return()=>{if(mapInstRef.current){mapInstRef.current.remove();mapInstRef.current=null;layerRef.current=null;}};
@@ -1195,7 +1169,7 @@ function LiveMapPage({complaints,sos,wards,token,addToast}){
         const col=c.status==='resolved'?'#3fb950':c.status==='in_progress'?'#58a6ff':c.priority==='P1'?'#f85149':'#FF9933';
         const icon=L.divIcon({html:dot(col,12,c.priority==='P1'),className:'',iconSize:[12,12],iconAnchor:[6,6]});
         const m2=L.marker([c.geo.lat,c.geo.lng],{icon});
-        m2.bindTooltip(`<b>${c.ticketId}</b> — ${c.category}<br/>${c.status} · ${c.priority}`,{direction:'top',offset:[0,-6]});
+        m2.bindTooltip(`<b>${sankalpEsc(c.ticketId)}</b> — ${sankalpEsc(c.category)}<br/>${sankalpEsc(c.status)} · ${sankalpEsc(c.priority)}`,{direction:'top',offset:[0,-6]});
         m2.on('click',()=>setSel(c));
         layerRef.current.addLayer(m2);
       });
@@ -1209,7 +1183,7 @@ function LiveMapPage({complaints,sos,wards,token,addToast}){
         const html=`<div style="width:18px;height:18px;border-radius:50%;background:${col};border:3px solid #fff;box-shadow:0 0 14px ${col}"></div>`;
         const icon=L.divIcon({html,className:'',iconSize:[18,18],iconAnchor:[9,9]});
         const m2=L.marker([s.geo.lat,s.geo.lng],{icon});
-        m2.bindTooltip(`<b>🆘 SOS: ${s.category?.replace('_',' ')}</b><br/>${s.location||''}`,{direction:'top',offset:[0,-9]});
+        m2.bindTooltip(`<b>🆘 SOS: ${sankalpEsc(s.category?.replace('_',' '))}</b><br/>${sankalpEsc(s.location||'')}`,{direction:'top',offset:[0,-9]});
         layerRef.current.addLayer(m2);
       });
     }
@@ -1220,7 +1194,7 @@ function LiveMapPage({complaints,sos,wards,token,addToast}){
         if(!w.geo?.lat)return;
         const icon=L.divIcon({html:dot('#06B6D4',10,false),className:'',iconSize:[10,10],iconAnchor:[5,5]});
         const m2=L.marker([w.geo.lat,w.geo.lng],{icon});
-        m2.bindTooltip(`<b>${w.name}</b><br/>${w.department||''} — ${w.currentTask||'On duty'}`,{direction:'top',offset:[0,-5]});
+        m2.bindTooltip(`<b>${sankalpEsc(w.name)}</b><br/>${sankalpEsc(w.department||'')} — ${sankalpEsc(w.currentTask||'On duty')}`,{direction:'top',offset:[0,-5]});
         layerRef.current.addLayer(m2);
       });
     }
@@ -1233,7 +1207,7 @@ function LiveMapPage({complaints,sos,wards,token,addToast}){
 
   return <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 80px)'}}>
     <div className="topbar" style={{flexShrink:0,paddingBottom:12,marginBottom:8}}>
-      <div style={{fontSize:20,fontWeight:700}}>🗺️ Live Civic Map — Uttarakhand</div>
+      <div style={{fontSize:20,fontWeight:700}}>🗺️ Live Civic Map — {SK.state}</div>
       <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
         {FILTERS.map(([f,l])=><button key={f} className={'btn btn-sm '+(filter===f?'btn-orange':'btn-ghost')} onClick={()=>setFilter(f)}>{l}</button>)}
         <div className="refresh-live" style={{marginLeft:8}}><div className="dot"></div> Live</div>
@@ -1340,6 +1314,15 @@ function DeptDash({session,onLogout,addToast}){
     <div className="main" style={{display:'flex',flexDirection:'column',padding:0}}>
       <LiveTicker token={deptToken}/>
       <div style={{padding:26,flex:1}}>
+      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:10}}>
+        <button className="btn btn-ghost btn-sm" onClick={async()=>{
+          try{
+            const r=await fetch('/api/admin/briefing?format=pdf',{headers:{Authorization:'Bearer '+token}});
+            if(!r.ok)throw new Error('Could not create the briefing');
+            const url=URL.createObjectURL(await r.blob());const a=document.createElement('a');a.href=url;a.download='sankalp-weekly-briefing.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
+          }catch(e){addToast(e.message,'error');}
+        }}>📄 Weekly briefing (PDF)</button>
+      </div>
       {page==='overview'&&(stats?<DeptOverview dept={dept} stats={stats} complaints={complaints} setPage={setPage}/>:<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:300,gap:16}}><div className="spin" style={{width:40,height:40,borderRadius:20,border:'3px solid var(--border)',borderTopColor:'var(--orange)'}}></div><div style={{color:'var(--muted)',fontSize:13}}>Loading department data…</div></div>)}
       {page==='live'&&<DeptLiveFeed liveNew={liveNew} complaints={complaints} deptToken={deptToken} addToast={addToast} onRefresh={load}/>}
       {page==='complaints'&&<DeptAllComplaints complaints={complaints} deptToken={deptToken} addToast={addToast} onRefresh={load}/>}
@@ -1680,11 +1663,11 @@ function DeptInfo({dept}){
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
           {(dept.id==='pwd'?['Road maintenance & repair','Bridge inspection','Highway development','Culvert construction']:
             dept.id==='ulb'?['Waste collection & disposal','Drain maintenance','Street sweeping','Sanitation facilities']:
-            dept.id==='jal'?['Water supply infrastructure','Pipe network maintenance','Water quality testing','New connection approvals']:
-            dept.id==='upcl'?['Power distribution','Transformer maintenance','Street light maintenance','New connections']:
+            (dept.categories||[]).includes('water')?['Water supply infrastructure','Pipe network maintenance','Water quality testing','New connection approvals']:
+            (dept.categories||[]).includes('electricity')?['Power distribution','Transformer maintenance','Street light maintenance','New connections']:
             dept.id==='forest'?['Forest conservation','Tree plantation drives','Wildlife protection','Fire prevention']:
             dept.id==='health'?['Hospital services','PHC management','Disease surveillance','Vaccination drives']:
-            dept.id==='usdma'?['Disaster risk management','Early warning systems','Relief coordination','Rescue operations']:
+            (dept.categories||[]).includes('disaster')?['Disaster risk management','Early warning systems','Relief coordination','Rescue operations']:
             ['Law enforcement','Public safety','Crime prevention','Emergency response']).map((r,i)=><div key={i} style={{fontSize:13,color:'var(--muted)',display:'flex',gap:6}}>
             <span style={{color:'var(--orange)'}}>•</span>{r}
           </div>)}
@@ -1923,11 +1906,11 @@ function AdminComplaints({complaints,token,addToast,onRefresh}){
     </div>
     <div style={{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap',alignItems:'center'}}>
       <input className="input" style={{width:240,flexShrink:0}} placeholder="🔍 Search ticket, description, location…" value={search} onChange={e=>setSearch(e.target.value)}/>
-      <select className="select" style={{width:150,flexShrink:0}} value={cf} onChange={e=>setCf(e.target.value)}>
+      <select aria-label="Choose an option" className="select" style={{width:150,flexShrink:0}} value={cf} onChange={e=>setCf(e.target.value)}>
         <option value="all">All Categories</option>
         {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
       </select>
-      <select className="select" style={{width:160,flexShrink:0}} value={df} onChange={e=>setDf(e.target.value)}>
+      <select aria-label="Choose an option" className="select" style={{width:160,flexShrink:0}} value={df} onChange={e=>setDf(e.target.value)}>
         <option value="all">All Districts</option>
         {DISTRICTS.map(d=><option key={d}>{d}</option>)}
       </select>
@@ -2084,7 +2067,7 @@ function AdminWorkers({workers}){
       <div style={{display:'flex',gap:4}}>
         {['all','active','idle','on_leave'].map(s=><button key={s} className={'btn btn-sm '+(sf===s?'btn-orange':'btn-ghost')} onClick={()=>setSf(s)}>{s==='all'?'All Status':s.replace('_',' ')}</button>)}
       </div>
-      <select className="select" style={{width:160}} value={df} onChange={e=>setDf(e.target.value)}>
+      <select aria-label="Choose an option" className="select" style={{width:160}} value={df} onChange={e=>setDf(e.target.value)}>
         <option value="all">All Districts</option>
         {[...new Set(workers.map(w=>w.district))].filter(Boolean).map(d=><option key={d}>{d}</option>)}
       </select>
@@ -2098,7 +2081,7 @@ function AdminWorkers({workers}){
 
 function AdminDistricts({districts,user}){
   return <div className="fade-in">
-    <div className="topbar"><div style={{fontSize:20,fontWeight:700}}>🗺️ 13 Districts of Uttarakhand</div></div>
+    <div className="topbar"><div style={{fontSize:20,fontWeight:700}}>🗺️ Districts of {SK.state}</div></div>
     {districts.length===0?<div className="card" style={{textAlign:'center',padding:60,color:'var(--muted)'}}>
       {user.role!=='super_admin'?'Super admin access required for district view':'Loading district data…'}
     </div>:
@@ -2168,7 +2151,7 @@ function AdminAnnouncements({token,addToast,user}){
         </div>
         <div style={{marginBottom:14}}>
           <label>Type</label>
-          <select className="select" value={type} onChange={e=>setType(e.target.value)}>
+          <select aria-label="Emergency type" className="select" value={type} onChange={e=>setType(e.target.value)}>
             {['general','scheme','emergency','welfare','tender','holiday'].map(t=><option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
           </select>
         </div>
@@ -2362,19 +2345,14 @@ function CommunityHub({token,addToast,complaints,wards}){
   const [noticeType,setNoticeType]=useState('general');
   const [submitting,setSubmitting]=useState(false);
 
-  useEffect(()=>{
-    const petSeed=[
-      {id:'p1',title:'Fix Rispana River embankment before monsoon',desc:'The embankment near Raipur has developed cracks. Urgent action needed before monsoon floods.',district:'Dehradun',ward:'Raipur Block',supporters:234,status:'active',submittedAt:new Date(Date.now()-3*86400000).toISOString()},
-      {id:'p2',title:'Install CCTV cameras at Parade Ground',desc:'Rising incidents of theft and eve-teasing near Parade Ground. Citizens demand surveillance.',district:'Dehradun',ward:'Rajpur Road',supporters:187,status:'active',submittedAt:new Date(Date.now()-5*86400000).toISOString()},
-      {id:'p3',title:'Regularise auto-rickshaw routes in Haldwani',desc:'Auto-rickshaws running haphazardly causing accidents. Fixed routes and meters demanded.',district:'Nainital',ward:'Haldwani Block',supporters:312,status:'review',submittedAt:new Date(Date.now()-8*86400000).toISOString()},
-    ];
-    const notSeed=[
-      {id:'n1',type:'maintenance',title:'Water supply disruption — Vasant Vihar',desc:'UJN will carry out maintenance on 12 May 2026. 6AM–2PM water supply disruption expected.',dept:'UJN',district:'Dehradun',postedAt:new Date(Date.now()-86400000).toISOString()},
-      {id:'n2',type:'event',title:'Ward Sabha — Clement Town',desc:'Monthly ward meeting on 15 May 2026 at 10 AM. All residents invited. Agenda: drainage + streetlights.',dept:'ULB',district:'Dehradun',postedAt:new Date(Date.now()-2*86400000).toISOString()},
-      {id:'n3',type:'alert',title:'Heavy rain advisory — Pithoragarh district',desc:'IMD forecast heavy rainfall 14–16 May. USDMA advises residents in low-lying areas to be alert.',dept:'USDMA',district:'Pithoragarh',postedAt:new Date(Date.now()-3600000).toISOString()},
-    ];
-    setPetitions(petSeed);setNotices(notSeed);
-  },[]);
+  // Real data only: petitions and announcements from the API (nothing invented).
+  const loadCommunity=useCallback(()=>{
+    api.get('/api/petitions',token).then(d=>{const items=Array.isArray(d)?d:(d.items||[]);
+      setPetitions(items.map(p=>({id:p.id,title:p.title,desc:p.description,district:p.district,ward:p.target,supporters:p.signatureCount??(p.signerIds||[]).length,status:p.status,submittedAt:p.createdAt})));}).catch(()=>setPetitions([]));
+    api.get('/api/announcements',token).then(d=>{const items=Array.isArray(d)?d:(d.items||[]);
+      setNotices(items.map(n=>({id:n.id,type:n.type==='emergency'?'alert':'general',title:n.title,desc:n.body,dept:n.department,district:n.targetDistrict||'All Districts',postedAt:n.postedAt})));}).catch(()=>setNotices([]));
+  },[token]);
+  useEffect(()=>{loadCommunity();},[loadCommunity]);
 
   const wardFeed=complaints.slice().sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt)).slice(0,15);
 
@@ -2384,17 +2362,17 @@ function CommunityHub({token,addToast,complaints,wards}){
   async function submitPetition(e){
     e.preventDefault();if(!newPetition.trim()){addToast('error','Title required');return;}
     setSubmitting(true);
-    await new Promise(r=>setTimeout(r,800));
-    setPetitions(p=>[{id:'p'+Date.now(),title:newPetition,desc:'Submitted by admin',district:'Dehradun',ward:'All Wards',supporters:1,status:'active',submittedAt:new Date().toISOString()},...p]);
-    addToast('success','Petition posted to community feed');setNewPetition('');setSubmitting(false);
+    try{await api.post('/api/petitions',{title:newPetition.trim(),description:`Petition raised from the community hub: ${newPetition.trim()}`,target:'District Administration'},token);addToast('success','Petition posted to community feed');setNewPetition('');loadCommunity();}
+    catch(err){addToast('error',err.message||'Could not post petition');}
+    finally{setSubmitting(false);}
   }
 
   async function submitNotice(e){
     e.preventDefault();if(!newNotice.trim()){addToast('error','Content required');return;}
     setSubmitting(true);
-    await new Promise(r=>setTimeout(r,800));
-    setNotices(n=>[{id:'n'+Date.now(),type:noticeType,title:newNotice,desc:'Posted by district admin',dept:'Admin',district:'All Districts',postedAt:new Date().toISOString()},...n]);
-    addToast('success','Community notice published');setNewNotice('');setSubmitting(false);
+    try{await api.post('/api/announcements',{title:newNotice.trim().slice(0,200),body:newNotice.trim(),type:noticeType==='alert'?'emergency':'general'},token);addToast('success','Community notice published');setNewNotice('');loadCommunity();}
+    catch(err){addToast('error',err.message||'Could not publish notice');}
+    finally{setSubmitting(false);}
   }
 
   return <div className="fade-in">
@@ -2573,8 +2551,10 @@ function App(){
   }
 
   function logout(){
+    const rt=session&&session.refreshToken;
+    if(rt||session?.token)fetch('/api/auth/logout',{method:'POST',headers:{'Content-Type':'application/json',...(session?.token?{Authorization:'Bearer '+session.token}:{})},body:JSON.stringify({refreshToken:rt||undefined})}).catch(()=>{});
     setSession(null);
-    try{localStorage.removeItem('portal_session');}catch{}
+    try{localStorage.removeItem('portal_session');localStorage.removeItem('sankalp_refresh');}catch{}
   }
 
   const role=session?.user?.role;

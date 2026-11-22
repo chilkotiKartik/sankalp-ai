@@ -11,6 +11,7 @@ import Colors from "@/constants/colors";
 import { useApp } from "@/context/AppContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiUrl } from "@/lib/query-client";
+import { getSecure } from "@/lib/secure-session";
 
 const CAT_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
   pothole:     { label: "Pothole",     icon: "alert-circle",        color: "#F59E0B" },
@@ -70,13 +71,18 @@ function SectionCard({ children, icon, iconColor, title }: { children: React.Rea
   );
 }
 
+/** Matches server/types.ts PredictiveAlert: real counts only (no invented risk scores or confidence). */
 interface PredictiveAlert {
   category: string;
   district: string;
-  riskLevel: "low" | "medium" | "high" | "critical";
-  prediction: string;
-  confidence: number;
-  recommendedAction: string;
+  status: "signal" | "insufficient_data";
+  last7Days: number;
+  previous7Days: number;
+  weekOverWeekPct: number | null;
+  last30Days: number;
+  largestClusterSize: number;
+  n: number;
+  method: string;
 }
 
 export default function AnalyticsScreen() {
@@ -116,13 +122,13 @@ export default function AnalyticsScreen() {
 
   const loadPredictions = useCallback(async () => {
     try {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       const res = await fetch(`${getApiUrl()}api/predictive`, {
         headers: { Authorization: `Bearer ${tok}` },
       });
       if (res.ok) {
         const data = await res.json();
-        setPredictions(data);
+        setPredictions(Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : []);
       }
     } catch {}
   }, []);
@@ -234,16 +240,19 @@ export default function AnalyticsScreen() {
         </SectionCard>
 
         {/* Predictive Maintenance AI */}
-        <SectionCard icon="analytics" iconColor={Colors.saffron} title="Predictive Maintenance AI">
+        <SectionCard icon="analytics" iconColor={Colors.saffron} title="Complaint Trends (last 7 vs previous 7 days)">
           {predictions.length === 0 ? (
             <View style={styles.predictEmpty}>
               <Ionicons name="analytics-outline" size={32} color={Colors.textMuted} />
-              <Text style={styles.emptyText}>Analyzing complaint patterns...</Text>
+              <Text style={styles.emptyText}>No trend signals yet — they appear once enough complaints are filed.</Text>
             </View>
           ) : (
             predictions.map((p, i) => {
-              const riskColor = RISK_COLORS[p.riskLevel] || Colors.amber;
-              const riskIcon = RISK_ICONS[p.riskLevel] || "warning";
+              const rising = (p.weekOverWeekPct ?? 0) > 0;
+              const level = p.status !== "signal" ? "low" : (p.weekOverWeekPct ?? 0) >= 100 ? "critical" : (p.weekOverWeekPct ?? 0) >= 50 ? "high" : rising ? "medium" : "low";
+              const riskColor = RISK_COLORS[level] || Colors.amber;
+              const riskIcon = RISK_ICONS[level] || "warning";
+              const trend = p.weekOverWeekPct === null ? "new this week" : `${p.weekOverWeekPct > 0 ? "+" : ""}${p.weekOverWeekPct}% week on week`;
               return (
                 <View key={i} style={[styles.predictCard, { borderLeftColor: riskColor }]}>
                   <View style={styles.predictHeader}>
@@ -251,22 +260,18 @@ export default function AnalyticsScreen() {
                     <Text style={styles.predictCategory}>{CAT_META[p.category]?.label || p.category}</Text>
                     <View style={[styles.riskBadge, { backgroundColor: riskColor + "22" }]}>
                       <Ionicons name={riskIcon} size={10} color={riskColor} />
-                      <Text style={[styles.riskText, { color: riskColor }]}>{p.riskLevel.toUpperCase()}</Text>
+                      <Text style={[styles.riskText, { color: riskColor }]}>{p.status === "signal" ? (rising ? "RISING" : "STEADY") : "LOW DATA"}</Text>
                     </View>
                     <Text style={styles.predictDistrict}>{p.district}</Text>
                   </View>
-                  <Text style={styles.predictText}>{p.prediction}</Text>
-                  <View style={styles.predictAction}>
-                    <Ionicons name="bulb" size={11} color={Colors.saffron} />
-                    <Text style={styles.predictActionText}>{p.recommendedAction}</Text>
-                  </View>
-                  <View style={styles.confidenceRow}>
-                    <Text style={styles.confidenceLabel}>Confidence: </Text>
-                    <View style={styles.confidenceBar}>
-                      <View style={[styles.confidenceFill, { width: `${p.confidence}%`, backgroundColor: riskColor }]} />
+                  <Text style={styles.predictText}>{`${p.last7Days} complaints in the last 7 days vs ${p.previous7Days} the week before (${trend}); ${p.last30Days} in 30 days.`}</Text>
+                  {p.largestClusterSize > 1 && (
+                    <View style={styles.predictAction}>
+                      <Ionicons name="bulb" size={11} color={Colors.saffron} />
+                      <Text style={styles.predictActionText}>{`Largest cluster: ${p.largestClusterSize} complaints close together — worth one site inspection.`}</Text>
                     </View>
-                    <Text style={[styles.confidencePct, { color: riskColor }]}>{p.confidence}%</Text>
-                  </View>
+                  )}
+                  <Text style={styles.confidenceLabel}>{`n = ${p.n} · ${p.method}`}</Text>
                 </View>
               );
             })

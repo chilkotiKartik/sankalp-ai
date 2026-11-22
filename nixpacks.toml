@@ -1,11 +1,11 @@
 [phases.setup]
-nixPkgs = ["nodejs_22", "git", "python3"]
+nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["npm install --legacy-peer-deps"]
+cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["node scripts/build.js"]
+cmds = ["npm run expo:static:build", "npm run server:build"]
 
 [start]
-cmd = "node_modules/.bin/tsx server/index.ts"
+cmd = "npm run server:prod"

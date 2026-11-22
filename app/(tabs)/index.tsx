@@ -12,6 +12,10 @@ import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { NotificationBell } from "@/components/NotificationBell";
 import { getApiUrl } from "@/lib/query-client";
+import { stateName, districtPhrase, stateNameLocal } from "@/constants/districts";
+import { getTenantId } from "@/lib/tenant";
+import { OfficialNews, relTime as relNewsTime } from "@/components/OfficialNews";
+import { NATIONAL_SCHEMES, MYSCHEME_URL, type Scheme } from "@/constants/schemes";
 
 const CATEGORY_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
   pothole:     { label: "Pothole",     icon: "alert-circle",        color: "#F59E0B", bg: "#FFF8E7" },
@@ -31,48 +35,40 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
   closed:      { label: "Closed",      color: "#6B7280", bg: "#F9FAFB" },
 };
 
-const UK_NEWS = [
-  {
-    id: "n1", tag: "GOVERNMENT", headline: "CM launches ₹2,000 Cr Char Dham Road Widening Project", time: "2h ago",
-    icon: "car-outline" as const, color: "#3B82F6", bg: "#EFF6FF",
-    source: "Uttarakhand Govt Press Release", readTime: "3 min read",
-    body: "Chief Minister Pushkar Singh Dhami today inaugurated the ambitious ₹2,000 crore Char Dham Road Widening Project, aimed at improving all-weather connectivity to Badrinath, Kedarnath, Gangotri, and Yamunotri — the four sacred pilgrimage destinations of Uttarakhand.\n\nThe project will widen approximately 825 km of national highways to four lanes, incorporating modern safety features including crash barriers, proper drainage systems, and retaining walls. The work is expected to be completed before the 2027 Char Dham Yatra season.\n\nKey highlights:\n• ₹2,000 crore total project cost\n• 825 km of highway widening across 4 routes\n• 15,000 local employment opportunities created\n• Covers Rishikesh-Rudraprayag, Rishikesh-Gangotri, Rishikesh-Yamunotri, and Rudraprayag-Badrinath routes\n• Estimated 5 lakh additional pilgrims per year benefiting\n\nThe CM urged contractors to ensure quality construction and maintain zero tolerance for sub-standard materials. NHAI officials confirmed that 40% of the work has already been completed.",
-  },
-  {
-    id: "n2", tag: "ENVIRONMENT", headline: "Uttarakhand ranks 1st in India for forest cover increase 2025", time: "5h ago",
-    icon: "leaf" as const, color: "#22C55E", bg: "#F0FFF4",
-    source: "Forest Survey of India (FSI)", readTime: "2 min read",
-    body: "The Forest Survey of India's latest report has ranked Uttarakhand as the top-performing state in India for forest cover increase in 2025. The state added 1,200 sq km of forest cover in a single year — a historic achievement.\n\nThe 'Mission Vriksharopan' initiative, launched under the state's green economy plan, involved planting 35 crore saplings across 13 districts. More than 8 lakh citizens participated in the plantation drive.\n\nKey findings:\n• Forest cover increased from 71.2% to 73.8% of total geographical area\n• 1,200 sq km new forest area added in 2024-25\n• 35 crore saplings planted under Mission Vriksharopan\n• Van Panchayats (community forests) now cover 12,089 villages\n• ₹450 crore allocated for forest protection and fire prevention\n\nForest Department officials noted that community participation played a crucial role, with 8 lakh residents enrolled as 'Van Mitras'. Uttarakhand is now targeting 75% forest cover by 2030.",
-  },
-  {
-    id: "n3", tag: "SAFETY", headline: "New 112 emergency centers opened in Pithoragarh & Champawat", time: "1d ago",
-    icon: "shield-checkmark" as const, color: "#8B5CF6", bg: "#F5F3FF",
-    source: "Uttarakhand Police Headquarters", readTime: "2 min read",
-    body: "Two new 112 emergency response centers have been inaugurated in Pithoragarh and Champawat districts, significantly improving emergency response times in the remote hill districts of eastern Uttarakhand.\n\nThe centers are equipped with state-of-the-art dispatch systems, GPS-tracked patrol vehicles, and trained personnel available 24/7. Response time is expected to drop from the current average of 28 minutes to under 12 minutes.\n\nCenter features:\n• 24/7 dispatch center with 15 trained operators each\n• Fleet of 8 GPS-equipped emergency response vehicles per center\n• Direct integration with district hospitals and fire stations\n• Women's helpline 1090 routed through the centers\n• Mountain rescue equipment for remote terrain emergencies\n• Real-time SANKALP AI integration for complaint tracking\n\nThe centers will serve a combined population of approximately 3.5 lakh residents across the two border districts. The DGP confirmed plans to open 4 more centers in Chamoli, Rudraprayag, Uttarkashi, and Bageshwar by June 2026.",
-  },
-  {
-    id: "n4", tag: "INFRASTRUCTURE", headline: "Rishikesh-Karnaprayag rail project 62% complete, on track for 2026", time: "1d ago",
-    icon: "train-outline" as const, color: "#F59E0B", bg: "#FFFBEB",
-    source: "National Capital Region Transport Corporation", readTime: "3 min read",
-    body: "The Rishikesh-Karnaprayag Railway Project, one of India's most challenging infrastructure endeavors, has crossed the 62% completion mark and remains on track for its 2026 deadline. The project will be a game-changer for Uttarakhand's connectivity and pilgrimage tourism.\n\nThe 125 km rail line passes through extremely difficult Himalayan terrain with 17 tunnels totalling 105 km — making it one of the most tunnel-intensive railway projects in the world.\n\nProject highlights:\n• Total length: 125 km (Rishikesh to Karnaprayag)\n• 17 tunnels totalling 105 km — world record density\n• 35 stations across 5 districts\n• ₹16,216 crore total project cost\n• Travel time: 3.5 hours vs current 8+ hours by road\n• Will serve as base for Char Dham connectivity extension\n• Estimated to boost Uttarakhand's GDP by ₹8,000 crore annually\n\nWith 62% construction complete, NCRTC officials expressed confidence in the 2026 deadline. Once operational, the train will run at 100 km/h even through mountain terrain, connecting Devprayag, Srinagar, Rudraprayag, and Gauchar.",
-  },
-  {
-    id: "n5", tag: "HEALTH", headline: "50 mobile health vans deployed to remote hill districts of UK", time: "2d ago",
-    icon: "medkit" as const, color: "#EF4444", bg: "#FEF2F2",
-    source: "Uttarakhand Health Department", readTime: "2 min read",
-    body: "The state government has deployed 50 new mobile health vans under the 'Mukhyamantri Svastha Uttarakhand' initiative, targeting the most remote and medically underserved villages in the hill districts.\n\nEach van is equipped with essential diagnostic equipment, a trained doctor, nurse, and pharmacist, with the ability to conduct basic surgeries and deliver emergency care. The vans are specially designed for mountain terrain and can navigate even unpaved village roads.\n\nVan specifications:\n• Equipped with: ECG machine, ultrasound, X-ray portable unit\n• Carries 3 months' medicine supply including emergency drugs\n• Each van serves 15-20 villages per month\n• Telemedicine link to AIIMS Rishikesh for specialist consultation\n• Dental chair and vision testing equipment included\n• Ayushman Bharat card scanning for cashless services\n\nDistrict-wise deployment:\n• Pithoragarh: 8 vans (border area priority)\n• Chamoli: 7 vans\n• Uttarkashi: 7 vans  \n• Bageshwar: 6 vans\n• Other districts: 22 vans\n\nThe initiative is expected to benefit 4 lakh residents who currently have to travel 50+ km to reach the nearest hospital.",
-  },
-  {
-    id: "n6", tag: "DISASTER", headline: "SDRF teams on alert: Pre-monsoon preparedness drive begins", time: "2d ago",
-    icon: "warning" as const, color: "#6B7280", bg: "#F9FAFB",
-    source: "State Disaster Response Force, Uttarakhand", readTime: "2 min read",
-    body: "The State Disaster Response Force (SDRF) has launched its annual pre-monsoon preparedness drive across all 13 districts, with teams on heightened alert ahead of the June-September monsoon season. Uttarakhand receives some of India's heaviest rainfall and is highly susceptible to landslides, flash floods, and glacial lake outburst floods (GLOFs).\n\nThis year, NDRF has also deployed additional battalions to the state following the 2023 and 2024 incidents in Joshimath and Kedarnath.\n\nPreparedness measures:\n• 24 SDRF teams (1,200 personnel) deployed across 13 districts\n• 2 NDRF battalions stationed in Dehradun and Haridwar\n• 48 disaster control rooms activated\n• Early warning systems upgraded with AI-based flood prediction\n• 850 vulnerable villages identified and evacuation routes mapped\n• 45 relief camps with 2 lakh person capacity readied\n• SANKALP AI SOS system integrated with SDRF dispatch\n\nHigh-risk districts include: Chamoli, Uttarkashi, Rudraprayag, Pithoragarh, and Bageshwar. Residents in these areas are urged to download the SANKALP AI app and enable SOS notifications.\n\nHelpline: 1070 (State Emergency Operations Center) · Operational 24x7",
-  },
-];
+/**
+ * Home feed shows ONLY official announcements stored on the server (rule 3: no fabricated news,
+ * no statements attributed to real officials). Shape kept compatible with NewsDetailModal.
+ */
+type NewsItem = {
+  id: string; tag: string; headline: string; time: string; icon: React.ComponentProps<typeof Ionicons>["name"];
+  color: string; bg: string; source: string; readTime: string; body: string;
+  /** Official original (news from All India Radio / PIB); absent for announcements posted on SANKALP. */
+  link?: string;
+};
+const ANN_STYLE: Record<string, { icon: NewsItem["icon"]; color: string; bg: string }> = {
+  emergency: { icon: "warning", color: "#EF4444", bg: "#FEF2F2" },
+  scheme: { icon: "ribbon-outline", color: "#3B82F6", bg: "#EFF6FF" },
+  welfare: { icon: "heart-outline", color: "#EC4899", bg: "#FDF2F8" },
+  tender: { icon: "document-text-outline", color: "#F59E0B", bg: "#FFFBEB" },
+  holiday: { icon: "calendar-outline", color: "#8B5CF6", bg: "#F5F3FF" },
+  general: { icon: "megaphone-outline", color: "#6B7280", bg: "#F9FAFB" },
+};
+function relTime(iso: string): string {
+  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  return m < 60 ? `${m}m ago` : m < 1440 ? `${Math.round(m / 60)}h ago` : `${Math.round(m / 1440)}d ago`;
+}
+function toNewsItems(anns: Array<{ id: string; type?: string; title: string; body: string; postedAt: string; postedBy?: string }>): NewsItem[] {
+  return anns.slice(0, 6).map(a => {
+    const st = ANN_STYLE[a.type || "general"] || ANN_STYLE.general;
+    return { id: a.id, tag: (a.type || "general").toUpperCase(), headline: a.title, time: relTime(a.postedAt), icon: st.icon, color: st.color, bg: st.bg,
+      source: a.postedBy || "District Administration", readTime: "", body: a.body };
+  });
+}
 
-const SCHEMES_DATA = [
+const SCHEMES_DATA: Scheme[] = [
   {
     key: "swarojgar",
+    states: ["uttarakhand"],
     title: "CM Swarojgar Yojana",
     sub: "Self-employment loans for hill residents",
     tag: "EMPLOYMENT",
@@ -117,16 +113,17 @@ const SCHEMES_DATA = [
     benefits: [
       "₹5 lakh annual health coverage per family — fully cashless",
       "Covers 1,500+ hospital procedures including cancer, heart surgery, dialysis",
-      "Empanelled with AIIMS Rishikesh, Doon Medical College & all district hospitals",
+      "Cashless at empanelled government and private hospitals across India (portable between states)",
       "No premium payment — 100% government funded",
       "Includes pre and post-hospitalisation costs (3 days before, 15 days after)",
     ],
-    howToApply: "Visit nearest Jan Seva Kendra, Uttarakhand or empanelled hospital. Search eligibility at pmjay.gov.in. Carry Aadhaar and ration card. Free Ayushman card issued on-spot.",
+    howToApply: "Visit your nearest Common Service Centre (Jan Seva Kendra) or empanelled hospital. Search eligibility at pmjay.gov.in. Carry Aadhaar and ration card. Free Ayushman card issued on-spot.",
     helpline: "14555",
     website: "pmjay.gov.in",
   },
   {
     key: "gaura",
+    states: ["uttarakhand"],
     title: "Gaura Devi Kanya Dhan",
     sub: "₹51,000 grant for girl students",
     tag: "EDUCATION",
@@ -154,6 +151,7 @@ const SCHEMES_DATA = [
   },
   {
     key: "paryatan",
+    states: ["uttarakhand"],
     title: "Veer CS Garhwali Yojana",
     sub: "Eco-tourism homestay grants",
     tag: "TOURISM",
@@ -207,7 +205,7 @@ function HealthBar({ pct, color }: { pct: number; color: string }) {
   );
 }
 
-function SchemeModal({ scheme, onClose }: { scheme: typeof SCHEMES_DATA[0] | null; onClose: () => void }) {
+function SchemeModal({ scheme, onClose }: { scheme: Scheme | null; onClose: () => void }) {
   if (!scheme) return null;
   return (
     <Modal visible animationType="slide" transparent>
@@ -277,11 +275,11 @@ function SchemeModal({ scheme, onClose }: { scheme: typeof SCHEMES_DATA[0] | nul
 
             {/* Contact */}
             <View style={ms.contactRow}>
-              <Pressable style={[ms.contactBtn, { backgroundColor: scheme.color + "12", borderColor: scheme.color + "30" }]}
+              {scheme.helpline ? <Pressable style={[ms.contactBtn, { backgroundColor: scheme.color + "12", borderColor: scheme.color + "30" }]}
                 onPress={() => Linking.openURL(`tel:${scheme.helpline}`)}>
                 <Ionicons name="call" size={18} color={scheme.color} />
                 <Text style={[ms.contactBtnText, { color: scheme.color }]}>Helpline: {scheme.helpline}</Text>
-              </Pressable>
+              </Pressable> : null}
               <Pressable style={[ms.contactBtn, { backgroundColor: "#F9FAFB", borderColor: "#E5E7EB" }]}
                 onPress={() => Linking.openURL(`https://${scheme.website}`)}>
                 <Ionicons name="globe" size={18} color="#6B7280" />
@@ -333,9 +331,18 @@ function NewsDetailModal({ news, onClose }: { news: any; onClose: () => void }) 
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#F0FFF4", borderRadius: 10, padding: 10 }}>
                 <Ionicons name="information-circle" size={16} color="#00A651" />
                 <Text style={{ flex: 1, color: "#065F46", fontSize: 12, fontFamily: "Inter_500Medium" }}>
-                  This article is sourced from official Uttarakhand government press releases and verified news agencies.
+                  {news.link
+                    ? `Headline and summary as published by ${news.source}. Tap below to read the full story.`
+                    : `Official announcement posted on SANKALP by ${news.source}.`}
                 </Text>
               </View>
+              {news.link ? (
+                <Pressable onPress={() => Linking.openURL(news.link)} accessibilityRole="link"
+                  style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#1D4ED8", borderRadius: 10, paddingVertical: 11 }}>
+                  <Ionicons name="open-outline" size={15} color="#fff" />
+                  <Text style={{ color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" }}>Read full story</Text>
+                </Pressable>
+              ) : null}
             </View>
             <Pressable style={ms.closeBtn} onPress={onClose}>
               <Text style={ms.closeBtnText}>Close</Text>
@@ -374,7 +381,7 @@ function NoticeModal({ notice, onClose }: { notice: any; onClose: () => void }) 
             </View>
           </View>
           <View style={ms.section}>
-            <Text style={nm.body}>{notice.content || notice.body || "This is an official government notice from the Uttarakhand Administration. Please read carefully and take any required action promptly. For queries, contact your nearest government office or helpline."}</Text>
+            <Text style={nm.body}>{notice.content || notice.body || `This is an official government notice from the ${stateName()} administration. Please read carefully and take any required action promptly. For queries, contact your nearest government office or helpline.`}</Text>
           </View>
           {notice.actionLabel && (
             <Pressable style={[ms.contactBtn, { backgroundColor: "#FF9933", borderColor: "#FF9933", margin: 16 }]}>
@@ -388,58 +395,6 @@ function NoticeModal({ notice, onClose }: { notice: any; onClose: () => void }) 
         </View>
       </View>
     </Modal>
-  );
-}
-
-const AQI_DISTRICT: Record<string, { aqi: number; temp: number; humidity: number; status: string; color: string; icon: string }> = {
-  "Dehradun":    { aqi: 87,  temp: 28, humidity: 65, status: "Moderate",  color: "#F59E0B", icon: "😶‍🌫️" },
-  "Haridwar":    { aqi: 112, temp: 31, humidity: 58, status: "Sensitive",  color: "#EF4444", icon: "🏭" },
-  "Nainital":    { aqi: 34,  temp: 22, humidity: 75, status: "Good",       color: "#22C55E", icon: "🌲" },
-  "Rishikesh":   { aqi: 72,  temp: 29, humidity: 62, status: "Moderate",   color: "#F59E0B", icon: "🏞️" },
-  "Mussoorie":   { aqi: 28,  temp: 19, humidity: 80, status: "Excellent",  color: "#06B6D4", icon: "⛰️" },
-  "Almora":      { aqi: 45,  temp: 24, humidity: 70, status: "Good",       color: "#22C55E", icon: "🌄" },
-  "Uttarkashi":  { aqi: 31,  temp: 20, humidity: 72, status: "Excellent",  color: "#06B6D4", icon: "🏔️" },
-  "Rudrapur":    { aqi: 98,  temp: 32, humidity: 55, status: "Moderate",   color: "#F59E0B", icon: "🏙️" },
-  "Pithoragarh": { aqi: 22,  temp: 18, humidity: 78, status: "Excellent",  color: "#06B6D4", icon: "🗻" },
-};
-
-function AqiWeatherWidget({ district }: { district: string }) {
-  const d = AQI_DISTRICT[district] || { aqi: 65, temp: 27, humidity: 60, status: "Good", color: "#22C55E", icon: "🌤️" };
-  return (
-    <View style={{ marginHorizontal: 16, marginTop: 12 }}>
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <View style={{ flex: 1.2, backgroundColor: d.color + "18", borderRadius: 14, padding: 12, borderWidth: 1, borderColor: d.color + "33" }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
-            <Text style={{ fontSize: 16 }}>🌫️</Text>
-            <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5 }}>AIR QUALITY</Text>
-          </View>
-          <Text style={{ color: d.color, fontSize: 30, fontFamily: "Inter_700Bold", lineHeight: 34 }}>{d.aqi}</Text>
-          <Text style={{ color: d.color, fontSize: 10, fontFamily: "Inter_700Bold", marginTop: 2 }}>{d.status}</Text>
-          <Text style={{ color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular", marginTop: 1 }}>AQI · {district}</Text>
-        </View>
-        <View style={{ flex: 2, gap: 8 }}>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <View style={{ flex: 1, backgroundColor: "#1E3A5F22", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "#3B82F622" }}>
-              <Text style={{ fontSize: 14 }}>🌡️</Text>
-              <Text style={{ color: "#60A5FA", fontSize: 18, fontFamily: "Inter_700Bold" }}>{d.temp}°</Text>
-              <Text style={{ color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular" }}>Celsius</Text>
-            </View>
-            <View style={{ flex: 1, backgroundColor: "#06B6D422", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "#06B6D433" }}>
-              <Text style={{ fontSize: 14 }}>💧</Text>
-              <Text style={{ color: "#06B6D4", fontSize: 18, fontFamily: "Inter_700Bold" }}>{d.humidity}%</Text>
-              <Text style={{ color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular" }}>Humidity</Text>
-            </View>
-          </View>
-          <View style={{ backgroundColor: "#22C55E11", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "#22C55E22", flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Text style={{ fontSize: 18 }}>{d.icon}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: "#fff", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>{district}</Text>
-              <Text style={{ color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular" }}>Live district data</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-    </View>
   );
 }
 
@@ -489,9 +444,9 @@ function AICityAlertCard() {
 
 const HI = {
   greeting: (h: number) => h < 12 ? "सुप्रभात" : h < 17 ? "नमस्कार" : "शुभ संध्या",
-  liveCmd: "लाइव · उत्तराखंड कमांड सेंटर",
+  get liveCmd() { return `लाइव · ${stateNameLocal()} कमांड सेंटर`; },
   cityHealth: "शहर स्वास्थ्य स्कोर",
-  blocksMonitored: (n: number) => `उत्तराखंड · ${n} क्षेत्र निगरानी में`,
+  blocksMonitored: (n: number) => `${stateNameLocal()} · ${n} क्षेत्र निगरानी में`,
   quickAccess: "त्वरित पहुँच",
   myActivity: "मेरी नागरिक गतिविधि",
   seeAll: "सभी देखें",
@@ -500,7 +455,7 @@ const HI = {
   resolved: "हल",
   citySos: "SOS अलर्ट",
   todayComplaints: "आज की शिकायतें",
-  news: "उत्तराखंड समाचार",
+  get news() { return `${stateNameLocal()} समाचार`; },
   schemes: "सरकारी योजनाएं",
   notices: "सूचनाएं",
   aiChat: "AI चैट",
@@ -521,9 +476,10 @@ export default function DashboardScreen() {
   const headerAnim = useRef(new Animated.Value(0)).current;
   const cardsAnim = useRef(new Animated.Value(0)).current;
 
-  const [selectedScheme, setSelectedScheme] = useState<typeof SCHEMES_DATA[0] | null>(null);
+  const [selectedScheme, setSelectedScheme] = useState<Scheme | null>(null);
   const [selectedNotice, setSelectedNotice] = useState<any>(null);
-  const [selectedNews, setSelectedNews] = useState<typeof UK_NEWS[0] | null>(null);
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  const newsItems = toNewsItems(announcements as any);
   const [lang, setLang] = useState<"EN" | "HI">("EN");
 
   useEffect(() => {
@@ -593,7 +549,7 @@ export default function DashboardScreen() {
                 <Text style={styles.userName}>{user?.name?.split(" ")[0] || "Citizen"} 👋</Text>
                 <View style={styles.livePill}>
                   <PulsingDot color="#fff" />
-                  <Text style={styles.liveText}>{t("Live · Uttarakhand Command Center", HI.liveCmd)}</Text>
+                  <Text style={styles.liveText}>{t(`Live · ${stateName()} Command Center`, HI.liveCmd)}</Text>
                 </View>
               </View>
               <View style={styles.headerRight}>
@@ -618,7 +574,7 @@ export default function DashboardScreen() {
             <View style={styles.healthCard}>
               <View style={styles.healthCardLeft}>
                 <Text style={styles.healthCardLabel}>{t("City Health Score", HI.cityHealth)}</Text>
-                <Text style={styles.healthCardSub}>{lang === "HI" ? HI.blocksMonitored(wards.length) : `Uttarakhand · ${wards.length} Blocks Monitored`}</Text>
+                <Text style={styles.healthCardSub}>{lang === "HI" ? HI.blocksMonitored(wards.length) : `${stateName()} · ${wards.length} ${wards.length === 1 ? "area" : "areas"} monitored`}</Text>
                 <HealthBar pct={avgHealth} color={healthColor} />
               </View>
               <View style={[styles.healthScoreBubble, { borderColor: healthColor + "44" }]}>
@@ -665,9 +621,6 @@ export default function DashboardScreen() {
           </Pressable>
         )}
 
-        {/* AQI & WEATHER */}
-        <AqiWeatherWidget district={user?.district || "Champawat"} />
-
         {/* AI CITY INTELLIGENCE */}
         <AICityAlertCard />
 
@@ -712,7 +665,7 @@ export default function DashboardScreen() {
               <Text style={{ fontSize: 18 }}>🌟</Text>
               <Text style={styles.motivText}>
                 {user?.level && user.level >= 3
-                  ? `Level ${user.level} Civic Advocate — keep making Uttarakhand better!`
+                  ? `Level ${user.level} Civic Advocate — keep making ${stateName()} better!`
                   : "File your first complaint to start earning civic points!"}
               </Text>
             </View>
@@ -759,7 +712,7 @@ export default function DashboardScreen() {
               </View>
               <View>
                 <Text style={styles.aiBannerTitle}>SANKALP AI Assistant</Text>
-                <Text style={styles.aiBannerSub}>Ask anything about Uttarakhand civic services</Text>
+                <Text style={styles.aiBannerSub}>{`Ask anything about ${stateName()} civic services`}</Text>
               </View>
             </View>
             <View style={styles.aiBannerStats}>
@@ -772,61 +725,53 @@ export default function DashboardScreen() {
           </LinearGradient>
         </Pressable>
 
-        {/* UTTARAKHAND WEATHER + AQI */}
+        {/* STATE AT A GLANCE — from the selected state's config, no invented numbers */}
         <View style={styles.aqiCard}>
           <LinearGradient colors={["#0C4A6E", "#075985", "#0369A1"]} style={styles.aqiGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <View style={styles.aqiLeft}>
-              <View style={styles.aqiIconWrap}><Text style={{ fontSize: 22 }}>🏔️</Text></View>
-              <View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text style={styles.aqiTitle}>Dehradun</Text>
-                  <View style={styles.aqiLivePill}>
-                    <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: "#4ADE80" }} />
-                    <Text style={styles.aqiLiveText}>LIVE</Text>
-                  </View>
-                </View>
-                <Text style={styles.aqiSub}>AQI 68 · Satisfactory</Text>
-                <Text style={[styles.aqiAdvice, { color: "#86EFAC" }]}>✓ Clean Himalayan air today</Text>
-              </View>
-            </View>
-            <View style={styles.aqiRight}>
-              <Text style={styles.aqiNum}>24°</Text>
-              <Text style={[styles.aqiCategory, { color: "#7DD3FC" }]}>SUNNY</Text>
-              <View style={[styles.aqiBar, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
-                <View style={[styles.aqiBarFill, { width: "25%", backgroundColor: "#4ADE80" }]} />
+              <View style={styles.aqiIconWrap}><Text style={{ fontSize: 22 }}>📍</Text></View>
+              <View style={{ flexShrink: 1 }}>
+                <Text style={styles.aqiTitle}>{user?.district && user.district !== "Other districts" ? user.district : stateName()}</Text>
+                <Text style={styles.aqiSub}>{`${stateName()} · ${districtPhrase()}`}</Text>
+                <Pressable onPress={() => Linking.openURL("https://airquality.cpcb.gov.in/AQI_India/")} accessibilityRole="link">
+                  <Text style={[styles.aqiAdvice, { color: "#86EFAC" }]}>Check live air quality (CPCB) →</Text>
+                </Pressable>
               </View>
             </View>
           </LinearGradient>
           <View style={styles.aqiBreakdown}>
             {[
-              { label: "AQI",    val: "68",   color: "#22C55E" },
-              { label: "Humid",  val: "42%",  color: "#3B82F6" },
-              { label: "Wind",   val: "12km", color: "#8B5CF6" },
-              { label: "UV",     val: "Med",  color: "#F59E0B" },
+              { label: "Emergency", val: "112", color: "#EF4444" },
+              { label: "Ambulance", val: "108", color: "#22C55E" },
+              { label: "Women", val: "181", color: "#EC4899" },
+              { label: "Disaster", val: "1070", color: "#F59E0B" },
             ].map(m => (
-              <View key={m.label} style={styles.aqiMetric}>
+              <Pressable key={m.label} style={styles.aqiMetric} onPress={() => Linking.openURL(`tel:${m.val}`)} accessibilityRole="button" accessibilityLabel={`Call ${m.label} ${m.val}`}>
                 <Text style={[styles.aqiMetricVal, { color: m.color }]}>{m.val}</Text>
                 <Text style={styles.aqiMetricLabel}>{m.label}</Text>
-              </View>
+              </Pressable>
             ))}
           </View>
         </View>
 
-        {/* UTTARAKHAND NEWS */}
+        {/* STATE NEWS */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrap}>
               <View style={[styles.kpiIconWrap, { backgroundColor: "#EFF6FF" }]}>
                 <Ionicons name="newspaper" size={14} color="#3B82F6" />
               </View>
-              <Text style={styles.sectionTitle}>{t("Uttarakhand News", HI.news)}</Text>
+              <Text style={styles.sectionTitle}>{t("Official announcements", HI.news)}</Text>
             </View>
             <View style={styles.livePill}>
               <PulsingDot color="#3B82F6" />
-              <Text style={[styles.liveText, { color: "#3B82F6" }]}>Today</Text>
+              <Text style={[styles.liveText, { color: "#3B82F6" }]}>Official</Text>
             </View>
           </View>
-          {UK_NEWS.map((item, idx) => (
+          {newsItems.length === 0 && (
+            <Text style={[styles.newsHeadline, { color: "#9CA3AF", paddingVertical: 10 }]}>No official announcements for your district yet.</Text>
+          )}
+          {newsItems.map((item, idx) => (
             <Pressable key={item.id} onPress={() => setSelectedNews(item)} style={[styles.newsRow, idx > 0 && { borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
               <View style={[styles.newsIconWrap, { backgroundColor: item.bg }]}>
                 <Ionicons name={item.icon} size={15} color={item.color} />
@@ -846,6 +791,12 @@ export default function DashboardScreen() {
           ))}
         </View>
 
+        {/* OFFICIAL NEWS — state (All India Radio) and national (PIB) */}
+        <OfficialNews onOpen={it => setSelectedNews({
+          id: it.id, tag: "NEWS", headline: it.title, time: relNewsTime(it.publishedAt), icon: "newspaper-outline", color: "#1D4ED8", bg: "#EFF6FF",
+          source: it.source, readTime: "", body: it.summary || it.title, link: it.link,
+        })} />
+
         {/* EMERGENCY CONTACTS */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
@@ -864,9 +815,9 @@ export default function DashboardScreen() {
             {[
               { num: "100",  label: "Police",        icon: "shield",    color: "#1A237E", bg: "#E8EAFF" },
               { num: "108",  label: "Ambulance",      icon: "heart",     color: "#EF4444", bg: "#FEF2F2" },
-              { num: "1090", label: "Women Safety",   icon: "woman",     color: "#EC4899", bg: "#FDF2F8" },
+              { num: "181", label: "Women Helpline",   icon: "woman",     color: "#EC4899", bg: "#FDF2F8" },
               { num: "101",  label: "Fire Brigade",   icon: "flame",     color: "#F59E0B", bg: "#FFFBEB" },
-              { num: "1095", label: "Traffic Police", icon: "car",       color: "#06B6D4", bg: "#F0FDFF" },
+              { num: "1930", label: "Cyber Crime",    icon: "lock-closed",       color: "#06B6D4", bg: "#F0FDFF" },
               { num: "1098", label: "Child Helpline", icon: "happy",     color: "#00A651", bg: "#F0FFF4" },
             ].map(e => (
               <Pressable key={e.num}
@@ -887,11 +838,11 @@ export default function DashboardScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrap}>
               <Ionicons name="document-text" size={16} color="#FF9933" />
-              <Text style={styles.sectionTitle}>Uttarakhand Govt Schemes</Text>
+              <Text style={styles.sectionTitle}>Government Schemes</Text>
             </View>
-            <Pressable><Text style={styles.seeAll}>View All →</Text></Pressable>
+            <Pressable onPress={() => Linking.openURL(MYSCHEME_URL)} accessibilityRole="link" accessibilityLabel="Find all schemes on myScheme"><Text style={styles.seeAll}>Find more →</Text></Pressable>
           </View>
-          {SCHEMES_DATA.map((s, idx) => (
+          {[...SCHEMES_DATA.filter(x => !x.states || x.states.includes(getTenantId() ?? "")), ...NATIONAL_SCHEMES].map((s, idx) => (
             <Pressable key={s.key} onPress={() => setSelectedScheme(s)}
               style={[styles.schemeRow, { borderTopWidth: idx === 0 ? 0 : 1 }]}>
               <View style={[styles.schemeIcon, { backgroundColor: s.color + "15" }]}>
@@ -909,6 +860,11 @@ export default function DashboardScreen() {
               </View>
             </Pressable>
           ))}
+          <Pressable onPress={() => Linking.openURL(MYSCHEME_URL)} accessibilityRole="link"
+            style={{ marginTop: 6, padding: 12, borderRadius: 12, backgroundColor: "#FFF7ED", borderWidth: 1, borderColor: "#FED7AA" }}>
+            <Text style={{ color: "#9A3412", fontSize: 13, fontFamily: "Inter_700Bold" }}>{`Find every scheme for ${stateName()}`}</Text>
+            <Text style={{ color: "#9A3412", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 }}>myScheme (Government of India) lists Central and State schemes and checks your eligibility. Always confirm details on the official site before applying.</Text>
+          </Pressable>
         </View>
 
         {/* GOVERNMENT NOTICES */}

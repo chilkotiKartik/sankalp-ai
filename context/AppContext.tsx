@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { Platform } from "react-native";
+import { tenantQuery } from "@/lib/tenant";
+import { Platform, AppState } from "react-native";
+import * as Outbox from "@/lib/offline-queue";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { getApiUrl, getWsUrl } from "@/lib/query-client";
@@ -53,8 +55,8 @@ export const PRIORITY_META: Record<Priority, { color: string; bg: string; label:
 export const STATUS_META: Record<ComplaintStatus, { color: string; bg: string; label: string }> = {
   pending:     { color: "#F59E0B", bg: "#FFFBEB", label: "Pending" },
   in_progress: { color: "#3B82F6", bg: "#EFF6FF", label: "In Progress" },
-  resolved:    { color: "#22C55E", bg: "#F0FDF4", label: "Resolved" },
-  closed:      { color: "#6B7280", bg: "#F9FAFB", label: "Closed" },
+  resolved:    { color: "#22C55E", bg: "#F0FDF4", label: "Fix submitted" },
+  closed:      { color: "#6B7280", bg: "#F9FAFB", label: "Closed (citizen-verified)" },
 };
 
 export const SOS_META: Record<string, { icon: string; color: string; label: string }> = {
@@ -238,7 +240,9 @@ interface AppContextType {
   getStats: () => AppStats;
   submitComplaint: (data: Partial<Complaint>) => Promise<Complaint>;
   upvoteComplaint: (id: string) => Promise<void>;
-  resolveComplaint: (id: string, rating?: number, feedback?: string, afterPhoto?: string) => Promise<void>;
+  resolveComplaint: (id: string, rating?: number, feedback?: string) => Promise<void>;
+  cancelComplaint: (id: string) => Promise<void>;
+  updateComplaintStatus: (id: string, status: "in_progress" | "resolved", extra?: { proofPhoto?: string; proofNote?: string; adminNote?: string; proofGeo?: { lat: number; lng: number } }) => Promise<void>;
   rejectComplaint: (id: string) => Promise<void>;
   triggerSOS: (data: Partial<SOSAlert>) => Promise<SOSAlert>;
   triggerWomenSafetySOS: (geo: GeoPoint | null, location: string, audioUrl?: string) => Promise<{ alert: SOSAlert; nearestStations: PoliceStation[] }>;
@@ -254,7 +258,9 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const { token, logout } = useAuth();
+  const { token, logout, refreshSession, user: authUser } = useAuth();
+  const uidRef = useRef<string | null>(null);
+  uidRef.current = authUser?.id ?? null;
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [sosAlerts, setSosAlerts] = useState<SOSAlert[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
@@ -273,6 +279,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const logoutRef = useRef(logout);
   logoutRef.current = logout;
+  const refreshRef = useRef(refreshSession);
+  refreshRef.current = refreshSession;
 
   const loadData = useCallback(async (silent = false) => {
     const currentToken = tokenRef.current;
@@ -302,7 +310,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (e: any) {
       // Token expired or invalid → force re-login so user sees fresh data
       if (e?.status === 401 || String(e?.message).includes("401") || String(e?.message).toLowerCase().includes("invalid or expired")) {
-        logoutRef.current();
+        // Access tokens are short-lived: try the refresh token first; sign out only if that fails too.
+        const renewed = await refreshRef.current();
+        if (!renewed) logoutRef.current();
       }
     }
     finally { if (!silent) setIsLoading(false); }
@@ -363,55 +373,73 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [token]);
 
-  // WebSocket connection for real-time alerts
+  // WebSocket for real-time alerts (m11: backoff, no reconnect after unmount or auth failure).
   useEffect(() => {
     if (!token) {
       if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
       return;
     }
-    let ws: WebSocket;
+    let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+    let disposed = false;
+    let attempt = 0;
+    const reloadSoon = () => {
+      if (reloadTimer) return;
+      reloadTimer = setTimeout(() => { reloadTimer = null; loadData(true); }, 2000);
+    };
 
     const connect = () => {
+      if (disposed) return;
       try {
-        const wsBaseUrl = getWsUrl();
-        const wsUrlWithToken = token ? `${wsBaseUrl}${wsBaseUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}` : wsBaseUrl;
-        ws = new WebSocket(wsUrlWithToken);
+        const base = getWsUrl();
+        const tq = tenantQuery();
+        ws = new WebSocket(`${base}${base.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}${tq ? `&${tq}` : ""}`);
         wsRef.current = ws;
+        ws.onopen = () => { attempt = 0; };
         ws.onmessage = (event) => {
           try {
-            const data = JSON.parse(event.data);
-            if (data.type === "emergency_broadcast") {
-              setEmergencyAlert({ message: data.message, severity: data.severity, timestamp: data.timestamp });
-            } else if (data.type === "women_safety_sos" || data.type === "sos_new") {
-              loadData(true);
-            } else if (data.type === "sos_location_update") {
-              setSosAlerts(prev => prev.map(s => s.id === data.id
-                ? { ...s, liveGeo: data.geo, liveUpdatedAt: data.liveUpdatedAt }
-                : s));
-            } else if (data.type === "sos_resolved") {
-              setSosAlerts(prev => prev.map(s => s.id === data.id ? { ...s, status: "resolved" } : s));
-            } else if (data.type === "announcement" || data.type === "announcement_new") {
-              const ann = data.announcement || data.data;
-              if (ann) setAnnouncements(prev => [ann, ...prev.filter(a => a.id !== ann.id)]);
-            } else if (data.type === "resolved" || data.type === "upvote") {
-              loadData(true);
+            const data = JSON.parse(String(event.data));
+            switch (data.type) {
+              case "emergency_broadcast":
+                setEmergencyAlert({ message: data.message, severity: data.severity, timestamp: data.timestamp });
+                break;
+              case "sos_new":
+                reloadSoon();
+                break;
+              case "sos_location_update":
+                setSosAlerts(prev => prev.map(s => s.id === data.id ? { ...s, liveGeo: data.geo, liveUpdatedAt: data.liveUpdatedAt } : s));
+                break;
+              case "sos_resolved":
+                setSosAlerts(prev => prev.map(s => s.id === data.id ? { ...s, status: "resolved" } : s));
+                break;
+              case "announcement":
+                if (data.announcement) setAnnouncements(prev => [data.announcement, ...prev.filter(a => a.id !== data.announcement.id)]);
+                break;
+              case "complaint_new":
+              case "complaint_state":
+              case "complaint_updated":
+              case "upvote":
+                reloadSoon();
+                break;
             }
           } catch {}
         };
-        ws.onerror = () => {};
-        ws.onclose = () => {
-          if (tokenRef.current) {
-            reconnectTimer = setTimeout(connect, 5000);
-          }
+        ws.onclose = (ev) => {
+          wsRef.current = null;
+          if (disposed || ev.code === 4001) return; // unmounted, or token rejected — don't hammer the server
+          attempt += 1;
+          reconnectTimer = setTimeout(connect, Math.min(60000, 1000 * 2 ** Math.min(attempt, 6)));
         };
       } catch {}
     };
 
     connect();
     return () => {
+      disposed = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (ws) ws.close();
+      if (reloadTimer) clearTimeout(reloadTimer);
+      ws?.close();
       wsRef.current = null;
     };
   }, [token, loadData]);
@@ -427,12 +455,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     avgHealth: wards.length ? Math.round(wards.reduce((s, w) => s + w.healthScore, 0) / wards.length) : 0,
   }), [complaints, sosAlerts, wards]);
 
+  /**
+   * P5.1: complaints are sent with a client id; with no network they are saved in the outbox and sent later
+   * (the returned placeholder has `queued: true` so the screen can say "Saved — will send when online").
+   */
   const submitComplaint = useCallback(async (data: Partial<Complaint>): Promise<Complaint> => {
     const apiCall = makeApiCall(tokenRef.current);
-    const result = await apiCall("/api/complaints", "POST", data);
-    setComplaints(prev => [result, ...prev]);
-    return result;
+    const clientRequestId = Outbox.newClientId();
+    const body = { ...data, clientRequestId };
+    try {
+      const result = await apiCall("/api/complaints", "POST", body);
+      setComplaints(prev => [result, ...prev]);
+      return result;
+    } catch (err) {
+      if (!Outbox.isNetworkError(err) || !uidRef.current) throw err;
+      await Outbox.enqueue(uidRef.current, { id: clientRequestId, path: "/api/complaints", method: "POST", body: data as Record<string, unknown>, label: String(data.description ?? "").slice(0, 60) });
+      const placeholder = { ...data, id: `local-${clientRequestId}`, ticketId: "SAVED", status: "pending", queued: true, submittedAt: new Date().toISOString(), upvotes: 0, upvotedBy: [] } as unknown as Complaint;
+      setComplaints(prev => [placeholder, ...prev]);
+      return placeholder;
+    }
   }, []);
+
+  // P5.1 outbox flush: on sign-in/start, every 30 s, and whenever the app comes back to the foreground.
+  useEffect(() => {
+    const uid = authUser?.id;
+    if (!token || !uid) return;
+    // Only this user's queue is ever sent (review P5-3); a 401 triggers one token refresh (review P5-4).
+    const send = Outbox.makeSender(getApiUrl(), () => tokenRef.current, () => refreshRef.current());
+    const run = () => { void Outbox.flush(uid, send, (item, result) => {
+      if (result && typeof result === "object") setComplaints(prev => prev.map(c => (c.id === `local-${item.id}` ? (result as Complaint) : c)));
+    }); };
+    run();
+    const t = setInterval(run, 30_000);
+    const sub = AppState.addEventListener("change", st => { if (st === "active") run(); });
+    return () => { clearInterval(t); sub.remove(); };
+  }, [token, authUser?.id]);
 
   const upvoteComplaint = useCallback(async (id: string) => {
     const apiCall = makeApiCall(tokenRef.current);
@@ -440,10 +497,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setComplaints(prev => prev.map(c => c.id === id ? result : c));
   }, []);
 
-  const resolveComplaint = useCallback(async (id: string, rating?: number, feedback?: string, afterPhoto?: string) => {
+  /** Citizen confirms the fix on their own complaint (closes it). */
+  const resolveComplaint = useCallback(async (id: string, rating?: number, feedback?: string) => {
     const apiCall = makeApiCall(tokenRef.current);
-    const result = await apiCall(`/api/complaints/${id}/resolve`, "PUT", { rating, feedback, afterPhoto });
+    const result = await apiCall(`/api/complaints/${id}/confirm`, "PUT", { rating, feedback });
     setComplaints(prev => prev.map(c => c.id === id ? result : c));
+  }, []);
+
+  const cancelComplaint = useCallback(async (id: string) => {
+    const apiCall = makeApiCall(tokenRef.current);
+    const result = await apiCall(`/api/complaints/${id}/cancel`, "PUT");
+    setComplaints(prev => prev.map(c => c.id === id ? result : c));
+  }, []);
+
+  /** Officer status change. "resolved" requires a proof photo (data URL or /uploads URL). Officers can never close. */
+  const updateComplaintStatus = useCallback(async (id: string, status: "in_progress" | "resolved", extra: { proofPhoto?: string; proofNote?: string; adminNote?: string; proofGeo?: { lat: number; lng: number } } = {}) => {
+    const apiCall = makeApiCall(tokenRef.current);
+    const result = await apiCall(`/api/admin/complaints/${id}`, "PUT", { status, ...extra });
+    setComplaints(prev => prev.map(c => c.id === id ? { ...c, ...result } : c));
   }, []);
 
   const rejectComplaint = useCallback(async (id: string) => {
@@ -462,9 +533,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const triggerWomenSafetySOS = useCallback(async (geo: GeoPoint | null, location: string, audioUrl?: string) => {
     const apiCall = makeApiCall(tokenRef.current);
     const result = await apiCall("/api/sos/women-safety", "POST", {
-      geo: geo || null,
+      ...(geo ? { geo } : { geoApproximate: true }),
       location,
-      audioUrl,
+      ...(audioUrl ? { audioUrl } : {}),
     });
     setSosAlerts(prev => [result.alert, ...prev]);
     return result;
@@ -513,7 +584,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider value={{
       complaints, sosAlerts, wards, workers, policeStations, riskZones, leaderboard, announcements,
       isLoading, lastUpdated, emergencyAlert, clearEmergency,
-      getStats, submitComplaint, upvoteComplaint, resolveComplaint, rejectComplaint,
+      getStats, submitComplaint, upvoteComplaint, resolveComplaint, rejectComplaint, cancelComplaint, updateComplaintStatus,
       triggerSOS, triggerWomenSafetySOS, resolveSOS, updateSOSLocation, broadcastEmergency, getNearestPolice,
       postAnnouncement, deleteAnnouncement, refresh,
     }}>

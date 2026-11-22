@@ -1,6 +1,9 @@
+import { districtCenters, getStateCenter } from "@/constants/districts";
+import { scriptJson, ESC_JS, tileLayerJs } from "./map-safety";
 // Shared Leaflet HTML builder for Worker GPS Map
 // Used by both native (WebView) and web (iframe) versions
 import { LEAFLET_CSS, LEAFLET_JS } from "./leaflet-bundle";
+import { districtLayerJs, type DistrictGeo } from "@/lib/geo";
 
 export interface WorkerMapData {
   id: string;
@@ -27,21 +30,10 @@ export interface DistrictHeatData {
   avgScore: number;
 }
 
-export const DISTRICT_CENTERS: Record<string, [number, number]> = {
-  "Dehradun":          [30.3165, 78.0322],
-  "Haridwar":          [29.9457, 78.1642],
-  "Tehri Garhwal":     [30.3822, 78.4800],
-  "Pauri Garhwal":     [29.6864, 78.9764],
-  "Rudraprayag":       [30.2846, 78.9806],
-  "Chamoli":           [30.4090, 79.3206],
-  "Uttarkashi":        [30.7268, 78.4354],
-  "Pithoragarh":       [29.5829, 80.2178],
-  "Bageshwar":         [29.8371, 79.7715],
-  "Almora":            [29.5971, 79.6596],
-  "Champawat":         [29.3377, 80.0914],
-  "Nainital":          [29.3919, 79.4542],
-  "Udham Singh Nagar": [28.9982, 79.5050],
-};
+/** P9: [lat, lng] per district of the SELECTED state (live from the tenant config; nothing hard-coded). */
+export function districtCenterPairs(): Record<string, [number, number]> {
+  return Object.fromEntries(Object.entries(districtCenters()).map(([d, c]) => [d, [c.lat, c.lng] as [number, number]]));
+}
 
 export function buildWorkerMapHTML(
   workers: WorkerMapData[],
@@ -49,12 +41,16 @@ export function buildWorkerMapHTML(
   selectedId: string | null,
   showHeat: boolean,
   isWebPlatform: boolean,
-  origin = "https://sankalp-ai.replit.app"
+  origin = "",
+  tileUrl: string | null = null,
+  districtGeo: DistrictGeo | null = null
 ): string {
-  const wJson = JSON.stringify(workers);
-  const hJson = JSON.stringify(heatData);
-  const sJson = JSON.stringify(selectedId);
-  const centersJson = JSON.stringify(DISTRICT_CENTERS);
+  const wJson = scriptJson(workers);
+  const hJson = scriptJson(heatData);
+  const sJson = scriptJson(selectedId);
+  const centersJson = scriptJson(districtCenterPairs());
+  const sc = getStateCenter();
+  const viewJs = `[${+sc.lat},${+sc.lng}],${+sc.zoom}`;
   const showHeatJs = showHeat ? "true" : "false";
   const isWebJs = isWebPlatform ? "true" : "false";
 
@@ -139,12 +135,13 @@ var showHeat=${showHeatJs};
 var isWeb=${isWebJs};
 
 var map=L.map('map',{
-  center:[30.0668,79.0193],zoom:7,
-  zoomControl:true,attributionControl:true,preferCanvas:false
+  center:[${+sc.lat},${+sc.lng}],zoom:${+sc.zoom},
+  zoomControl:false,attributionControl:true,preferCanvas:false
 });
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-  attribution:'&copy; OSM &copy; CARTO',subdomains:'abcd',maxZoom:19
-}).addTo(map);
+L.control.zoom({position:'topright'}).addTo(map); // keeps the heat legend (bottom-left) readable
+${tileLayerJs(tileUrl)}
+${ESC_JS}
+${districtLayerJs(scriptJson(districtGeo), false)}
 
 // ── HEAT COLOR FUNCTION ──────────────────────────────────────────────────────
 function heatColor(count,avgScore,maxCount){
@@ -169,7 +166,7 @@ if(showHeat){
 
 heatData.forEach(function(d){
   var center=districtCenters[d.district];
-  if(!center)return;
+  if(!center||!d.count)return; // no workers in this district → nothing to shade
   var col=heatColor(d.count,d.avgScore,maxCount);
   var circle=L.circle([center[0],center[1]],{
     radius:38000,
@@ -181,7 +178,7 @@ heatData.forEach(function(d){
     interactive:true,
     className:'heat-circle'
   });
-  var label=d.district+' &mdash; <b>'+d.count+'</b> workers'
+  var label=esc(d.district)+' &mdash; <b>'+d.count+'</b> workers'
     +(d.active?' (<span style="color:#00C060">'+d.active+' active</span>)':'')
     +'<br><span style="color:#FF9933">Avg Score: '+Math.round(d.avgScore)+'</span>';
   circle.bindTooltip(label,{
@@ -201,7 +198,7 @@ function makeIcon(w,isSel){
   var col=SC[w.status]||'#6B7280';
   var cls='wm '+w.status+(isSel?' sel':'');
   return L.divIcon({
-    html:'<div class="'+cls+'" style="background:'+col+'">'+w.name.charAt(0)+'</div>',
+    html:'<div class="'+cls+'" style="background:'+col+'">'+esc(String(w.name||'?').charAt(0))+'</div>',
     iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-18],className:''
   });
 }
@@ -225,11 +222,11 @@ workers.forEach(function(w){
   });
   var ph='<div class="pb">'
     +'<span class="pbadge" style="background:'+col+'22;color:'+col+'">'+slabel+'</span>'
-    +'<div class="pt">'+w.name+'</div>'
-    +'<div class="ps">'+w.ward+' &middot; '+w.district+'</div>'
+    +'<div class="pt">'+esc(w.name)+'</div>'
+    +'<div class="ps">'+esc(w.ward)+' &middot; '+esc(w.district)+'</div>'
     +'<div class="ps"><span style="color:#FF9933;font-weight:700">'+w.score+'</span> score &nbsp;&#9733; '+w.avgRating.toFixed(1)+'</div>'
     +'<div class="ps">'+w.resolvedToday+' today &middot; '+w.totalResolved+' total</div>'
-    +(w.task?'<div class="pk">&#9881; '+w.task+'</div>':'')
+    +(w.task?'<div class="pk">&#9881; '+esc(w.task)+'</div>':'')
     +'</div>';
   marker.bindPopup(ph,{maxWidth:240});
   marker.on('click',function(){sendMsg({type:'workerTap',id:w.id});});
@@ -268,7 +265,7 @@ window.resetView=function(){
     var w=workers.find(function(x){return x.id===k;});
     if(w)markerMap[k].setIcon(makeIcon(w,false));
   });
-  map.setView([30.0668,79.0193],7,{animate:true});
+  map.setView(${viewJs},{animate:true});
 };
 window.setHeatVisible=function(vis){
   var leg=document.getElementById('heat-legend');

@@ -1,0 +1,69 @@
+Eval [dev]: 307 examples · method rules · AI status {"text":"rules","vision":"manual_review","speech":"none"}
+Accuracy: 78.2% · p95 latency 0.02 ms
+By language: en 66% (n=106) · hi 84% (n=92) · hinglish 75% (n=55) · garhwali 100% (n=27) · kumaoni 93% (n=27)
+Per class (precision / recall):
+  disaster       P 100%  R  64%  (n=22)
+  drain          P 100%  R  77%  (n=22)
+  electricity    P  86%  R  82%  (n=22)
+  garbage        P  88%  R  88%  (n=24)
+  health_hazard  P 100%  R  76%  (n=21)
+  noise          P 100%  R  62%  (n=21)
+  other          P  27%  R 100%  (n=22)
+  pothole        P 100%  R  78%  (n=23)
+  road_damage    P 100%  R  48%  (n=21)
+  sewage         P 100%  R  90%  (n=21)
+  streetlight    P  89%  R  77%  (n=22)
+  transformer    P 100%  R  95%  (n=21)
+  tree           P 100%  R  81%  (n=21)
+  water          P 100%  R  75%  (n=24)
+Confusion matrix (rows = truth, cols = predicted):
+              disas drain elect garba healt noise other potho road_ sewag stree trans  tree water
+disaster         14     0     0     0     0     0     8     0     0     0     0     0     0     0
+drain             0    17     0     1     0     0     4     0     0     0     0     0     0     0
+electricity       0     0    18     0     0     0     4     0     0     0     0     0     0     0
+garbage           0     0     0    21     0     0     3     0     0     0     0     0     0     0
+health_hazard     0     0     0     1    16     0     4     0     0     0     0     0     0     0
+noise             0     0     0     0     0    13     8     0     0     0     0     0     0     0
+other             0     0     0     0     0     0    22     0     0     0     0     0     0     0
+pothole           0     0     0     0     0     0     4    18     0     0     1     0     0     0
+road_damage       0     0     0     0     0     0    11     0    10     0     0     0     0     0
+sewage            0     0     0     1     0     0     1     0     0    19     0     0     0     0
+streetlight       0     0     1     0     0     0     4     0     0     0    17     0     0     0
+transformer       0     0     0     0     0     0     1     0     0     0     0    20     0     0
+tree              0     0     2     0     0     0     1     0     0     0     1     0    17     0
+water             0     0     0     0     0     0     6     0     0     0     0     0     0    18
+
+Eval [holdout]: 36 examples · method rules · AI status {"text":"rules","vision":"manual_review","speech":"none"}
+Accuracy: 77.8% · p95 latency 0.02 ms
+By language: en 79% (n=14) · hi 86% (n=14) · hinglish 63% (n=8)
+Per class (precision / recall):
+  disaster       P 100%  R 100%  (n=2)
+  drain          P 100%  R  67%  (n=3)
+  electricity    P 100%  R 100%  (n=3)
+  garbage        P 100%  R  67%  (n=3)
+  health_hazard  P 100%  R 100%  (n=2)
+  noise          P 100%  R  67%  (n=3)
+  other          P  20%  R 100%  (n=2)
+  pothole        P 100%  R  33%  (n=3)
+  road_damage    P 100%  R  50%  (n=2)
+  sewage         P 100%  R 100%  (n=2)
+  streetlight    P 100%  R  67%  (n=3)
+  transformer    P 100%  R 100%  (n=2)
+  tree           P 100%  R 100%  (n=3)
+  water          P 100%  R  67%  (n=3)
+Confusion matrix (rows = truth, cols = predicted):
+              disas drain elect garba healt noise other potho road_ sewag stree trans  tree water
+disaster          2     0     0     0     0     0     0     0     0     0     0     0     0     0
+drain             0     2     0     0     0     0     1     0     0     0     0     0     0     0
+electricity       0     0     3     0     0     0     0     0     0     0     0     0     0     0
+garbage           0     0     0     2     0     0     1     0     0     0     0     0     0     0
+health_hazard     0     0     0     0     2     0     0     0     0     0     0     0     0     0
+noise             0     0     0     0     0     2     1     0     0     0     0     0     0     0
+other             0     0     0     0     0     0     2     0     0     0     0     0     0     0
+pothole           0     0     0     0     0     0     2     1     0     0     0     0     0     0
+road_damage       0     0     0     0     0     0     1     0     1     0     0     0     0     0
+sewage            0     0     0     0     0     0     0     0     0     2     0     0     0     0
+streetlight       0     0     0     0     0     0     1     0     0     0     2     0     0     0
+transformer       0     0     0     0     0     0     0     0     0     0     0     2     0     0
+tree              0     0     0     0     0     0     0     0     0     0     0     0     3     0
+water             0     0     0     0     0     0     1     0     0     0     0     0     0     2

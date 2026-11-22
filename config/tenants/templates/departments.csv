@@ -1,0 +1,9 @@
+id,name,nameLocal,icon,color,helpline,slaHours,categories
+pwd,Public Works Department,लोक निर्माण विभाग,🏗️,#F59E0B,1800-000-0000,48,pothole|road_damage|other
+ulb,Urban Local Body,नगर निकाय,🏙️,#10B981,1800-000-0001,24,garbage|drain|sewage
+water,Water Supply Board,जल बोर्ड,💧,#3B82F6,1800-000-0002,24,water
+power,Electricity Distribution Company,विद्युत निगम,⚡,#8B5CF6,1912,12,electricity|streetlight|transformer
+forest,Forest Department,वन विभाग,🌳,#16A34A,1926,72,tree
+health,Health Department,स्वास्थ्य विभाग,🏥,#EF4444,104,24,health_hazard
+usdma,State Disaster Management Authority,आपदा प्रबंधन प्राधिकरण,🆘,#DC2626,1070,6,disaster
+police,Police,पुलिस,🚔,#1D4ED8,112,24,noise

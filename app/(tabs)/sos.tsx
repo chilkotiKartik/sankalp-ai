@@ -1,10 +1,13 @@
+import { openInMaps, openInMapsQuery } from "@/lib/maps";
+import { router } from "expo-router";
+import { openSosSms } from "@/lib/sos-fallback";
 import React, { useRef, useEffect, useState, useCallback, Component } from "react";
 import {
   View, Text, StyleSheet, Pressable, Animated, ScrollView,
   Modal, TextInput, Platform, ActivityIndicator, Alert, Vibration, Linking, AppState,
 } from "react-native";
 import * as FileSystem from "expo-file-system";
-import { getDistrictCenter } from "@/constants/districts";
+import { getDistrictCenter, stateName } from "@/constants/districts";
 
 class SOSErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: string }> {
   constructor(props: any) {
@@ -257,7 +260,7 @@ function SOSScreenInner() {
     let watchSub: Location.LocationSubscription | null = null;
     // Use user's district center as fallback — never hardcode Delhi or Dehradun
     const fallbackGeo: GeoPoint = getDistrictCenter((user as any)?.district);
-    const useFallback = () => {
+    const applyFallback = () => {
       if (cancelled) return;
       setGeo(fallbackGeo); currentGeoRef.current = fallbackGeo; setGeoStatus("found");
       setNearestPS(sortStations(policeStations, fallbackGeo));
@@ -274,7 +277,7 @@ function SOSScreenInner() {
                 setGeo(g); currentGeoRef.current = g; setGeoStatus("found");
                 setNearestPS(sortStations(policeStations, g));
               },
-              () => useFallback(),
+              () => applyFallback(),
               { enableHighAccuracy: true, timeout: 8000 }
             );
             webWatchId = navigator.geolocation.watchPosition(
@@ -288,7 +291,7 @@ function SOSScreenInner() {
               { enableHighAccuracy: true, maximumAge: 5000 }
             );
           } else {
-            useFallback();
+            applyFallback();
           }
           return;
         }
@@ -310,7 +313,7 @@ function SOSScreenInner() {
         );
         locationWatchRef.current = watchSub;
       } catch {
-        useFallback();
+        applyFallback();
       }
     };
     init();
@@ -492,7 +495,7 @@ function SOSScreenInner() {
             const uploadRes = await fetch(`${baseUrl}api/upload/audio`, {
               method: "POST",
               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-              body: JSON.stringify({ audio: base64, filename: `sos-chunk${chunkIdx}-${Date.now()}.m4a` }),
+              body: JSON.stringify({ audio: base64, sosId: alertId }),
             });
             if (uploadRes.ok) {
               const data = await uploadRes.json();
@@ -539,35 +542,39 @@ function SOSScreenInner() {
       try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); } catch {}
       Vibration.vibrate([0, 400, 150, 400, 150, 400, 150, 400]);
     }
-    // Voice alert — speak immediately to reassure the user
+    // H2: never claim help is coming until the server has accepted the alert.
     try {
-      Speech.speak("Emergency alert sent. Police and help notified. Stay calm. Help is on the way.", {
-        language: "en-IN", rate: 0.88, pitch: 1.0,
-      });
-    } catch {}
-    try {
-      const g = currentGeoRef.current || userDistrictGeo;
-      // Send SOS alert immediately (no audio URL yet — will be patched after 18s)
-      const result = await triggerWomenSafetySOS(g, `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}`);
-      if (result?.alert) {
-        setActiveAlert({ ...result.alert, isWomenSafety: true });
-        setTriggered(true);
-        startLive(result.alert.id);
-        // Start 18-second audio recording in background, auto-patches this alert
-        startAudioRecording(result.alert.id);
-        try {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: "🛡️ Women Safety SOS Sent",
-              body: "Emergency alert dispatched. Police notified. 18-sec audio evidence being recorded.",
-              sound: true,
-              priority: Notifications.AndroidNotificationPriority.MAX,
-            },
-            trigger: null,
-          });
-        } catch {}
-      }
-    } catch {}
+      const g = currentGeoRef.current;
+      const label = g ? `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}` : "Location unavailable — approximate (district centre)";
+      const result = await triggerWomenSafetySOS(g, label);
+      if (!result?.alert) throw new Error("no alert returned");
+      setActiveAlert({ ...result.alert, isWomenSafety: true });
+      setTriggered(true);
+      startLive(result.alert.id);
+      startAudioRecording(result.alert.id);
+      try {
+        Speech.speak("Your SOS has reached the police control room. If you can, also call 112.", { language: "en-IN", rate: 0.9, pitch: 1.0 });
+      } catch {}
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "Sankalp SOS delivered",
+            body: g ? "Control room has your live location. Audio evidence is being recorded." : "Control room notified. Turn on location so they can find you.",
+            sound: true,
+            priority: Notifications.AndroidNotificationPriority.MAX,
+          },
+          trigger: null,
+        });
+      } catch {}
+    } catch {
+      setWomenPanic(false);
+      try { Speech.speak("SOS could not be sent. Call 112 now.", { language: "en-IN", rate: 0.9 }); } catch {}
+      Alert.alert(
+        "SOS NOT SENT",
+        "We could not reach the server. Call 112 now — it works even without internet data.",
+        [{ text: "Call 112", style: "destructive", onPress: () => Linking.openURL("tel:112") }, { text: "SMS my contacts", onPress: () => { void openSosSms(); } }, { text: "Try again", onPress: () => activateWomenSafetyRef.current(source) }],
+      );
+    }
   }, [womenPanic, triggerWomenSafetySOS, startLive, startAudioRecording]);
 
   // Keep ref always pointing to latest activateWomenSafety (fixes stale closure in accelerometer)
@@ -723,17 +730,17 @@ function SOSScreenInner() {
           await Notifications.scheduleNotificationAsync({
             content: {
               title: "🔥 Forest Fire SOS Sent",
-              body: "Forest Dept & USDMA notified. Move to safety immediately.",
+              body: "Forest Dept & State Disaster Mgmt notified. Move to safety immediately.",
               sound: true,
             },
             trigger: null,
           });
         } catch {}
       } else {
-        Alert.alert("Failed", "Could not send alert. Call 1800-180-4191 (Forest Helpline).");
+        Alert.alert("Failed", "Could not send alert. Call 112 now — it reaches emergency services anywhere in India.");
       }
     } catch {
-      Alert.alert("Error", "Network error. Call 1800-180-4191 directly.");
+      Alert.alert("Error", "Network error. Call 112 directly.");
     } finally {
       setForestSending(false);
       setShowForestModal(false);
@@ -754,15 +761,17 @@ function SOSScreenInner() {
         body: JSON.stringify({ location: `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}`, lat: g.lat, lng: g.lng, reason: cprReason }),
       });
       if (res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg: string = body.message || "Help requested. The control room has been notified.";
         setCprSent(true);
         try {
-          Speech.speak("PCR patrol requested. Nearest patrol van is on its way. Stay calm.", { language: "en-IN", rate: 0.9 });
+          Speech.speak(msg, { language: "en-IN", rate: 0.9 });
         } catch {}
         try {
           await Notifications.scheduleNotificationAsync({
             content: {
               title: "🚔 PCR Help Requested",
-              body: "Nearest patrol van dispatched to your location.",
+              body: msg,
               sound: true,
             },
             trigger: null,
@@ -787,14 +796,14 @@ function SOSScreenInner() {
       Vibration.vibrate([0, 300, 100, 300]);
     }
     try {
-      const g = currentGeoRef.current || userDistrictGeo;
+      const g = currentGeoRef.current;
       const cat = SOS_CATS.find(c => c.key === selectedCat);
       const alert = await triggerSOS({
         category: selectedCat as any,
         description: description || `${cat?.label} emergency via SANKALP AI`,
-        location: `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}`,
-        geo: g,
-        ward: nearestPS[0]?.ward || "Champawat",
+        location: g ? `GPS: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}` : "Location unavailable — approximate",
+        ...(g ? { geo: g } : {}),
+        ward: nearestPS[0]?.ward,
         wardNumber: 1,
         status: "active",
       });
@@ -822,7 +831,9 @@ function SOSScreenInner() {
         });
       } catch {}
     } catch (err: any) {
-      Alert.alert("SOS Failed", err.message || "Could not send SOS. Please call 112 directly.");
+      Alert.alert("SOS NOT SENT", `${err?.message || "Could not reach the server."} Call 112 now.`, [
+        { text: "Call 112", style: "destructive", onPress: () => Linking.openURL("tel:112") }, { text: "SMS my contacts", onPress: () => { void openSosSms(); } }, { text: "OK" },
+      ]);
     } finally { setIsTriggering(false); }
   };
 
@@ -867,7 +878,7 @@ function SOSScreenInner() {
               <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🔥</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={s.sheetTitle}>Report Forest Fire</Text>
-                <Text style={s.sheetSub}>High-priority → Forest Dept & USDMA Disaster Mgmt</Text>
+                <Text style={s.sheetSub}>High-priority → Forest Dept & State Disaster Mgmt</Text>
               </View>
             </LinearGradient>
             <View style={{ padding: 20, gap: 14 }}>
@@ -886,7 +897,7 @@ function SOSScreenInner() {
                 multiline
               />
               <View style={{ flexDirection: "row", gap: 8 }}>
-                {[{ label: "Forest Helpline", num: "1800-180-4191", color: "#22C55E" }, { label: "USDMA", num: "1070", color: "#F59E0B" }].map(item => (
+                {[{ label: "Emergency", num: "112", color: "#22C55E" }, { label: "Disaster (SDMA)", num: "1070", color: "#F59E0B" }].map(item => (
                   <Pressable key={item.num} onPress={() => Linking.openURL(`tel:${item.num}`)}
                     style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, backgroundColor: item.color + "20", borderRadius: 8, paddingVertical: 8, borderWidth: 1, borderColor: item.color + "40" }}>
                     <Ionicons name="call" size={12} color={item.color} />
@@ -983,7 +994,7 @@ function SOSScreenInner() {
               <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🚨</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={s.sheetTitle}>Confirm SOS Alert</Text>
-                <Text style={s.sheetSub}>Uttarakhand Police & Command Center notified instantly</Text>
+                <Text style={s.sheetSub}>{`${stateName()} Police & Command Center notified instantly`}</Text>
               </View>
             </LinearGradient>
 
@@ -1028,7 +1039,7 @@ function SOSScreenInner() {
               <Pressable onPress={() => setShowModal(false)} style={s.cancelBtn}>
                 <Text style={s.cancelText}>Cancel</Text>
               </Pressable>
-              <Pressable onPress={handleSOS} disabled={isTriggering} style={{ flex: 2, borderRadius: 14, overflow: "hidden" }}>
+              <Pressable onPress={handleSOS} disabled={isTriggering} accessibilityRole="button" accessibilityLabel="Send SOS now" accessibilityHint="Alerts the police control room with your location" accessibilityState={{ busy: isTriggering }} style={{ flex: 2, borderRadius: 14, overflow: "hidden" }}>
                 <LinearGradient colors={["#7F1D1D", "#EF4444"]} style={s.sendBtn}
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                   {isTriggering
@@ -1043,6 +1054,12 @@ function SOSScreenInner() {
 
       <ScrollView showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 110 : insets.bottom + 110 }}>
+        {/* P6.1/P6.3: trusted contacts, check-in timer, fake call */}
+        <Pressable onPress={() => router.push("/safety")} accessibilityRole="button" accessibilityLabel="Safety tools: trusted contacts, check-in timer, fake call"
+          style={{ position: "absolute", top: Platform.OS === "web" ? 20 : insets.top + 8, right: 16, zIndex: 10, minHeight: 44, paddingHorizontal: 12, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.15)", flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Ionicons name="shield-checkmark-outline" size={18} color="#fff" />
+          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Safety tools</Text>
+        </Pressable>
 
         {/* ── HEADER ── */}
         <LinearGradient colors={["#0D0000", "#1A0000", "#3D0000", "#7F1D1D"]}
@@ -1054,10 +1071,10 @@ function SOSScreenInner() {
           <View style={s.headerRow}>
             <View style={{ flex: 1 }}>
               <View style={s.gnctPill}>
-                <Text style={s.gnctText}>🏛️ Govt of UK · SANKALP AI · Emergency Command Center</Text>
+                <Text style={s.gnctText}>{`🏛️ ${stateName()} · SANKALP AI · Emergency Command Center`}</Text>
               </View>
               <Text style={s.headerTitle}>SOS Emergency</Text>
-              <Text style={s.headerSub}>Uttarakhand Rapid Response System · 24/7 Active</Text>
+              <Text style={s.headerSub}>{`${stateName()} Rapid Response System · 24/7 Active`}</Text>
             </View>
             {activeCount > 0 && (
               <View style={s.activeBadge}>
@@ -1131,7 +1148,7 @@ function SOSScreenInner() {
             </View>
 
             {geo && (
-              <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${geo.lat},${geo.lng}`)} style={s.mapsBtn}>
+              <Pressable onPress={() => openInMaps(geo.lat, geo.lng)} style={s.mapsBtn}>
                 <Ionicons name="map" size={14} color="#4ADE80" />
                 <Text style={s.mapsBtnText}>Open My Location in Google Maps</Text>
                 <Ionicons name="open-outline" size={12} color="#4ADE80" />
@@ -1183,6 +1200,9 @@ function SOSScreenInner() {
                   onPressIn={() => Animated.spring(btnScale, { toValue: 0.88, friction: 6, useNativeDriver: false }).start()}
                   onPressOut={() => Animated.spring(btnScale, { toValue: 1, friction: 4, useNativeDriver: false }).start()}
                   onPress={() => setShowModal(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Emergency SOS"
+                  accessibilityHint="Opens the SOS screen to alert police with your location"
                   style={s.sosBtn}
                 >
                   <LinearGradient colors={["#7F1D1D", "#B91C1C", "#EF4444"]} style={s.sosBtnGrad}
@@ -1194,7 +1214,7 @@ function SOSScreenInner() {
                 </Pressable>
               </Animated.View>
             </View>
-            <Text style={s.sosHintText}>Your live location instantly shared with 2 nearest police stations</Text>
+            <Text style={s.sosHintText}>Your live location is shared instantly with the police control room and your nearest police stations</Text>
           </View>
         )}
 
@@ -1209,13 +1229,13 @@ function SOSScreenInner() {
           <View style={s.helpGrid}>
             {[
               { num: "112",  label: "Emergency",      color: "#EF4444" },
-              { num: "100",  label: "UK Police",      color: "#3B82F6" },
+              { num: "100",  label: "Police",         color: "#3B82F6" },
               { num: "108",  label: "Ambulance",      color: "#22C55E" },
               { num: "101",  label: "Fire Brigade",   color: "#F59E0B" },
-              { num: "1090", label: "Women Safety",   color: "#8B5CF6" },
-              { num: "181",  label: "UK Women",       color: "#EC4899" },
-              { num: "102",  label: "CATS Ambulance", color: "#22C55E" },
-              { num: "1095", label: "Traffic",        color: "#06B6D4" },
+              { num: "181",  label: "Women Helpline", color: "#EC4899" },
+              { num: "1091", label: "Women (Police)", color: "#8B5CF6" },
+              { num: "1070", label: "Disaster",       color: "#22C55E" },
+              { num: "1033", label: "Highway",        color: "#06B6D4" },
               { num: "1098", label: "Child Line",     color: "#F59E0B" },
             ].map(item => (
               <Pressable key={item.num} onPress={() => Linking.openURL(`tel:${item.num}`)}
@@ -1277,7 +1297,7 @@ function SOSScreenInner() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.psName}>{van.vanNumber || `PCR-${i + 1}`}  ·  {van.officerName || "On Patrol"}</Text>
-                  <Text style={s.psAddr}>{van.zone || van.district || "Uttarakhand"}</Text>
+                  <Text style={s.psAddr}>{van.zone || van.district || stateName()}</Text>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
                     <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: van.status === "responding" ? "#EF4444" : "#4ADE80" }} />
                     <Text style={{ color: van.status === "responding" ? "#EF4444" : "#4ADE80", fontSize: 9, fontFamily: "Inter_700Bold" }}>
@@ -1404,6 +1424,8 @@ function SOSScreenInner() {
                   <Pressable
                     onPressIn={handleWomenLongPressStart}
                     onPressOut={handleWomenLongPressEnd}
+                    accessibilityRole="button"
+                    accessibilityLabel="Women safety SOS: hold for 2 seconds"
                     style={({ pressed }) => [s.bigMethodCard, s.holdCard, pressed && { opacity: 0.82 }]}
                   >
                     {/* Circular fill progress */}
@@ -1510,7 +1532,7 @@ function SOSScreenInner() {
               <View style={{ flex: 1 }}>
                 <Text style={{ color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" }}>Forest Fire SOS</Text>
                 {forestSent
-                  ? <Text style={{ color: "#4ADE80", fontSize: 11, fontFamily: "Inter_500Medium", marginTop: 2 }}>✅ Alert sent — Forest Dept & USDMA notified</Text>
+                  ? <Text style={{ color: "#4ADE80", fontSize: 11, fontFamily: "Inter_500Medium", marginTop: 2 }}>✅ Alert sent — Forest Dept & State Disaster Mgmt notified</Text>
                   : <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>High-priority alert to Forest Dept & Disaster Mgmt</Text>
                 }
               </View>
@@ -1518,7 +1540,7 @@ function SOSScreenInner() {
             {!forestSent ? (
               <>
                 <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
-                  {[{ label: "Forest Helpline", num: "1800-180-4191", color: "#22C55E" }, { label: "USDMA", num: "1070", color: "#F59E0B" }].map(item => (
+                  {[{ label: "Emergency", num: "112", color: "#22C55E" }, { label: "Disaster (SDMA)", num: "1070", color: "#F59E0B" }].map(item => (
                     <Pressable key={item.num} onPress={() => Linking.openURL(`tel:${item.num}`)}
                       style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, backgroundColor: item.color + "20", borderRadius: 8, paddingVertical: 7, borderWidth: 1, borderColor: item.color + "40" }}>
                       <Ionicons name="call" size={11} color={item.color} />
@@ -1540,7 +1562,7 @@ function SOSScreenInner() {
                   <Ionicons name="checkmark-circle" size={16} color="#4ADE80" />
                   <Text style={{ color: "#4ADE80", fontSize: 12, fontFamily: "Inter_700Bold" }}>Forest Fire Alert Active</Text>
                 </View>
-                <Text style={{ color: "#6EE7B7", fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 }}>Forest Department & USDMA Disaster Management have been notified and are responding.</Text>
+                <Text style={{ color: "#6EE7B7", fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 }}>Forest Department & State Disaster Management have been notified and are responding.</Text>
                 <Text style={{ color: "#4ADE80", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>📍 GPS location being shared live with responders.</Text>
               </View>
             )}
@@ -1556,7 +1578,7 @@ function SOSScreenInner() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" }}>Request PCR Patrol Help</Text>
-              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>12 patrol vans active across Uttarakhand</Text>
+              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>{`Nearest patrol van in ${stateName()}, dispatched by the control room`}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.5)" />
           </LinearGradient>
@@ -1568,7 +1590,7 @@ function SOSScreenInner() {
               <View style={[s.cardHeadIcon, { backgroundColor: "#EF444420" }]}>
                 <Ionicons name="warning" size={14} color="#EF4444" />
               </View>
-              <Text style={s.cardTitle}>Active Alerts in Uttarakhand</Text>
+              <Text style={s.cardTitle}>{`Active Alerts in ${stateName()}`}</Text>
             </View>
             {sosAlerts.filter(a => a.status !== "resolved").slice(0, 5).map(alert => {
               const liveGeo = alert.liveGeo || alert.geo;
@@ -1591,7 +1613,7 @@ function SOSScreenInner() {
                       </Text>
                     )}
                   </View>
-                  <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${liveGeo.lat},${liveGeo.lng}`)} style={s.alertMapBtn}>
+                  <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng)} style={s.alertMapBtn}>
                     <Ionicons name="map-outline" size={16} color="#4ADE80" />
                   </Pressable>
                 </View>

@@ -1,0 +1,135 @@
+import { isAdminUser, isStateUser, isDistrictAdmin } from "./auth/roles";
+import type { Server, IncomingMessage } from "node:http";
+import { WebSocketServer, WebSocket } from "ws";
+import { storage, bus, SOS_SESSION_GRACE_MS, type AppUser, type Complaint, type SOSAlert, type Announcement } from "./storage";
+import { currentTenantId, resolveTenantFromRequest, runInTenant } from "./tenancy";
+import { resolveActor } from "./lib/route";
+import { toStaffComplaint } from "./routes/dto";
+
+/**
+ * Scoped real-time fan-out (fixes audit C1). Every socket is bound to an authenticated user;
+ * events are delivered only to the people allowed to see them:
+ *  - SOS / complaint detail → admins of that district, super admins, and the owner.
+ *  - announcements → users in the target district.
+ *  - emergency broadcast → users in the sender's district (all districts for super admin).
+ */
+interface Client { ws: WebSocket; user: AppUser; tenantId: string; alive: boolean; token: string }
+
+const MAX_SOCKETS_PER_USER = 5;
+let clients: Client[] = [];
+let wss: WebSocketServer | null = null;
+let heartbeat: ReturnType<typeof setInterval> | null = null;
+const unsubscribers: Array<() => void> = [];
+
+const isStaffFor = (u: AppUser, district?: string) =>
+  isStateUser(u) || (isDistrictAdmin(u) && (!district || u.district === district));
+
+function send(c: Client, payload: unknown) {
+  if (c.ws.readyState === WebSocket.OPEN) c.ws.send(JSON.stringify(payload));
+}
+
+function resolveActorFromToken(tok: string | null, graceMs = 0): AppUser | null {
+  if (!tok) return null;
+  return resolveActor({ headers: { authorization: `Bearer ${tok}` }, query: {} } as never, false, graceMs).user ?? null;
+}
+
+/** Deliver only to clients of the tenant the event belongs to (P1.3). */
+function deliver(pred: (u: AppUser) => boolean, payload: unknown, tenantId = currentTenantId()) {
+  for (const c of clients) if (c.tenantId === tenantId && pred(c.user)) send(c, payload);
+}
+
+export function publishEmergencyBroadcast(sender: AppUser, message: string, severity: string) {
+  const district = isStateUser(sender) ? null : sender.district;
+  deliver(u => !district || u.district === district || isStateUser(u),
+    { type: "emergency_broadcast", message, severity, district: district ?? "all", timestamp: new Date().toISOString() });
+}
+
+export function publishToStaff(district: string | undefined, payload: unknown) {
+  deliver(u => isStaffFor(u, district), payload);
+}
+
+function onComplaint(ev: { type: string; complaint: Complaint }) {
+  const c = ev.complaint;
+  const ts = new Date().toISOString();
+  deliver(u => isStaffFor(u, c.district), { type: ev.type, complaint: toStaffComplaint(c), timestamp: ts });
+  // Owner gets a minimal pointer; the app re-fetches with its own permissions.
+  deliver(u => u.id === c.userId && !isStaffFor(u, c.district), { type: "complaint_updated", complaintId: c.id, status: c.status, state: c.state, timestamp: ts });
+}
+
+function onSos(ev: { type: string; alert: SOSAlert }) {
+  const a = ev.alert;
+  const ts = new Date().toISOString();
+  const payload = { type: ev.type, id: a.id, alert: a, geo: a.liveGeo ?? a.geo, liveUpdatedAt: a.liveUpdatedAt, timestamp: ts };
+  deliver(u => isStaffFor(u, a.district) || u.id === a.userId, payload);
+}
+
+function onAnnouncement(ev: { announcement: Announcement }) {
+  const a = ev.announcement;
+  deliver(u => !a.targetDistrict || a.targetDistrict === "all" || a.targetDistrict === u.district || isStateUser(u),
+    { type: "announcement", announcement: a, timestamp: new Date().toISOString() });
+}
+
+function onChat(ev: { complaintId: string; message: unknown }) {
+  const c = storage.getComplaint(ev.complaintId);
+  if (!c) return;
+  deliver(u => u.id === c.userId || isStaffFor(u, c.district), { type: "chat_message", complaintId: c.id, message: ev.message });
+}
+
+function onWorker(ev: { updates: Array<{ id: string }> }) {
+  // Worker positions are operational data: staff only.
+  deliver(u => isStaffFor(u), ev);
+}
+
+export function attachRealtime(server: Server) {
+  wss = new WebSocketServer({ server, path: "/ws", maxPayload: 4096 });
+  wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
+    const url = new URL(req.url || "/", "http://localhost");
+    const tenantId = resolveTenantFromRequest(url.searchParams.get("tenant") || undefined, req.headers.host);
+    const user = tenantId ? runInTenant(tenantId, () => resolveActorFromToken(url.searchParams.get("token"))) : null;
+    if (!user || !tenantId) {
+      ws.close(4001, "Unauthorized");
+      return;
+    }
+    const mine = clients.filter(c => c.user.id === user.id);
+    if (mine.length >= MAX_SOCKETS_PER_USER) mine[0].ws.close(4008, "Too many connections");
+    const client: Client = { ws, user, tenantId, alive: true, token: url.searchParams.get("token")! };
+    clients.push(client);
+    ws.on("pong", () => { client.alive = true; });
+    ws.on("message", () => { /* server → client only */ });
+    ws.on("close", () => { clients = clients.filter(c => c !== client); });
+    ws.on("error", () => { /* closed by heartbeat */ });
+    send(client, { type: "connected", district: user.district });
+  });
+
+  heartbeat = setInterval(() => {
+    for (const c of clients) {
+      if (!c.alive) { c.ws.terminate(); continue; }
+      // Re-validate the session behind the socket (review P1-M4): logout, erasure or role change takes effect here.
+      const fresh = runInTenant(c.tenantId, () => resolveActorFromToken(c.token, SOS_SESSION_GRACE_MS));
+      if (!fresh) { c.ws.close(4001, "Session ended"); continue; }
+      c.user = fresh;
+      c.alive = false;
+      try { c.ws.ping(); } catch { c.ws.terminate(); }
+    }
+  }, 25_000);
+
+  const subs: Array<[string, (e: never) => void]> = [
+    ["complaint", onComplaint], ["sos", onSos], ["announcement", onAnnouncement], ["chat", onChat], ["worker", onWorker],
+  ];
+  for (const [name, fn] of subs) {
+    // Run each handler inside the event's tenant so storage/reference lookups resolve correctly.
+    const wrapped = (ev: { tenantId?: string }) => runInTenant(ev.tenantId || currentTenantId(), () => (fn as (e: unknown) => void)(ev));
+    bus.on(name, wrapped);
+    unsubscribers.push(() => bus.off(name, wrapped));
+  }
+}
+
+export function closeRealtime() {
+  if (heartbeat) clearInterval(heartbeat);
+  heartbeat = null;
+  unsubscribers.splice(0).forEach(f => f());
+  clients.forEach(c => c.ws.terminate());
+  clients = [];
+  wss?.close();
+  wss = null;
+}

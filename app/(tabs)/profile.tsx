@@ -1,9 +1,11 @@
+import { PrivacyControls } from "@/components/PrivacyControls";
 import React, { useRef, useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   Platform, Animated, Alert, Image, Switch, Modal,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useI18n, LANGUAGES, type Lang } from "@/lib/i18n";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -11,9 +13,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
+import { stateName, allDistricts } from "@/constants/districts";
+import { stateLanguages } from "@/constants/districts";
 
 const LEVEL_TITLES = ["", "Resident", "Active Resident", "Engaged Citizen", "Civic Advocate",
-  "Community Leader", "City Guardian", "Civic Champion", "Devbhoomi Hero", "Urban Warrior", "City Legend"];
+  "Community Leader", "City Guardian", "Civic Champion", "State Hero", "Urban Warrior", "City Legend"];
 
 const BADGE_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string; color: string }> = {
   new_citizen:    { icon: "leaf",             label: "New Citizen",   color: "#00A651" },
@@ -24,10 +28,8 @@ const BADGE_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; label
   system_admin:   { icon: "shield-checkmark", label: "System Admin",  color: "#06B6D4" },
 };
 
-const INDIAN_PHOTOS: Record<string, string> = {
-  "9999999999": "https://randomuser.me/api/portraits/men/85.jpg",
-  "9876543210": "https://randomuser.me/api/portraits/women/62.jpg",
-};
+/** No remote stock portraits: profiles show initials until users upload their own photo. */
+const INDIAN_PHOTOS: Record<string, string> = {};
 
 function BadgeChip({ badge }: { badge: string }) {
   const cfg = BADGE_CONFIG[badge] || { icon: "medal" as const, label: badge, color: "#9CA3AF" };
@@ -53,16 +55,15 @@ export default function ProfileScreen() {
   const headerAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const [notifEnabled, setNotifEnabled] = useState(true);
-  const [language, setLanguage] = useState<"EN" | "HI">("EN");
+  const { lang: language, t, setLanguage: applyLanguage } = useI18n();
   const [showLangModal, setShowLangModal] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem("app_language").then(v => { if (v === "HI" || v === "EN") setLanguage(v); });
+    // language is loaded by lib/i18n (P5.4)
   }, []);
 
-  const switchLanguage = async (lang: "EN" | "HI") => {
-    setLanguage(lang);
-    await AsyncStorage.setItem("app_language", lang);
+  const switchLanguage = async (lang: Lang) => {
+    await applyLanguage(lang);
     setShowLangModal(false);
   };
 
@@ -114,7 +115,7 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.idHeader}>
-              <Text style={styles.idGovLabel}>SANKALP AI · Government of Uttarakhand</Text>
+              <Text style={styles.idGovLabel}>{`SANKALP AI · ${stateName()}`}</Text>
               {user?.role === "admin" && (
                 <View style={styles.adminTag}>
                   <Ionicons name="shield-checkmark" size={10} color="#FF6B00" />
@@ -250,12 +251,34 @@ export default function ProfileScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Language</Text>
-              <Text style={styles.settingDesc}>{language === "EN" ? "English" : "हिंदी (Hindi)"}</Text>
+              <Text style={styles.settingDesc}>{LANGUAGES.find(l => l.code === language)?.native}</Text>
             </View>
             <View style={[styles.langPill, { flexDirection: "row", alignItems: "center", gap: 5 }]}>
-              <Text style={styles.langPillText}>{language}</Text>
+              <Text style={styles.langPillText}>{language.toUpperCase()}</Text>
               <Ionicons name="chevron-down" size={10} color="#00A651" />
             </View>
+          </Pressable>
+          {/* P9: switch state — accounts and complaints belong to one state, so this signs you out first. */}
+          <Pressable
+            style={[styles.settingRow, { borderTopWidth: 1, borderTopColor: "#F3F4F6", marginTop: 8, paddingTop: 8 }]}
+            accessibilityRole="button"
+            onPress={() => {
+              const go = async () => { await logout(); router.replace("/(auth)/state"); };
+              if (Platform.OS === "web") { go(); return; }
+              Alert.alert("Change state?", `You will be signed out of ${stateName()}. Each state has its own account and complaints.`, [
+                { text: "Cancel", style: "cancel" },
+                { text: "Change state", style: "destructive", onPress: go },
+              ]);
+            }}
+          >
+            <View style={[styles.settingIcon, { backgroundColor: "#FFF7ED" }]}>
+              <Ionicons name="map-outline" size={16} color="#FF9933" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>State / UT</Text>
+              <Text style={styles.settingDesc}>{stateName()}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
           </Pressable>
         </View>
 
@@ -263,16 +286,16 @@ export default function ProfileScreen() {
         <Modal visible={showLangModal} transparent animationType="fade" onRequestClose={() => setShowLangModal(false)}>
           <Pressable style={ls.langOverlay} onPress={() => setShowLangModal(false)}>
             <View style={ls.langCard}>
-              <Text style={ls.langTitle}>Choose Language</Text>
-              <Text style={ls.langSub}>Select your preferred app language</Text>
-              {[
-                { code: "EN" as const, label: "English", native: "English", flag: "🇬🇧", desc: "App in English" },
-                { code: "HI" as const, label: "Hindi", native: "हिंदी", flag: "🇮🇳", desc: "ऐप हिंदी में" },
-              ].map(lang => (
+              <Text style={ls.langTitle}>{t("lang.title")}</Text>
+              <Text style={ls.langSub}>{t("lang.subtitle")}</Text>
+              {LANGUAGES.filter(l => l.code === "en" || l.code === "hi" || stateLanguages().includes(l.code)).map(l => ({ ...l, flag: l.code === "en" ? "🇬🇧" : "🇮🇳", desc: l.needsReview ? `${l.label} · ${t("lang.needsReview")}` : l.label })).map(lang => (
                 <Pressable
                   key={lang.code}
                   style={[ls.langOption, language === lang.code && ls.langOptionActive]}
                   onPress={() => switchLanguage(lang.code)}
+                  accessibilityRole="button"
+                  accessibilityLabel={lang.label}
+                  accessibilityState={{ selected: language === lang.code }}
                 >
                   <Text style={{ fontSize: 28 }}>{lang.flag}</Text>
                   <View style={{ flex: 1 }}>
@@ -287,9 +310,7 @@ export default function ProfileScreen() {
                 </Pressable>
               ))}
               <Text style={ls.langNote}>
-                {language === "HI"
-                  ? "✓ हिंदी लागू है — नमस्ते! स्वागत है SANKALP AI में"
-                  : "✓ English is active — All content displayed in English"}
+                {`✓ ${t("lang.active")}`}
               </Text>
             </View>
           </Pressable>
@@ -378,13 +399,14 @@ export default function ProfileScreen() {
             </View>
             <View>
               <Text style={styles.billsTitle}>Pay Government Bills</Text>
-              <Text style={styles.billsSub}>ULB Tax · UJN Water · UPCL Electricity</Text>
+              <Text style={styles.billsSub}>Property Tax · Water · Electricity</Text>
             </View>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
         </Pressable>
 
         {/* SIGN OUT */}
+        <PrivacyControls />
         <Pressable onPress={handleLogout} style={styles.logoutBtn}>
           <LinearGradient colors={["#DC2626", "#EF4444"]} style={styles.logoutGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <Ionicons name="log-out-outline" size={20} color="#fff" />

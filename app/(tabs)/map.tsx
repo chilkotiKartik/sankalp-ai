@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  View, Text, StyleSheet, Pressable, ScrollView,
+  View, Text, StyleSheet, Pressable, ScrollView, Linking,
   Platform, Animated, ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,11 +9,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
-import UttarakhandMap, { type MapFilter, type EmergencyServiceMarker } from "@/components/UttarakhandMap";
+import StateMap, { type MapFilter, type EmergencyServiceMarker } from "@/components/StateMap";
 import type { GeoPoint } from "@/context/AppContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiUrl } from "@/lib/query-client";
-import { getDistrictCenter } from "@/constants/districts";
+import { getDistrictCenter, stateName } from "@/constants/districts";
 
 const FILTERS: { key: MapFilter; label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }[] = [
   { key: "all",        label: "All",       icon: "apps-outline",    color: "#6B7280", bg: "#F3F4F6" },
@@ -72,7 +72,7 @@ export default function MapScreen() {
         .map(ps => ({ ...ps, distance: parseFloat((Math.sqrt((ps.geo.lat - geo.lat) ** 2 + (ps.geo.lng - geo.lng) ** 2) * 111).toFixed(2)) }))
         .sort((a, b) => a.distance - b.distance).slice(0, 3);
 
-    const useFallback = () => {
+    const applyFallback = () => {
       if (cancelled) return;
       // Use user's own district center — never hardcode Delhi/Dehradun
       const fallback = getDistrictCenter(user?.district);
@@ -92,7 +92,7 @@ export default function MapScreen() {
                 const geo: GeoPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                 setUserGeo(geo); setNearestPolice(sortPS(geo)); setGeoLoading(false);
               },
-              () => useFallback(),
+              () => applyFallback(),
               { enableHighAccuracy: true, timeout: 8000 }
             );
             webWatchId = navigator.geolocation.watchPosition(
@@ -104,7 +104,7 @@ export default function MapScreen() {
               () => {},
               { enableHighAccuracy: true, maximumAge: 10000 }
             );
-          } else { useFallback(); }
+          } else { applyFallback(); }
           return;
         }
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -123,7 +123,7 @@ export default function MapScreen() {
           }
         );
       } catch {
-        useFallback();
+        applyFallback();
       }
     };
     init();
@@ -150,7 +150,7 @@ export default function MapScreen() {
         <View style={ms.headerBg} />
         <View style={ms.headerContent}>
           <View>
-            <Text style={ms.headerTitle}>Uttarakhand Map</Text>
+            <Text style={ms.headerTitle}>{`${stateName()} Map`}</Text>
             <View style={ms.liveRow}>
               <View style={ms.liveDot} />
               <Text style={ms.liveText}>{complaints.length} markers · Live</Text>
@@ -185,7 +185,7 @@ export default function MapScreen() {
 
       {/* Map */}
       <View style={ms.mapWrap}>
-        <UttarakhandMap
+        <StateMap
           complaints={complaints}
           sosAlerts={sosAlerts}
           workers={workers}
@@ -213,6 +213,13 @@ export default function MapScreen() {
       <View style={[ms.bottomPanel, { paddingBottom: botInset + 85 }]}>
         <Text style={ms.bottomTitle}>Nearest Police Stations & Risk Zones</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingBottom: 4 }}>
+          {nearestPolice.length === 0 && policeStations.length === 0 && (
+            <Pressable onPress={() => Linking.openURL("tel:112")} accessibilityRole="button" accessibilityLabel={`Police station locations for ${stateName()} are not imported yet. Call 112`}
+              style={{ width: 230, padding: 10, borderRadius: 12, backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA" }}>
+              <Text style={{ color: "#991B1B", fontSize: 12, fontFamily: "Inter_700Bold" }}>Police stations: call 112</Text>
+              <Text style={{ color: "#7F1D1D", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={2}>{`Station locations for ${stateName()} aren't imported yet. 112 reaches police anywhere.`}</Text>
+            </Pressable>
+          )}
           {(nearestPolice.length > 0 ? nearestPolice : policeStations.slice(0, 3)).map((ps, i) => (
             <View key={ps.id} style={[ms.psCard, i === 0 && nearestPolice.length > 0 && { borderColor: "#FFD07777" }]}>
               <View style={ms.psIconWrap}>

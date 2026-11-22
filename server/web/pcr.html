@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="sankalp-auth" content="police"/>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SANKALP AI — PCR Safety Command</title>
 <link rel="stylesheet" href="/leaflet/leaflet.css"/>
 <script src="/leaflet/leaflet.js"></script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="/web/vendor/react-18.3.1.production.min.js"></script>
+<script src="/web/vendor/react-dom-18.3.1.production.min.js"></script>
+<script src="/web/vendor/babel-standalone-7.26.10.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,'Segoe UI',sans-serif}
-:root{--red:#EF4444;--orange:#FF9933;--green:#22C55E;--blue:#3B82F6;--purple:#8B5CF6;--yellow:#F59E0B;--bg:#0B1120;--panel:#0F172A;--card:#1E293B;--border:#334155;--text:#F1F5F9;--muted:#94A3B8;--dimmed:#64748B}
+:root{--red:#EF4444;--orange:#FF9933;--green:#22C55E;--blue:#3B82F6;--purple:#8B5CF6;--yellow:#F59E0B;--bg:#0B1120;--panel:#0F172A;--card:#1E293B;--border:#334155;--text:#F1F5F9;--muted:#94A3B8;--dimmed:#94A3B8}
 html{height:100%}
 body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column}
 #root{display:flex;flex-direction:column;height:100%}
@@ -61,8 +62,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;displa
 #map-wrap{position:relative}
 #map{width:100%;height:100%}
 .map-fab{position:absolute;z-index:1000;border:none;cursor:pointer;transition:all .2s;font-weight:800;letter-spacing:.03em}
-.fab-sos{top:14px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;border-radius:14px;padding:11px 26px;font-size:13px;box-shadow:0 4px 20px rgba(239,68,68,.5)}
-.fab-sos:hover{background:#DC2626;box-shadow:0 6px 28px rgba(239,68,68,.7)}
+.fab-sos{top:14px;left:50%;transform:translateX(-50%);background:#B91C1C;color:#fff;border-radius:14px;padding:11px 26px;font-size:13px;box-shadow:0 4px 20px rgba(239,68,68,.5)}
+.fab-sos:hover{background:#991B1B;box-shadow:0 6px 28px rgba(239,68,68,.7)}
 .fab-loc{top:14px;right:14px;background:var(--panel);color:#93C5FD;border:1px solid #1E3A5F;border-radius:10px;padding:8px 13px;font-size:12px}
 .fab-loc.on{background:#1E3A5F;border-color:var(--blue);color:#60A5FA}
 .fab-night{bottom:110px;left:14px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);color:#C4B5FD;border-radius:10px;padding:8px 13px;font-size:11px}
@@ -145,7 +146,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;displa
 <script type="text/babel">
 const {useState,useEffect,useRef,useCallback,useMemo}=React;
 const API=window.location.origin;
-const UK_DISTRICTS=["Dehradun","Haridwar","Tehri Garhwal","Pauri Garhwal","Rudraprayag","Chamoli","Uttarkashi","Pithoragarh","Bageshwar","Almora","Champawat","Nainital","Udham Singh Nagar"];
+const UK_DISTRICTS=SK.districts;
 
 function timeAgo(d){if(!d)return"—";const s=Math.round((Date.now()-new Date(d))/1000);if(s<60)return`${s}s ago`;if(s<3600)return`${Math.round(s/60)}m ago`;if(s<86400)return`${Math.round(s/3600)}h ago`;return`${Math.round(s/86400)}d ago`;}
 function fmtTime(d){if(!d)return"—";return new Date(d).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});}
@@ -169,7 +170,7 @@ function Toast({msg,type,onClose}){
 function SOSModal({onClose,onSubmit,userGeo}){
   const [name,setName]=useState("");
   const [phone,setPhone]=useState("");
-  const [district,setDistrict]=useState("Dehradun");
+  const [district,setDistrict]=useState(SK.districts[0]||"");
   const [loc,setLoc]=useState("");
   const [type,setType]=useState("women_safety");
   const [geo,setGeo]=useState(userGeo||null);
@@ -180,7 +181,7 @@ function SOSModal({onClose,onSubmit,userGeo}){
     if(!name.trim()||!loc.trim())return;
     setSub(true);
     try{
-      const r=await fetch(`${API}/api/cpr/incidents`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({citizenName:name.trim(),district,location:loc.trim(),lat:geo?.lat||30.3165,lng:geo?.lng||78.0322,phone:phone.trim(),emergencyType:type})});
+      const r=await fetch(`${API}/api/cpr/incidents`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({citizenName:name.trim(),district,location:loc.trim(),lat:geo?.lat||sankalpBestGeo(district).lat,lng:geo?.lng||sankalpBestGeo(district).lng,phone:phone.trim(),emergencyType:type})});
       const inc=await r.json();
       onSubmit(inc);
     }catch(e){alert("Failed: "+e.message);}
@@ -194,12 +195,12 @@ function SOSModal({onClose,onSubmit,userGeo}){
         <div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:8,padding:"9px 13px",marginBottom:14,fontSize:11,color:"#F87171",lineHeight:1.5}}>
           This will immediately alert PCR command, nearest patrol van, and police. Use only in genuine emergencies.
         </div>
-        <div className="fg"><label>Emergency Type *</label><select value={type} onChange={e=>setType(e.target.value)}>{SOS_TYPES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
+        <div className="fg"><label>Emergency Type *</label><select aria-label="Emergency type" value={type} onChange={e=>setType(e.target.value)}>{SOS_TYPES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div className="fg"><label>Your Name *</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Full name"/></div>
           <div className="fg"><label>Phone</label><input value={phone} onChange={e=>setPhone(e.target.value.replace(/\D/g,""))} maxLength={10} placeholder="10-digit"/></div>
         </div>
-        <div className="fg"><label>District *</label><select value={district} onChange={e=>setDistrict(e.target.value)}>{UK_DISTRICTS.map(d=><option key={d}>{d}</option>)}</select></div>
+        <div className="fg"><label>District *</label><select aria-label="District" value={district} onChange={e=>setDistrict(e.target.value)}>{UK_DISTRICTS.map(d=><option key={d}>{d}</option>)}</select></div>
         <div className="fg"><label>Exact Location / Landmark *</label><textarea value={loc} onChange={e=>setLoc(e.target.value)} placeholder="Describe your exact location — road name, landmark, area…" style={{minHeight:60}}/></div>
         <div className="geo-display">{geoTxt}</div>
         <div className="mbtns">
@@ -215,7 +216,7 @@ function SOSModal({onClose,onSubmit,userGeo}){
 
 function NightSafetyModal({onClose,onSubmit,userGeo}){
   const [loc,setLoc]=useState("");
-  const [district,setDistrict]=useState("Dehradun");
+  const [district,setDistrict]=useState(SK.districts[0]||"");
   const [desc,setDesc]=useState("");
   const [riskType,setRiskType]=useState("general");
   const [reporter,setReporter]=useState("");
@@ -237,12 +238,12 @@ function NightSafetyModal({onClose,onSubmit,userGeo}){
           PCR night patrols will visit this area regularly. Your report helps keep the community safe.
         </div>
         <div className="fg"><label>Risk Type</label>
-          <select value={riskType} onChange={e=>setRiskType(e.target.value)}>
+          <select aria-label="Choose an option" value={riskType} onChange={e=>setRiskType(e.target.value)}>
             {[["crime","🚔 Crime/Theft Risk"],["harassment","🛡️ Harassment Risk"],["accident","🚗 Accident-Prone"],["lighting","💡 Poor Lighting"],["general","⚠️ General Safety Concern"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
           </select>
         </div>
-        <div className="fg"><label>District *</label><select value={district} onChange={e=>setDistrict(e.target.value)}>{UK_DISTRICTS.map(d=><option key={d}>{d}</option>)}</select></div>
-        <div className="fg"><label>Location / Area Name *</label><input value={loc} onChange={e=>setLoc(e.target.value)} placeholder="e.g. Clock Tower back lane, Dehradun"/></div>
+        <div className="fg"><label>District *</label><select aria-label="District" value={district} onChange={e=>setDistrict(e.target.value)}>{UK_DISTRICTS.map(d=><option key={d}>{d}</option>)}</select></div>
+        <div className="fg"><label>Location / Area Name *</label><input value={loc} onChange={e=>setLoc(e.target.value)} placeholder="e.g. Back lane behind the bus stand"/></div>
         <div className="fg"><label>Description</label><textarea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="What makes this area unsafe at night? When does it become risky?"/></div>
         <div className="fg"><label>Your Name (optional)</label><input value={reporter} onChange={e=>setReporter(e.target.value)} placeholder="Anonymous if left blank"/></div>
         <div className="mbtns">
@@ -267,33 +268,33 @@ function IncidentModal({inc,onClose,onMarkSafe,incAudioChunks}){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
           <div>
             <div style={{fontSize:17,fontWeight:800,color:accentColor}}>{isWomen?"🛡️ WOMEN SAFETY EMERGENCY":"🆘 EMERGENCY INCIDENT"}</div>
-            <div style={{fontSize:11,color:"#64748B",marginTop:2}}>Incident ID: {inc.id?.slice(0,8).toUpperCase()}</div>
+            <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>Incident ID: {inc.id?.slice(0,8).toUpperCase()}</div>
           </div>
-          <button onClick={onClose} style={{background:"transparent",border:"none",color:"#64748B",fontSize:16,cursor:"pointer",padding:4}}>✕</button>
+          <button onClick={onClose} style={{background:"transparent",border:"none",color:"#94A3B8",fontSize:16,cursor:"pointer",padding:4}}>✕</button>
         </div>
 
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14,fontSize:12}}>
           <div style={{background:"rgba(255,255,255,.04)",borderRadius:8,padding:"10px 12px"}}>
-            <div style={{color:"#64748B",fontSize:10,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Citizen</div>
+            <div style={{color:"#94A3B8",fontSize:10,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Citizen</div>
             <div style={{fontWeight:700,fontSize:14}}>{inc.citizenName||"Unknown"}</div>
             {inc.phone&&<div style={{color:"#94A3B8",marginTop:2,fontSize:11}}>{inc.phone}</div>}
           </div>
           <div style={{background:"rgba(255,255,255,.04)",borderRadius:8,padding:"10px 12px"}}>
-            <div style={{color:"#64748B",fontSize:10,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Status</div>
+            <div style={{color:"#94A3B8",fontSize:10,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Status</div>
             <span className={`sbadge sb-${inc.status}`}>{(inc.status||"active").replace("_"," ").toUpperCase()}</span>
             <div style={{color:"#94A3B8",marginTop:4,fontSize:11}}>Elapsed: <ElapsedTimer since={inc.reportedAt}/></div>
           </div>
           <div style={{background:"rgba(255,255,255,.04)",borderRadius:8,padding:"10px 12px"}}>
-            <div style={{color:"#64748B",fontSize:10,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Location</div>
+            <div style={{color:"#94A3B8",fontSize:10,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Location</div>
             <div style={{fontSize:12,lineHeight:1.5}}>{inc.location||"Unknown"}</div>
             <div style={{color:"#94A3B8",marginTop:2,fontSize:11}}>{inc.district}</div>
           </div>
           <div style={{background:"rgba(255,255,255,.04)",borderRadius:8,padding:"10px 12px"}}>
-            <div style={{color:"#64748B",fontSize:10,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>GPS</div>
+            <div style={{color:"#94A3B8",fontSize:10,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>GPS</div>
             {inc.geo?<>
               <div style={{fontFamily:"monospace",fontSize:11,color:"#93C5FD"}}>{inc.geo.lat.toFixed(5)}°N</div>
               <div style={{fontFamily:"monospace",fontSize:11,color:"#93C5FD"}}>{inc.geo.lng.toFixed(5)}°E</div>
-            </>:<div style={{color:"#64748B",fontSize:11}}>GPS not available</div>}
+            </>:<div style={{color:"#94A3B8",fontSize:11}}>GPS not available</div>}
           </div>
         </div>
 
@@ -310,9 +311,9 @@ function IncidentModal({inc,onClose,onMarkSafe,incAudioChunks}){
         </div>}
 
         {(inc.updates||[]).length>0&&<div style={{marginBottom:14}}>
-          <div style={{fontSize:11,fontWeight:700,color:"#64748B",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Timeline</div>
+          <div style={{fontSize:11,fontWeight:700,color:"#94A3B8",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Timeline</div>
           {[...(inc.updates||[])].reverse().slice(0,4).map((u,i)=><div key={i} style={{display:"flex",gap:10,marginBottom:8,fontSize:11}}>
-            <div style={{width:60,color:"#64748B",flexShrink:0}}>{fmtTime(u.time)}</div>
+            <div style={{width:60,color:"#94A3B8",flexShrink:0}}>{fmtTime(u.time)}</div>
             <div style={{flex:1,color:"#94A3B8",lineHeight:1.5}}>{u.message}</div>
           </div>)}
         </div>}
@@ -328,7 +329,7 @@ function IncidentModal({inc,onClose,onMarkSafe,incAudioChunks}){
                   Clip {chunk.index+1} · {new Date(chunk.timestamp).toLocaleTimeString()}
                 </div>
                 <audio controls style={{width:"100%",height:28,filter:"invert(1) hue-rotate(240deg)",accentColor:"#8B5CF6"}}>
-                  <source src={chunk.url}/>
+                  <source src={chunk.url+(chunk.url.indexOf("?")===-1?"?":"&")+"token="+encodeURIComponent((window.sankalpAuth&&window.sankalpAuth.get())||"")}/>
                   Your browser does not support audio.
                 </audio>
               </div>
@@ -337,7 +338,7 @@ function IncidentModal({inc,onClose,onMarkSafe,incAudioChunks}){
         </div>}
 
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          {inc.geo&&<a href={`https://maps.google.com/?q=${inc.geo.lat},${inc.geo.lng}`} target="_blank" style={{textDecoration:"none"}}><button className="abtn abtn-orange" style={{padding:"8px 14px",fontSize:12}}>🗺️ Google Maps</button></a>}
+          {inc.geo&&<a href={`https://www.openstreetmap.org/?mlat=${inc.geo.lat}&mlon=${inc.geo.lng}#map=17/${inc.geo.lat}/${inc.geo.lng}`} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none"}}><button className="abtn abtn-orange" style={{padding:"8px 14px",fontSize:12}}>🗺️ Google Maps</button></a>}
           {inc.status!=="safe"&&inc.status!=="closed"&&<button className="abtn abtn-safe" style={{padding:"8px 14px",fontSize:12}} onClick={()=>{onMarkSafe(inc.id);onClose();}}>✓ Mark Safe</button>}
           <button onClick={onClose} style={{flex:1,padding:"8px 14px",background:"transparent",border:"1px solid var(--border)",color:"var(--muted)",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>Close</button>
         </div>
@@ -349,7 +350,7 @@ function IncidentModal({inc,onClose,onMarkSafe,incAudioChunks}){
 function BudgetTab({distFilter}){
   const [items,setItems]=useState([]);
   const [loading,setLoading]=useState(true);
-  const [selDist,setSelDist]=useState(distFilter==="all"?"Dehradun":distFilter);
+  const [selDist,setSelDist]=useState(distFilter==="all"?(SK.districts[0]||""):distFilter);
 
   useEffect(()=>{
     setLoading(true);
@@ -367,7 +368,7 @@ function BudgetTab({distFilter}){
   return <div>
     <div style={{marginBottom:10}}>
       <label style={{fontSize:10,color:"var(--dimmed)",fontWeight:700,textTransform:"uppercase",letterSpacing:.04,display:"block",marginBottom:4}}>District</label>
-      <select value={selDist} onChange={e=>setSelDist(e.target.value)} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",fontSize:12,padding:"6px 10px",width:"100%",outline:"none"}}>
+      <select aria-label="Choose an option" value={selDist} onChange={e=>setSelDist(e.target.value)} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",fontSize:12,padding:"6px 10px",width:"100%",outline:"none"}}>
         {UK_DISTRICTS.map(d=><option key={d} value={d}>{d}</option>)}
       </select>
     </div>
@@ -430,7 +431,7 @@ function LeaderboardTab({distFilter}){
   const statusColors={active_patrol:"#22C55E",responding:"#F59E0B",base:"#64748B",off_duty:"#374151"};
 
   if(loading)return <div style={{textAlign:"center",padding:40,color:"var(--muted)"}}>Loading leaderboard…</div>;
-  if(filtered.length===0)return <div style={{textAlign:"center",color:"#64748B",padding:40}}>No officer data{distFilter!=="all"?` for ${distFilter}`:""}</div>;
+  if(filtered.length===0)return <div style={{textAlign:"center",color:"#94A3B8",padding:40}}>No officer data{distFilter!=="all"?` for ${distFilter}`:""}</div>;
 
   return <div>
     <div style={{marginBottom:14}}>
@@ -541,22 +542,8 @@ function PCRPortal(){
   const watchId=useRef(null);
   const esRef=useRef(null);
 
-  // Approximate bounding polygons for all 13 Uttarakhand districts
-  const DISTRICT_POLYGONS=useMemo(()=>({
-    "Dehradun":         [[30.55,77.45],[30.55,78.55],[29.75,78.55],[29.75,77.45]],
-    "Haridwar":         [[30.18,77.68],[30.18,78.52],[29.68,78.52],[29.68,77.68]],
-    "Tehri Garhwal":    [[31.05,77.88],[31.05,79.08],[30.02,79.08],[30.02,77.88]],
-    "Pauri Garhwal":    [[30.38,78.32],[30.38,79.65],[29.42,79.65],[29.42,78.32]],
-    "Rudraprayag":      [[30.88,78.72],[30.88,79.58],[30.02,79.58],[30.02,78.72]],
-    "Chamoli":          [[31.28,78.88],[31.28,80.58],[29.98,80.58],[29.98,78.88]],
-    "Uttarkashi":       [[31.58,77.38],[31.58,79.12],[30.52,79.12],[30.52,77.38]],
-    "Pithoragarh":      [[30.58,79.88],[30.58,81.08],[29.32,81.08],[29.32,79.88]],
-    "Bageshwar":        [[30.38,79.58],[30.38,80.38],[29.62,80.38],[29.62,79.58]],
-    "Almora":           [[30.08,78.98],[30.08,80.12],[29.32,80.12],[29.32,78.98]],
-    "Champawat":        [[29.68,79.72],[29.68,80.68],[28.82,80.68],[28.82,79.72]],
-    "Nainital":         [[29.98,78.98],[29.98,79.88],[29.12,79.88],[29.12,78.98]],
-    "Udham Singh Nagar":[[29.38,78.62],[29.38,79.68],[28.82,79.68],[28.82,78.62]],
-  }),[]);
+  // Approximate squares around each district centre of the selected state (no boundary file imported yet)
+  const DISTRICT_POLYGONS=useMemo(()=>Object.fromEntries(SK.districts.filter(d=>SK.box(d)).map(d=>[d,SK.box(d)])),[]);
 
   function heatStyle(riskScore,total){
     if(total===0)return{color:"#22C55E",fillColor:"#22C55E",fillOpacity:.08,weight:1,opacity:.3};
@@ -620,14 +607,15 @@ function PCRPortal(){
   // Map init
   useEffect(()=>{
     if(!mapRef.current||mapObj.current)return;
-    const map=L.map(mapRef.current,{center:[30.3165,78.0322],zoom:10,zoomControl:true});
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{attribution:"© OpenStreetMap © CARTO",maxZoom:19}).addTo(map);
+    const map=L.map(mapRef.current,{center:SK.center,zoom:SK.zoom,zoomControl:true});
+    sankalpTileLayer(L,map);
+    sankalpDistrictLayer(L,map,false);
     mapObj.current=map;
-    // Initial geolocation — center on user if available, otherwise stay on Dehradun
+    // Initial geolocation — center on user if available, otherwise stay on the state view
     if(navigator.geolocation){
       navigator.geolocation.getCurrentPosition(
         p=>{setUserGeo({lat:p.coords.latitude,lng:p.coords.longitude});map.setView([p.coords.latitude,p.coords.longitude],11);},
-        ()=>{/* Keep Dehradun center */},{enableHighAccuracy:true,timeout:8000}
+        ()=>{/* keep the state view */},{enableHighAccuracy:true,timeout:8000}
       );
     }
     // 10-second geolocation refresh
@@ -654,7 +642,7 @@ function PCRPortal(){
       const blinkStyle=womenActive?`animation:womenBlink 1s infinite;`:`box-shadow:0 0 10px ${col}88;`;
       const innerContent=isWomen?`<span style="font-size:9px;line-height:1">🛡️</span>`:`<span style="font-size:9px">⚡</span>`;
       const icon=L.divIcon({className:"",html:`<div style="width:${markerSize}px;height:${markerSize}px;background:${col};border:2.5px solid white;border-radius:50%;${blinkStyle}cursor:pointer;display:flex;align-items:center;justify-content:center">${innerContent}</div>`,iconSize:[markerSize,markerSize]});
-      const popup=`<div style="font-size:12px;min-width:190px;font-family:sans-serif"><b style="color:${isWomen?"#C4B5FD":"#F87171"}">${isWomen?"🛡️ WOMEN SAFETY":"⚠️ EMERGENCY"}</b><br/><b>${inc.citizenName}</b><br/><span style="color:#94A3B8">${inc.location}</span><br/><span style="color:#94A3B8">${inc.district}</span>${inc.assignedPatrolVan?`<br/><b style="color:#FCD34D">🚔 ${inc.assignedPatrolVan}</b>`:""}<br/><span style="color:#86EFAC">${(inc.status||"").replace("_"," ").toUpperCase()}</span></div>`;
+      const popup=`<div style="font-size:12px;min-width:190px;font-family:sans-serif"><b style="color:${sankalpEsc(isWomen?"#C4B5FD":"#F87171")}">${sankalpEsc(isWomen?"🛡️ WOMEN SAFETY":"⚠️ EMERGENCY")}</b><br/><b>${sankalpEsc(inc.citizenName)}</b><br/><span style="color:#94A3B8">${sankalpEsc(inc.location)}</span><br/><span style="color:#94A3B8">${sankalpEsc(inc.district)}</span>${sankalpEsc(inc.assignedPatrolVan?`<br/><b style="color:#FCD34D">🚔 ${inc.assignedPatrolVan}</b>`:"")}<br/><span style="color:#86EFAC">${sankalpEsc((inc.status||"").replace("_"," ").toUpperCase())}</span></div>`;
       if(markers.current.incidents[inc.id]){markers.current.incidents[inc.id].setLatLng([inc.geo.lat,inc.geo.lng]).setIcon(icon).getPopup()?.setContent(popup);}
       else{const m=L.marker([inc.geo.lat,inc.geo.lng],{icon}).addTo(map).bindPopup(popup);m.on("click",()=>setIncModal(inc));markers.current.incidents[inc.id]=m;}
     });
@@ -674,7 +662,7 @@ function PCRPortal(){
       const col=isHosp?"#EC4899":"#F97316";
       const emoji=isHosp?"🏥":"🔥";
       const icon=L.divIcon({className:"",html:`<div style="width:24px;height:24px;background:${col};border:2.5px solid white;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 10px ${col}88;cursor:pointer">${emoji}</div>`,iconSize:[24,24],iconAnchor:[12,12]});
-      const popup=`<div style="font-size:12px;min-width:190px;font-family:sans-serif;padding:8px"><b style="color:${col}">${emoji} ${isHosp?"HOSPITAL":"FIRE STATION"}</b><br/><b>${loc.name}</b><br/><span style="color:#94A3B8">${loc.address||loc.district}</span>${loc.beds?`<br/><span style="color:#86EFAC">🛏️ ${loc.beds} beds</span>`:""}${loc.available===false?`<br/><span style="color:#F87171">⚠️ Full capacity</span>`:""}${loc.phone?`<br/><a href="tel:${loc.phone}" style="color:#93C5FD">📞 ${loc.phone}</a>`:""}</div>`;
+      const popup=`<div style="font-size:12px;min-width:190px;font-family:sans-serif;padding:8px"><b style="color:${sankalpEsc(col)}">${sankalpEsc(emoji)} ${sankalpEsc(isHosp?"HOSPITAL":"FIRE STATION")}</b><br/><b>${sankalpEsc(loc.name)}</b><br/><span style="color:#94A3B8">${sankalpEsc(loc.address||loc.district)}</span>${sankalpEsc(loc.beds?`<br/><span style="color:#86EFAC">🛏️ ${loc.beds} beds</span>`:"")}${sankalpEsc(loc.available===false?`<br/><span style="color:#F87171">⚠️ Full capacity</span>`:"")}${sankalpEsc(loc.phone?`<br/><a href="tel:${loc.phone}" style="color:#93C5FD">📞 ${loc.phone}</a>`:"")}</div>`;
       const m=L.marker([loc.geo.lat,loc.geo.lng],{icon}).addTo(map).bindPopup(popup);
       if(isHosp)markers.current.hospitals.push(m);
       else markers.current.fire.push(m);
@@ -687,7 +675,7 @@ function PCRPortal(){
     patrols.forEach(v=>{
       const col=v.status==="active_patrol"?"#22C55E":v.status==="responding"?"#F59E0B":"#64748B";
       const icon=L.divIcon({className:"",html:`<div style="width:12px;height:12px;background:${col};border:2px solid white;border-radius:2px;transform:rotate(45deg);box-shadow:0 0 6px ${col}88"></div>`,iconSize:[12,12]});
-      const popup=`<div style="font-size:12px;min-width:180px;font-family:sans-serif"><b>🚔 ${v.vanNumber}</b><br/>${v.officerInCharge}<br/><span style="color:#94A3B8">${v.zone} · ${v.district}</span><br/><span style="color:${col}">${(v.status||"").replace("_"," ").toUpperCase()}</span><br/><a href="tel:${v.officerPhone}" style="color:#93C5FD">📞 ${v.officerPhone}</a></div>`;
+      const popup=`<div style="font-size:12px;min-width:180px;font-family:sans-serif"><b>🚔 ${sankalpEsc(v.vanNumber)}</b><br/>${sankalpEsc(v.officerInCharge)}<br/><span style="color:#94A3B8">${sankalpEsc(v.zone)} · ${sankalpEsc(v.district)}</span><br/><span style="color:${sankalpEsc(col)}">${sankalpEsc((v.status||"").replace("_"," ").toUpperCase())}</span><br/><a href="tel:${sankalpEsc(v.officerPhone)}" style="color:#93C5FD">📞 ${sankalpEsc(v.officerPhone)}</a></div>`;
       if(markers.current.patrols[v.id]){markers.current.patrols[v.id].setLatLng([v.geo.lat,v.geo.lng]).setIcon(icon);}
       else{const m=L.marker([v.geo.lat,v.geo.lng],{icon}).addTo(map).bindPopup(popup);markers.current.patrols[v.id]=m;}
     });
@@ -707,11 +695,11 @@ function PCRPortal(){
       const style=heatStyle(stat.riskScore,stat.total);
       const layer=L.polygon(poly,{...style,interactive:true,bubblingMouseEvents:false})
         .bindTooltip(`<div style="font-size:12px;font-family:sans-serif;min-width:180px;padding:2px">
-          <b style="color:${style.fillColor}">${stat.district}</b><br/>
-          📋 ${stat.total} complaints · 🔴 ${stat.pending} pending<br/>
-          ⚙️ ${stat.inProgress} in progress · ✅ ${stat.resolved} resolved<br/>
-          🆘 ${stat.activeSos} active SOS · ⭐ P1: ${stat.p1Count}<br/>
-          <b style="color:${style.fillColor}">Risk Score: ${stat.riskScore}/100</b>
+          <b style="color:${sankalpEsc(style.fillColor)}">${sankalpEsc(stat.district)}</b><br/>
+          📋 ${sankalpEsc(stat.total)} complaints · 🔴 ${sankalpEsc(stat.pending)} pending<br/>
+          ⚙️ ${sankalpEsc(stat.inProgress)} in progress · ✅ ${sankalpEsc(stat.resolved)} resolved<br/>
+          🆘 ${sankalpEsc(stat.activeSos)} active SOS · ⭐ P1: ${sankalpEsc(stat.p1Count)}<br/>
+          <b style="color:${sankalpEsc(style.fillColor)}">Risk Score: ${sankalpEsc(stat.riskScore)}/100</b>
         </div>`,{sticky:true,className:'leaflet-tooltip',opacity:1})
         .addTo(map);
       markers.current.heatmap.push(layer);
@@ -750,7 +738,7 @@ function PCRPortal(){
     {n:activeIncs.length,l:"Active SOS",c:"#F87171"},
     {n:filtered.pat.filter(v=>v.status==="active_patrol").length,l:"On Patrol",c:"#86EFAC"},
     {n:filtered.pat.filter(v=>v.status==="responding").length,l:"Responding",c:"#FCD34D"},
-    {n:distFilter==="all"?13:1,l:"Districts",c:"#93C5FD"},
+    {n:distFilter==="all"?SK.districts.length:1,l:"Districts",c:"#93C5FD"},
   ];
 
   return(
@@ -765,8 +753,8 @@ function PCRPortal(){
       <div className="pcr-badge">PCR COMMAND</div>
       {activeIncs.length>0&&<div className="live-wrap"><div className="live-dot"/><span className="live-txt">{activeIncs.length} ACTIVE</span></div>}
       <div className="topbar-sep"/>
-      <select className="dist-select" value={distFilter} onChange={e=>setDistFilter(e.target.value)}>
-        <option value="all">🗺️ All 13 Districts</option>
+      <select aria-label="Filter by district" className="dist-select" value={distFilter} onChange={e=>setDistFilter(e.target.value)}>
+        <option value="all">🗺️ All Districts</option>
         {UK_DISTRICTS.map(d=><option key={d} value={d}>{d}</option>)}
       </select>
       <div style={{marginLeft:"auto",display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -787,7 +775,7 @@ function PCRPortal(){
             {a.count&&<span style={{opacity:.7}}>×{a.count}</span>}
           </div>
         ))}
-        <span style={{marginLeft:"auto",fontSize:10,color:"#475569",flexShrink:0}}>Hover for details</span>
+        <span style={{marginLeft:"auto",fontSize:10,color:"#94A3B8",flexShrink:0}}>Hover for details</span>
       </div>
     )}
 
@@ -838,7 +826,7 @@ function PCRPortal(){
           {/* INCIDENTS TAB */}
           {tab==="incidents"&&(
             filtered.inc.length===0
-              ?<div style={{textAlign:"center",color:"#64748B",padding:"40px 16px",fontSize:13}}>No incidents{distFilter!=="all"?` in ${distFilter}`:""}<br/><span style={{fontSize:11,marginTop:6,display:"block"}}>Send a test SOS to see the system in action</span></div>
+              ?<div style={{textAlign:"center",color:"#94A3B8",padding:"40px 16px",fontSize:13}}>No incidents{distFilter!=="all"?` in ${distFilter}`:""}<br/><span style={{fontSize:11,marginTop:6,display:"block"}}>Send a test SOS to see the system in action</span></div>
               :<>
                 {activeIncs.length>0&&<div style={{fontSize:10,fontWeight:800,color:"#F87171",textTransform:"uppercase",letterSpacing:.08,marginBottom:8,display:"flex",alignItems:"center",gap:5}}><div style={{width:6,height:6,borderRadius:"50%",background:"#EF4444",animation:"pulse 1s infinite"}}/> Active ({activeIncs.length})</div>}
                 {/* Live audio panel — show all audio chunks received */}
@@ -856,7 +844,7 @@ function PCRPortal(){
                           Clip {chunk.index+1} · {new Date(chunk.timestamp).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}
                         </div>
                         <audio controls style={{width:"100%",height:26,filter:"invert(1) hue-rotate(240deg)"}}>
-                          <source src={chunk.url}/>
+                          <source src={chunk.url+(chunk.url.indexOf("?")===-1?"?":"&")+"token="+encodeURIComponent((window.sankalpAuth&&window.sankalpAuth.get())||"")}/>
                         </audio>
                       </div>
                     ))}
@@ -875,7 +863,7 @@ function PCRPortal(){
                         {isWomen&&<span className="sbadge sb-women" style={{animation:isActive?"womenBlink 1.5s infinite":undefined}}>🛡️ WOMEN</span>}
                         {incChunks.length>0&&<span style={{fontSize:9,fontWeight:800,color:"#C4B5FD",background:"rgba(139,92,246,.2)",border:"1px solid rgba(139,92,246,.4)",padding:"1px 6px",borderRadius:8}}>🎙️ {incChunks.length}</span>}
                         {isActive&&<span style={{marginLeft:"auto"}}><ElapsedTimer since={inc.reportedAt}/></span>}
-                        {!isActive&&<span style={{fontSize:10,color:"#64748B",marginLeft:"auto"}}>{timeAgo(inc.reportedAt)}</span>}
+                        {!isActive&&<span style={{fontSize:10,color:"#94A3B8",marginLeft:"auto"}}>{timeAgo(inc.reportedAt)}</span>}
                       </div>
                       <div style={{fontSize:13,color:"#E2E8F0",fontWeight:700,marginBottom:2}}>{inc.citizenName}</div>
                       <div style={{fontSize:11,color:"#94A3B8",marginBottom:6}}>📍 {inc.location} · 🗺️ {inc.district}</div>
@@ -897,14 +885,14 @@ function PCRPortal(){
           {/* PATROLS TAB */}
           {tab==="patrols"&&(
             filtered.pat.length===0
-              ?<div style={{textAlign:"center",color:"#64748B",padding:"40px 16px",fontSize:13}}>No patrols{distFilter!=="all"?` in ${distFilter}`:""}</div>
+              ?<div style={{textAlign:"center",color:"#94A3B8",padding:"40px 16px",fontSize:13}}>No patrols{distFilter!=="all"?` in ${distFilter}`:""}</div>
               :<>
                 {["active_patrol","responding","base","off_duty"].map(status=>{
                   const vans=filtered.pat.filter(v=>v.status===status);
                   if(!vans.length)return null;
                   const statusLabels={active_patrol:"🟢 On Active Patrol",responding:"🟡 Responding to SOS",base:"⚪ At Base",off_duty:"⚫ Off Duty"};
                   return <div key={status}>
-                    <div style={{fontSize:10,fontWeight:800,color:"#64748B",textTransform:"uppercase",letterSpacing:.08,marginBottom:8,marginTop:4}}>{statusLabels[status]} ({vans.length})</div>
+                    <div style={{fontSize:10,fontWeight:800,color:"#94A3B8",textTransform:"uppercase",letterSpacing:.08,marginBottom:8,marginTop:4}}>{statusLabels[status]} ({vans.length})</div>
                     {vans.map(v=>{
                       const col=v.status==="active_patrol"?"#22C55E":v.status==="responding"?"#F59E0B":"#64748B";
                       return <div key={v.id} className="pat-card">
@@ -930,14 +918,14 @@ function PCRPortal(){
           {/* DEPARTMENTS TAB */}
           {tab==="departments"&&(
             <div>
-              <div style={{fontSize:11,color:"#64748B",marginBottom:12,lineHeight:1.5}}>Emergency services and department helplines for all of Uttarakhand.</div>
-              {emergencyServices.length===0?<div style={{textAlign:"center",color:"#64748B",padding:30}}>Loading…</div>:emergencyServices.map(s=>(
+              <div style={{fontSize:11,color:"#94A3B8",marginBottom:12,lineHeight:1.5}}>Emergency services and department helplines for all of {SK.state}.</div>
+              {emergencyServices.length===0?<div style={{textAlign:"center",color:"#94A3B8",padding:30}}>Loading…</div>:emergencyServices.map(s=>(
                 <div key={s.id} className="dept-card">
                   <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:8}}>
                     <div style={{fontSize:22}}>{s.icon}</div>
                     <div style={{flex:1}}>
                       <div style={{fontWeight:700,fontSize:13,color:"#F1F5F9"}}>{s.name}</div>
-                      <div style={{fontSize:11,color:"#64748B",marginTop:1}}>{s.description}</div>
+                      <div style={{fontSize:11,color:"#94A3B8",marginTop:1}}>{s.description}</div>
                     </div>
                   </div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -974,14 +962,14 @@ function PCRPortal(){
               <button className="abtn abtn-orange" style={{width:"100%",padding:"10px",fontSize:12,marginBottom:14,justifyContent:"center",display:"flex",gap:6}} onClick={()=>setShowNight(true)}>
                 🌙 Report New Unsafe Area
               </button>
-              {nightZones.length===0?<div style={{textAlign:"center",color:"#64748B",padding:"30px 16px",fontSize:12}}>No unsafe areas reported yet.<br/>Your report helps PCR plan nightly patrol routes.</div>
+              {nightZones.length===0?<div style={{textAlign:"center",color:"#94A3B8",padding:"30px 16px",fontSize:12}}>No unsafe areas reported yet.<br/>Your report helps PCR plan nightly patrol routes.</div>
               :nightZones.map(z=>(
                 <div key={z.id} className="ns-card">
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
                     <div style={{fontSize:12,fontWeight:700,color:"#C4B5FD"}}>{z.location}</div>
                     <span style={{fontSize:9,fontWeight:700,color:"#8B5CF6",background:"rgba(139,92,246,.15)",border:"1px solid rgba(139,92,246,.3)",padding:"2px 7px",borderRadius:10,textTransform:"uppercase",whiteSpace:"nowrap"}}>{z.riskType}</span>
                   </div>
-                  <div style={{fontSize:11,color:"#64748B",marginBottom:4}}>🗺️ {z.district} · {timeAgo(z.reportedAt)}</div>
+                  <div style={{fontSize:11,color:"#94A3B8",marginBottom:4}}>🗺️ {z.district} · {timeAgo(z.reportedAt)}</div>
                   {z.description&&<div style={{fontSize:11,color:"#94A3B8",lineHeight:1.5}}>{z.description}</div>}
                   <div style={{fontSize:10,color:"#475569",marginTop:4}}>By {z.reporterName} · Patrol visits: {z.patrolVisits||0}</div>
                 </div>

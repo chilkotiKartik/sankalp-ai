@@ -11,6 +11,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 import { useAuth } from "@/context/AuthContext";
+import { getSecure } from "@/lib/secure-session";
+import { stateName, allDistricts } from "@/constants/districts";
 
 interface BudgetItem {
   id: string;
@@ -25,23 +27,21 @@ interface BudgetItem {
 
 const DEPT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   "Public Works Department": "construct",
-  "Uttarakhand Jal Sansthan": "water",
+  "Water Supply Department": "water",
+  "Power Distribution Company": "flash",
   "Urban Local Body": "trash",
   "ULB Electric Wing": "bulb",
   "Forest Department": "leaf",
   "Health Department": "medkit",
-  "UPCL": "flash",
   "Disaster Management": "warning",
 };
 
 const DEPT_COLORS: Record<string, string> = {
   "Public Works Department": "#F59E0B",
-  "Uttarakhand Jal Sansthan": "#3B82F6",
   "Urban Local Body": "#EF4444",
   "ULB Electric Wing": "#FBBF24",
   "Forest Department": "#00A651",
   "Health Department": "#EC4899",
-  "UPCL": "#8B5CF6",
   "Disaster Management": "#F97316",
 };
 
@@ -128,12 +128,12 @@ export default function BudgetScreen() {
   const [selectedItem, setSelectedItem] = useState<BudgetItem | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  const districts = ["all", "Dehradun", "Haridwar", "Nainital", "Udham Singh Nagar", "Almora", "Pithoragarh", "Champawat", "Bageshwar", "Tehri Garhwal", "Pauri Garhwal", "Rudraprayag", "Chamoli", "Uttarkashi"];
+  const districts = ["all", ...allDistricts()];
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const tok = await AsyncStorage.getItem("@sankalp_token");
+      const tok = await getSecure("@sankalp_token");
       const res = await fetch(`${getApiUrl()}api/budget`, {
         headers: { Authorization: `Bearer ${tok}` },
       });

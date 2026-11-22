@@ -10,12 +10,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
+import { stateName, districtPhrase, allDistricts, stateNameLocal } from "@/constants/districts";
 
-const UTTARAKHAND_DISTRICTS = [
-  "Almora", "Bageshwar", "Chamoli", "Champawat", "Dehradun",
-  "Haridwar", "Nainital", "Pauri Garhwal", "Pithoragarh",
-  "Rudraprayag", "Tehri Garhwal", "Udham Singh Nagar", "Uttarkashi",
-];
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
@@ -24,7 +20,7 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  const [district, setDistrict] = useState("Champawat");
+  const [district, setDistrict] = useState(() => allDistricts()[0] ?? "");
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -59,6 +55,7 @@ export default function RegisterScreen() {
     if (!phone.trim() || phone.length !== 10) { setError("Enter a valid 10-digit phone number"); shake(); return; }
     if (pin.length !== 6) { setError("PIN must be exactly 6 digits"); shake(); return; }
     if (pin !== confirmPin) { setError("PINs do not match — please try again"); shake(); return; }
+    if (!district) { setError("Please select your district"); setShowDistrictPicker(true); return; }
     setLoading(true);
     try {
       await register(name.trim(), phone.trim(), pin, district);
@@ -102,8 +99,8 @@ export default function RegisterScreen() {
             <Text style={{ fontSize: 48 }}>🏔️</Text>
           </View>
           <View>
-            <Text style={s.heroTitle}>Join Uttarakhand's{"\n"}Civic Community</Text>
-            <Text style={s.heroSub}>Report issues & earn civic points · देवभूमि के लिए</Text>
+            <Text style={s.heroTitle}>{`Join ${stateName()}'s\nCivic Community`}</Text>
+            <Text style={s.heroSub}>{`Report issues & earn civic points · ${stateNameLocal()} के लिए`}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -121,10 +118,10 @@ export default function RegisterScreen() {
                   <Ionicons name="checkmark" size={40} color="#fff" />
                 </LinearGradient>
                 <Text style={s.successEmoji}>🎉</Text>
-                <Text style={s.successTitle}>You're In!</Text>
+                <Text style={s.successTitle}>You&apos;re In!</Text>
                 <Text style={s.successSub}>Welcome to SANKALP AI. Your citizen account is active for {district} district!</Text>
                 <View style={s.successBadges}>
-                  {["New Citizen", "Devbhoomi Hero", "Problem Solver"].map(b => (
+                  {["New Citizen", "State Hero", "Problem Solver"].map(b => (
                     <View key={b} style={s.successBadge}>
                       <Text style={s.successBadgeText}>⭐ {b}</Text>
                     </View>
@@ -140,13 +137,13 @@ export default function RegisterScreen() {
                 </View>
 
                 <Text style={s.cardTitle}>Create Account</Text>
-                <Text style={s.cardSub}>Join Uttarakhand's active citizens community</Text>
+                <Text style={s.cardSub}>{`Join ${stateName()}'s active citizens community`}</Text>
 
                 <View style={s.statsRow}>
                   {[
-                    { num: "13", label: "Districts" },
-                    { num: "5K+", label: "Citizens" },
-                    { num: "4.8★", label: "Rating" },
+                    { num: String(allDistricts().length || "—"), label: "Districts" },
+                    { num: "24×7", label: "SOS" },
+                    { num: "₹0", label: "For citizens" },
                   ].map(stat => (
                     <View key={stat.label} style={s.statBox}>
                       <Text style={s.statNum}>{stat.num}</Text>
@@ -295,10 +292,10 @@ export default function RegisterScreen() {
           <Pressable style={s.districtModal} onPress={e => e.stopPropagation?.()}>
             <View style={s.districtModalHeader}>
               <Text style={s.districtModalTitle}>Select Your District</Text>
-              <Text style={s.districtModalSub}>Uttarakhand — 13 जिले</Text>
+              <Text style={s.districtModalSub}>{`${stateName()} — ${districtPhrase()}`}</Text>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {UTTARAKHAND_DISTRICTS.map(d => (
+              {allDistricts().map(d => (
                 <Pressable key={d} style={[s.districtOption, d === district && s.districtOptionActive]}
                   onPress={() => { setDistrict(d); setShowDistrictPicker(false); }}>
                   <Ionicons name="location" size={16} color={d === district ? "#00A651" : "#9CA3AF"} />
