@@ -26,6 +26,8 @@
     "bugzilla.mozilla.org": "Comment inside the bundled Leaflet build",
     "apps.apple.com": "Static store link on the fallback landing page (user-initiated)",
     "play.google.com": "Static store link on the fallback landing page (user-initiated)",
-    "sankalp.uk.gov.in": "Intended production domain placeholder in docs/templates"
+    "sankalp.uk.gov.in": "Intended production domain placeholder in docs/templates",
+    "www.sitemaps.org": "XML namespace identifier in /sitemap.xml (never fetched)",
+    "schema.org": "JSON-LD @context identifier in the page metadata (never fetched)"
   }
 }

@@ -11,7 +11,7 @@ import { Slot, router, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { View, StyleSheet, Animated, Text, Pressable } from "react-native";
+import { View, StyleSheet, Animated, Text, Pressable, Platform } from "react-native";
 
 // KeyboardProvider requires native code unavailable in Expo Go — use a safe fallback
 let KeyboardProvider: React.ComponentType<{ children: React.ReactNode }>;
@@ -33,9 +33,9 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { StatusBar } from "expo-status-bar";
 import { LogoAnimation } from "@/components/LogoAnimation";
 import Colors from "@/constants/colors";
+import { APP_MAX_WIDTH } from "@/constants/layout";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -44,6 +44,15 @@ function AuthGate() {
   const { ready: tenantReady, tenantId } = useTenant();
   const segments = useSegments();
   const fadeOut = useRef(new Animated.Value(1)).current;
+  // The effect can run twice before a redirect lands (segments update, async storage read):
+  // remember the last target so a screen is never opened twice in a row.
+  const lastTarget = useRef<string | null>(null);
+  const go = (to: string) => {
+    const here = "/" + (segments as string[]).join("/");
+    if (lastTarget.current === to || here === to) return;
+    lastTarget.current = to;
+    router.replace(to as never);
+  };
 
   useEffect(() => {
     if (isLoading || !tenantReady) return;
@@ -51,26 +60,20 @@ function AuthGate() {
     const inAuthGroup = segments[0] === "(auth)";
     // P9: no state chosen yet → the state picker comes first (every state's data is separate).
     if (!tenantId) {
-      if ((segments as string[])[1] !== "state") router.replace("/(auth)/state");
+      if ((segments as string[])[1] !== "state") go("/(auth)/state");
       return;
     }
     if (!user && inAuthGroup && (segments as string[])[1] === "state") return;
 
     if (!user && !inAuthGroup) {
       // Check if onboarded before
-      AsyncStorage.getItem("@sankalp_onboarded").then(v => {
-        if (v === "true") {
-          router.replace("/(auth)/login");
-        } else {
-          router.replace("/(auth)/onboarding");
-        }
-      });
+      // Sign-in shows the one-time introduction itself on the first visit.
+      go("/(auth)/login");
     } else if (user && inAuthGroup) {
-      if (user.role === "admin" || user.role === "super_admin") {
-        router.replace("/admin");
-      } else {
-        router.replace("/(tabs)");
-      }
+      go(user.role === "admin" || user.role === "super_admin" ? "/admin" : "/(tabs)");
+    } else {
+      // Settled on a screen the user is allowed to see: allow the next redirect.
+      lastTarget.current = null;
     }
   }, [user, isLoading, segments, tenantReady, tenantId]);
 
@@ -133,8 +136,19 @@ function EmergencyBuzzer() {
   );
 }
 
+/** On wide web screens the phone-first app sits in a centred column instead of stretching edge to edge. */
+function WebFrame({ children }: { children: React.ReactNode }) {
+  if (Platform.OS !== "web") return <>{children}</>;
+  return (
+    <View style={styles.webOuter}>
+      <View style={styles.webInner}>{children}</View>
+    </View>
+  );
+}
+
 function RootLayoutNav() {
   return (
+    <WebFrame>
     <View style={{ flex: 1 }}>
       <AuthGate />
       <EmergencyBuzzer />
@@ -142,6 +156,7 @@ function RootLayoutNav() {
       <ConsentGate />
       <InstallPrompt />
     </View>
+    </WebFrame>
   );
 }
 
@@ -197,6 +212,8 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  webOuter: { flex: 1, alignItems: "center", backgroundColor: "#EDE7E1" },
+  webInner: { flex: 1, width: "100%", maxWidth: APP_MAX_WIDTH, overflow: "hidden", backgroundColor: Colors.bg, boxShadow: "0 0 32px rgba(0,0,0,0.12)" } as never,
   splash: {
     flex: 1,
     backgroundColor: Colors.bg,

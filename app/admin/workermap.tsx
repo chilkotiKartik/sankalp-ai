@@ -13,6 +13,7 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { WebView } from "react-native-webview";
 import Colors from "@/constants/colors";
+import { appWidth } from "@/constants/layout";
 import { getApiUrl } from "@/lib/query-client";
 import {
   buildWorkerMapHTML, districtCenterPairs,
@@ -36,7 +37,7 @@ const STATUS_META = {
   on_leave: { color: "#9CA3AF", bg: "#6B728022", label: "On Leave", icon: "moon"             as const },
 };
 
-const { width: SW } = Dimensions.get("window");
+const SW = appWidth();
 const MAP_H = Math.round(SW * 0.78);
 
 function buildHeatData(workers: Worker[]): DistrictHeatData[] {

@@ -1,6 +1,7 @@
 import { useRuntimeConfig } from "@/lib/runtime-config";
 import { normalizeIndianMobile, isIndianMobile } from "@/lib/india";
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View, Text, StyleSheet, TextInput, Pressable,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
@@ -13,10 +14,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
+import { appWidth } from "@/constants/layout";
 import { stateName, districtPhrase, allDistricts } from "@/constants/districts";
 
-const { width: W, height: H } = Dimensions.get("window");
+const { height: H } = Dimensions.get("window");
+const W = appWidth();
 const PIN_DIGITS = 6;
+const ONBOARDED_KEY = "@sankalp_onboarded";
 
 // ── ONBOARDING SLIDES ──────────────────────────────────────────────────────────
 const SLIDES = [
@@ -126,7 +130,7 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
               <Text style={ob.logoGov}>{`Citizen services · ${stateName()}`}</Text>
             </View>
           </View>
-          <Pressable onPress={onDone} style={ob.skipBtn}>
+          <Pressable onPress={onDone} style={ob.skipBtn} accessibilityRole="button" accessibilityLabel="Skip introduction">
             <Text style={ob.skipText}>Skip</Text>
             <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.85)" />
           </Pressable>
@@ -205,6 +209,8 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
           <Pressable
             style={[ob.nextBtn, { backgroundColor: "#C2410C" }]}
             onPress={goNext}
+            accessibilityRole="button"
+            accessibilityLabel={idx === SLIDES.length - 1 ? "Get Started" : "Next"}
           >
             <Text style={ob.nextText}>{idx === SLIDES.length - 1 ? "Get Started" : "Next"}</Text>
             <Ionicons name="arrow-forward" size={18} color="#fff" />
@@ -212,7 +218,7 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
         </View>
 
         {/* Sign in link */}
-        <Pressable onPress={onSignIn} style={ob.signInRow}>
+        <Pressable onPress={onSignIn} style={ob.signInRow} accessibilityRole="button" accessibilityLabel="Already registered? Sign in">
           <Text style={ob.signInPre}>Already registered? </Text>
           <Text style={ob.signInLink}>Sign In</Text>
         </Pressable>
@@ -265,7 +271,11 @@ const ob = StyleSheet.create({
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { login } = useAuth();
-  const [showOnboarding, setShowOnboarding] = useState(true);
+  // The introduction shows once, on the first visit; after that the app opens straight to sign-in.
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDED_KEY).then(v => setShowOnboarding(v !== "true")).catch(() => setShowOnboarding(false));
+  }, []);
   const [phone, setPhone] = useState("");
   const runtime = useRuntimeConfig();
   const [pin, setPin] = useState("");
@@ -282,6 +292,7 @@ export default function LoginScreen() {
 
   const enterLogin = useCallback(() => {
     setShowOnboarding(false);
+    AsyncStorage.setItem(ONBOARDED_KEY, "true").catch(() => {});
     screenFade.setValue(0);
     Animated.timing(screenFade, { toValue: 1, duration: 450, useNativeDriver: false }).start();
   }, [screenFade]);
@@ -314,6 +325,7 @@ export default function LoginScreen() {
     } finally { setLoading(false); }
   };
 
+  if (showOnboarding === null) return <View style={{ flex: 1, backgroundColor: "#F5F3EF" }} />;
   if (showOnboarding) {
     return <OnboardingScreen onDone={enterLogin} onSignIn={enterLogin} />;
   }
@@ -563,5 +575,5 @@ const las = StyleSheet.create({
   demoInfo: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#6B7280" },
   footer: { alignItems: "center", gap: 6, paddingHorizontal: 24, paddingBottom: 8 },
   footerText: { color: "#6B7280", fontSize: 11, fontFamily: "Inter_500Medium" },
-  footerSub: { color: "#D1D5DB", fontSize: 10, fontFamily: "Inter_400Regular" },
+  footerSub: { color: "#6B7280", fontSize: 12, fontFamily: "Inter_500Medium", paddingVertical: 6, textDecorationLine: "underline" },
 });

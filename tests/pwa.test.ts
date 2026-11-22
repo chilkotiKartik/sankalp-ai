@@ -43,3 +43,22 @@ describe("installable web app", () => {
     expect(r.text.match(/name="viewport"/g)).toHaveLength(1);
   });
 });
+
+describe("search and share metadata", () => {
+  it("the app page has a title, description, link-preview tags and structured data", async () => {
+    const r = await request(app()).get("/");
+    expect(r.status).toBe(200);
+    expect(r.text).toMatch(/<title>SANKALP AI — [^<]+<\/title>/);
+    expect(r.text).toContain('<html lang="en-IN">');
+    for (const tag of ['name="description"', 'property="og:title"', 'property="og:description"', 'property="og:image"', 'name="twitter:card"', 'application/ld+json'])
+      expect(r.text, tag).toContain(tag);
+    const og = /property="og:image" content="([^"]+)"/.exec(r.text)![1];
+    expect((await request(app()).get(new URL(og, "http://x").pathname)).status).toBe(200);
+  });
+
+  it("robots.txt lets search engines index pages but never the API", async () => {
+    const r = await request(app()).get("/robots.txt");
+    expect(r.status).toBe(200);
+    expect(r.text).toContain("Disallow: /api/");
+  });
+});
