@@ -64,6 +64,10 @@ $DOMAIN {
   }
 }
 CADDY
+# Own domain: www.<domain> redirects to the main address (needs an A record for www too).
+if [ "$DOMAIN" = "$ARG" ] && [[ "$DOMAIN" != www.* ]] && getent hosts "www.$DOMAIN" >/dev/null; then
+  printf 'www.%s {\n  redir https://%s{uri} permanent\n}\n' "$DOMAIN" "$DOMAIN" >> /etc/caddy/Caddyfile
+fi
 systemctl enable caddy && systemctl reload caddy || systemctl restart caddy
 
 # 6. Daily encrypted backup at 02:30, 14 days kept (passphrase generated once; copy it to your password manager).
