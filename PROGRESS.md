@@ -132,7 +132,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P8.2 integration adapters — CPGRAMS + state CM Helpline mappings (server/integrations, dry-run outbox; contact only with consent; portal status never closes a case), docs/INTEGRATIONS.md
 - [x] P8.3 widgets — /widget/ward-score and /widget/report (frame-ancestors * only there), en/hi, axe clean
 - [x] P8.4 final docs — README security section rewritten, docs/ARCHITECTURE.md (diagram + flows + code map), DATA_RESIDENCY.md, SECURITY.md, OPERATIONS.md §8–12, CHANGELOG phases 1–8
-- [ ] P8.gate
+- [x] P8.gate — gate green; review findings 1–7 fixed (docs/reports/phase-8.md)
 
 ## Baseline failures out of scope
 See docs/BASELINE.md.

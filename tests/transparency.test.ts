@@ -4,12 +4,15 @@ import { storage } from "../server/storage";
 import { app, stopApp, makeUser, auth } from "./helpers";
 
 beforeEach(() => storage.reset());
+let ipSeq = 0;
+/** each request from its own address, so the per-IP write limiter models many citizens */
+const nextIp = () => `10.77.${(++ipSeq >> 8) & 255}.${ipSeq & 255}`;
 afterAll(() => stopApp());
 
 async function file(n: number, category = "pothole") {
   const u = await makeUser("citizen", "Dehradun");
   for (let i = 0; i < n; i++) {
-    await request(app()).post("/api/complaints").set(auth(u.token))
+    await request(app()).post("/api/complaints").set("X-Forwarded-For", nextIp()).set(auth(u.token))
       .send({ category, description: `Secret description ${i} near my house`, location: "Private Lane 7", geo: { lat: 30.1 + i * 0.01, lng: 78.4 + i * 0.01 } });
   }
   return u;
@@ -27,7 +30,7 @@ describe("P8.1 open data with k-anonymity", () => {
     expect(pothole.filed).toBe(6);
     const csv = await request(app()).get("/api/open-data/complaints.csv");
     expect(csv.headers["content-type"]).toContain("text/csv");
-    expect(csv.text.split("\n")[0]).toBe("month,district,ward,department,category,filed,markedResolved,citizenVerified,closedWithinSla");
+    expect(csv.text.split("\n")[0]).toBe("month,district,ward,department,category,filed,markedResolved,citizenVerified,closedWithinSla,dataStatus");
     for (const leak of ["Secret description", "Private Lane", u.user.id, u.user.phone, "30.1"]) expect(csv.text).not.toContain(leak);
     expect(j.body.dictionary.licence).toContain("GODL");
   });
@@ -70,5 +73,50 @@ describe("P8.2 integration adapters", () => {
     expect(["acknowledged", "in_progress", "action_taken", "rejected_by_portal", "unknown"]).toContain(cpgrams.fromExternalStatus("DISPOSED").kind);
     expect(exportToOutbox("cpgrams", [c])).toBe(1);
     expect(storage.getComplaint(c.id)!.state).toBe("NEW");
+  });
+});
+
+describe("Phase 8 review: disclosure control", () => {
+  it("P8-1/2/7: totals are rounded, rates need safe numerators, complements are suppressed", async () => {
+    await file(6, "pothole");
+    for (const c of storage.getComplaints().slice(0, 5)) c.proofSubmittedAt = new Date().toISOString();
+    storage.getComplaints()[0].state = "CLOSED";
+    const s = await request(app()).get("/api/public/scorecard");
+    const pwd = s.body.departments.find((d: { department: string }) => d.department === "pwd");
+    expect(pwd.filed % 5).toBe(0);
+    expect(pwd.realResolutionRate).toBeNull(); // 1 of 5 verified → numerator 1 is unsafe
+    const rows = (await request(app()).get("/api/open-data/complaints.json")).body.rows;
+    for (const r of rows) {
+      for (const [n, parent] of [[r.markedResolved, r.filed], [r.citizenVerified, r.markedResolved]] as Array<[number | string, number | string]>) {
+        if (typeof n === "number" && typeof parent === "number") expect(parent - n === 0 || parent - n >= 5).toBe(true);
+      }
+    }
+  });
+
+  it("P8-3: the old public resolution-rate endpoint no longer returns small counts", async () => {
+    await file(1, "garbage");
+    const r = await request(app()).get("/api/public/resolution-rate?by=ward");
+    for (const row of r.body.rows) expect(row.filed === "<5" || (typeof row.filed === "number" && row.filed % 5 === 0)).toBe(true);
+  });
+
+  it("P8-4: citizen free-text wards never reach open data; CSV formulas are neutralised", async () => {
+    const u = await makeUser("citizen", "Dehradun");
+    for (let i = 0; i < 6; i++) await request(app()).post("/api/complaints").set("X-Forwarded-For", nextIp()).set(auth(u.token))
+      .send({ category: "pothole", description: "x pothole", location: "Main road", ward: '=HYPERLINK("http://x","Ram 9876543210")', geo: { lat: 30.1 + i * 0.01, lng: 78.4 } });
+    const csv = (await request(app()).get("/api/open-data/complaints.csv")).text;
+    expect(csv).not.toContain("HYPERLINK");
+    expect(csv).not.toContain("9876543210");
+    expect(csv).toContain(",Other,");
+    const { csvCell } = await import("../server/transparency/disclosure");
+    expect(csvCell("=1+1")).toBe("\"'=1+1\"");
+  });
+
+  it("P8-5: adapter payloads mask free text and drop GPS without consent", async () => {
+    const { cpgrams, stateCmHelpline } = await import("../server/integrations");
+    const u = await makeUser("citizen", "Dehradun");
+    await request(app()).post("/api/complaints").set("X-Forwarded-For", nextIp()).set(auth(u.token)).send({ category: "pothole", description: "Call me on 9876543210 please", location: "Main road", geo: { lat: 30.3, lng: 78 } });
+    const c = storage.getComplaints()[0];
+    expect(String(cpgrams.toExternal(c, { includeContact: false }).grievanceText)).not.toContain("9876543210");
+    expect(stateCmHelpline.toExternal(c, { includeContact: false }).gps).toBeUndefined();
   });
 });

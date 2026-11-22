@@ -10,7 +10,7 @@ import { readConfirmToken } from "../notify/voice";
 import { parseReply } from "../verification/confirm";
 import { smsCommand, senderPhone } from "./channels";
 import { evaluate } from "../verification";
-import { resolutionRates, RRR_DEFINITION } from "../verification/rate";
+import { publicResolutionRates, RRR_DEFINITION } from "../verification/rate";
 import { config } from "../config";
 import { toStaffComplaint } from "./dto";
 import { isDistrictAdmin, isStateUser } from "../auth/roles";
@@ -153,7 +153,7 @@ export function registerVerificationRoutes(app: Express) {
     method: "get", path: "/api/public/resolution-rate", auth: "public", permission: "public.resolution_rate",
     params: none, query: z.object({ by: z.enum(["department", "ward"]).default("department"), district: z.string().max(60).optional() }), body: none,
     handler: ({ query }) => {
-      const rows = resolutionRates(query.by, query.district);
+      const rows = publicResolutionRates(query.by, query.district);
       return {
         definition: RRR_DEFINITION,
         by: query.by, state: tenant().name, demo: config().DEMO_MODE, rows,

@@ -2,6 +2,7 @@ import { storage, storeFor } from "../storage";
 import { config } from "../config";
 import { getDeptIdForCategory, DEPARTMENTS } from "../data/reference";
 import { wilson } from "./engine";
+import { K, sup, roundTotal, safeRate, publicWard } from "../transparency/disclosure";
 import type { Complaint } from "../types";
 
 /** P3.8 Real Resolution Rate (D-038). Shared by the public endpoint and the weekly briefing. */
@@ -40,4 +41,29 @@ function compute(by: "department" | "ward", district?: string, since?: number) {
       citizenVerified: verified, realResolutionRate: wilson(verified, claimed.length),
     };
   }).sort((a, b) => b.filed - a.filed);
+}
+
+/**
+ * Public version (review P8-3): grouped by reference-list wards only, counts suppressed/rounded and rates published
+ * only when every part is ≥ 5 — the same rules as the open data. Staff screens use resolutionRates() (exact).
+ */
+export function publicResolutionRates(by: "department" | "ward", district?: string) {
+  const list = storage.getComplaints(district).filter(c => (!c.isDemo || config().DEMO_MODE) && Date.now() - new Date(c.submittedAt).getTime() < 365 * 86400000);
+  const groups = new Map<string, Complaint[]>();
+  for (const c of list) {
+    const key = by === "department" ? getDeptIdForCategory(c.category) : `${c.district} · ${publicWard(c.ward, c.district)}`;
+    const g = groups.get(key);
+    if (g) g.push(c); else groups.set(key, [c]);
+  }
+  return [...groups.entries()].map(([key, cs]) => {
+    const claimed = cs.filter(c => !!c.proofSubmittedAt).length;
+    const verified = cs.filter(c => c.state === "CLOSED").length;
+    return {
+      key, label: by === "department" ? DEPARTMENTS[key]?.name ?? key : key,
+      filed: cs.length < K ? ("<5" as const) : roundTotal(cs.length),
+      officialResolved: sup(claimed, cs.length), officialRate: safeRate(claimed, cs.length),
+      citizenVerified: sup(verified, claimed), realResolutionRate: safeRate(verified, claimed),
+      exactFiled: cs.length, // internal sort key only — removed before responding
+    };
+  }).sort((a, b) => b.exactFiled - a.exactFiled).map(({ exactFiled: _x, ...r }) => r);
 }

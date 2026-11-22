@@ -2,7 +2,7 @@ import { storage } from "../storage";
 import { config } from "../config";
 import { tenant } from "../tenancy";
 import { SLA_HOURS, getDeptIdForCategory, DEPARTMENTS } from "../data/reference";
-import { wilson } from "../verification/engine";
+import { sup, roundTotal, safeRate, publicWard, csvCell } from "./disclosure";
 import type { Complaint } from "../types";
 
 /**
@@ -12,7 +12,8 @@ import type { Complaint } from "../types";
  *    so a single complaint or a single citizen can never be singled out
  *  - no free text, no locations finer than the ward, no ids
  */
-export const K = 5;
+import { K } from "./disclosure";
+export { K };
 const DAY = 86400000;
 const istMonth = (iso: string) => new Date(new Date(iso).getTime() + 5.5 * 3600000).toISOString().slice(0, 7);
 const visible = (c: Complaint) => !c.isDemo || config().DEMO_MODE;
@@ -28,54 +29,55 @@ export interface OpenRow {
   filed: number | "<5"; markedResolved: number | "<5"; citizenVerified: number | "<5"; closedWithinSla: number | "<5";
 }
 
-const sup = (n: number): number | "<5" => (n > 0 && n < K ? "<5" : n);
 
 export function openDataRows(since = Date.now() - 365 * DAY): OpenRow[] {
   const groups = new Map<string, Complaint[]>();
   for (const c of storage.getComplaints()) {
     if (!visible(c) || new Date(c.submittedAt).getTime() < since) continue;
-    const key = [c.district, c.ward, getDeptIdForCategory(c.category), c.category, istMonth(c.submittedAt)].join("\u0000");
+    const key = [c.district, publicWard(c.ward, c.district), getDeptIdForCategory(c.category), c.category, istMonth(c.submittedAt)].join("\u0000");
     const g = groups.get(key);
     if (g) g.push(c); else groups.set(key, [c]);
   }
   return [...groups.entries()].map(([key, cs]) => {
     const [district, ward, department, category, month] = key.split("\u0000");
-    const verified = cs.filter(c => c.state === "CLOSED");
+    const verified = cs.filter(c => c.state === "CLOSED").length;
+    const claimed = cs.filter(c => !!c.proofSubmittedAt).length;
+    const inSla = cs.filter(c => withinSla(c)).length;
     return {
       district, ward, department, category, month,
       filed: sup(cs.length),
-      markedResolved: sup(cs.filter(c => !!c.proofSubmittedAt).length),
-      citizenVerified: sup(verified.length),
-      closedWithinSla: sup(verified.filter(c => withinSla(c)).length),
+      markedResolved: sup(claimed, cs.length),
+      citizenVerified: sup(verified, claimed),
+      closedWithinSla: sup(inSla, verified),
     };
   }).sort((a, b) => (a.month < b.month ? 1 : a.month > b.month ? -1 : a.district.localeCompare(b.district)));
 }
 
 export function toCsv(rows: OpenRow[]): string {
   const cols: Array<keyof OpenRow> = ["month", "district", "ward", "department", "category", "filed", "markedResolved", "citizenVerified", "closedWithinSla"];
-  const q = (v: unknown) => { const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-  return [cols.join(","), ...rows.map(r => cols.map(c => q(r[c])).join(","))].join("\n") + "\n";
+  const demo = config().DEMO_MODE;
+  return [[...cols, "dataStatus"].join(","), ...rows.map(r => [...cols.map(c => csvCell(r[c])), demo ? "DEMO" : "real"].join(","))].join("\n") + "\n";
 }
 
 /** Department scorecard for the public dashboard (suppressed below K). */
-export function departmentScorecard() {
+/** Same 365-day window as the open data; totals rounded to base 5; rates only when every part is safe. */
+export function departmentScorecard(since = Date.now() - 365 * DAY) {
   const by = new Map<string, Complaint[]>();
   for (const c of storage.getComplaints()) {
-    if (!visible(c)) continue;
+    if (!visible(c) || new Date(c.submittedAt).getTime() < since) continue;
     const d = getDeptIdForCategory(c.category);
     const g = by.get(d);
     if (g) g.push(c); else by.set(d, [c]);
   }
   return [...by.entries()].map(([id, cs]) => {
-    const claimed = cs.filter(c => !!c.proofSubmittedAt);
-    const verified = cs.filter(c => c.state === "CLOSED");
-    const sla = verified.filter(c => withinSla(c)).length;
-    const ok = (n: number) => n >= K;
+    const claimed = cs.filter(c => !!c.proofSubmittedAt).length;
+    const verified = cs.filter(c => c.state === "CLOSED").length;
+    const sla = cs.filter(c => withinSla(c)).length;
     return {
-      department: id, name: DEPARTMENTS[id]?.name ?? id, filed: sup(cs.length),
-      realResolutionRate: ok(claimed.length) ? wilson(verified.length, claimed.length) : null,
-      officialRate: ok(cs.length) ? wilson(claimed.length, cs.length) : null,
-      slaCompliance: ok(verified.length) ? wilson(sla, verified.length) : null,
+      department: id, name: DEPARTMENTS[id]?.name ?? id, filed: cs.length < K ? "<5" as const : roundTotal(cs.length),
+      realResolutionRate: safeRate(verified, claimed),
+      officialRate: safeRate(claimed, cs.length),
+      slaCompliance: safeRate(sla, verified),
     };
   }).sort((a, b) => String(a.name).localeCompare(String(b.name)));
 }
@@ -84,7 +86,7 @@ export const DATA_DICTIONARY = {
   dataset: "SANKALP civic complaints — monthly aggregates",
   publisher: () => tenant().stateLabel,
   licence: "Government Open Data License – India (GODL-India)",
-  anonymity: `k-anonymity: any count between 1 and ${K - 1} is published as "<5"; rates are shown only when n ≥ ${K}.`,
+  anonymity: "Counts 1–4 are published as \"<5\", and so is any count whose difference from its parent count is 1–4. Totals are rounded to multiples of 5. Rates are published only when numerator, denominator and their difference are all 0 or ≥ 5. Wards not in the official list are grouped as \"Other\".",
   fields: {
     month: "IST calendar month the complaint was filed (YYYY-MM)",
     district: "District", ward: "Ward/block as recorded", department: "Department the category is routed to", category: "Complaint category",

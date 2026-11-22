@@ -257,10 +257,14 @@ describe("P3 proof-of-fix through the API", () => {
     await request(app()).put(`/api/complaints/${a.id}/confirm`).set(auth(a.citizen.token)).send({});
     const b = await caseWithBefore(png(rings));
     await resolve(b.id, b.dept, png((x, y) => 255 - stripes(x, y)));
+    // exact figures for staff (briefing), suppressed figures for the public (review P8-3)
+    const { resolutionRates } = await import("../server/verification/rate");
+    const exact = resolutionRates("department").find(x => x.key === "pwd")!;
+    expect(exact).toMatchObject({ filed: 2, officialResolved: 2, citizenVerified: 1 });
+    expect(exact.realResolutionRate).toMatchObject({ p: 0.5, n: 2 });
     const r = await request(app()).get("/api/public/resolution-rate?by=department");
     const pwd = r.body.rows.find((x: { key: string }) => x.key === "pwd");
-    expect(pwd).toMatchObject({ filed: 2, officialResolved: 2, citizenVerified: 1 });
-    expect(pwd.realResolutionRate).toMatchObject({ p: 0.5, n: 2 });
+    expect(pwd).toMatchObject({ filed: "<5", officialResolved: "<5", citizenVerified: "<5", realResolutionRate: null });
     expect(r.body.definition).toContain("Wilson");
   });
 

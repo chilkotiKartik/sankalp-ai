@@ -5,6 +5,8 @@ import { tenant } from "../tenancy";
 import { DEPARTMENTS, getDeptIdForCategory } from "../data/reference";
 import { legacyStatus } from "../domain/complaintState";
 import type { Complaint } from "../types";
+import { maskPII } from "../ai/pii";
+import { publicWard } from "../transparency/disclosure";
 
 /**
  * P8.2 integration adapters for CM helplines and grievance portals (CPGRAMS, state CM Helpline). **Interface and
@@ -36,7 +38,8 @@ export const cpgrams: GrievanceAdapter = {
       ministryOrState: tenant().stateLabel,
       organisation: DEPARTMENTS[getDeptIdForCategory(c.category)]?.name ?? "State Government",
       category: categoryText(c),
-      grievanceText: c.description,
+      // Review P8-5: free text is PII-masked unless contact sharing was consented.
+      grievanceText: includeContact ? c.description : maskPII(c.description),
       district: c.district,
       dateOfReceipt: c.submittedAt,
       ...(includeContact ? { complainantName: c.submittedBy, complainantMobile: c.submittedByPhone } : {}),
@@ -54,8 +57,8 @@ export const stateCmHelpline: GrievanceAdapter = {
   toExternal(c, { includeContact }) {
     return {
       source: "SANKALP", sourceTicket: c.ticketId, departmentCode: getDeptIdForCategory(c.category).toUpperCase(),
-      subject: `${categoryText(c)} — ${c.ward}, ${c.district}`, details: c.description, priority: c.priority,
-      status: legacyStatus(c.state), gps: c.geoApproximate ? undefined : c.geo,
+      subject: `${categoryText(c)} — ${publicWard(c.ward, c.district)}, ${c.district}`, details: includeContact ? c.description : maskPII(c.description), priority: c.priority,
+      status: legacyStatus(c.state), gps: includeContact && !c.geoApproximate ? c.geo : undefined,
       ...(includeContact ? { callerName: c.submittedBy, callerMobile: c.submittedByPhone } : {}),
     };
   },

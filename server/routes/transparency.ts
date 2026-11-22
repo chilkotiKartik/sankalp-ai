@@ -4,7 +4,7 @@ import { route, none } from "../lib/route";
 import { tenant } from "../tenancy";
 import { config } from "../config";
 import { openDataRows, toCsv, departmentScorecard, DATA_DICTIONARY, K } from "../transparency/opendata";
-import { resolutionRates, RRR_DEFINITION } from "../verification/rate";
+import { publicResolutionRates, RRR_DEFINITION } from "../verification/rate";
 
 /**
  * P8.1 public dashboard + open data, P8.3 embeddable widgets. No login, no personal data, aggregates only.
@@ -28,7 +28,7 @@ export function registerTransparencyRoutes(app: Express) {
   route(app, {
     method: "get", path: "/api/open-data/complaints.json", auth: "public", permission: "public.open_data",
     params: none, query: none, body: none,
-    handler: ({ res }) => { res.setHeader("Cache-Control", "public, max-age=900"); res.setHeader("Vary", "X-Tenant, Host"); return { dictionary: { ...DATA_DICTIONARY, publisher: DATA_DICTIONARY.publisher() }, generatedAt: new Date().toISOString(), rows: openDataRows() }; },
+    handler: ({ res }) => { res.setHeader("Cache-Control", "public, max-age=900"); res.setHeader("Vary", "X-Tenant, Host"); return { demo: config().DEMO_MODE, dictionary: { ...DATA_DICTIONARY, publisher: DATA_DICTIONARY.publisher() }, generatedAt: new Date().toISOString(), rows: openDataRows() }; },
   });
 
   route(app, {
@@ -36,7 +36,7 @@ export function registerTransparencyRoutes(app: Express) {
     params: none, query: none, body: none,
     handler: ({ res }) => {
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename="sankalp-${tenant().id}-complaints-monthly.csv"`);
+      res.setHeader("Content-Disposition", `attachment; filename="sankalp-${tenant().id}-complaints-monthly${config().DEMO_MODE ? "-DEMO" : ""}.csv"`);
       res.setHeader("Cache-Control", "public, max-age=900");
       res.setHeader("Vary", "X-Tenant, Host");
       res.send(toCsv(openDataRows()));
@@ -57,7 +57,7 @@ export function registerTransparencyRoutes(app: Express) {
     handler: ({ res }) => {
       const t = tenant();
       const depts = departmentScorecard();
-      const wards = resolutionRates("ward").filter(r => r.filed >= K).slice(0, 60);
+      const wards = publicResolutionRates("ward").filter(r => r.filed !== "<5").slice(0, 60);
       res.setHeader("Cache-Control", "public, max-age=300");
       res.setHeader("Vary", "X-Tenant, Host");
       res.type("html").send(page(`${t.stateLabel} — public service performance`, `
@@ -70,7 +70,7 @@ ${depts.map(d => `<tr><td>${esc(d.name)}</td><td>${esc(d.filed)}</td><td>${pct(d
 </tbody></table>
 <h2>Wards</h2>
 <table><thead><tr><th>Ward</th><th>Filed</th><th>Real Resolution Rate</th></tr></thead><tbody>
-${wards.map(w => `<tr><td>${esc(w.label)}</td><td>${w.filed}</td><td>${pct(w.realResolutionRate && w.realResolutionRate.n >= K ? w.realResolutionRate : null)}</td></tr>`).join("") || `<tr><td colspan="3">No ward has ${K} or more complaints yet.</td></tr>`}
+${wards.map(w => `<tr><td>${esc(w.label)}</td><td>${esc(w.filed)}</td><td>${pct(w.realResolutionRate)}</td></tr>`).join("") || `<tr><td colspan="3">No ward has ${K} or more complaints yet.</td></tr>`}
 </tbody></table>
 <h2>Open data</h2>
 <p>Monthly aggregates by district, ward, department and category under the Government Open Data License – India: <a href="/api/open-data/complaints.csv">CSV</a> · <a href="/api/open-data/complaints.json">JSON with data dictionary</a>. Counts between 1 and ${K - 1} appear as "&lt;5".</p>
@@ -84,10 +84,10 @@ ${wards.map(w => `<tr><td>${esc(w.label)}</td><td>${w.filed}</td><td>${pct(w.rea
     method: "get", path: "/widget/ward-score", auth: "public", permission: "public.dashboard",
     params: none, query: z.object({ ward: z.string().max(120).optional(), lang: z.enum(["en", "hi"]).default("en") }), body: none,
     handler: ({ query, res }) => {
-      const rows = resolutionRates("ward");
+      const rows = publicResolutionRates("ward");
       const r = query.ward ? rows.find(x => x.label.toLowerCase().endsWith(`· ${query.ward!.toLowerCase()}`) || x.label.toLowerCase() === query.ward!.toLowerCase()) : undefined;
       const hi = query.lang === "hi";
-      const rrr = r && r.realResolutionRate && r.realResolutionRate.n >= K ? r.realResolutionRate : null;
+      const rrr = r?.realResolutionRate ?? null;
       embeddable(res);
       res.type("html").send(`<!doctype html><html lang="${query.lang}"><head><meta charset="utf-8"><title>Ward score</title><style>body{margin:0;font:14px system-ui,sans-serif;color:#111}.c{border:1px solid #D1D5DB;border-radius:10px;padding:12px;max-width:320px}.n{font-size:28px;font-weight:800;color:#1D4ED8}small{color:#374151}</style></head><body><div class="c">
 <div><strong>${esc(r?.label ?? (query.ward || (hi ? "वार्ड" : "Ward")))}</strong></div>
