@@ -125,13 +125,13 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P7.3 load test — loadtest/k6.js (staging) + npm run loadtest: API p95 26–31 ms, SSE fan-out p95 24 ms at 6 complaints/s, 500 officers, 200 streams, 20k seeded; fixed quadratic RRR + unpaginated dept list (docs/LOADTEST.md)
 - [x] P7.4 DR — second Indian-region backup copy, scripts/dr-drill.sh, measured RTO 3.4 s for 20k complaints, RPO table, failover runbook (docs/DR.md)
 - [x] P7.5 ASVS L2 — docs/ASVS.md self-assessment (12 met, 2 partial with tracked gaps) + CERT-In audit pack list
-- [ ] P7.gate
+- [x] P7.gate — gate green; review findings 1–8 + lows fixed (docs/reports/phase-7.md)
 
 ## Phase 8 — Transparency
-- [ ] P8.1 public dashboard + open data
-- [ ] P8.2 integration adapters
-- [ ] P8.3 widgets
-- [ ] P8.4 final docs
+- [x] P8.1 public dashboard + open data — /web/transparency (dept official vs real rate vs SLA compliance with Wilson CI, wards), /api/open-data/complaints.{csv,json} monthly aggregates with k-anonymity (<5 suppressed), data dictionary, GODL-India
+- [x] P8.2 integration adapters — CPGRAMS + state CM Helpline mappings (server/integrations, dry-run outbox; contact only with consent; portal status never closes a case), docs/INTEGRATIONS.md
+- [x] P8.3 widgets — /widget/ward-score and /widget/report (frame-ancestors * only there), en/hi, axe clean
+- [x] P8.4 final docs — README security section rewritten, docs/ARCHITECTURE.md (diagram + flows + code map), DATA_RESIDENCY.md, SECURITY.md, OPERATIONS.md §8–12, CHANGELOG phases 1–8
 - [ ] P8.gate
 
 ## Baseline failures out of scope

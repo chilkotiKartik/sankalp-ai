@@ -33,17 +33,6 @@ services:
         sync: false
       - key: DEFAULT_TENANT
         value: uttarakhand
-  # Daily encrypted backup (docs/OPERATIONS.md §3). Needs BACKUP_PASSPHRASE and an India-region S3 target.
-  - type: cron
-    name: sankalp-backup
-    runtime: node
-    schedule: "40 21 * * *"   # 03:10 IST
-    buildCommand: npm ci --omit=dev
-    startCommand: bash scripts/backup.sh
-    envVars:
-      - key: BACKUP_PASSPHRASE
-        sync: false
-      - key: BACKUP_S3_URI
-        sync: false
-      - key: BACKUP_S3_ENDPOINT
-        sync: false
+  # No backup cron here (review P7-4): Render disks attach to one service only, so a separate cron service can
+  # never read DATA_DIR. For the pilot, take backups from a machine with access (docs/DR.md) or move production
+  # to an Indian VM with deploy/install-onprem.sh, where scripts/backup.sh runs from a systemd timer or cron.

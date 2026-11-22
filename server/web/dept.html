@@ -1186,7 +1186,8 @@ function Dashboard({token,dept,onLogout}){
   const removeToast=useCallback(id=>setToasts(prev=>prev.filter(t=>t.id!==id)),[]);
 
   const loadData=useCallback(()=>{
-    api.get(`/api/dept/${dept.id}/complaints`,token).then(d=>{setComplaints(d.complaints||[]);}).catch(()=>{});
+    // D-046: follow the pages (1000 each, up to 10) so no open work is hidden behind the first page.
+    (async()=>{try{let all=[],cursor=null;for(let i=0;i<10;i++){const d=await api.get(`/api/dept/${dept.id}/complaints?limit=1000${cursor?`&cursor=${encodeURIComponent(cursor)}`:''}`,token);all=all.concat(d.complaints||[]);if(!d.hasMore)break;cursor=d.nextCursor;}setComplaints(all);}catch(e){}})();
     api.get(`/api/dept/${dept.id}/stats`,token).then(setStats).catch(()=>{});
     api.get('/api/sos',token).then(d=>{setSosCount((Array.isArray(d)?d:d.alerts||[]).filter(a=>a.status==='active').length);}).catch(()=>{});
     api.get(`/api/dept/${dept.id}/announcements`,token).then(d=>{setAnnouncements(Array.isArray(d)?d:[]);}).catch(()=>{});

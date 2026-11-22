@@ -46,13 +46,18 @@ describe("route inventory (M14)", () => {
   it("public routes are an explicit, reviewed allow-list", () => {
     const pub = registry.filter(r => r.auth === "public").map(r => `${r.method.toUpperCase()} ${r.path}`).sort();
     expect(pub).toEqual([
-      "GET /api/cpr/emergency-locations", "GET /api/cpr/emergency-services", "GET /api/dept/list", "GET /api/disaster/camps", "GET /api/disaster/missing", "GET /api/disaster/reports", "GET /api/disaster/status", "GET /api/health", "GET /api/media/signed/:file",
-      "GET /api/public/announcements", "GET /api/public/anomalies", "GET /api/public/budget", "GET /api/public/config",
-      "GET /api/public/department-report", "GET /api/public/district-stats", "GET /api/public/privacy-notice", "GET /api/public/resolution-rate", "GET /api/public/stats", "GET /api/public/ward-health", "GET /api/sos/shared/:token", "GET /api/yatra/helplines", "GET /api/yatra/nearest-medical",
-      "GET /c/:token", "GET /healthz", "GET /readyz", "GET /s/:token", "GET /web/disaster", "POST /api/auth/login", "POST /api/auth/logout", "POST /api/auth/otp/request", "POST /api/auth/otp/verify", "POST /api/auth/refresh",
-      "POST /api/auth/register", "POST /api/auth/worker-login", "POST /api/channels/ivr/recording", "POST /api/channels/whatsapp/inbound", "POST /api/dept/login", "POST /api/sos/delivery-receipt",
-      "POST /api/verification/ivr/:token", "POST /api/verification/sms-inbound",
-      "PUT /api/complaints/:id/proof",
+      "GET /api/cpr/emergency-locations", "GET /api/cpr/emergency-services", "GET /api/dept/list", "GET /api/disaster/camps",
+      "GET /api/disaster/missing", "GET /api/disaster/reports", "GET /api/disaster/status", "GET /api/health",
+      "GET /api/media/signed/:file", "GET /api/open-data/complaints.csv", "GET /api/open-data/complaints.json", "GET /api/public/announcements",
+      "GET /api/public/anomalies", "GET /api/public/budget", "GET /api/public/config", "GET /api/public/department-report",
+      "GET /api/public/district-stats", "GET /api/public/privacy-notice", "GET /api/public/resolution-rate", "GET /api/public/scorecard",
+      "GET /api/public/stats", "GET /api/public/ward-health", "GET /api/sos/shared/:token", "GET /api/yatra/helplines",
+      "GET /api/yatra/nearest-medical", "GET /c/:token", "GET /healthz", "GET /readyz",
+      "GET /s/:token", "GET /web/disaster", "GET /web/transparency", "GET /widget/report",
+      "GET /widget/ward-score", "POST /api/auth/login", "POST /api/auth/logout", "POST /api/auth/otp/request",
+      "POST /api/auth/otp/verify", "POST /api/auth/refresh", "POST /api/auth/register", "POST /api/auth/worker-login",
+      "POST /api/channels/ivr/recording", "POST /api/channels/whatsapp/inbound", "POST /api/dept/login", "POST /api/sos/delivery-receipt",
+      "POST /api/verification/ivr/:token", "POST /api/verification/sms-inbound", "PUT /api/complaints/:id/proof",
     ]);
   });
 });

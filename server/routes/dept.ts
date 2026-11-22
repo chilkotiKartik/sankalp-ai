@@ -25,19 +25,23 @@ export function registerDeptRoutes(app: Express) {
 
   route(app, {
     method: "get", path: "/api/dept/:deptId/complaints", auth: "dept", permission: "dept.complaints_read",
-    // P7.3 (D-046): newest first, 500 per page by default (max 2000); `before` = submittedAt cursor for the next page.
+    // P7.3 (D-046): newest first, 500 per page by default (max 2000). `cursor` (from `nextCursor`) is a compound
+    // (submittedAt, id) key, so complaints that share a timestamp are never skipped (review P7-7).
     params: deptParams,
-    query: z.object({ limit: z.coerce.number().int().min(1).max(2000).default(500), before: z.string().datetime().optional(), open: z.enum(["1", "0"]).optional() }),
+    query: z.object({ limit: z.coerce.number().int().min(1).max(2000).default(500), cursor: z.string().max(200).optional(), open: z.enum(["1", "0"]).optional() }),
     body: none,
     handler: ({ actor, params, query }) => {
       check(actor.deptId, params.deptId);
       let all = mine(params.deptId);
       if (query.open === "1") all = all.filter(c => !["CLOSED", "AUTO_CLOSED_UNVERIFIED", "CANCELLED_BY_CITIZEN"].includes(c.state));
-      const sorted = all.slice().sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1));
-      const from = query.before ? sorted.filter(c => c.submittedAt < query.before!) : sorted;
+      const key = (c: { submittedAt: string; id: string }) => `${c.submittedAt}|${c.id}`;
+      const sorted = all.slice().sort((a, b) => (key(a) < key(b) ? 1 : key(a) > key(b) ? -1 : 0));
+      const after = query.cursor ? Buffer.from(query.cursor, "base64url").toString() : null;
+      const from = after ? sorted.filter(c => key(c) < after) : sorted;
       const page = from.slice(0, query.limit);
       const list = page.map(c => ({ ...toStaffComplaint(c), departmentId: params.deptId, departmentName: DEPARTMENTS[params.deptId]?.name }));
-      return { complaints: list, total: all.length, hasMore: from.length > page.length, nextBefore: from.length > page.length ? page[page.length - 1]?.submittedAt : null };
+      const more = from.length > page.length;
+      return { complaints: list, total: all.length, hasMore: more, nextCursor: more ? Buffer.from(key(page[page.length - 1])).toString("base64url") : null };
     },
   });
 

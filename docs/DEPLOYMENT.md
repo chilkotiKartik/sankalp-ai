@@ -53,7 +53,7 @@ It installs Node 22 if needed and creates a locked-down `sankalp` system user. I
 No outbound internet is needed beyond the hosts you allow in `EGRESS_ALLOWLIST`, and none are required: AI falls back to the rules engine and photos to manual review. Docker Compose and Helm were deliberately not built (DECISIONS D-024). The systemd install is the supported on-premise path.
 
 ### Render (current pilot hosting — not in India)
-`render.yaml` is the blueprint for the live service: web service with a 10 GB persistent disk at `DATA_DIR`, health check `/healthz`, generated JWT secrets, and a daily encrypted-backup cron job. Render has no Indian region, so keep it for pilots and demos and use the install above for production data.
+`render.yaml` is the blueprint for the live service: web service with a 10 GB persistent disk at `DATA_DIR`, health check `/healthz`, generated JWT secrets. **It has no automatic off-site backup:** Render disks attach to one service, so a cron service cannot read them. Render has no Indian region either. Keep it for pilots and demos, and use the install above (where `scripts/backup.sh` runs from cron) for production data.
 - **Build:** `npm ci && npm run expo:static:build && npm run server:build`
 - **Start:** `npm run server:prod`
 - Add a **persistent disk** mounted at `DATA_DIR`. Without one, data is lost on every restart or sleep.

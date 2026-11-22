@@ -17,7 +17,7 @@
 ```bash
 DATA_DIR=/var/lib/sankalp BACKUP_PASSPHRASE=… JWT_SECRET=… DEPT_JWT_SECRET=… scripts/dr-drill.sh
 ```
-It backs up, restores into an empty directory, boots a second server on port 5097, waits for `/readyz`, runs the smoke test and verifies the audit hash chain. It exits non-zero if any step fails.
+It backs up, restores into an empty directory, and boots a second server on port 5097 with **jobs off and console SMS/voice drivers** (a copy of production must never contact real people). It then waits for `/readyz`, runs the smoke test and verifies the audit hash chain. Decrypted data is deleted on exit, even after a failure. It exits non-zero if any step fails.
 
 Recorded drills:
 | Date | Data | Backup | Restore | Boot → ready | RTO | Smoke | Audit chain |
@@ -27,8 +27,17 @@ Recorded drills:
 
 ## Failover runbook
 1. Declare the incident. Ops alerts are sent automatically when `/readyz` fails (`ALERT_PHONES`, `ALERT_WEBHOOK_URL`).
-2. Provision a VM in the second region: `sudo bash deploy/install-onprem.sh`. Then copy the secrets (`JWT_SECRET`, `DEPT_JWT_SECRET`, `EVIDENCE_ENC_KEY`) into `/etc/sankalp/sankalp.env`.
-3. Fetch the latest backup from the second-region bucket. Verify its checksum, then run `scripts/restore.sh <file> /var/lib/sankalp` and `systemctl restart sankalp`.
+2. Provision a VM in the second region **without starting it**: `sudo bash deploy/install-onprem.sh --no-start`. Then copy the secrets (`JWT_SECRET`, `DEPT_JWT_SECRET`, `EVIDENCE_ENC_KEY`) into `/etc/sankalp/sankalp.env`.
+3. Fetch the latest backup from the second-region bucket and verify its checksum. Then restore into the empty data directory and give it to the service user:
+   ```bash
+   systemctl stop sankalp; rm -rf /var/lib/sankalp/*
+   ```
+   ```bash
+   BACKUP_PASSPHRASE=… scripts/restore.sh <file>.data.enc /var/lib/sankalp
+   ```
+   ```bash
+   chown -R sankalp:sankalp /var/lib/sankalp && systemctl start sankalp
+   ```
 4. Verify: `/readyz` returns 200, `npm run audit:verify` passes, and `SMOKE_BASE_URL=… npm run smoke` passes against the new host.
 5. Point DNS at the new host. Users keep their sessions, because the JWT secrets are the same.
 6. Afterwards, record the actual RPO and RTO in the table above.

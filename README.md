@@ -297,25 +297,18 @@ A plain-language description becomes a full AI-drafted RTI application, with the
 
 | Layer | Implementation |
 |---|---|
-| Auth | Phone + 6-digit PIN (bcrypt, cost 12); legacy PINs re-hashed on login |
-| Sessions | 256-bit random bearer tokens, stored only as HMAC-SHA256, 7-day expiry, revocable |
-| Department portals | Random per-department access codes (bcrypt), rotatable by the state admin; HMAC tokens revoked on rotation |
-| Authorisation | Every API route declares auth level + permission + zod schemas; a test fails if one doesn't |
-| Scoping | District admins see only their district; departments only their categories; citizens only their own SOS |
-| Rate limiting | Auth (per IP + per phone), uploads and AI. SOS is never rate-limited — duplicates are merged instead |
-| Uploads | Magic-byte allow-list, size limits, server-generated names, `nosniff`; SOS audio is private and every access is audited |
-| Headers | helmet (CSP, HSTS in production), CORS allow-list from `CORS_ORIGINS` |
+| Auth | Phone + PIN (bcrypt) or one-time SMS code (citizens only; staff need their PIN). Attempts limited per phone and per IP |
+| Sessions | 15-minute JWT access tokens bound to state + session; 30-day refresh tokens rotated on every use, with reuse detection |
+| Roles | citizen, worker, officer, dept_admin, district_admin, police, disaster_authority, state_admin, super_admin — deny by default |
+| Authorisation | Every API route declares auth level + permission + tenant scope + zod schemas; a test fails if one doesn't |
+| Proof of fix | A case closes only with proof **and** the citizen's "yes". Reused or far-away photos go to an independent human reviewer |
+| SOS | Never blocked or rate-limited (duplicates merged). Trusted contacts get a signed, expiring live-location link, never coordinates in the SMS |
+| Evidence | AES-256-GCM at rest (key ids, rotation), private originals, 5-minute signed links, every view audited |
+| Privacy (DPDP) | Consent, export, erasure with legal hold, retention dry run until legal sign-off; open data k-anonymous (< 5 suppressed) |
+| Data residency | All outbound HTTP through one allow-listed client; the only data host is Sarvam (India). CI fails on any foreign AI SDK |
+| Headers | helmet (CSP without `unsafe-eval`, HSTS), CORS allow-list, gzip; portals pass axe WCAG 2.1 AA |
 
-See [AUDIT_REPORT.md](AUDIT_REPORT.md) for the findings this design addresses.
-
-</div>
-
----|---|
-| Auth | Phone + 6-digit PIN |
-| Tokens | JWT, 24-hour expiry |
-| Roles | `citizen`, `district_admin`, `super_admin` |
-| Rate Limiting | AI at 30 req/min, SOS at 10 req/min |
-| Middleware | Every route protected by auth middleware |
+See [docs/ASVS.md](docs/ASVS.md) (OWASP ASVS L2 self-assessment), [SECURITY.md](SECURITY.md), [DATA_RESIDENCY.md](DATA_RESIDENCY.md) and the review reports in [docs/reports/](docs/reports/).
 
 </div>
 

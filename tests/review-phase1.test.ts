@@ -96,3 +96,24 @@ describe("M5 personal police accounts are district-scoped", () => {
     expect((control.body.items ?? control.body).length).toBe(2);
   });
 });
+
+describe("Phase 7 review: department list pagination", () => {
+  it("compound cursor returns every complaint exactly once, even with identical timestamps", async () => {
+    const c = await makeUser();
+    const u = storage.getUserById(c.user.id)!;
+    for (let i = 0; i < 7; i++) storage.createComplaint({ category: "pothole", description: `p${i}`, location: "r", geo: { lat: 30.3, lng: 78 }, ward: "w", wardNumber: 1, district: "Dehradun", priority: "P3" }, u);
+    const same = "2026-11-01T10:00:00.000Z";
+    for (const x of storage.getComplaints()) x.submittedAt = same;
+    const tok = await deptToken("pwd");
+    const seen: string[] = [];
+    let cursor: string | null = null;
+    for (let i = 0; i < 10; i++) {
+      const r: { body: { complaints: Array<{ id: string }>; hasMore: boolean; nextCursor: string | null } } = await request(app()).get(`/api/dept/pwd/complaints?limit=3${cursor ? `&cursor=${cursor}` : ""}`).set(auth(tok));
+      seen.push(...r.body.complaints.map(x => x.id));
+      if (!r.body.hasMore) break;
+      cursor = r.body.nextCursor;
+    }
+    expect(seen).toHaveLength(7);
+    expect(new Set(seen).size).toBe(7);
+  });
+});

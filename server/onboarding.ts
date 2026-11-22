@@ -1,6 +1,11 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { parseTenantConfig, type TenantConfig } from "./tenancy";
+import { CATEGORIES } from "./ai/prompts";
+
+/** Department ids the SOS, police and disaster code paths depend on (review P7-2). */
+export const REQUIRED_DEPARTMENTS = ["police", "usdma"] as const;
+const fold = (v: string) => v.trim().replace(/\s+/g, " ").toLowerCase();
 
 /**
  * P7.1 tenant onboarding: CSV files → a complete, validated tenant config. Every problem is reported with its file
@@ -49,22 +54,35 @@ export function buildTenantConfig(dir: string, o: OnboardOptions): TenantConfig 
   const categoryDepartment: Record<string, string> = {};
   deps.forEach((d, i) => {
     if (!/^[a-z][a-z0-9_]{1,30}$/.test(d.id ?? "")) problems.push(`departments.csv row ${i + 2}: id must be lowercase letters/digits`);
+    if (departments[d.id]) problems.push(`departments.csv row ${i + 2}: duplicate department id "${d.id}"`);
     const categories = (d.categories ?? "").split("|").map(c => c.trim()).filter(Boolean);
+    for (const c of categories) if (!(CATEGORIES as readonly string[]).includes(c)) problems.push(`departments.csv row ${i + 2}: unknown category "${c}" (allowed: ${CATEGORIES.join(", ")})`);
+    if (!(Number(d.slaHours) > 0)) problems.push(`departments.csv row ${i + 2}: slaHours must be greater than 0`);
     departments[d.id] = { id: d.id, name: d.name, nameHindi: d.nameLocal || d.name, icon: d.icon || "🏛️", color: d.color || "#64748B", helpline: d.helpline || "112", slaHours: num("departments.csv", i, "slaHours", d.slaHours), categories };
     for (const c of categories) {
       if (categoryDepartment[c]) problems.push(`departments.csv row ${i + 2}: category "${c}" already belongs to ${categoryDepartment[c]}`);
       categoryDepartment[c] = d.id;
     }
   });
-  const districts = read("districts.csv").map((d, i) => ({ district: d.district, center: { lat: num("districts.csv", i, "lat", d.lat), lng: num("districts.csv", i, "lng", d.lng) } }));
+  for (const r of REQUIRED_DEPARTMENTS) if (deps.length && !departments[r]) problems.push(`departments.csv: a department with id "${r}" is required (SOS and emergency routing use it)`);
+  const districts = read("districts.csv").map((d, i) => ({ district: d.district.trim().replace(/\s+/g, " "), center: { lat: num("districts.csv", i, "lat", d.lat), lng: num("districts.csv", i, "lng", d.lng) } }));
+  const seenD = new Map<string, number>();
+  districts.forEach((d, i) => { const k = fold(d.district); if (seenD.has(k)) problems.push(`districts.csv row ${i + 2}: duplicate district "${d.district}" (row ${seenD.get(k)! + 2})`); else seenD.set(k, i); });
   const names = new Set(districts.map(d => d.district));
   if (!names.has(o.defaultDistrict)) problems.push(`--default-district "${o.defaultDistrict}" is not in districts.csv`);
   const wards = read("wards.csv").map((w, i) => {
     if (!names.has(w.district)) problems.push(`wards.csv row ${i + 2}: unknown district "${w.district}"`);
     return { name: w.name, number: num("wards.csv", i, "number", w.number), area: w.area, district: w.district, center: { lat: num("wards.csv", i, "lat", w.lat), lng: num("wards.csv", i, "lng", w.lng) }, pop: num("wards.csv", i, "pop", w.pop) };
   });
+  const wardNums = new Map<string, number>();
+  wards.forEach((w, i) => { const k = `${fold(w.district)}#${w.number}`; if (wardNums.has(k)) problems.push(`wards.csv row ${i + 2}: ward number ${w.number} repeats in ${w.district} (row ${wardNums.get(k)! + 2})`); else wardNums.set(k, i); });
+  const wardNames = new Set(wards.map(w => fold(w.name)));
+  const stationIds = new Set<string>();
   const policeStations = read("police_stations.csv").map((p, i) => {
     if (!names.has(p.district)) problems.push(`police_stations.csv row ${i + 2}: unknown district "${p.district}"`);
+    if (stationIds.has(p.id)) problems.push(`police_stations.csv row ${i + 2}: duplicate id "${p.id}"`);
+    stationIds.add(p.id);
+    if (p.ward && !wardNames.has(fold(p.ward))) problems.push(`police_stations.csv row ${i + 2}: unknown ward "${p.ward}"`);
     return { id: p.id, name: p.name, address: p.address, phone: p.phone, geo: { lat: num("police_stations.csv", i, "lat", p.lat), lng: num("police_stations.csv", i, "lng", p.lng) }, ward: p.ward, district: p.district };
   });
   const emergencyServices = read("emergency_services.csv", false).map((e, i) => {

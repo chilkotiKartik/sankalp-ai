@@ -1,4 +1,4 @@
-import { storage } from "../storage";
+import { storage, storeFor } from "../storage";
 import { config } from "../config";
 import { getDeptIdForCategory, DEPARTMENTS } from "../data/reference";
 import { wilson } from "./engine";
@@ -8,14 +8,16 @@ import type { Complaint } from "../types";
 export const RRR_DEFINITION = "Real Resolution Rate = cases the citizen confirmed fixed ÷ cases the department marked resolved (proof submitted). 95% Wilson interval; n shown. Small n means wide intervals.";
 
 /** Public aggregate: cached per tenant/query (it changes slowly; heavy public traffic must not load the server). */
-const cache = new Map<string, { at: number; rev: number; rows: ReturnType<typeof compute> }>();
+const cache = new Map<string, { at: number; rev: number; store: object; rows: ReturnType<typeof compute> }>();
 export function resolutionRates(by: "department" | "ward", district?: string, since?: number) {
   const key = `${storage.tenantId}|${by}|${district ?? ""}|${since ?? ""}`;
   const hit = cache.get(key);
   // Exact when idle (same revision); at most 5 s old under write load.
-  if (hit && (hit.rev === storage.revision || Date.now() - hit.at < 5_000)) return hit.rows;
+  // keyed on the store object too (review P7 low): a recreated store restarts its revision counter at 0
+  const store = storeFor(storage.tenantId);
+  if (hit && hit.store === store && (hit.rev === storage.revision || Date.now() - hit.at < 5_000)) return hit.rows;
   const rows = compute(by, district, since);
-  cache.set(key, { at: Date.now(), rev: storage.revision, rows });
+  cache.set(key, { at: Date.now(), rev: storage.revision, store, rows });
   if (cache.size > 500) cache.clear();
   return rows;
 }

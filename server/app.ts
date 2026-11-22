@@ -31,6 +31,7 @@ import { registerChannelRoutes } from "./routes/channels";
 import { registerSafetyRoutes, registerCheckInRoutes } from "./routes/safety";
 import { registerDisasterRoutes } from "./routes/disaster";
 import { registerYatraRoutes } from "./routes/yatra";
+import { registerTransparencyRoutes } from "./routes/transparency";
 
 const ROOT = process.cwd();
 /** Body size: 100 KB by default; media-carrying routes get 22 MB (≈15 MB binary after base64). */
@@ -256,6 +257,7 @@ export function createApp(): Built {
   registerCheckInRoutes(app);
   registerDisasterRoutes(app);
   registerYatraRoutes(app);
+  registerTransparencyRoutes(app);
 
   app.use("/api", (_req, _res, next) => next(new AppError(404, "NOT_FOUND", "Unknown API route")));
   setupStatic(app);

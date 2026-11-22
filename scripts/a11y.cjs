@@ -5,14 +5,15 @@
 const { chromium } = require("playwright");
 const fs = require("fs");
 const BASE = process.env.A11Y_BASE_URL || "http://localhost:5000";
-const PAGES = ["/web/portal", "/web/dept", "/web/rti", "/web/public", "/web/privacy", "/web/cpr", "/web/pcr", "/web/disaster"];
+const PAGES = ["/web/portal", "/web/dept", "/web/rti", "/web/public", "/web/privacy", "/web/cpr", "/web/pcr", "/web/disaster", "/web/transparency", "/widget/report", "/widget/ward-score"];
 const axe = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 (async () => {
   const b = await chromium.launch();
   let bad = 0;
   const report = [];
   for (const u of PAGES) {
-    const p = await b.newPage();
+    const ctx = await b.newContext({ bypassCSP: true }); // widgets have a strict CSP that would block the injected axe script
+    const p = await ctx.newPage();
     await p.goto(BASE + u, { waitUntil: "load" });
     await p.waitForTimeout(1200);
     await p.addScriptTag({ content: axe });
@@ -22,7 +23,7 @@ const axe = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
     bad += serious.length;
     report.push(`${u}: ${r.length ? r.map(v => `${v.impact}:${v.id}×${v.n}`).join(", ") : "no violations"}`);
     for (const v of r) console.log(`${u}\t${v.impact}\t${v.id}\t×${v.n}\t${v.help}\t${v.sample}`);
-    await p.close();
+    await ctx.close();
   }
   await b.close();
   console.log("\n" + report.join("\n"));

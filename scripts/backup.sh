@@ -29,14 +29,14 @@ fi
 echo "backup written: $OUT ($(du -h "$OUT" | cut -f1))"
 
 if [[ -n "${BACKUP_S3_URI:-}" ]]; then
-  command -v aws >/dev/null || { echo "aws CLI not installed — skipping upload" >&2; exit 0; }
+  command -v aws >/dev/null || { echo "aws CLI not installed — off-site upload FAILED (backup only local)" >&2; exit 1; }
   aws s3 cp "$OUT" "$BACKUP_S3_URI/" ${BACKUP_S3_ENDPOINT:+--endpoint-url "$BACKUP_S3_ENDPOINT"}
   aws s3 cp "$OUT.sha256" "$BACKUP_S3_URI/" ${BACKUP_S3_ENDPOINT:+--endpoint-url "$BACKUP_S3_ENDPOINT"}
   echo "uploaded to $BACKUP_S3_URI"
 fi
 # P7.4: second copy in another Indian region (e.g. Mumbai + Hyderabad). Same encrypted object, separate credentials allowed.
 if [[ -n "${BACKUP_S3_URI_2:-}" ]]; then
-  command -v aws >/dev/null || { echo "aws CLI not installed — skipping second-region upload" >&2; exit 0; }
+  command -v aws >/dev/null || { echo "aws CLI not installed — second-region upload FAILED" >&2; exit 1; }
   aws s3 cp "$OUT" "$BACKUP_S3_URI_2/" ${BACKUP_S3_ENDPOINT_2:+--endpoint-url "$BACKUP_S3_ENDPOINT_2"}
   aws s3 cp "$OUT.sha256" "$BACKUP_S3_URI_2/" ${BACKUP_S3_ENDPOINT_2:+--endpoint-url "$BACKUP_S3_ENDPOINT_2"}
   echo "uploaded to second region $BACKUP_S3_URI_2"

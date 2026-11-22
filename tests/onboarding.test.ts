@@ -50,3 +50,20 @@ describe("P7.1 tenant onboarding", () => {
     expect(() => buildTenantConfig(dir, { ...opts, defaultDistrict: "Missing" })).toThrow(/default-district/);
   });
 });
+
+describe("Phase 7 review: onboarding rejects malformed data", () => {
+  it("duplicates, unknown categories, bad SLA, unknown wards and missing emergency departments", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "onb2-"));
+    for (const f of fs.readdirSync("config/tenants/templates")) fs.copyFileSync(path.join("config/tenants/templates", f), path.join(dir, f));
+    fs.appendFileSync(path.join(dir, "departments.csv"), "pwd,PWD2,x,x,#000,1,-5,Pothole|made_up\n");
+    fs.appendFileSync(path.join(dir, "districts.csv"), "Example District ,21,79\n");
+    fs.appendFileSync(path.join(dir, "wards.csv"), "Dup Ward,1,X,Example District,20,78,1\n");
+    fs.appendFileSync(path.join(dir, "police_stations.csv"), "ps1,Again,Road,112,20,78,No Such Ward,Example District\n");
+    const p = (() => { try { buildTenantConfig(dir, opts); return ""; } catch (e) { return (e as OnboardError).problems.join("\n"); } })();
+    for (const want of ['duplicate department id "pwd"', 'unknown category "Pothole"', 'unknown category "made_up"', "slaHours must be greater than 0", "duplicate district", "ward number 1 repeats", 'duplicate id "ps1"', 'unknown ward "No Such Ward"']) expect(p).toContain(want);
+    const d2 = fs.mkdtempSync(path.join(os.tmpdir(), "onb3-"));
+    for (const f of fs.readdirSync("config/tenants/templates")) fs.copyFileSync(path.join("config/tenants/templates", f), path.join(d2, f));
+    fs.writeFileSync(path.join(d2, "departments.csv"), fs.readFileSync(path.join(d2, "departments.csv"), "utf8").split("\n").filter(l => !l.startsWith("usdma")).join("\n"));
+    expect(() => buildTenantConfig(d2, opts)).toThrow(/"usdma" is required/);
+  });
+});

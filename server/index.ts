@@ -55,9 +55,11 @@ async function main() {
   }
 
   const { server } = createApp();
-  startJobs();
+  // Review P7-8: JOBS=off for restore drills (no SMS retries/reminders from a copy of production).
+  if (process.env.JOBS !== "off") startJobs();
 
-  server.listen({ port: c.PORT, host: "0.0.0.0" }, () => {
+  // Review P7-6: on a VM behind nginx set HOST=127.0.0.1 so the app is never reachable directly (no spoofed X-Forwarded-For).
+  server.listen({ port: c.PORT, host: process.env.HOST || "0.0.0.0" }, () => {
     logger.info("listening", { port: c.PORT, demoMode: c.DEMO_MODE, textAI: c.textProvider, visionAI: c.visionProvider, env: c.NODE_ENV });
   });
 
