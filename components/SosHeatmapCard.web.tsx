@@ -12,7 +12,7 @@ interface Props {
 function buildEntries(sosAlerts: SOSAlert[]): SosHeatEntry[] {
   const map: Record<string, SosHeatEntry> = {};
   for (const a of sosAlerts) {
-    const d = (a as any).district || "Dehradun";
+    const d = (a as any).district || "Unknown district";
     if (!map[d]) map[d] = { district: d, total: 0, active: 0, womenSafety: 0, critical: 0 };
     map[d].total++;
     if (a.status === "active") map[d].active++;

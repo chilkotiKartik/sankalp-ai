@@ -53,7 +53,7 @@ export const cpgrams: GrievanceAdapter = {
 
 export const stateCmHelpline: GrievanceAdapter = {
   id: "cm-helpline",
-  name: "State CM Helpline (e.g. Uttarakhand 1905)",
+  name: "State CM Helpline",
   toExternal(c, { includeContact }) {
     return {
       source: "SANKALP", sourceTicket: c.ticketId, departmentCode: getDeptIdForCategory(c.category).toUpperCase(),

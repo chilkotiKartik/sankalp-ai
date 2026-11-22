@@ -8,7 +8,8 @@
     "tile.openstreetmap.org": "Development-only default map tiles (NODE_ENV=development); production must set MAP_TILE_URL (§11)"
   },
   "userInitiatedLinks": {
-    "www.openstreetmap.org": "Web fallback for 'open in maps' — opened only when the user taps it; Sankalp sends nothing"
+    "www.openstreetmap.org": "Web fallback for 'open in maps' — opened only when the user taps it; Sankalp sends nothing",
+    "airquality.cpcb.gov.in": "CPCB national AQI (Government of India), opened by the user from the home screen"
   },
   "nonNetwork": {
     "react.dev": "URL inside an error message string",

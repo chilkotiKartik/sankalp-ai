@@ -13,9 +13,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
+import { stateName, allDistricts } from "@/constants/districts";
+import { stateLanguages } from "@/constants/districts";
 
 const LEVEL_TITLES = ["", "Resident", "Active Resident", "Engaged Citizen", "Civic Advocate",
-  "Community Leader", "City Guardian", "Civic Champion", "Devbhoomi Hero", "Urban Warrior", "City Legend"];
+  "Community Leader", "City Guardian", "Civic Champion", "State Hero", "Urban Warrior", "City Legend"];
 
 const BADGE_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string; color: string }> = {
   new_citizen:    { icon: "leaf",             label: "New Citizen",   color: "#00A651" },
@@ -113,7 +115,7 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.idHeader}>
-              <Text style={styles.idGovLabel}>SANKALP AI · Government of Uttarakhand</Text>
+              <Text style={styles.idGovLabel}>{`SANKALP AI · ${stateName()}`}</Text>
               {user?.role === "admin" && (
                 <View style={styles.adminTag}>
                   <Ionicons name="shield-checkmark" size={10} color="#FF6B00" />
@@ -256,6 +258,28 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-down" size={10} color="#00A651" />
             </View>
           </Pressable>
+          {/* P9: switch state — accounts and complaints belong to one state, so this signs you out first. */}
+          <Pressable
+            style={[styles.settingRow, { borderTopWidth: 1, borderTopColor: "#F3F4F6", marginTop: 8, paddingTop: 8 }]}
+            accessibilityRole="button"
+            onPress={() => {
+              const go = async () => { await logout(); router.replace("/(auth)/state"); };
+              if (Platform.OS === "web") { go(); return; }
+              Alert.alert("Change state?", `You will be signed out of ${stateName()}. Each state has its own account and complaints.`, [
+                { text: "Cancel", style: "cancel" },
+                { text: "Change state", style: "destructive", onPress: go },
+              ]);
+            }}
+          >
+            <View style={[styles.settingIcon, { backgroundColor: "#FFF7ED" }]}>
+              <Ionicons name="map-outline" size={16} color="#FF9933" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>State / UT</Text>
+              <Text style={styles.settingDesc}>{stateName()}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
+          </Pressable>
         </View>
 
         {/* LANGUAGE MODAL */}
@@ -264,7 +288,7 @@ export default function ProfileScreen() {
             <View style={ls.langCard}>
               <Text style={ls.langTitle}>{t("lang.title")}</Text>
               <Text style={ls.langSub}>{t("lang.subtitle")}</Text>
-              {LANGUAGES.map(l => ({ ...l, flag: l.code === "en" ? "🇬🇧" : "🇮🇳", desc: l.needsReview ? `${l.label} · ${t("lang.needsReview")}` : l.label })).map(lang => (
+              {LANGUAGES.filter(l => l.code === "en" || l.code === "hi" || stateLanguages().includes(l.code)).map(l => ({ ...l, flag: l.code === "en" ? "🇬🇧" : "🇮🇳", desc: l.needsReview ? `${l.label} · ${t("lang.needsReview")}` : l.label })).map(lang => (
                 <Pressable
                   key={lang.code}
                   style={[ls.langOption, language === lang.code && ls.langOptionActive]}
@@ -375,7 +399,7 @@ export default function ProfileScreen() {
             </View>
             <View>
               <Text style={styles.billsTitle}>Pay Government Bills</Text>
-              <Text style={styles.billsSub}>ULB Tax · UJN Water · UPCL Electricity</Text>
+              <Text style={styles.billsSub}>Property Tax · Water · Electricity</Text>
             </View>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />

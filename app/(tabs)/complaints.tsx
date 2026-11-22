@@ -16,22 +16,23 @@ import { getApiUrl } from "@/lib/query-client";
 import { useApp, type Complaint } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { getSecure } from "@/lib/secure-session";
+import { deptForCategory } from "@/constants/districts";
 
 const CATS = [
-  { key: "pothole",      label: "Pothole",       icon: "alert-circle"        as const, color: "#F59E0B", bg: "#FFFBEB", dept: "PWD",    deptFull: "Public Works Dept." },
-  { key: "road_damage",  label: "Road Damage",   icon: "construct"           as const, color: "#D97706", bg: "#FEF3C7", dept: "PWD",    deptFull: "Public Works Dept." },
-  { key: "garbage",      label: "Garbage",       icon: "trash"               as const, color: "#EF4444", bg: "#FEF2F2", dept: "ULB",    deptFull: "Municipal Corporation" },
-  { key: "drain",        label: "Drain Block",   icon: "git-network"         as const, color: "#06B6D4", bg: "#F0FDFF", dept: "ULB",    deptFull: "Municipal Corporation" },
-  { key: "sewage",       label: "Sewage",        icon: "water-outline"       as const, color: "#64748B", bg: "#F8FAFC", dept: "ULB",    deptFull: "Municipal Corporation" },
-  { key: "water",        label: "Water Supply",  icon: "water"               as const, color: "#3B82F6", bg: "#EFF6FF", dept: "JAL",    deptFull: "Jal Sansthan" },
-  { key: "electricity",  label: "Electricity",   icon: "flash"               as const, color: "#8B5CF6", bg: "#F5F3FF", dept: "UPCL",   deptFull: "Power Corporation" },
-  { key: "streetlight",  label: "Streetlight",   icon: "bulb"                as const, color: "#F59E0B", bg: "#FFFBEB", dept: "UPCL",   deptFull: "Power Corporation" },
-  { key: "transformer",  label: "Transformer",   icon: "hardware-chip"       as const, color: "#7C3AED", bg: "#F5F3FF", dept: "UPCL",   deptFull: "Power Corporation" },
-  { key: "tree",         label: "Tree / Park",   icon: "leaf"                as const, color: "#00A651", bg: "#F0FFF4", dept: "Forest", deptFull: "Forest Department" },
-  { key: "noise",        label: "Noise/Nuisance",icon: "volume-high"         as const, color: "#EC4899", bg: "#FDF2F8", dept: "Police", deptFull: "Uttarakhand Police" },
-  { key: "health_hazard",label: "Health Hazard", icon: "medkit"              as const, color: "#DC2626", bg: "#FEF2F2", dept: "Health", deptFull: "Health & Family Welfare" },
-  { key: "disaster",     label: "Flood/Disaster",icon: "rainy"               as const, color: "#7C3AED", bg: "#F5F3FF", dept: "USDMA", deptFull: "Disaster Management" },
-  { key: "other",        label: "Other Issue",   icon: "ellipsis-horizontal" as const, color: "#6B7280", bg: "#F9FAFB", dept: "PWD",    deptFull: "Public Works Dept." },
+  { key: "pothole",      label: "Pothole",       icon: "alert-circle"        as const, color: "#F59E0B", bg: "#FFFBEB", get dept() { return deptForCategory("pothole").short; }, get deptFull() { return deptForCategory("pothole").name; } },
+  { key: "road_damage",  label: "Road Damage",   icon: "construct"           as const, color: "#D97706", bg: "#FEF3C7", get dept() { return deptForCategory("road_damage").short; }, get deptFull() { return deptForCategory("road_damage").name; } },
+  { key: "garbage",      label: "Garbage",       icon: "trash"               as const, color: "#EF4444", bg: "#FEF2F2", get dept() { return deptForCategory("garbage").short; }, get deptFull() { return deptForCategory("garbage").name; } },
+  { key: "drain",        label: "Drain Block",   icon: "git-network"         as const, color: "#06B6D4", bg: "#F0FDFF", get dept() { return deptForCategory("drain").short; }, get deptFull() { return deptForCategory("drain").name; } },
+  { key: "sewage",       label: "Sewage",        icon: "water-outline"       as const, color: "#64748B", bg: "#F8FAFC", get dept() { return deptForCategory("sewage").short; }, get deptFull() { return deptForCategory("sewage").name; } },
+  { key: "water",        label: "Water Supply",  icon: "water"               as const, color: "#3B82F6", bg: "#EFF6FF", get dept() { return deptForCategory("water").short; }, get deptFull() { return deptForCategory("water").name; } },
+  { key: "electricity",  label: "Electricity",   icon: "flash"               as const, color: "#8B5CF6", bg: "#F5F3FF", get dept() { return deptForCategory("electricity").short; }, get deptFull() { return deptForCategory("electricity").name; } },
+  { key: "streetlight",  label: "Streetlight",   icon: "bulb"                as const, color: "#F59E0B", bg: "#FFFBEB", get dept() { return deptForCategory("streetlight").short; }, get deptFull() { return deptForCategory("streetlight").name; } },
+  { key: "transformer",  label: "Transformer",   icon: "hardware-chip"       as const, color: "#7C3AED", bg: "#F5F3FF", get dept() { return deptForCategory("transformer").short; }, get deptFull() { return deptForCategory("transformer").name; } },
+  { key: "tree",         label: "Tree / Park",   icon: "leaf"                as const, color: "#00A651", bg: "#F0FFF4", get dept() { return deptForCategory("tree").short; }, get deptFull() { return deptForCategory("tree").name; } },
+  { key: "noise",        label: "Noise/Nuisance",icon: "volume-high"         as const, color: "#EC4899", bg: "#FDF2F8", get dept() { return deptForCategory("noise").short; }, get deptFull() { return deptForCategory("noise").name; } },
+  { key: "health_hazard",label: "Health Hazard", icon: "medkit"              as const, color: "#DC2626", bg: "#FEF2F2", get dept() { return deptForCategory("health_hazard").short; }, get deptFull() { return deptForCategory("health_hazard").name; } },
+  { key: "disaster",     label: "Flood/Disaster",icon: "rainy"               as const, color: "#7C3AED", bg: "#F5F3FF", get dept() { return deptForCategory("disaster").short; }, get deptFull() { return deptForCategory("disaster").name; } },
+  { key: "other",        label: "Other Issue",   icon: "ellipsis-horizontal" as const, color: "#6B7280", bg: "#F9FAFB", get dept() { return deptForCategory("other").short; }, get deptFull() { return deptForCategory("other").name; } },
 ];
 
 const PRIORITIES = [

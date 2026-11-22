@@ -10,6 +10,7 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { stateName, districtPhrase, allDistricts } from "@/constants/districts";
 
 const { width: W, height: H } = Dimensions.get("window");
 
@@ -44,8 +45,8 @@ const SLIDES = [
     avatar: { name: "Report in 30 seconds", role: "Illustration", photo: require("@/assets/images/indian_men_namaste.png") },
     badge: "🏛️",
     pill: "CIVIC TECH",
-    title: "Report Issues,\nTransform Uttarakhand",
-    sub: "File complaints for potholes, garbage, broken streetlights and more — in under 30 seconds. Track real-time resolution across 13 districts.",
+    get title() { return `Report Issues,\nTransform ${stateName()}`; },
+    get sub() { return `File complaints for potholes, garbage, broken streetlights and more — in under 30 seconds. Track real-time resolution across ${districtPhrase()}.`; },
     features: ["AI-powered complaint routing", "Real-time status tracking", "Ward health scoreboard"],
     featureIcons: ["hardware-chip", "navigate-circle", "bar-chart"] as const,
   },
@@ -67,8 +68,8 @@ const SLIDES = [
     badge: "🛡️",
     pill: "ALWAYS SAFE",
     title: "Women Safety\n& Emergency SOS",
-    sub: "One-tap SOS sends your location to the police control room. Access Uttarakhand emergency services — police 100, women helpline 1090.",
-    features: ["One-tap SOS broadcast", "Women helpline 1090", "Nearest police locator"],
+    get sub() { return `One-tap SOS sends your location to the police control room. Emergency 112 works everywhere in ${stateName()}; women helpline 181.`; },
+    features: ["One-tap SOS broadcast", "Women helpline 181", "Nearest police locator"],
     featureIcons: ["warning", "shield-checkmark", "location"] as const,
   },
 ];
@@ -102,7 +103,7 @@ function SlideView({ slide }: { slide: Slide }) {
 
       {/* Float stats */}
       <View style={sv.floatCard1}>
-        <Text style={sv.floatNum}>13</Text>
+        <Text style={sv.floatNum}>{allDistricts().length || "—"}</Text>
         <Text style={sv.floatLabel}>Districts</Text>
       </View>
       <View style={sv.floatCard2}>
@@ -167,7 +168,7 @@ export default function OnboardingScreen() {
           <View style={ob.brandIcon}><Text style={{ fontSize: 22 }}>🏛️</Text></View>
           <View>
             <Text style={ob.brandName}>SANKALP AI</Text>
-            <Text style={ob.brandGov}>Government of Uttarakhand</Text>
+            <Text style={ob.brandGov}>{stateName()}</Text>
           </View>
         </View>
         <Pressable onPress={handleSkip} style={ob.skipBtn}>

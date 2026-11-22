@@ -1,3 +1,4 @@
+import { tenant } from "../tenancy";
 import { requireConsent } from "./privacy";
 import { decodeBase64Payload, sniff } from "../lib/media";
 import { maskPII } from "../ai/pii";
@@ -86,7 +87,7 @@ export function registerAiRoutes(app: Express) {
     params: none, query: none,
     body: z.object({ imageBase64: z.string().min(16).max(22 * 1024 * 1024), category: z.enum(CATEGORIES).optional() }),
     handler: async ({ body }) => {
-      const prompt = `Identify the civic issue in this photo from Uttarakhand, India. Respond ONLY with JSON:
+      const prompt = `Identify the civic issue in this photo from ${tenant().stateLabel}, India. Respond ONLY with JSON:
 {"severity":"Low|Medium|High|Critical","issueType":"pothole|garbage|streetlight|water|drain|electricity|tree|other","description":"1-2 sentences","priority":"P1|P2|P3|P4"}`;
       const result = await vision(body.imageBase64, prompt);
       // Review P2-10: model output is validated against a strict schema; nothing else is passed through.

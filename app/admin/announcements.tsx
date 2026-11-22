@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useApp, type Announcement, type AnnouncementType } from "@/context/AppContext";
 import Colors from "@/constants/colors";
+import { stateName, districtPhrase } from "@/constants/districts";
 
 const TYPE_META: Record<AnnouncementType, { icon: keyof typeof Ionicons.glyphMap; color: string; label: string }> = {
   general:   { icon: "information-circle", color: Colors.blue,    label: "General" },
@@ -48,7 +49,7 @@ function PostModal({ visible, onClose, onPost }: {
     }
     setIsPosting(true);
     try {
-      await onPost({ title: title.trim(), body: body.trim(), type, department: department.trim() || "Government of Uttarakhand", priority });
+      await onPost({ title: title.trim(), body: body.trim(), type, department: department.trim() || `Government of ${stateName()}`, priority });
       resetForm();
       onClose();
     } catch (e: any) {
@@ -94,7 +95,7 @@ function PostModal({ visible, onClose, onPost }: {
             <Text style={styles.fieldLabel}>Department</Text>
             <TextInput
               style={styles.input}
-              placeholder="Government of Uttarakhand"
+              placeholder={`Government of ${stateName()}`}
               placeholderTextColor={Colors.textMuted}
               value={department}
               onChangeText={setDepartment}
@@ -268,7 +269,7 @@ export default function AdminAnnouncements() {
           <View style={styles.empty}>
             <Ionicons name="megaphone-outline" size={36} color={Colors.textMuted} />
             <Text style={styles.emptyTitle}>No announcements yet</Text>
-            <Text style={styles.emptySub}>Tap &quot;Post&quot; to publish a new announcement for Uttarakhand citizens</Text>
+            <Text style={styles.emptySub}>{`Tap "Post" to publish a new announcement for ${stateName()} citizens`}</Text>
             <Pressable onPress={() => setShowPost(true)} style={styles.emptyBtn}>
               <Ionicons name="add" size={16} color="#fff" />
               <Text style={styles.emptyBtnText}>Post First Announcement</Text>

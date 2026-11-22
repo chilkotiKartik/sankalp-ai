@@ -7,7 +7,7 @@ import {
   Modal, TextInput, Platform, ActivityIndicator, Alert, Vibration, Linking, AppState,
 } from "react-native";
 import * as FileSystem from "expo-file-system";
-import { getDistrictCenter } from "@/constants/districts";
+import { getDistrictCenter, stateName } from "@/constants/districts";
 
 class SOSErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: string }> {
   constructor(props: any) {
@@ -730,7 +730,7 @@ function SOSScreenInner() {
           await Notifications.scheduleNotificationAsync({
             content: {
               title: "🔥 Forest Fire SOS Sent",
-              body: "Forest Dept & USDMA notified. Move to safety immediately.",
+              body: "Forest Dept & State Disaster Mgmt notified. Move to safety immediately.",
               sound: true,
             },
             trigger: null,
@@ -878,7 +878,7 @@ function SOSScreenInner() {
               <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🔥</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={s.sheetTitle}>Report Forest Fire</Text>
-                <Text style={s.sheetSub}>High-priority → Forest Dept & USDMA Disaster Mgmt</Text>
+                <Text style={s.sheetSub}>High-priority → Forest Dept & State Disaster Mgmt Disaster Mgmt</Text>
               </View>
             </LinearGradient>
             <View style={{ padding: 20, gap: 14 }}>
@@ -897,7 +897,7 @@ function SOSScreenInner() {
                 multiline
               />
               <View style={{ flexDirection: "row", gap: 8 }}>
-                {[{ label: "Forest Helpline", num: "1800-180-4191", color: "#22C55E" }, { label: "USDMA", num: "1070", color: "#F59E0B" }].map(item => (
+                {[{ label: "Emergency", num: "112", color: "#22C55E" }, { label: "Disaster (SDMA)", num: "1070", color: "#F59E0B" }].map(item => (
                   <Pressable key={item.num} onPress={() => Linking.openURL(`tel:${item.num}`)}
                     style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, backgroundColor: item.color + "20", borderRadius: 8, paddingVertical: 8, borderWidth: 1, borderColor: item.color + "40" }}>
                     <Ionicons name="call" size={12} color={item.color} />
@@ -994,7 +994,7 @@ function SOSScreenInner() {
               <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🚨</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={s.sheetTitle}>Confirm SOS Alert</Text>
-                <Text style={s.sheetSub}>Uttarakhand Police & Command Center notified instantly</Text>
+                <Text style={s.sheetSub}>{`${stateName()} Police & Command Center notified instantly`}</Text>
               </View>
             </LinearGradient>
 
@@ -1074,7 +1074,7 @@ function SOSScreenInner() {
                 <Text style={s.gnctText}>🏛️ Govt of UK · SANKALP AI · Emergency Command Center</Text>
               </View>
               <Text style={s.headerTitle}>SOS Emergency</Text>
-              <Text style={s.headerSub}>Uttarakhand Rapid Response System · 24/7 Active</Text>
+              <Text style={s.headerSub}>{`${stateName()} Rapid Response System · 24/7 Active`}</Text>
             </View>
             {activeCount > 0 && (
               <View style={s.activeBadge}>
@@ -1229,13 +1229,13 @@ function SOSScreenInner() {
           <View style={s.helpGrid}>
             {[
               { num: "112",  label: "Emergency",      color: "#EF4444" },
-              { num: "100",  label: "UK Police",      color: "#3B82F6" },
+              { num: "100",  label: "Police",         color: "#3B82F6" },
               { num: "108",  label: "Ambulance",      color: "#22C55E" },
               { num: "101",  label: "Fire Brigade",   color: "#F59E0B" },
-              { num: "1090", label: "Women Safety",   color: "#8B5CF6" },
-              { num: "181",  label: "UK Women",       color: "#EC4899" },
-              { num: "102",  label: "CATS Ambulance", color: "#22C55E" },
-              { num: "1095", label: "Traffic",        color: "#06B6D4" },
+              { num: "181",  label: "Women Helpline", color: "#EC4899" },
+              { num: "1091", label: "Women (Police)", color: "#8B5CF6" },
+              { num: "1070", label: "Disaster",       color: "#22C55E" },
+              { num: "1033", label: "Highway",        color: "#06B6D4" },
               { num: "1098", label: "Child Line",     color: "#F59E0B" },
             ].map(item => (
               <Pressable key={item.num} onPress={() => Linking.openURL(`tel:${item.num}`)}
@@ -1297,7 +1297,7 @@ function SOSScreenInner() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.psName}>{van.vanNumber || `PCR-${i + 1}`}  ·  {van.officerName || "On Patrol"}</Text>
-                  <Text style={s.psAddr}>{van.zone || van.district || "Uttarakhand"}</Text>
+                  <Text style={s.psAddr}>{van.zone || van.district || stateName()}</Text>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
                     <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: van.status === "responding" ? "#EF4444" : "#4ADE80" }} />
                     <Text style={{ color: van.status === "responding" ? "#EF4444" : "#4ADE80", fontSize: 9, fontFamily: "Inter_700Bold" }}>
@@ -1532,7 +1532,7 @@ function SOSScreenInner() {
               <View style={{ flex: 1 }}>
                 <Text style={{ color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" }}>Forest Fire SOS</Text>
                 {forestSent
-                  ? <Text style={{ color: "#4ADE80", fontSize: 11, fontFamily: "Inter_500Medium", marginTop: 2 }}>✅ Alert sent — Forest Dept & USDMA notified</Text>
+                  ? <Text style={{ color: "#4ADE80", fontSize: 11, fontFamily: "Inter_500Medium", marginTop: 2 }}>✅ Alert sent — Forest Dept & State Disaster Mgmt notified</Text>
                   : <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>High-priority alert to Forest Dept & Disaster Mgmt</Text>
                 }
               </View>
@@ -1540,7 +1540,7 @@ function SOSScreenInner() {
             {!forestSent ? (
               <>
                 <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
-                  {[{ label: "Forest Helpline", num: "1800-180-4191", color: "#22C55E" }, { label: "USDMA", num: "1070", color: "#F59E0B" }].map(item => (
+                  {[{ label: "Emergency", num: "112", color: "#22C55E" }, { label: "Disaster (SDMA)", num: "1070", color: "#F59E0B" }].map(item => (
                     <Pressable key={item.num} onPress={() => Linking.openURL(`tel:${item.num}`)}
                       style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, backgroundColor: item.color + "20", borderRadius: 8, paddingVertical: 7, borderWidth: 1, borderColor: item.color + "40" }}>
                       <Ionicons name="call" size={11} color={item.color} />
@@ -1562,7 +1562,7 @@ function SOSScreenInner() {
                   <Ionicons name="checkmark-circle" size={16} color="#4ADE80" />
                   <Text style={{ color: "#4ADE80", fontSize: 12, fontFamily: "Inter_700Bold" }}>Forest Fire Alert Active</Text>
                 </View>
-                <Text style={{ color: "#6EE7B7", fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 }}>Forest Department & USDMA Disaster Management have been notified and are responding.</Text>
+                <Text style={{ color: "#6EE7B7", fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 }}>Forest Department & State Disaster Management Disaster Management have been notified and are responding.</Text>
                 <Text style={{ color: "#4ADE80", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>📍 GPS location being shared live with responders.</Text>
               </View>
             )}
@@ -1578,7 +1578,7 @@ function SOSScreenInner() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" }}>Request PCR Patrol Help</Text>
-              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>12 patrol vans active across Uttarakhand</Text>
+              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>{`Nearest patrol van in ${stateName()}, dispatched by the control room`}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.5)" />
           </LinearGradient>
@@ -1590,7 +1590,7 @@ function SOSScreenInner() {
               <View style={[s.cardHeadIcon, { backgroundColor: "#EF444420" }]}>
                 <Ionicons name="warning" size={14} color="#EF4444" />
               </View>
-              <Text style={s.cardTitle}>Active Alerts in Uttarakhand</Text>
+              <Text style={s.cardTitle}>{`Active Alerts in ${stateName()}`}</Text>
             </View>
             {sosAlerts.filter(a => a.status !== "resolved").slice(0, 5).map(alert => {
               const liveGeo = alert.liveGeo || alert.geo;

@@ -9,11 +9,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
-import UttarakhandMap, { type MapFilter, type EmergencyServiceMarker } from "@/components/UttarakhandMap";
+import StateMap, { type MapFilter, type EmergencyServiceMarker } from "@/components/StateMap";
 import type { GeoPoint } from "@/context/AppContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiUrl } from "@/lib/query-client";
-import { getDistrictCenter } from "@/constants/districts";
+import { getDistrictCenter, stateName } from "@/constants/districts";
 
 const FILTERS: { key: MapFilter; label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }[] = [
   { key: "all",        label: "All",       icon: "apps-outline",    color: "#6B7280", bg: "#F3F4F6" },
@@ -150,7 +150,7 @@ export default function MapScreen() {
         <View style={ms.headerBg} />
         <View style={ms.headerContent}>
           <View>
-            <Text style={ms.headerTitle}>Uttarakhand Map</Text>
+            <Text style={ms.headerTitle}>{`${stateName()} Map`}</Text>
             <View style={ms.liveRow}>
               <View style={ms.liveDot} />
               <Text style={ms.liveText}>{complaints.length} markers · Live</Text>
@@ -185,7 +185,7 @@ export default function MapScreen() {
 
       {/* Map */}
       <View style={ms.mapWrap}>
-        <UttarakhandMap
+        <StateMap
           complaints={complaints}
           sosAlerts={sosAlerts}
           workers={workers}

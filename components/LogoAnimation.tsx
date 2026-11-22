@@ -183,7 +183,7 @@ export function LogoAnimation({ size = "lg", showText = true, onAnimationEnd }: 
         <Animated.View style={[styles.textBlock, { opacity: textFade }]}>
           <Text style={[styles.appName, !isLarge && styles.appNameSm]}>SANKALP AI</Text>
           {isLarge && (
-            <Text style={styles.tagline}>Uttarakhand&apos;s Civic Nervous System</Text>
+            <Text style={styles.tagline}>India&apos;s Civic Nervous System</Text>
           )}
         </Animated.View>
       )}

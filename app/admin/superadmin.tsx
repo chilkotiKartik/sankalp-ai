@@ -12,6 +12,7 @@ import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 import { useAuth } from "@/context/AuthContext";
 import { getSecure } from "@/lib/secure-session";
+import { stateName, districtPhrase } from "@/constants/districts";
 
 interface DistrictStat {
   district: string;
@@ -212,7 +213,7 @@ export default function SuperAdminScreen() {
           </Pressable>
           <View style={cs.headerTitle}>
             <Text style={cs.headerTitleText}>Super Admin View</Text>
-            <Text style={cs.headerSub}>All 13 Districts · Uttarakhand</Text>
+            <Text style={cs.headerSub}>{`All ${districtPhrase()} · ${stateName()}`}</Text>
           </View>
         </View>
         {/* Tricolor Bar */}
@@ -225,7 +226,7 @@ export default function SuperAdminScreen() {
 
       {/* State Overview */}
       <LinearGradient colors={[Colors.saffron + "22", Colors.saffron + "08"]} style={cs.overviewCard}>
-        <Text style={cs.overviewTitle}>Uttarakhand State Overview</Text>
+        <Text style={cs.overviewTitle}>{`${stateName()} State Overview`}</Text>
         <View style={cs.overviewGrid}>
           {[
             { label: "Total Reports", value: totalComplaints.toLocaleString("en-IN"), icon: "document-text" as const, color: Colors.blue },

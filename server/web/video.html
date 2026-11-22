@@ -123,7 +123,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060d1a;font-family:
     <a href="/web/pcr">🚨 PCR</a>
     <a href="/web/public">📊 Public</a>
     <a href="/">← Home</a>
-    <button id="voiceBtn" onclick="toggleVoice()" style="background:rgba(255,153,51,.12);border:1px solid rgba(255,153,51,.35);border-radius:7px;color:var(--or);font-size:12px;padding:5px 12px;cursor:pointer;font-weight:700;transition:all .2s">🔊 Voice ON</button>
+    <button id="voiceBtn" style="background:rgba(255,153,51,.12);border:1px solid rgba(255,153,51,.35);border-radius:7px;color:var(--or);font-size:12px;padding:5px 12px;cursor:pointer;font-weight:700;transition:all .2s">🔊 Voice ON</button>
   </div>
 </div>
 
@@ -138,10 +138,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060d1a;font-family:
 
   <!-- SCENE 0: HERO -->
   <div class="scene active" data-dur="7000">
-    <div class="v-ticker"><div class="v-dot"></div> LIVE · Government of Uttarakhand</div>
+    <div class="v-ticker"><div class="v-dot"></div> LIVE · For every Indian state</div>
     <div class="scene-tag">Introducing</div>
     <div class="scene-title">SANKALP <span>AI</span><br/>सरकार आपके द्वार</div>
-    <div class="scene-desc">The unified civic governance platform bringing all of Uttarakhand's government services into one intelligent, real-time dashboard — for citizens, departments, and administrators.</div>
+    <div class="scene-desc">The unified civic governance platform bringing a state's government services into one intelligent, real-time dashboard — for citizens, departments, and administrators.</div>
     <div class="stat-row">
       <div class="stat-pill"><div class="stat-n">13</div><div class="stat-l">Districts</div></div>
       <div class="stat-pill"><div class="stat-n">8</div><div class="stat-l">Departments</div></div>
@@ -198,7 +198,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060d1a;font-family:
   <!-- SCENE 3: LIVE MAP & PCR -->
   <div class="scene" data-dur="7000">
     <div class="scene-tag">PCR Command · Safety</div>
-    <div class="scene-title">Real-Time Safety<br/><span>Across Uttarakhand</span></div>
+    <div class="scene-title">Real-Time Safety<br/><span>Across India</span></div>
     <div class="scene-desc">The PCR Command portal tracks all police patrols, emergency incidents, and SOS alerts live on an interactive map — with instant dispatch and women safety features.</div>
     <div class="map-demo">
       <div class="map-grid"></div>
@@ -219,9 +219,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060d1a;font-family:
   <div class="scene" data-dur="7000">
     <div class="scene-tag">8 Departments · One Platform</div>
     <div class="scene-title">Every Department,<br/><span>Connected Live</span></div>
-    <div class="scene-desc">From roads to water supply, from forest conservation to disaster management — all 8 Uttarakhand departments receive real-time complaint streams via SSE.</div>
+    <div class="scene-desc">From roads to water supply, from forest conservation to disaster management — every state department receive real-time complaint streams via SSE.</div>
     <div class="dept-row">
-      {["🏗️ PWD — Roads","🗑️ ULB — Sanitation","💧 Jal Sansthan","⚡ UPCL — Power","🌳 Forest Dept","🏥 Health","🆘 USDMA","🚔 UK Police"].map((d,i)=>`<div class="dept-pill" style="animation-delay:${i*.08}s">${d}</div>`).join('')}
+      {["🏗️ PWD — Roads","🗑️ ULB — Sanitation","💧 Water Supply","⚡ Power","🌳 Forest Dept","🏥 Health","🆘 Disaster Mgmt","🚔 Police"].map((d,i)=>`<div class="dept-pill" style="animation-delay:${i*.08}s">${d}</div>`).join('')}
     </div>
   </div>
 
@@ -268,10 +268,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060d1a;font-family:
 
   <!-- SCENE 7: FINAL CTA -->
   <div class="scene" data-dur="99999">
-    <div class="v-ticker"><div class="v-dot"></div> Live Now · All 13 Uttarakhand Districts</div>
-    <div class="scene-tag">Government of Uttarakhand</div>
+    <div class="v-ticker"><div class="v-dot"></div> Live Now · Every District, Every State</div>
+    <div class="scene-tag">For every Indian state</div>
     <div class="scene-title">SANKALP <span>AI</span><br/>सरकार आपके द्वार</div>
-    <div class="scene-desc" style="margin-bottom:28px">Real-time civic governance. AI-powered complaint routing. 24/7 emergency response. Transparent RTI filing. Unified across all 8 departments and 13 districts.</div>
+    <div class="scene-desc" style="margin-bottom:28px">Real-time civic governance. AI-powered complaint routing. 24/7 emergency response. Transparent RTI filing. Unified across every department and district.</div>
     <div class="cta-links">
       <a class="cta-link cta-primary" href="/web/portal">🏛️ Open Citizen Portal</a>
       <a class="cta-link cta-ghost" href="/web/pcr">🚨 PCR Command</a>
@@ -285,8 +285,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060d1a;font-family:
 
 <!-- Controls -->
 <div class="ctrl">
-  <button class="ctrl-btn ctrl-skip" id="prevBtn" onclick="changeScene(-1)">← Prev</button>
-  <button class="ctrl-btn ctrl-next" id="nextBtn" onclick="changeScene(1)">Next →</button>
+  <button class="ctrl-btn ctrl-skip" id="prevBtn">← Prev</button>
+  <button class="ctrl-btn ctrl-next" id="nextBtn">Next →</button>
 </div>
 
 <script>
@@ -304,7 +304,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060d1a;font-family:
 
 // Populate dept pills in scene 4
 (function(){
-  const depts=["🏗️ PWD — Roads","🗑️ ULB — Sanitation","💧 Jal Sansthan","⚡ UPCL — Power","🌳 Forest Dept","🏥 Health Dept","🆘 USDMA","🚔 UK Police"];
+  const depts=["🏗️ PWD — Roads","🗑️ ULB — Sanitation","💧 Water Supply","⚡ Power","🌳 Forest Dept","🏥 Health Dept","🆘 Disaster Mgmt","🚔 Police"];
   const rows=document.querySelectorAll('.dept-row');
   rows.forEach(row=>{
     row.innerHTML='';
@@ -336,14 +336,14 @@ function getDur(idx){return parseInt(scenes[idx].dataset.dur)||6000;}
 
 /* ── VOICE NARRATION (defined before goTo so it's available) ─── */
 const NARRATION=[
-  "Welcome to SANKALP AI — सरकार आपके द्वार. SANKALP AI is the unified civic governance platform for Uttarakhand. It connects all 13 districts, 8 government departments, citizens, administrators, and police — in real time, powered by artificial intelligence.",
+  "Welcome to SANKALP AI — सरकार आपके द्वार. SANKALP AI is the unified civic governance platform for every Indian state. It connects every district and government department, citizens, administrators, and police — in real time, powered by artificial intelligence.",
   "The problem is clear. Roads break and nobody fixes them. Water stops and nobody listens. Street lights fail and nobody cares. Citizens have no easy way to report, track, or hold departments accountable. SANKALP AI changes all of that — forever.",
   "Here is how it works for citizens. You report a civic issue — a pothole, water outage, garbage — from your mobile phone in seconds. Our AI automatically routes it to the right department with a priority score. A field worker is dispatched within the SLA window. You track every update in real time, verify the fix, and close the complaint yourself.",
-  "The Police Command and Response portal gives law enforcement a real-time view of all Uttarakhand. Patrol vans are tracked live on the map. Every SOS alert is instantly dispatched to the nearest unit. Women safety triggers get highest priority with automatic audio recording and live monitoring.",
-  "SANKALP AI connects all 8 government departments on a single platform. PWD for roads, ULB for sanitation, Jal Sansthan for water, UPCL for power, Forest Department, Health Services, USDMA Disaster Management, and Uttarakhand Police — all receiving live complaint streams.",
+  "The Police Command and Response portal gives law enforcement a real-time view of the whole state. Patrol vans are tracked live on the map. Every SOS alert is instantly dispatched to the nearest unit. Women safety triggers get highest priority with automatic audio recording and live monitoring.",
+  "SANKALP AI connects every government department on a single platform. PWD for roads, ULB for sanitation, the water board for water, the power company for electricity, Forest Department, Health Services, State Disaster Management, and Uttarakhand Police — all receiving live complaint streams.",
   "Citizens can now exercise their Right to Information with full AI assistance. Simply describe what information you need and our AI generates a legally correct RTI application in seconds. The 30-day response timer is tracked automatically. Every government department is held accountable.",
-  "SANKALP AI is built for everyone. Citizens file complaints, send SOS alerts, and file RTIs. Department staff receive live alerts and manage field workers. District administrators get a war room dashboard with full analytics. And PCR Command monitors safety across all 13 districts.",
-  "SANKALP AI is live now — across all 13 districts of Uttarakhand. Real-time civic governance. AI-powered complaint routing. 24-7 emergency response. Transparent RTI filing. This is the future of governance — transparent, fast, and citizen-first. Welcome to SANKALP AI.",
+  "SANKALP AI is built for everyone. Citizens file complaints, send SOS alerts, and file RTIs. Department staff receive live alerts and manage field workers. District administrators get a war room dashboard with full analytics. And PCR Command monitors safety across every district.",
+  "SANKALP AI is live now — across every district of every Indian state. Real-time civic governance. AI-powered complaint routing. 24-7 emergency response. Transparent RTI filing. This is the future of governance — transparent, fast, and citizen-first. Welcome to SANKALP AI.",
 ];
 let voiceOn=true;
 function toggleVoice(){
@@ -425,6 +425,10 @@ document.addEventListener('touchend',e=>{
 document.querySelectorAll('.dot')[0]&&document.querySelectorAll('.dot')[0].classList.add('active');
 startProgress();
 setTimeout(()=>speakScene(0),900);
+// CSP forbids inline handlers: wire the controls here.
+document.getElementById('voiceBtn').addEventListener('click',toggleVoice);
+document.getElementById('prevBtn').addEventListener('click',()=>changeScene(-1));
+if(!document.getElementById('nextBtn').onclick)document.getElementById('nextBtn').onclick=()=>changeScene(1);
 </script>
 </body>
 </html>

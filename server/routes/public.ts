@@ -4,10 +4,23 @@ import { storage, DEPARTMENTS } from "../storage";
 import { DISTRICT_NAMES, SLA_HOURS } from "../data/reference";
 import { TERMINAL } from "../domain/complaintState";
 import { config } from "../config";
-import { tenant } from "../tenancy";
+import { tenant, tenantIds, stateRegistry } from "../tenancy";
 import { aiStatus } from "../ai/gateway";
 import { route, none } from "../lib/route";
 import { readiness } from "../health";
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+/** P9.2 boundaries (config/geo, built by scripts/build-geo.py). Read once per file; © OpenStreetMap contributors (ODbL). */
+const geoCache = new Map<string, string | null>();
+function geoFile(name: string): string | null {
+  if (!/^[a-z0-9-]+$/.test(name)) return null;
+  if (!geoCache.has(name)) {
+    const f = path.resolve(process.cwd(), "config", "geo", `${name}.json`);
+    geoCache.set(name, fs.existsSync(f) ? fs.readFileSync(f, "utf8") : null);
+  }
+  return geoCache.get(name)!;
+}
 
 /**
  * Explicitly public routes. They return AGGREGATES ONLY — no names, phones or exact citizen coordinates.
@@ -27,8 +40,54 @@ export function registerPublicRoutes(app: Express) {
     params: none, query: none, body: none,
     handler: () => {
       const t = tenant();
+      // P9: everything a client needs to render ANY state — no state constants in the app or portals.
       return { demoMode: config().DEMO_MODE, mapTileUrl: config().mapTileUrl, ai: aiStatus(), districts: [...DISTRICT_NAMES], slaHours: { ...SLA_HOURS },
-        tenant: { id: t.id, name: t.name, nameLocal: t.nameLocal, languages: t.languages, helplines: t.helplines, mapBounds: t.mapBounds, grievanceOfficer: t.grievanceOfficer, features: t.features } };
+        tenant: {
+          id: t.id, name: t.name, nameLocal: t.nameLocal, stateLabel: t.stateLabel, coverage: t.coverage, ticketPrefix: t.ticketPrefix,
+          languages: t.languages, helplines: t.helplines, mapBounds: t.mapBounds, grievanceOfficer: t.grievanceOfficer, features: t.features,
+          defaultDistrict: t.defaultDistrict,
+          districts: t.districts.map(d => ({ name: d.district, center: d.center })),
+          departments: Object.values(t.departments).map(d => ({ id: d.id, name: d.name, nameLocal: d.nameHindi, icon: d.icon, color: d.color, helpline: d.helpline, categories: d.categories })),
+          emergencyServices: t.emergencyServices.map(e => ({ id: e.id, type: e.type, name: e.name, district: e.district, phone: e.phone, geo: e.geo })),
+          policeStations: t.policeStations.map(p => ({ id: p.id, name: p.name, district: p.district, phone: p.phone, geo: p.geo })),
+        } };
+    },
+  });
+
+  // P9.2: district boundaries of the selected state, and the outline of every state/UT, for the maps.
+  route(app, {
+    method: "get", path: "/api/public/geo/districts", auth: "public", permission: "public.config",
+    params: none, query: none, body: none,
+    handler: ({ res }) => {
+      const g = geoFile(tenant().id);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.setHeader("Vary", "X-Tenant, Host");
+      res.type("application/geo+json").send(g ?? JSON.stringify({ type: "FeatureCollection", features: [] }));
+      return undefined;
+    },
+  });
+  route(app, {
+    method: "get", path: "/api/public/geo/states", auth: "public", permission: "public.config",
+    params: none, query: none, body: none,
+    handler: ({ res }) => {
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.type("application/geo+json").send(geoFile("india-states") ?? JSON.stringify({ type: "FeatureCollection", features: [] }));
+      return undefined;
+    },
+  });
+
+  // P9: the state picker. Every Indian state/UT; `coverage` says whether district-level data is imported yet.
+  route(app, {
+    method: "get", path: "/api/public/tenants", auth: "public", permission: "public.config",
+    params: none, query: none, body: none,
+    handler: ({ res }) => {
+      res.setHeader("Cache-Control", "public, max-age=300");
+      const reg = new Map(stateRegistry().map(r => [r.id, r]));
+      return tenantIds().map(id => {
+        const t = tenant(id), r = reg.get(id);
+        return { id, name: t.name, nameLocal: t.nameLocal ?? t.name, type: r?.type ?? "state", coverage: t.coverage, capital: r?.capital ?? t.defaultDistrict,
+          center: t.mapBounds.center, bounds: { south: t.mapBounds.south, west: t.mapBounds.west, north: t.mapBounds.north, east: t.mapBounds.east }, languages: t.languages, ticketPrefix: t.ticketPrefix, districtCount: t.districts.length };
+      }).sort((a, b) => a.name.localeCompare(b.name));
     },
   });
 

@@ -12,6 +12,7 @@ import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 import { useApp } from "@/context/AppContext";
 import { getSecure } from "@/lib/secure-session";
+import { stateName, districtPhrase } from "@/constants/districts";
 
 interface EmergencyService {
   id: string;
@@ -40,7 +41,7 @@ const EMERGENCY_NUMBERS = [
   { label: "Ambulance",   number: "108", icon: "car" as const,           color: "#EF4444" },
   { label: "Fire",        number: "101", icon: "flame" as const,         color: "#F97316" },
   { label: "Disaster",    number: "1070", icon: "warning" as const,      color: "#F59E0B" },
-  { label: "Women Help",  number: "1090", icon: "female" as const,       color: "#EC4899" },
+  { label: "Women Help",  number: "181", icon: "female" as const,       color: "#EC4899" },
   { label: "Child Help",  number: "1098", icon: "happy" as const,        color: "#8B5CF6" },
   { label: "Water Emrg.", number: "1916", icon: "water" as const,        color: "#06B6D4" },
   { label: "COVID Help",  number: "104",  icon: "medical" as const,      color: "#00A651" },
@@ -154,7 +155,7 @@ export default function EmergencyScreen() {
         </Pressable>
         <View style={cs.headerTitle}>
           <Text style={cs.headerTitleText}>Emergency Services</Text>
-          <Text style={cs.headerSub}>Uttarakhand Directory</Text>
+          <Text style={cs.headerSub}>{`${stateName()} Directory`}</Text>
         </View>
         <View style={cs.emergencyBadge}>
           <Ionicons name="medkit" size={18} color={Colors.red} />

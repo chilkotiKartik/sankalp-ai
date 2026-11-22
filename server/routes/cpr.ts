@@ -1,6 +1,6 @@
 import { openSse, sseKey } from "../lib/sse";
 import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
-import { currentTenantId } from "../tenancy";
+import { currentTenantId, tenant } from "../tenancy";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage, cprEmitter, type SafetyIncident } from "../storage";
@@ -155,11 +155,11 @@ export function registerCprRoutes(app: Express) {
     method: "get", path: "/api/cpr/emergency-services", auth: "public", permission: "public.reference",
     params: none, query: none, body: none,
     handler: () => [
-      { id: "police", name: "Uttarakhand Police", type: "police", icon: "🚔", helpline: "100", helpline2: "112", description: "Police Emergency", color: "#3B82F6" },
+      { id: "police", name: `${tenant().stateLabel} Police`, type: "police", icon: "🚔", helpline: "100", helpline2: "112", description: "Police Emergency", color: "#3B82F6" },
       { id: "fire", name: "Fire Brigade", type: "fire", icon: "🔥", helpline: "101", helpline2: "112", description: "Fire & Rescue", color: "#EF4444" },
       { id: "ambulance", name: "Ambulance (108)", type: "medical", icon: "🚑", helpline: "108", helpline2: "104", description: "Medical Emergency", color: "#10B981" },
-      { id: "women", name: "Women Helpline", type: "women", icon: "🛡️", helpline: "1090", helpline2: "181", description: "Women Safety & Support", color: "#8B5CF6" },
-      { id: "disaster", name: "USDMA Disaster", type: "disaster", icon: "🆘", helpline: "1070", helpline2: "112", description: "Disaster Management", color: "#DC2626" },
+      { id: "women", name: "Women Helpline", type: "women", icon: "🛡️", helpline: "181", helpline2: "1091", description: "Women Safety & Support", color: "#8B5CF6" },
+      { id: "disaster", name: tenant().departments.usdma?.name ?? "State Disaster Management Authority", type: "disaster", icon: "🆘", helpline: "1070", helpline2: "112", description: "Disaster Management", color: "#DC2626" },
       { id: "child", name: "Child Helpline", type: "child", icon: "👶", helpline: "1098", helpline2: "112", description: "Child Safety & Support", color: "#F97316" },
     ],
   });

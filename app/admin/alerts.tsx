@@ -11,6 +11,7 @@ import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
 import { useApp, type SOSAlert } from "@/context/AppContext";
+import { stateName, districtPhrase } from "@/constants/districts";
 
 const SOS_META: Record<string, { label: string; icon: string; color: string; priority: string }> = {
   gas_leak:        { label: "Gas Leak",        icon: "🔴", color: "#F59E0B", priority: "P1-CRITICAL" },
@@ -590,7 +591,7 @@ export default function AdminAlerts() {
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={ms.headerTitle}>SOS Command Center</Text>
-            <Text style={ms.headerSub}>Uttarakhand Emergency Response · Live GPS Tracking</Text>
+            <Text style={ms.headerSub}>{`${stateName()} Emergency Response · Live GPS Tracking`}</Text>
           </View>
           {active.length > 0 && (
             <Animated.View style={[ms.activeBadge, { opacity: flashBadge }]}>

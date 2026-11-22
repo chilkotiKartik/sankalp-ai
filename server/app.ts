@@ -8,7 +8,7 @@ import * as path from "node:path";
 import * as http from "node:http";
 import { randomUUID } from "node:crypto";
 import { config } from "./config";
-import { resolveTenantFromRequest, runInTenant } from "./tenancy";
+import { resolveTenantFromRequest, runInTenant, tenant } from "./tenancy";
 import { errorHandler, AppError } from "./lib/errors";
 import { logger } from "./lib/logger";
 import { dirs } from "./lib/media";
@@ -131,7 +131,17 @@ function portalFile(file: string) {
   const full = path.join(ROOT, "server", "web", file);
   return (_req: Request, res: Response) => {
     const html = compiledPortal(full);
-    const cfg = { demoMode: config().DEMO_MODE, mapTileUrl: config().mapTileUrl };
+    const t = tenant();
+    // P9: the selected state's public config, so no portal hard-codes a state's districts, departments or name.
+    const cfg = {
+      demoMode: config().DEMO_MODE, mapTileUrl: config().mapTileUrl,
+      tenant: {
+        id: t.id, name: t.name, nameLocal: t.nameLocal ?? t.name, stateLabel: t.stateLabel, coverage: t.coverage, ticketPrefix: t.ticketPrefix,
+        mapBounds: t.mapBounds, helplines: t.helplines, defaultDistrict: t.defaultDistrict,
+        districts: t.districts.map(d => ({ name: d.district, center: d.center })),
+        departments: Object.values(t.departments).map(d => ({ id: d.id, name: d.name, nameLocal: d.nameHindi, icon: d.icon, color: d.color, slaHours: d.slaHours, categories: d.categories, helpline: d.helpline })),
+      },
+    };
     const inject = `<script>window.__SANKALP__=${JSON.stringify(cfg).replace(/</g, "\\u003c")};</script><script src="/web/vendor/sankalp-common.js"></script>`;
     res.setHeader("Cache-Control", "no-store");
     res.type("html").send(html.replace("</head>", `${inject}</head>`));
@@ -230,9 +240,9 @@ export function createApp(): Built {
     if (config().DEMO_MODE) res.setHeader("X-Sankalp-Demo", "true");
     next();
   });
-  // P1.3: bind every request to exactly one tenant (X-Tenant header → Host → default).
+  // P1.3: bind every request to exactly one tenant (X-Tenant header → ?tenant= (EventSource/links) → Host → default).
   app.use((req, res, next) => {
-    const id = resolveTenantFromRequest(req.header("x-tenant") || undefined, req.header("host") || undefined);
+    const id = resolveTenantFromRequest(req.header("x-tenant") || (typeof req.query?.tenant === "string" ? req.query.tenant : undefined), req.header("host") || undefined);
     if (!id) return res.status(404).json({ code: "UNKNOWN_TENANT", message: "Unknown tenant" });
     res.setHeader("X-Tenant", id);
     runInTenant(id, () => next());

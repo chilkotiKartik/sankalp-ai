@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
+import { stateName, districtPhrase, allDistricts } from "@/constants/districts";
 
 const { width: W, height: H } = Dimensions.get("window");
 const PIN_DIGITS = 6;
@@ -23,14 +24,14 @@ const SLIDES = [
     photo: require("@/assets/images/splash_saint.png"),
     tag: "CIVIC TECH",
     tagColor: "#E64A19",
-    heading: "Report Issues,\nTransform Uttarakhand",
-    desc: "File complaints for potholes, garbage, broken streetlights and more — in under 30 seconds. Track real-time resolution across 13 districts.",
+    get heading() { return `Report Issues,\nTransform ${stateName()}`; },
+    get desc() { return `File complaints for potholes, garbage, broken streetlights and more — in under 30 seconds. Track real-time resolution across ${districtPhrase()}.`; },
     bullets: [
       { icon: "analytics" as const,        text: "AI-powered complaint routing" },
       { icon: "time" as const,             text: "Real-time status tracking" },
       { icon: "bar-chart" as const,        text: "District health scoreboard" },
     ],
-    stat1: "13",    stat1Label: "Districts",
+    get stat1() { return String(allDistricts().length || "—"); }, stat1Label: "Districts",
     stat2: "✓",     stat2Label: "Citizen-verified",
   },
   {
@@ -51,12 +52,12 @@ const SLIDES = [
     photo: require("@/assets/images/splash_musicians.png"),
     tag: "AI POWERED",
     tagColor: "#059669",
-    heading: "Uttarakhand's Smartest\nCivic Platform",
-    desc: "AI scores every complaint for priority, routes to the right department, and tracks district health across Devbhoomi's 13 districts.",
+    get heading() { return `${stateName()}'s Smartest\nCivic Platform`; },
+    get desc() { return `AI scores every complaint for priority, routes to the right department, and tracks district health across ${districtPhrase()}.`; },
     bullets: [
       { icon: "flash" as const,            text: "AI priority scoring on every report" },
       { icon: "map" as const,              text: "District-aware live monitoring" },
-      { icon: "people" as const,           text: "5,000+ active Uttarakhand citizens" },
+      { icon: "people" as const,           text: "Works in every state and UT" },
     ],
     stat1: "हि/EN", stat1Label: "Bilingual",
     stat2: "100%",  stat2Label: "Free",
@@ -122,7 +123,7 @@ function OnboardingScreen({ onDone, onSignIn }: { onDone: () => void; onSignIn: 
             <View style={ob.logoIcon}><Text style={{ fontSize: 20 }}>🏛️</Text></View>
             <View>
               <Text style={ob.logoName}>SANKALP AI</Text>
-              <Text style={ob.logoGov}>Govt of Uttarakhand — देवभूमि</Text>
+              <Text style={ob.logoGov}>{`Citizen services · ${stateName()}`}</Text>
             </View>
           </View>
           <Pressable onPress={onDone} style={ob.skipBtn}>
@@ -341,7 +342,7 @@ export default function LoginScreen() {
               <View style={las.brandIcon}><Text style={{ fontSize: 24 }}>🏛️</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={las.brandName}>SANKALP AI</Text>
-                <Text style={las.brandGov}>Government of Uttarakhand — देवभूमि</Text>
+                <Text style={las.brandGov}>{`Citizen services · ${stateName()}`}</Text>
               </View>
               <View style={las.govBadge}>
                 <Ionicons name="shield-checkmark" size={10} color="#BF360C" />
@@ -379,7 +380,7 @@ export default function LoginScreen() {
 
             <View style={las.taglinePill}>
               <Text style={{ fontSize: 12 }}>🙏</Text>
-              <Text style={las.taglineText}>Uttarakhand&apos;s citizens powering civic change</Text>
+              <Text style={las.taglineText}>{`${stateName()}'s citizens powering civic change`}</Text>
             </View>
           </LinearGradient>
 
@@ -480,7 +481,7 @@ export default function LoginScreen() {
                 <Ionicons name="flask" size={12} color="#9CA3AF" />
                 <Text style={las.demoTitle}>DEMO MODE — PLACEHOLDER ACCOUNTS (TAP TO FILL NUMBER)</Text>
               </View>
-              {[["9000000001", "Demo citizen · Dehradun"], ["9000000002", "Demo district admin · Dehradun"], ["9000000003", "Demo state admin"]].map(([ph, label], i) => (
+              {[["9000000001", "Demo citizen"], ["9000000002", "Demo district admin"], ["9000000003", "Demo state admin"]].map(([ph, label], i) => (
                 <Pressable key={ph} accessibilityRole="button" accessibilityLabel={`Fill ${label}`} onPress={() => setPhone(ph)} style={[las.demoRow, i ? { paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F3F4F6" } : null]}>
                   <View style={{ flex: 1 }}>
                     <Text style={las.demoName}>{label}</Text>
@@ -499,7 +500,9 @@ export default function LoginScreen() {
               ))}
             </View>
             <Text style={las.footerText}>सत्यमेव जयते — Truth Alone Triumphs</Text>
-            <Text style={las.footerSub}>SANKALP AI · Uttarakhand · 2025</Text>
+            <Pressable onPress={() => router.replace("/(auth)/state")} accessibilityRole="button" accessibilityLabel={`State: ${stateName()}. Change state`}>
+              <Text style={las.footerSub}>{`SANKALP AI · ${stateName()} · Change state`}</Text>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

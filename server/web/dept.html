@@ -143,16 +143,7 @@ const {useState,useEffect,useRef,useCallback,useMemo}=React;
 const API=window.location.origin;
 
 /* ── DEPT METADATA ─────────────────────────────────────────────────────────── */
-const DEPTS={
-  pwd:{id:'pwd',name:'PWD — Public Works',nameHindi:'लोक निर्माण विभाग',icon:'🏗️',color:'#F59E0B',categories:['pothole','other'],helpline:'1800-180-4244',helpline2:'0135-2714400',sla:24,head:'Chief Engineer, PWD Uttarakhand',address:'Construction Bhawan, Subhash Road, Dehradun — 248001',email:'ce.pwd@uk.gov.in'},
-  ulb:{id:'ulb',name:'ULB — Municipal Corp',nameHindi:'नगर पालिका / नगर निगम',icon:'🗑️',color:'#10B981',categories:['garbage','drain'],helpline:'1533',helpline2:'0135-2654321',sla:48,head:'Commissioner, Urban Local Bodies',address:'Municipal Bhawan, Paltan Bazaar, Dehradun — 248001',email:'commissioner.ulb@uk.gov.in'},
-  jal:{id:'jal',name:'Jal Sansthan',nameHindi:'उत्तराखण्ड जल संस्थान',icon:'💧',color:'#3B82F6',categories:['water'],helpline:'1916',helpline2:'0135-2723456',sla:12,head:'General Manager, Jal Sansthan',address:'Jal Sansthan Bhawan, Haridwar Road, Dehradun',email:'gm.jal@uk.gov.in'},
-  upcl:{id:'upcl',name:'UPCL — Power Corp',nameHindi:'उत्तराखण्ड पावर कॉर्पोरेशन',icon:'⚡',color:'#8B5CF6',categories:['electricity','streetlight'],helpline:'1912',helpline2:'0135-2770501',sla:6,head:'Managing Director, UPCL',address:'Ranipur Mor, Haridwar Road, Dehradun — 249407',email:'md.upcl@uk.gov.in'},
-  forest:{id:'forest',name:'Forest Department',nameHindi:'वन विभाग',icon:'🌳',color:'#22c55e',categories:['tree'],helpline:'1800-180-4288',helpline2:'0135-2756083',sla:96,head:'Principal Chief Conservator of Forests',address:'Van Bhawan, Nehru Colony, Dehradun — 248001',email:'pccf@uk.gov.in'},
-  health:{id:'health',name:'Health & Family Welfare',nameHindi:'स्वास्थ्य विभाग',icon:'🏥',color:'#EF4444',categories:[],helpline:'104',helpline2:'0135-2606012',sla:24,head:'Director General of Health Services',address:'Swasthya Bhawan, Jolly Grant, Dehradun',email:'dg.health@uk.gov.in'},
-  usdma:{id:'usdma',name:'USDMA — Disaster Mgmt',nameHindi:'आपदा प्रबंधन प्राधिकरण',icon:'🆘',color:'#DC2626',categories:[],helpline:'1070',helpline2:'0135-2710334',sla:2,head:'CEO, USDMA (IAS Officer)',address:'USDMA Bhawan, Rajpur Road, Dehradun — 248001',email:'ceo.usdma@uk.gov.in'},
-  police:{id:'police',name:'Uttarakhand Police',nameHindi:'उत्तराखण्ड पुलिस',icon:'🚔',color:'#60a5fa',categories:[],helpline:'100',helpline2:'112',sla:1,head:'Director General of Police, Uttarakhand',address:'Police Headquarters, Subhash Road, Dehradun — 248001',email:'dgp@uk.gov.in'},
-};
+const DEPTS=SK.depts; // P9: the selected state's departments
 
 const DEPT_LIST=Object.values(DEPTS);
 const PC={P1:'badge-P1',P2:'badge-P2',P3:'badge-P3',P4:'badge-P4'};
@@ -402,7 +393,7 @@ function ComplaintCard({c,isNew,token,onRefresh,addToast}){
 function DashboardPage({token,dept,complaints,stats,workers,newIds,onRefresh,addToast}){
   const color=dept.color||'var(--orange)';
   const districtData={};
-  complaints.forEach(c=>{const k=c.district||'Uttarakhand';districtData[k]=(districtData[k]||0)+1;});
+  complaints.forEach(c=>{const k=c.district||SK.state;districtData[k]=(districtData[k]||0)+1;});
   const topDists=Object.entries(districtData).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const maxD=topDists[0]?.[1]||1;
   const recentResolved=complaints.filter(c=>c.status==='resolved'||c.status==='closed');
@@ -468,7 +459,7 @@ function DashboardPage({token,dept,complaints,stats,workers,newIds,onRefresh,add
 }
 
 /* ── COMPLAINTS PAGE ─────────────────────────────────────────────────────── */
-const UK_DISTRICTS=['All Districts','Dehradun','Haridwar','Tehri Garhwal','Pauri Garhwal','Rudraprayag','Chamoli','Uttarkashi','Pithoragarh','Bageshwar','Almora','Champawat','Nainital','Udham Singh Nagar'];
+const UK_DISTRICTS=['All Districts',...SK.districts];
 
 function ComplaintsPage({token,dept,complaints,newIds,onRefresh,addToast}){
   const [filter,setFilter]=useState('all');
@@ -621,7 +612,7 @@ function WorkersPage({token,dept}){
   const [selWorker,setSelWorker]=useState(null);
   const [statusFilter,setStatusFilter]=useState('all');
 
-  const UK_DISTS_W=['All Districts','Dehradun','Haridwar','Tehri Garhwal','Pauri Garhwal','Rudraprayag','Chamoli','Uttarkashi','Pithoragarh','Bageshwar','Almora','Champawat','Nainital','Udham Singh Nagar'];
+  const UK_DISTS_W=['All Districts',...SK.districts];
 
   useEffect(()=>{
     api.get(`/api/dept/${dept.id}/workers`,token).then(d=>{setWorkers(Array.isArray(d)?d:d.workers||[]);}).catch(()=>{}).finally(()=>setLoading(false));
@@ -959,7 +950,7 @@ function DeptInfoPage({dept}){
     {l:'Office Address',v:dept.address},
     {l:'Primary Helpline',v:dept.helpline},
     {l:'Secondary Contact',v:dept.helpline2},
-    {l:'Email',v:dept.email||`info.${dept.id}@uk.gov.in`},
+    {l:'Email',v:dept.email||'—'},
     {l:'SLA Target',v:`${dept.sla} hours first response`},
     {l:'Complaint Categories',v:dept.categories.length>0?dept.categories.join(', '):'All civic categories'},
   ];
@@ -980,7 +971,7 @@ function DeptInfoPage({dept}){
           <div>
             <div style={{fontWeight:700,fontSize:16}}>{dept.name}</div>
             <div style={{fontSize:13,color:'var(--muted)',marginTop:2}}>{dept.nameHindi}</div>
-            <div style={{fontSize:11,color:'var(--orange)',marginTop:4,fontWeight:600}}>Government of Uttarakhand</div>
+            <div style={{fontSize:11,color:'var(--orange)',marginTop:4,fontWeight:600}}>Government of {SK.state}</div>
           </div>
         </div>
         {info.map(({l,v})=><div key={l} style={{display:'flex',gap:12,marginBottom:14,fontSize:13}}>
@@ -1002,7 +993,7 @@ function DeptInfoPage({dept}){
           </div>
           <div style={{marginTop:14,borderTop:'1px solid var(--border)',paddingTop:12,fontSize:12}}>
             <div style={{color:'var(--muted)',marginBottom:6}}>National Emergency Numbers</div>
-            {[['Police','100'],['Ambulance','108'],['Women Helpline','1090'],['Disaster','1070'],['Unified Emergency','112']].map(([l,n])=>
+            {[['Police','100'],['Ambulance','108'],['Women Helpline','181'],['Disaster','1070'],['Unified Emergency','112']].map(([l,n])=>
               <div key={l} style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
                 <span style={{color:'var(--muted)'}}>{l}</span>
                 <span style={{fontWeight:600,color:'var(--orange)',fontFamily:'monospace'}}>{n}</span>
@@ -1026,7 +1017,7 @@ const ANN_TYPES=['general','scheme','emergency','welfare','tender','holiday'];
 const ANN_ICONS={general:'📢',scheme:'🎁',emergency:'🚨',welfare:'❤️',tender:'📑',holiday:'🎉'};
 const ANN_PRIORITY_COL={urgent:'var(--red)',important:'var(--orange)',normal:'var(--muted)'};
 const ANN_PRIORITY_LABEL={urgent:'🔴 URGENT',important:'🟠 IMPORTANT',normal:'🔵 NORMAL'};
-const UK_DISTS_ANN=['all','Dehradun','Haridwar','Tehri Garhwal','Pauri Garhwal','Rudraprayag','Chamoli','Uttarkashi','Pithoragarh','Bageshwar','Almora','Champawat','Nainital','Udham Singh Nagar'];
+const UK_DISTS_ANN=['all',...SK.districts];
 
 function AnnouncementsPage({token,dept,announcements,onRefresh,addToast}){
   const [compose,setCompose]=useState(false);
@@ -1344,7 +1335,7 @@ function Login({onLogin}){
       <div style={{textAlign:'center',marginBottom:28}}>
         <div style={{fontSize:40,marginBottom:10}}>🏛️</div>
         <div style={{fontSize:22,fontWeight:800,color:'#fff',letterSpacing:.5}}>SANKALP <span style={{color:'var(--orange)'}}>AI</span></div>
-        <div style={{fontSize:12,color:'var(--muted)',marginTop:4}}>Department Portal — Government of Uttarakhand</div>
+        <div style={{fontSize:12,color:'var(--muted)',marginTop:4}}>Department Portal — Government of {SK.state}</div>
       </div>
 
       <div style={{marginBottom:16}}>

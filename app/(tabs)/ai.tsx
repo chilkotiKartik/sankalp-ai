@@ -9,28 +9,29 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getApiUrl } from "@/lib/query-client";
 import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
+import { stateName, allDistricts } from "@/constants/districts";
 
 interface Msg { id: string; role: "user" | "ai"; text: string; ts: Date; model?: string }
 
 const QUICK_PROMPTS = [
   { label: "🕳️ Report Pothole", text: "How do I report a pothole near my house?" },
   { label: "🆘 SOS Help", text: "What do I do in case of a women safety emergency?" },
-  { label: "📋 Govt Schemes", text: "What government schemes am I eligible for in Uttarakhand?" },
+  { label: "📋 Govt Schemes", get text() { return `What government schemes am I eligible for in ${stateName()}?`; } },
   { label: "📍 Track Complaint", text: "How do I track my complaint status?" },
   { label: "💧 Water Issue", text: "There is no water supply in my area. What can I do?" },
-  { label: "🌫️ Air Quality", text: "What is the current AQI in Dehradun?" },
-  { label: "🏥 Nearest Hospital", text: "What are the nearest hospitals to me in Uttarakhand?" },
+  { label: "🌫️ Air Quality", text: "What is the current air quality in my district?" },
+  { label: "🏥 Nearest Hospital", get text() { return `What are the nearest hospitals to me in ${stateName()}?`; } },
   { label: "⚡ Power Cut", text: "There is a power cut in my area. How to file complaint?" },
 ];
 
 const FOLLOW_UP_MAP: { keywords: string[]; suggestions: string[] }[] = [
   { keywords: ["pothole", "road", "repair", "pavement"], suggestions: ["Track pothole complaint", "PWD department contact", "Road damage helpline"] },
-  { keywords: ["water", "supply", "pipeline", "tap", "bore"], suggestions: ["File water complaint", "Jal Sansthan helpline", "Check water quality"] },
-  { keywords: ["emergency", "sos", "safety", "women", "danger"], suggestions: ["Trigger SOS now", "Police helpline 100", "USDMA helpline 1070"] },
+  { keywords: ["water", "supply", "pipeline", "tap", "bore"], suggestions: ["File water complaint", "Water department helpline", "Check water quality"] },
+  { keywords: ["emergency", "sos", "safety", "women", "danger"], suggestions: ["Trigger SOS now", "Police helpline 100", "Disaster helpline 1070"] },
   { keywords: ["scheme", "yojana", "government", "eligible", "subsidy"], suggestions: ["PM Awas eligibility", "Kisan scheme details", "Student scholarships"] },
   { keywords: ["hospital", "health", "medical", "doctor", "ambulance"], suggestions: ["Nearest hospital", "Dial 108 ambulance", "Health card scheme"] },
   { keywords: ["garbage", "waste", "trash", "sanitation", "clean"], suggestions: ["Report garbage issue", "Nagar Nigam contact", "Cleanliness helpline"] },
-  { keywords: ["electricity", "power", "light", "streetlight", "blackout"], suggestions: ["File electricity complaint", "UPCL helpline", "Streetlight issue"] },
+  { keywords: ["electricity", "power", "light", "streetlight", "blackout"], suggestions: ["File electricity complaint", "Electricity helpline 1912", "Streetlight issue"] },
 ];
 
 function getFollowUps(text: string): string[] {
@@ -136,7 +137,7 @@ export default function AIChatScreen() {
     {
       id: "welcome",
       role: "ai",
-      text: `Namaste ${user?.name?.split(" ")[0] || "Citizen"}! 🙏\n\nMain SANKALP AI hoon — aapka Uttarakhand civic assistant.\n\nMain aapki help kar sakta hoon:\n• Civic complaints file aur track karna\n• Government schemes & helplines dhundna\n• Hospitals, buses & local services locate karna\n• Real-time district data aur pollution info\n\nAaj main aapki kya seva kar sakta hoon?`,
+      text: `Namaste ${user?.name?.split(" ")[0] || "Citizen"}! 🙏\n\nMain SANKALP AI hoon — aapka ${stateName()} civic assistant.\n\nMain aapki help kar sakta hoon:\n• Civic complaints file aur track karna\n• Government schemes & helplines dhundna\n• Hospitals, buses & local services locate karna\n• Real-time district data aur pollution info\n\nAaj main aapki kya seva kar sakta hoon?`,
       ts: new Date(),
       model: "SANKALP AI",
     },
@@ -206,7 +207,7 @@ export default function AIChatScreen() {
             <Text style={s.headerTitle}>SANKALP AI</Text>
             <View style={s.onlineRow}>
               <View style={s.onlineDot} />
-              <Text style={s.onlineText}>Online · Uttarakhand Civic Intelligence</Text>
+              <Text style={s.onlineText}>{`Online · ${stateName()} Civic Intelligence`}</Text>
             </View>
           </View>
           <View style={s.govBadge}>
@@ -288,7 +289,7 @@ export default function AIChatScreen() {
           <TextInput
             ref={inputRef}
             style={s.input}
-            placeholder="Kuch bhi poochein Uttarakhand ke baare mein..."
+            placeholder={`Kuch bhi poochein ${stateName()} ke baare mein...`}
             placeholderTextColor={Colors.textMuted}
             value={input}
             onChangeText={setInput}

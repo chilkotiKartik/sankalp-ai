@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getSecure } from "@/lib/secure-session";
+import { stateName, allDistricts } from "@/constants/districts";
 
 interface BillBreakdown { label: string; amount: number; }
 interface BillTransaction { ref: string; date: string; amount: number; method: string; status: string; }
@@ -250,7 +251,7 @@ export default function BillsScreen() {
         </View>
         <View style={s.header}>
           <View>
-            <Text style={s.headerTitle}>Uttarakhand Gov Bills</Text>
+            <Text style={s.headerTitle}>{`${stateName()} Gov Bills`}</Text>
             <Text style={s.headerSub}>{liveUser?.name||user?.name||"—"} · {liveUser?.district||"—"}</Text>
           </View>
           <Pressable onPress={onRefresh} style={s.refreshBtn}>
@@ -500,7 +501,7 @@ export default function BillsScreen() {
 
                     <View style={{flexDirection:"row",alignItems:"center",gap:6,backgroundColor:"#22C55E11",borderRadius:10,padding:10,marginBottom:16}}>
                       <Ionicons name="shield-checkmark" size={14} color="#22C55E"/>
-                      <Text style={{flex:1,color:"#22C55E",fontSize:11,fontFamily:"Inter_500Medium"}}>256-bit encrypted · RBI compliant · Uttarakhand e-Pay Gateway</Text>
+                      <Text style={{flex:1,color:"#22C55E",fontSize:11,fontFamily:"Inter_500Medium"}}>256-bit encrypted · RBI compliant · {stateName()} e-Pay Gateway</Text>
                     </View>
 
                     <View style={{flexDirection:"row",gap:10}}>
@@ -528,7 +529,7 @@ export default function BillsScreen() {
               <View style={{alignItems:"center",padding:40,gap:20}}>
                 <AnimatedSpinner color="#3B82F6"/>
                 <Text style={{color:"#fff",fontSize:17,fontFamily:"Inter_700Bold"}}>Processing Payment</Text>
-                <Text style={{color:Colors.textMuted,fontSize:13,textAlign:"center"}}>Connecting to Uttarakhand e-Pay Gateway…</Text>
+                <Text style={{color:Colors.textMuted,fontSize:13,textAlign:"center"}}>{`Connecting to ${stateName()} e-Pay Gateway…`}</Text>
                 <View style={{flexDirection:"row",gap:8,marginTop:4}}>
                   {["Secure","Encrypted","RBI Approved"].map(t=>(
                     <View key={t} style={{backgroundColor:"#22C55E22",borderRadius:8,paddingHorizontal:10,paddingVertical:4}}>

@@ -13,6 +13,8 @@ const geo = z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-18
 
 export const TenantConfigSchema = z.object({
   id: z.string().regex(/^[a-z][a-z0-9-]{1,40}$/),
+  /** P9: "full" = districts/wards/stations imported; "state_level" = national defaults from config/states.json. */
+  coverage: z.enum(["full", "state_level"]).default("full"),
   name: z.string().min(2),
   nameLocal: z.string().optional(),
   ticketPrefix: z.string().regex(/^[A-Z]{2,4}$/),
@@ -103,6 +105,10 @@ export function loadTenants(dir = path.resolve(process.cwd(), "config", "tenants
     if (`${t.id}.json` !== f) throw new Error(`Tenant file ${f} must be named ${t.id}.json`);
     configs.set(t.id, t);
   }
+  // P9: every Indian state/UT is available. States without a full config run at state level from the registry.
+  if (process.env.STATE_REGISTRY !== "off") {
+    for (const r of loadRegistry(path.resolve(dir, "..", "states.json"))) if (!configs.has(r.id)) configs.set(r.id, parseTenantConfig(stateLevelConfig(r)));
+  }
   if (!configs.has(defaultId)) throw new Error(`DEFAULT_TENANT ${defaultId} has no config file`);
   defaultTenantId = defaultId;
 }
@@ -155,4 +161,63 @@ export function resolveTenantFromRequest(headerValue: string | undefined, host: 
   const h = (host || "").split(":")[0].toLowerCase();
   for (const t of configs.values()) if (t.hosts.includes(h)) return t.id;
   return defaultTenantId;
+}
+
+// ── P9 national state registry ─────────────────────────────────────────────────────────────────────────────
+export interface RegistryState {
+  id: string; name: string; nameLocal: string; type: "state" | "ut"; capital: string; capitalGeo: { lat: number; lng: number };
+  ticketPrefix: string; languages: string[]; bounds: { south: number; west: number; north: number; east: number };
+  /** Every district with its centre (config/states.json, built by scripts/build-geo.py). */
+  districts?: { name: string; center: { lat: number; lng: number } }[];
+}
+let registry: RegistryState[] = [];
+export function loadRegistry(file: string): RegistryState[] {
+  registry = fs.existsSync(file) ? (JSON.parse(fs.readFileSync(file, "utf8")) as { states: RegistryState[] }).states : [];
+  return registry;
+}
+export const stateRegistry = () => registry;
+
+/** National default departments: every complaint category has an owner in every state. */
+const NATIONAL_DEPARTMENTS = {
+  pwd: { id: "pwd", name: "Public Works Department", nameHindi: "लोक निर्माण विभाग", icon: "🏗️", color: "#F59E0B", helpline: "", slaHours: 48, categories: ["pothole", "road_damage", "other"] },
+  ulb: { id: "ulb", name: "Municipal Corporation / Urban Local Body", nameHindi: "नगर निकाय", icon: "🏙️", color: "#10B981", helpline: "", slaHours: 24, categories: ["garbage", "drain", "sewage"] },
+  water: { id: "water", name: "Water Supply Department", nameHindi: "जल आपूर्ति विभाग", icon: "💧", color: "#3B82F6", helpline: "", slaHours: 24, categories: ["water"] },
+  power: { id: "power", name: "Electricity Distribution Company", nameHindi: "विद्युत वितरण", icon: "⚡", color: "#8B5CF6", helpline: "1912", slaHours: 12, categories: ["electricity", "streetlight", "transformer"] },
+  forest: { id: "forest", name: "Forest Department", nameHindi: "वन विभाग", icon: "🌳", color: "#16A34A", helpline: "", slaHours: 72, categories: ["tree"] },
+  health: { id: "health", name: "Health Department", nameHindi: "स्वास्थ्य विभाग", icon: "🏥", color: "#EF4444", helpline: "104", slaHours: 24, categories: ["health_hazard"] },
+  usdma: { id: "usdma", name: "State Disaster Management Authority", nameHindi: "राज्य आपदा प्रबंधन प्राधिकरण", icon: "🆘", color: "#DC2626", helpline: "1070", slaHours: 6, categories: ["disaster"] },
+  police: { id: "police", name: "Police", nameHindi: "पुलिस", icon: "🚔", color: "#1D4ED8", helpline: "112", slaHours: 24, categories: ["noise"] },
+};
+
+export const OTHER_DISTRICTS = "Other districts";
+
+/** State-level config for a registry state: real national facts only; districts/wards/stations await an import. */
+export function stateLevelConfig(r: RegistryState): unknown {
+  const categoryDepartment: Record<string, string> = {};
+  for (const d of Object.values(NATIONAL_DEPARTMENTS)) for (const c of d.categories) categoryDepartment[c] = d.id;
+  const centre = { lat: (r.bounds.south + r.bounds.north) / 2, lng: (r.bounds.west + r.bounds.east) / 2 };
+  const span = Math.max(r.bounds.north - r.bounds.south, r.bounds.east - r.bounds.west);
+  // P9.2: the state's real districts; a registry entry without them falls back to capital + "Other districts".
+  const dists = r.districts?.length ? r.districts.map(d => ({ district: d.name, center: d.center }))
+    : [{ district: r.capital, center: r.capitalGeo }, { district: OTHER_DISTRICTS, center: centre }];
+  const d2 = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => (a.lat - b.lat) ** 2 + (a.lng - b.lng) ** 2;
+  const home = dists.find(d => d.district.toLowerCase() === r.capital.toLowerCase())
+    ?? [...dists].sort((a, b) => d2(a.center, r.capitalGeo) - d2(b.center, r.capitalGeo))[0];
+  return {
+    id: r.id, name: r.name, nameLocal: r.nameLocal, ticketPrefix: r.ticketPrefix, hosts: [], languages: r.languages.includes("hi") || r.languages.includes("en") ? r.languages : [...r.languages, "en"],
+    defaultDistrict: home.district, stateLabel: r.name, coverage: "state_level",
+    slaHours: { P1: 4, P2: 24, P3: 72, P4: 168 },
+    mapBounds: { center: centre, zoom: span > 6 ? 6 : span > 3 ? 7 : span > 1 ? 8 : 10, ...r.bounds },
+    helplines: { emergency: "112", ambulance: "108", women: "181", disaster: "1070", child: "1098", electricity: "1912" },
+    grievanceOfficer: { name: "To be designated by the State", email: "", phone: "", address: r.capital },
+    retention: { complaintsDays: 1095, mediaDaysAfterClosure: 365, sosEvidenceDays: 365, needsLegalConfirmation: true },
+    departments: NATIONAL_DEPARTMENTS, categoryDepartment,
+    categoryDepartmentLabel: Object.fromEntries(Object.entries(categoryDepartment).map(([c, d]) => [c, NATIONAL_DEPARTMENTS[d as keyof typeof NATIONAL_DEPARTMENTS].name])),
+    fallbackDepartment: "pwd",
+    districts: dists,
+    // One service area per district until ward/ULB boundaries are imported for the state.
+    wards: dists.map((d, i) => ({ name: `${d.district} (district)`, number: i + 1, area: d.district, district: d.district, center: d.center, pop: 0 })),
+    policeStations: [], emergencyServices: [],
+    features: { autoCloseUnverifiedDays: null, neighbourConfirmation: false, disasterMode: true, yatraMode: false },
+  };
 }

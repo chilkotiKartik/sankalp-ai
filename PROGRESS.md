@@ -134,5 +134,14 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P8.4 final docs — README security section rewritten, docs/ARCHITECTURE.md (diagram + flows + code map), DATA_RESIDENCY.md, SECURITY.md, OPERATIONS.md §8–12, CHANGELOG phases 1–8
 - [x] P8.gate — gate green; review findings 1–7 fixed (docs/reports/phase-8.md)
 
+## Phase 9 — All of India (state selection, no hard-coding)
+- [x] P9.1 National registry: 28 states + 8 UTs as tenants; generated state-level config (D-047); `/api/public/tenants`; `?tenant=` for streams and links
+- [x] P9.2 All 787 districts with centres and boundaries (`scripts/build-geo.py`, `config/geo/`, D-048); `/api/public/geo/districts`, `/api/public/geo/states`
+- [x] P9.3 App: state picker (search + GPS detection), tenant context, `X-Tenant` on every request, change state from profile/login; all Uttarakhand text, districts, departments and helplines now come from the selected state; fake AQI widget and seeded notifications removed
+- [x] P9.4 Maps: generic `StateMap`, worker and SOS heat maps centred on the selected state with district outlines
+- [x] P9.5 Portals: injected state config (`window.SK`), state switcher, real petitions/notices in the community hub, district outlines on maps, CSP-safe video controls
+- [x] P9.6 Tests: `tests/states.test.ts` (registry, 787 districts, every category owned in every state, endpoints, Kerala end-to-end)
+- [ ] P9.7 Android APK (sideload build)
+
 ## Baseline failures out of scope
 See docs/BASELINE.md.

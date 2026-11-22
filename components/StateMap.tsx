@@ -1,29 +1,17 @@
 import { scriptJson, ESC_JS, tileLayerJs } from "@/lib/map-safety";
 import { useRuntimeConfig } from "@/lib/runtime-config";
+import { useDistrictGeo, districtLayerJs, type DistrictGeo } from "@/lib/geo";
 import React, { useRef, useMemo, useState } from "react";
 import { View, StyleSheet, Pressable, Alert, Linking, Modal, Text, TouchableOpacity } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import type { Complaint, SOSAlert, Worker, PoliceStation, RiskZone, GeoPoint } from "@/context/AppContext";
 import { LEAFLET_CSS, LEAFLET_JS } from "@/lib/leaflet-bundle";
+import { getDistrictCenterFull, districtCenters } from "@/constants/districts";
+import { getApiUrl } from "@/lib/query-client";
 
 export type MapFilter = "all" | "complaints" | "sos" | "workers" | "police" | "risks" | "hospitals" | "fire";
 
-const DISTRICT_CENTERS: Record<string, { lat: number; lng: number; zoom: number }> = {
-  "Dehradun":          { lat: 30.3165, lng: 78.0322, zoom: 11 },
-  "Haridwar":          { lat: 29.9457, lng: 78.1642, zoom: 11 },
-  "Tehri Garhwal":     { lat: 30.3822, lng: 78.4800, zoom: 10 },
-  "Pauri Garhwal":     { lat: 29.6864, lng: 78.9764, zoom: 10 },
-  "Rudraprayag":       { lat: 30.2846, lng: 78.9806, zoom: 10 },
-  "Chamoli":           { lat: 30.4090, lng: 79.3206, zoom: 10 },
-  "Uttarkashi":        { lat: 30.7268, lng: 78.4354, zoom: 10 },
-  "Pithoragarh":       { lat: 29.5829, lng: 80.2178, zoom: 10 },
-  "Bageshwar":         { lat: 29.8371, lng: 79.7715, zoom: 11 },
-  "Almora":            { lat: 29.5971, lng: 79.6596, zoom: 11 },
-  "Champawat":         { lat: 29.3377, lng: 80.0914, zoom: 11 },
-  "Nainital":          { lat: 29.3919, lng: 79.4542, zoom: 11 },
-  "Udham Singh Nagar": { lat: 28.9982, lng: 79.5050, zoom: 11 },
-};
 
 const PRIORITY_COLORS: Record<string, string> = {
   P1: "#EF4444", P2: "#F59E0B", P3: "#3B82F6", P4: "#6B7280",
@@ -60,7 +48,9 @@ function buildLeafletHTML(
   markers: MarkerData[],
   center: { lat: number; lng: number; zoom: number },
   userLoc: { lat: number; lng: number } | null,
-  tileUrl: string | null = null
+  tileUrl: string | null = null,
+  districtGeo: DistrictGeo | null = null,
+  fitToState = false
 ): string {
   const markersJson = scriptJson(markers);
   const userJson = scriptJson(userLoc);
@@ -109,6 +99,7 @@ var map=L.map('map',{
 
 ${tileLayerJs(tileUrl)}
 ${ESC_JS}
+${districtLayerJs(scriptJson(districtGeo), fitToState)}
 
 var typeLabels={
   complaint:'ISSUE',sos:'SOS',worker:'WORKER',police:'POLICE',risk:'RISK',hospital:'HOSPITAL',fire:'FIRE STN'
@@ -239,7 +230,7 @@ interface Props {
   style?: any;
 }
 
-export default function UttarakhandMap({
+export default function StateMap({
   complaints = [],
   sosAlerts = [],
   workers = [],
@@ -253,6 +244,7 @@ export default function UttarakhandMap({
 }: Props) {
   const webViewRef = useRef<WebView>(null);
   const runtime = useRuntimeConfig();
+  const districtGeo = useDistrictGeo();
 
   const show = (type: "complaints" | "sos" | "workers" | "police" | "risks" | "hospitals" | "fire") =>
     filter === "all" || filter === type;
@@ -358,10 +350,8 @@ export default function UttarakhandMap({
   }, [complaints, sosAlerts, workers, policeStations, riskZones, emergencyServices, filter]);
 
   const center = useMemo(() => {
-    if (userDistrict && userDistrict !== "Uttarakhand" && DISTRICT_CENTERS[userDistrict]) {
-      return DISTRICT_CENTERS[userDistrict];
-    }
-    return { lat: 30.0668, lng: 79.0193, zoom: 8 };
+    // P9: district centres and the state view come from the selected state's config — nothing hard-coded.
+    return getDistrictCenterFull(userDistrict);
   }, [userDistrict]);
 
   const html = useMemo(() =>
@@ -369,9 +359,11 @@ export default function UttarakhandMap({
       markers,
       center,
       userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : null,
-      runtime?.mapTileUrl ?? null
+      runtime?.mapTileUrl ?? null,
+      districtGeo,
+      !userLocation && !(userDistrict && districtCenters()[userDistrict])
     ),
-    [markers, center, userLocation, runtime?.mapTileUrl]
+    [markers, center, userLocation, runtime?.mapTileUrl, districtGeo, userDistrict]
   );
 
   const recenter = () => {
@@ -427,7 +419,7 @@ export default function UttarakhandMap({
     >
       <WebView
         ref={webViewRef}
-        source={{ html }}
+        source={{ html, baseUrl: getApiUrl() }}
         style={StyleSheet.absoluteFill}
         javaScriptEnabled
         domStorageEnabled

@@ -14,6 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import { useApp } from "@/context/AppContext";
 import Colors from "@/constants/colors";
+import { stateName, allDistricts } from "@/constants/districts";
 
 function HealthBar({ score }: { score: number }) {
   const anim = useRef(new Animated.Value(0)).current;
@@ -160,7 +161,7 @@ function CivicMap({ wards }: { wards: any[] }) {
 
   return (
     <View style={map.container}>
-      <Text style={map.title}>Uttarakhand Block Map</Text>
+      <Text style={map.title}>{`${stateName()} Block Map`}</Text>
       <View style={map.mapArea}>
         <View style={map.mapBg}>
           {wards.map((ward, i) => {
@@ -259,7 +260,7 @@ export default function WardsScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Ward Health</Text>
-          <Text style={styles.headerSub}>Uttarakhand Block Performance Board</Text>
+          <Text style={styles.headerSub}>{`${stateName()} Block Performance Board`}</Text>
         </View>
         <View style={styles.avgBadge}>
           <Text style={styles.avgLabel}>Avg</Text>

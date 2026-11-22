@@ -5,11 +5,49 @@
  *  - sankalpEsc(): HTML escaping for any user text inserted via string HTML (Leaflet popups)
  *  - Staff sign-in for pages marked <meta name="sankalp-auth" content="police">; token kept in sessionStorage
  *  - Adds the token to same-origin /api fetches and EventSource streams (EventSource cannot send headers)
+ *  - P9: every portal works for every state. The server injects the selected state's config
+ *    (window.__SANKALP__.tenant); the choice is kept in localStorage and sent as X-Tenant / ?tenant=.
  */
 (function () {
   "use strict";
   var cfg = window.__SANKALP__ || {};
   var KEY = "sankalp_staff_token";
+  var TKEY = "sankalp_tenant";
+  var T = cfg.tenant || null;
+
+  // ── state (tenant) selection ───────────────────────────────────────────────
+  (function syncTenant() {
+    var qs = new URLSearchParams(location.search);
+    var fromUrl = qs.get("tenant");
+    var stored = null;
+    try { stored = localStorage.getItem(TKEY); } catch (e) {}
+    if (fromUrl) { try { localStorage.setItem(TKEY, fromUrl); } catch (e) {} return; }
+    if (stored && T && stored !== T.id) { qs.set("tenant", stored); location.replace(location.pathname + "?" + qs.toString() + location.hash); }
+  })();
+  window.sankalpTenant = T;
+  // Portal-wide state data (read by the page scripts): name, districts, map view, departments, category owners.
+  var SK = window.SK = { id: T ? T.id : "", state: T ? (T.stateLabel || T.name) : "your state", stateLocal: T ? (T.nameLocal || T.name) : "",
+    districts: [], centers: {}, center: [22.9734, 78.6569], zoom: 5, depts: {}, catDept: {}, helplines: (T && T.helplines) || {} };
+  if (T) {
+    (T.districts || []).forEach(function (d) { SK.districts.push(d.name); SK.centers[d.name] = [d.center.lat, d.center.lng]; });
+    if (T.mapBounds && T.mapBounds.center) { SK.center = [T.mapBounds.center.lat, T.mapBounds.center.lng]; SK.zoom = T.mapBounds.zoom || 7; }
+    (T.departments || []).forEach(function (d) {
+      SK.depts[d.id] = { id: d.id, name: d.name, nameHindi: d.nameLocal || d.name, icon: d.icon || "🏛️", color: d.color || "#F59E0B", categories: d.categories || [],
+        helpline: d.helpline || "", helpline2: "", sla: d.slaHours || 48, head: "", address: "", email: "" };
+      (d.categories || []).forEach(function (c) { SK.catDept[c] = d.id; });
+    });
+  }
+  /** Approximate square around a district centre (r degrees) for heat overlays — real boundaries need a GeoJSON import. */
+  SK.box = function (name, r) {
+    var c = SK.centers[name]; r = r || 0.25; if (!c) return null;
+    return [[c[0] + r, c[1] - r], [c[0] + r, c[1] + r], [c[0] - r, c[1] + r], [c[0] - r, c[1] - r]];
+  };
+  window.sankalpSetTenant = function (id) {
+    try { localStorage.setItem(TKEY, id); } catch (e) {}
+    window.sankalpAuth && window.sankalpAuth.clear(); // a staff token is valid for one state only
+    var qs = new URLSearchParams(location.search); qs.set("tenant", id);
+    location.href = location.pathname + "?" + qs.toString();
+  };
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"'`]/g, function (c) {
@@ -43,11 +81,29 @@
     return L.tileLayer(cfg.mapTileUrl, { maxZoom: 19, subdomains: "abc", attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
   };
 
+  /** P9.2: outline the selected state's districts (boundaries © OpenStreetMap contributors, ODbL). */
+  window.sankalpDistrictLayer = function (L, map, fit) {
+    if (!L || !L.geoJSON || !origFetchForGeo) return;
+    origFetchForGeo("/api/public/geo/districts", { headers: T ? { "X-Tenant": T.id } : {} })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (g) {
+        if (!g || !g.features || !g.features.length) return;
+        var layer = L.geoJSON(g, {
+          style: function () { return { color: "#FF9933", weight: 1.2, opacity: 0.85, fillColor: "#FF9933", fillOpacity: 0.04 }; },
+          onEachFeature: function (f, l) { l.bindTooltip(esc(f.properties && f.properties.name), { sticky: true }); },
+        }).addTo(map);
+        layer.bringToBack();
+        if (fit) { try { map.fitBounds(layer.getBounds(), { padding: [8, 8] }); } catch (e) {} }
+      })
+      .catch(function () {});
+  };
+
   // ── same-origin API auth ───────────────────────────────────────────────────
   var sameOriginApi = function (u) {
     try { var url = new URL(u, location.href); return url.origin === location.origin && url.pathname.indexOf("/api/") === 0; } catch (e) { return false; }
   };
   var origFetch = window.fetch ? window.fetch.bind(window) : null;
+  var origFetchForGeo = origFetch;
 
   // ── access-token refresh (review P1-H4) ────────────────────────────────────
   // Access tokens live 15 min. On a 401 we rotate the refresh token once, store the new pair
@@ -95,6 +151,7 @@
       init = init || {};
       var h = new Headers(init.headers || (typeof input !== "string" && input.headers) || {});
       var t = token();
+      if (T && !h.has("X-Tenant")) h.set("X-Tenant", T.id);
       if (t && !h.has("Authorization")) h.set("Authorization", "Bearer " + t);
       var sent = (h.get("Authorization") || "").replace(/^Bearer\s+/, "");
       if (sent && replaced[sent]) { sent = replaced[sent]; h.set("Authorization", "Bearer " + sent); }
@@ -118,6 +175,7 @@
     var Patched = function (url, conf) {
       var t = token();
       if (t && sameOriginApi(url) && !/[?&]token=/.test(url)) url += (url.indexOf("?") === -1 ? "?" : "&") + "token=" + encodeURIComponent(t);
+      if (T && sameOriginApi(url) && !/[?&]tenant=/.test(url)) url += (url.indexOf("?") === -1 ? "?" : "&") + "tenant=" + encodeURIComponent(T.id);
       return new OrigES(url, conf);
     };
     Patched.prototype = OrigES.prototype;
@@ -129,6 +187,14 @@
   function requiresAuth() {
     var m = document.querySelector('meta[name="sankalp-auth"]');
     return !!m && m.getAttribute("content") === "police";
+  }
+
+  /** Control-room units of the selected state: its police and disaster-management departments. */
+  function unitOptions() {
+    var deps = (T && T.departments) || [];
+    var units = deps.filter(function (d) { return d.id === "police" || (d.categories || []).indexOf("disaster") !== -1 || (d.categories || []).indexOf("noise") !== -1; });
+    if (!units.length) units = [{ id: "police", name: "State Police" }];
+    return units.map(function (d) { return '<option value="' + esc(d.id) + '">' + esc(d.name) + "</option>"; }).join("");
   }
 
   function showLogin(msg) {
@@ -146,7 +212,7 @@
       '<select id="sk-mode" style="width:100%;padding:10px;border-radius:8px;margin-bottom:12px;background:#1F2937;color:#fff;border:1px solid #374151">' +
       '<option value="dept">Control-room access code</option><option value="admin">Admin phone + PIN</option></select>' +
       '<div id="sk-dept"><label style="display:block;font-size:12px;margin-bottom:4px" for="sk-dep">Unit</label>' +
-      '<select id="sk-dep" style="width:100%;padding:10px;border-radius:8px;margin-bottom:12px;background:#1F2937;color:#fff;border:1px solid #374151"><option value="police">Uttarakhand Police</option><option value="usdma">USDMA</option></select>' +
+      '<select id="sk-dep" style="width:100%;padding:10px;border-radius:8px;margin-bottom:12px;background:#1F2937;color:#fff;border:1px solid #374151">' + unitOptions() + '</select>' +
       '<label style="display:block;font-size:12px;margin-bottom:4px" for="sk-code">Access code</label>' +
       '<input id="sk-code" type="password" autocomplete="off" required style="width:100%;padding:10px;border-radius:8px;margin-bottom:12px;background:#1F2937;color:#fff;border:1px solid #374151"></div>' +
       '<div id="sk-admin" style="display:none"><label style="display:block;font-size:12px;margin-bottom:4px" for="sk-phone">Phone</label>' +
@@ -169,7 +235,7 @@
       var body = mode.value === "dept"
         ? { url: "/api/dept/login", data: { departmentId: o.querySelector("#sk-dep").value, accessCode: o.querySelector("#sk-code").value } }
         : { url: "/api/auth/login", data: { phone: o.querySelector("#sk-phone").value, pin: o.querySelector("#sk-pin").value } };
-      (origFetch || fetch)(body.url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body.data) })
+      (origFetch || fetch)(body.url, { method: "POST", headers: T ? { "Content-Type": "application/json", "X-Tenant": T.id } : { "Content-Type": "application/json" }, body: JSON.stringify(body.data) })
         .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
         .then(function (x) {
           if (!x.ok || !x.j.token) { err.textContent = (x.j && x.j.message) || "Sign-in failed"; return; }
@@ -205,4 +271,27 @@
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", onReady);
   else onReady();
+
+  // ── state switcher (every portal) ──────────────────────────────────────────
+  function mountStateSwitcher() {
+    if (!T || document.getElementById("sankalp-state")) return;
+    var box = document.createElement("div");
+    box.id = "sankalp-state";
+    box.style.cssText = "position:fixed;right:10px;bottom:10px;z-index:15000;background:#111827;color:#F9FAFB;border:1px solid #374151;border-radius:10px;padding:6px 8px;font:12px system-ui,sans-serif;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(0,0,0,.35)";
+    box.innerHTML = '<label for="sankalp-state-sel" style="color:#D1D5DB">State</label><select id="sankalp-state-sel" style="background:#1F2937;color:#fff;border:1px solid #4B5563;border-radius:6px;padding:4px 6px;font:12px system-ui,sans-serif;max-width:190px"><option value="' + esc(T.id) + '">' + esc(T.name) + "</option></select>";
+    document.body.appendChild(box);
+    var sel = box.querySelector("select");
+    var loaded = false;
+    function load() {
+      if (loaded) return; loaded = true;
+      (origFetch || fetch)("/api/public/tenants").then(function (r) { return r.json(); }).then(function (list) {
+        if (!Array.isArray(list)) return;
+        sel.innerHTML = list.map(function (s) { return '<option value="' + esc(s.id) + '"' + (s.id === T.id ? " selected" : "") + ">" + esc(s.name) + "</option>"; }).join("");
+      }).catch(function () { loaded = false; });
+    }
+    sel.addEventListener("focus", load);
+    sel.addEventListener("mousedown", load);
+    sel.addEventListener("change", function () { if (sel.value && sel.value !== T.id) window.sankalpSetTenant(sel.value); });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountStateSwitcher); else mountStateSwitcher();
 })();

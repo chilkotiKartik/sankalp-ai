@@ -26,6 +26,7 @@ import { ConsentGate } from "@/components/ConsentGate";
 import { queryClient } from "@/lib/query-client";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { TenantProvider, useTenant } from "@/context/TenantContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { StatusBar } from "expo-status-bar";
@@ -39,13 +40,20 @@ SplashScreen.preventAutoHideAsync();
 
 function AuthGate() {
   const { user, isLoading } = useAuth();
+  const { ready: tenantReady, tenantId } = useTenant();
   const segments = useSegments();
   const fadeOut = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !tenantReady) return;
 
     const inAuthGroup = segments[0] === "(auth)";
+    // P9: no state chosen yet → the state picker comes first (every state's data is separate).
+    if (!tenantId) {
+      if ((segments as string[])[1] !== "state") router.replace("/(auth)/state");
+      return;
+    }
+    if (!user && inAuthGroup && (segments as string[])[1] === "state") return;
 
     if (!user && !inAuthGroup) {
       // Check if onboarded before
@@ -63,9 +71,9 @@ function AuthGate() {
         router.replace("/(tabs)");
       }
     }
-  }, [user, isLoading, segments]);
+  }, [user, isLoading, segments, tenantReady, tenantId]);
 
-  if (isLoading) {
+  if (isLoading || !tenantReady) {
     return (
       <Animated.View style={[styles.splash, { opacity: fadeOut }]}>
         <LogoAnimation size="lg" showText onAnimationEnd={() => {
@@ -164,6 +172,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
+          <TenantProvider>
           <AuthProvider>
             <AppProvider>
               <LanguageProvider>
@@ -178,6 +187,7 @@ export default function RootLayout() {
               </LanguageProvider>
             </AppProvider>
           </AuthProvider>
+          </TenantProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </ErrorBoundary>

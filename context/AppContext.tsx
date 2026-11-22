@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { tenantQuery } from "@/lib/tenant";
 import { Platform, AppState } from "react-native";
 import * as Outbox from "@/lib/offline-queue";
 import * as Notifications from "expo-notifications";
@@ -392,7 +393,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (disposed) return;
       try {
         const base = getWsUrl();
-        ws = new WebSocket(`${base}${base.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`);
+        const tq = tenantQuery();
+        ws = new WebSocket(`${base}${base.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}${tq ? `&${tq}` : ""}`);
         wsRef.current = ws;
         ws.onopen = () => { attempt = 0; };
         ws.onmessage = (event) => {

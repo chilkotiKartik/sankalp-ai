@@ -4,6 +4,7 @@ import { View, StyleSheet, Platform } from "react-native";
 import WebView from "react-native-webview";
 import { buildSosHeatmapHTML, SosHeatEntry } from "@/lib/sosheatmap-html";
 import type { SOSAlert } from "@/context/AppContext";
+import { getApiUrl } from "@/lib/query-client";
 
 interface Props {
   sosAlerts: SOSAlert[];
@@ -13,7 +14,7 @@ interface Props {
 function buildEntries(sosAlerts: SOSAlert[]): SosHeatEntry[] {
   const map: Record<string, SosHeatEntry> = {};
   for (const a of sosAlerts) {
-    const d = (a as any).district || "Dehradun";
+    const d = (a as any).district || "Unknown district";
     if (!map[d]) map[d] = { district: d, total: 0, active: 0, womenSafety: 0, critical: 0 };
     map[d].total++;
     if (a.status === "active") map[d].active++;
@@ -30,7 +31,7 @@ export default function SosHeatmapCard({ sosAlerts, height = 200 }: Props) {
   return (
     <View style={[s.wrap, { height }]}>
       <WebView
-        source={{ html }}
+        source={{ html, baseUrl: getApiUrl() }}
         style={s.map}
         scrollEnabled={false}
         javaScriptEnabled

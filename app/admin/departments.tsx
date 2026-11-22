@@ -11,6 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 import { getSecure } from "@/lib/secure-session";
+import { stateDepartments, deptForCategory } from "@/constants/districts";
 
 interface Department {
   name: string;
@@ -46,21 +47,20 @@ interface DeptComplaint {
   upvotes: number;
 }
 
-const DEPT_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string; short: string; hindi: string; description: string }> = {
-  "UPCL (Uttarakhand Power Corporation Ltd)":  { icon: "flash",           color: "#8B5CF6", short: "UPCL", hindi: "उत्तराखंड पावर कॉर्पोरेशन", description: "बिजली आपूर्ति व स्ट्रीट लाइट" },
-  "Jal Sansthan (Uttarakhand Jal Sansthan)":   { icon: "water",           color: "#3B82F6", short: "JAL",  hindi: "जल संस्थान",                description: "पेयजल आपूर्ति व सीवर" },
-  "ULB (Urban Local Bodies / Nagar Palika)":   { icon: "business",        color: "#F59E0B", short: "ULB",  hindi: "नगर पालिका / ULB",          description: "कूड़ा संग्रह व नाली सफाई" },
-  "PWD (Public Works Department)":             { icon: "construct",       color: "#EF4444", short: "PWD",  hindi: "लोक निर्माण विभाग",          description: "सड़क, पुल व गड्ढे" },
-  "Forest Department / DM Office":             { icon: "leaf",            color: "#00A651", short: "FRD",  hindi: "वन विभाग",                   description: "पेड़, वन संरक्षण" },
-  "DM Office (District Magistrate)":           { icon: "shield",          color: "#06B6D4", short: "DMO",  hindi: "जिला मजिस्ट्रेट कार्यालय",  description: "सामान्य शिकायतें व आपदा" },
+// P9: department look-up built from the selected state's own departments (no state's names hard-coded).
+const ICON_BY_CATEGORY: Record<string, keyof typeof Ionicons.glyphMap> = {
+  electricity: "flash", water: "water", garbage: "business", pothole: "construct", tree: "leaf", health_hazard: "medkit", disaster: "warning", noise: "shield",
 };
+function getDeptMeta(name: string): { icon: keyof typeof Ionicons.glyphMap; color: string; short: string } {
+  const d = stateDepartments().find(x => x.name === name || x.id === name || name.startsWith(x.name.split(" — ")[0]));
+  if (!d) return { icon: "business", color: Colors.saffron, short: name.split(/[ (—]/)[0].slice(0, 6).toUpperCase() || "DEP" };
+  const icon = d.categories.map(c => ICON_BY_CATEGORY[c]).find(Boolean) ?? "business";
+  const [head, tail] = d.name.split(" — ");
+  return { icon, color: d.color || Colors.saffron, short: tail ? head : d.id.toUpperCase() };
+}
 
 const PRIORITY_COLORS: Record<string, string> = { P1: "#EF4444", P2: "#F59E0B", P3: "#3B82F6", P4: "#6B7280" };
 const STATUS_COLORS: Record<string, string> = { pending: "#F59E0B", in_progress: "#3B82F6", resolved: "#00A651", closed: "#6B7280" };
-
-function getDeptMeta(name: string) {
-  return DEPT_META[name] || { icon: "business" as const, color: Colors.saffron, short: "DEP" };
-}
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -70,15 +70,6 @@ function timeAgo(iso: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-// Department → category mapping for worker relevance scoring
-const DEPT_CATEGORIES: Record<string, string[]> = {
-  "UPCL (Uttarakhand Power Corporation Ltd)":  ["electricity", "streetlight"],
-  "Jal Sansthan (Uttarakhand Jal Sansthan)":   ["water"],
-  "ULB (Urban Local Bodies / Nagar Palika)":   ["garbage", "drain"],
-  "PWD (Public Works Department)":             ["pothole", "road"],
-  "Forest Department / DM Office":             ["tree", "forest"],
-  "DM Office (District Magistrate)":           ["other"],
-};
 
 export default function DepartmentsScreen() {
   const insets = useSafeAreaInsets();
@@ -226,8 +217,8 @@ export default function DepartmentsScreen() {
               <Text style={cs.legendTitle}>AI Routing Rules</Text>
             </View>
             {[
-              { cat: "Electricity / Streetlight", dept: "UPCL", icon: "flash" as const, color: "#8B5CF6" },
-              { cat: "Water Supply",               dept: "Jal Sansthan", icon: "water" as const, color: "#3B82F6" },
+              { cat: "Electricity / Streetlight", dept: deptForCategory("electricity").short, icon: "flash" as const, color: "#8B5CF6" },
+              { cat: "Water Supply",               dept: deptForCategory("water").short, icon: "water" as const, color: "#3B82F6" },
               { cat: "Drain / Garbage",            dept: "ULB / Nagar Palika", icon: "business" as const, color: "#F59E0B" },
               { cat: "Pothole / Roads",            dept: "PWD", icon: "construct" as const, color: "#EF4444" },
               { cat: "Tree / Forest",              dept: "Forest Dept", icon: "leaf" as const, color: "#00A651" },
@@ -253,26 +244,18 @@ export default function DepartmentsScreen() {
                   <Text style={{ color: "#22C55E", fontSize: 9, fontFamily: "Inter_700Bold" }}>LIVE</Text>
                 </View>
               </View>
-              {/* Per-dept worker assignment analysis */}
-              {Object.entries(DEPT_META).slice(0, 6).map(([deptName, meta], i) => {
-                const relevantWorkers = workers.filter(w =>
-                  (DEPT_CATEGORIES[deptName] || []).some(cat =>
-                    w.ward.toLowerCase().includes(cat) || (w as any).category?.includes(cat)
-                  )
-                );
-                const deptActive = activeWorkers.filter(w =>
-                  Math.abs(w.id.charCodeAt(0) - deptName.charCodeAt(0)) % Object.keys(DEPT_META).length === i
-                ).length;
-                const slotCount = Math.max(1, Math.floor(workers.length / Object.keys(DEPT_META).length));
-                const gpsActive = Math.min(deptActive + (i < activeWorkers.length % Object.keys(DEPT_META).length ? 1 : 0), slotCount);
+              {/* Per-department resolution (real counts from the department list) */}
+              {departments.slice(0, 8).map(dept => {
+                const meta = getDeptMeta(dept.name);
+                const pct = dept.complaints > 0 ? Math.round((dept.resolved / dept.complaints) * 100) : 0;
                 return (
-                  <View key={deptName} style={[cs.legendRow, { alignItems: "center" }]}>
+                  <View key={dept.name} style={[cs.legendRow, { alignItems: "center" }]}>
                     <Ionicons name={meta.icon} size={13} color={meta.color} />
                     <Text style={[cs.legendCat, { fontSize: 10 }]}>{meta.short}</Text>
                     <View style={{ flex: 1, height: 5, backgroundColor: Colors.border, borderRadius: 3, marginHorizontal: 6, overflow: "hidden" }}>
-                      <View style={{ height: 5, backgroundColor: meta.color, borderRadius: 3, width: `${Math.min(100, (gpsActive / slotCount) * 100)}%` }} />
+                      <View style={{ height: 5, backgroundColor: meta.color, borderRadius: 3, width: `${pct}%` }} />
                     </View>
-                    <Text style={{ color: meta.color, fontSize: 10, fontFamily: "Inter_700Bold", minWidth: 32, textAlign: "right" }}>{slotCount} wkr</Text>
+                    <Text style={{ color: meta.color, fontSize: 10, fontFamily: "Inter_700Bold", minWidth: 32, textAlign: "right" }}>{dept.resolved}/{dept.complaints}</Text>
                   </View>
                 );
               })}
@@ -303,8 +286,8 @@ export default function DepartmentsScreen() {
                     <Ionicons name={meta.icon} size={22} color={meta.color} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={cs.deptName} numberOfLines={1}>{meta.hindi}</Text>
-                    <Text style={cs.deptNameEn} numberOfLines={1}>{meta.short} · {meta.description}</Text>
+                    <Text style={cs.deptName} numberOfLines={1}>{dept.name}</Text>
+                    <Text style={cs.deptNameEn} numberOfLines={1}>{meta.short}</Text>
                     <View style={{ flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
                       {dept.categories.slice(0, 2).map(c => (
                         <View key={c} style={[cs.catChip, { borderColor: meta.color + "44" }]}>
@@ -359,7 +342,7 @@ export default function DepartmentsScreen() {
                       <Ionicons name={meta.icon} size={20} color={meta.color} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={cs.sheetTitle} numberOfLines={1}>{meta.hindi}</Text>
+                      <Text style={cs.sheetTitle} numberOfLines={1}>{selectedDept.name}</Text>
                       <Text style={cs.sheetSub}>{meta.short} · {selectedDept.complaints} complaints routed</Text>
                     </View>
                     <Pressable onPress={() => setSelectedDept(null)}>

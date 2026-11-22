@@ -12,6 +12,7 @@ import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 import { useAuth } from "@/context/AuthContext";
 import { getSecure } from "@/lib/secure-session";
+import { stateName, allDistricts } from "@/constants/districts";
 
 interface BudgetItem {
   id: string;
@@ -27,6 +28,7 @@ interface BudgetItem {
 const DEPT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   "Public Works Department": "construct",
   "Uttarakhand Jal Sansthan": "water",
+  "Water Supply Department": "water",
   "Urban Local Body": "trash",
   "ULB Electric Wing": "bulb",
   "Forest Department": "leaf",
@@ -129,7 +131,7 @@ export default function BudgetScreen() {
   const [selectedItem, setSelectedItem] = useState<BudgetItem | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  const districts = ["all", "Dehradun", "Haridwar", "Nainital", "Udham Singh Nagar", "Almora", "Pithoragarh", "Champawat", "Bageshwar", "Tehri Garhwal", "Pauri Garhwal", "Rudraprayag", "Chamoli", "Uttarkashi"];
+  const districts = ["all", ...allDistricts()];
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);

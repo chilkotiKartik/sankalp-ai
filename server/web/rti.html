@@ -57,17 +57,8 @@ textarea{min-height:100px;resize:vertical;line-height:1.5}
 const {useState,useEffect}=React;
 const API=window.location.origin;
 
-const UK_DISTRICTS=["Dehradun","Haridwar","Nainital","Udham Singh Nagar","Almora","Pithoragarh","Chamoli","Uttarkashi","Tehri Garhwal","Pauri Garhwal","Champawat","Bageshwar","Rudraprayag"];
-const DEPARTMENTS=[
-  {id:"pwd",name:"PWD — Public Works Department",helpline:"1800-180-4244"},
-  {id:"ulb",name:"Urban Local Body — Municipal Corp.",helpline:"1533"},
-  {id:"jal",name:"Uttarakhand Jal Sansthan",helpline:"1916"},
-  {id:"upcl",name:"UPCL — Uttarakhand Power Corp.",helpline:"1912"},
-  {id:"forest",name:"Forest Department Uttarakhand",helpline:"1800-180-4288"},
-  {id:"health",name:"Health & Family Welfare Dept.",helpline:"104"},
-  {id:"usdma",name:"USDMA — Disaster Management Auth.",helpline:"1070"},
-  {id:"police",name:"Uttarakhand Police",helpline:"100"},
-];
+const UK_DISTRICTS=SK.districts;
+const DEPARTMENTS=Object.values(SK.depts).map(d=>({id:d.id,name:d.name,helpline:d.helpline}));
 
 let TOKEN=null;
 function getToken(){if(TOKEN) return TOKEN; const s=localStorage.getItem("sankalp_token"); if(s){TOKEN=s;return TOKEN;} return null;}
@@ -82,7 +73,7 @@ function RTIPortal() {
   const [title,setTitle]=useState("");
   const [question,setQuestion]=useState("");
   const [dept,setDept]=useState("pwd");
-  const [district,setDistrict]=useState("Dehradun");
+  const [district,setDistrict]=useState(SK.districts[0]||"");
   const [topic,setTopic]=useState("");
   const [aiDraft,setAiDraft]=useState("");
   const [loading,setLoading]=useState(false);
@@ -167,7 +158,7 @@ function RTIPortal() {
       <div className="topbar">
         <div>
           <div className="logo">SANKALP<span> AI</span></div>
-          <div style={{fontSize:12,color:"#93C5FD"}}>Right to Information Portal — Uttarakhand</div>
+          <div style={{fontSize:12,color:"#93C5FD"}}>Right to Information Portal — {SK.state}</div>
         </div>
         <div className="nav">
           <a href="/web/dept">🏛️ Dept. Portal</a>
@@ -179,7 +170,7 @@ function RTIPortal() {
 
       <div className="container">
         <div className="page-title">📋 RTI Filing Portal</div>
-        <p className="lead">File Right to Information requests to Uttarakhand government departments. AI-powered draft generation helps you write legally correct applications. Departments must reply within 30 days under RTI Act 2005.</p>
+        <p className="lead">File Right to Information requests to {SK.state} government departments. AI-powered draft generation helps you write legally correct applications. Departments must reply within 30 days under RTI Act 2005.</p>
 
         {!token&&(
           <form className="card" onSubmit={signIn} style={{marginBottom:16}} aria-label="Sign in to file an RTI">
@@ -206,7 +197,7 @@ function RTIPortal() {
                 <div className="card-title">✨ AI Draft Generator</div>
                 <div className="info-box">Enter a topic and our AI will draft a legally correct RTI application for you in seconds.</div>
                 <label>Topic / Issue</label>
-                <input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="e.g. Road repair budget in Dehradun, Water supply contamination"/>
+                <input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="e.g. Road repair budget in my district, Water supply contamination"/>
                 <label>Department</label>
                 <select aria-label="Department" value={dept} onChange={e=>setDept(e.target.value)}>{DEPARTMENTS.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select>
                 <label>District</label>
@@ -247,7 +238,7 @@ function RTIPortal() {
               </div>
               <div className="card">
                 <div className="card-title">📞 Important Contacts</div>
-                {[["State Information Commission","0135-2784480"],["DOIT Uttarakhand","0135-2669764"],["CM Helpline","1905"],["Anti-Corruption","1064"]].map(([n,p])=>(
+                {[["Emergency","112"],["Women Helpline","181"],["Child Helpline","1098"],["Cyber Crime","1930"]].map(([n,p])=>(
                   <div key={n} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F1F5F9",fontSize:13}}>
                     <span style={{color:"#64748B"}}>{n}</span>
                     <a href={`tel:${p}`} style={{color:"#B45309",fontWeight:700,textDecoration:"none"}}>{p}</a>

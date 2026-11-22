@@ -117,7 +117,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;displa
 <script type="text/babel">
 const {useState,useEffect,useRef,useCallback,useMemo}=React;
 const API=window.location.origin;
-const UK_DISTRICTS=["Dehradun","Haridwar","Tehri Garhwal","Pauri Garhwal","Rudraprayag","Chamoli","Uttarkashi","Pithoragarh","Bageshwar","Almora","Champawat","Nainital","Udham Singh Nagar"];
+const UK_DISTRICTS=SK.districts;
 
 function timeAgo(d){if(!d)return"—";const s=Math.round((Date.now()-new Date(d))/1000);if(s<60)return`${s}s ago`;if(s<3600)return`${Math.round(s/60)}m ago`;if(s<86400)return`${Math.round(s/3600)}h ago`;return`${Math.round(s/86400)}d ago`;}
 function fmtTime(d){if(!d)return"—";return new Date(d).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});}
@@ -141,7 +141,7 @@ function Toast({msg,type,onClose}){
 function SOSModal({onClose,onSubmit,userGeo}){
   const [name,setName]=useState("");
   const [phone,setPhone]=useState("");
-  const [district,setDistrict]=useState("Dehradun");
+  const [district,setDistrict]=useState(SK.districts[0]||"");
   const [loc,setLoc]=useState("");
   const [type,setType]=useState("women_safety");
   const [geo,setGeo]=useState(userGeo||null);
@@ -187,7 +187,7 @@ function SOSModal({onClose,onSubmit,userGeo}){
 
 function NightSafetyModal({onClose,onSubmit,userGeo}){
   const [loc,setLoc]=useState("");
-  const [district,setDistrict]=useState("Dehradun");
+  const [district,setDistrict]=useState(SK.districts[0]||"");
   const [desc,setDesc]=useState("");
   const [riskType,setRiskType]=useState("general");
   const [reporter,setReporter]=useState("");
@@ -214,7 +214,7 @@ function NightSafetyModal({onClose,onSubmit,userGeo}){
           </select>
         </div>
         <div className="fg"><label>District *</label><select aria-label="District" value={district} onChange={e=>setDistrict(e.target.value)}>{UK_DISTRICTS.map(d=><option key={d}>{d}</option>)}</select></div>
-        <div className="fg"><label>Location / Area Name *</label><input value={loc} onChange={e=>setLoc(e.target.value)} placeholder="e.g. Clock Tower back lane, Dehradun"/></div>
+        <div className="fg"><label>Location / Area Name *</label><input value={loc} onChange={e=>setLoc(e.target.value)} placeholder="e.g. Back lane behind the bus stand"/></div>
         <div className="fg"><label>Description</label><textarea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="What makes this area unsafe at night? When does it become risky?"/></div>
         <div className="fg"><label>Your Name (optional)</label><input value={reporter} onChange={e=>setReporter(e.target.value)} placeholder="Anonymous if left blank"/></div>
         <div className="mbtns">
@@ -467,8 +467,9 @@ function CPRPortal(){
   // Map init
   useEffect(()=>{
     if(!mapRef.current||mapObj.current)return;
-    const map=L.map(mapRef.current,{center:[30.0668,79.0193],zoom:7,zoomControl:true});
+    const map=L.map(mapRef.current,{center:SK.center,zoom:SK.zoom,zoomControl:true});
     sankalpTileLayer(L,map);
+    sankalpDistrictLayer(L,map,true);
     mapObj.current=map;
     if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{setUserGeo({lat:p.coords.latitude,lng:p.coords.longitude});map.setView([p.coords.latitude,p.coords.longitude],10);},()=>{});
   },[]);
@@ -552,7 +553,7 @@ function CPRPortal(){
     {n:activeIncs.length,l:"Active SOS",c:"#F87171"},
     {n:filtered.pat.filter(v=>v.status==="active_patrol").length,l:"On Patrol",c:"#86EFAC"},
     {n:filtered.pat.filter(v=>v.status==="responding").length,l:"Responding",c:"#FCD34D"},
-    {n:distFilter==="all"?13:1,l:"Districts",c:"#93C5FD"},
+    {n:distFilter==="all"?SK.districts.length:1,l:"Districts",c:"#93C5FD"},
   ];
 
   return(
@@ -563,7 +564,7 @@ function CPRPortal(){
       {activeIncs.length>0&&<div className="live-wrap"><div className="live-dot"/><span className="live-txt">{activeIncs.length} ACTIVE</span></div>}
       <div className="topbar-sep"/>
       <select aria-label="Filter by district" className="dist-select" value={distFilter} onChange={e=>setDistFilter(e.target.value)}>
-        <option value="all">🗺️ All 13 Districts</option>
+        <option value="all">🗺️ All Districts</option>
         {UK_DISTRICTS.map(d=><option key={d} value={d}>{d}</option>)}
       </select>
       <div style={{marginLeft:"auto",display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -674,7 +675,7 @@ function CPRPortal(){
           {/* DEPARTMENTS TAB */}
           {tab==="departments"&&(
             <div>
-              <div style={{fontSize:11,color:"#94A3B8",marginBottom:12,lineHeight:1.5}}>Emergency services and department helplines for all of Uttarakhand.</div>
+              <div style={{fontSize:11,color:"#94A3B8",marginBottom:12,lineHeight:1.5}}>Emergency services and department helplines for all of {SK.state}.</div>
               {emergencyServices.length===0?<div style={{textAlign:"center",color:"#94A3B8",padding:30}}>Loading…</div>:emergencyServices.map(s=>(
                 <div key={s.id} className="dept-card">
                   <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:8}}>

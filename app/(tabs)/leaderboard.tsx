@@ -12,6 +12,7 @@ import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 import { useAuth } from "@/context/AuthContext";
 import { getSecure } from "@/lib/secure-session";
+import { stateName, allDistricts } from "@/constants/districts";
 
 interface LeaderEntry {
   rank: number;
@@ -188,7 +189,7 @@ export default function LeaderboardScreen() {
         </Pressable>
         <View style={cs.headerTitle}>
           <Text style={cs.headerTitleText}>Leaderboard</Text>
-          <Text style={cs.headerSub}>Uttarakhand Civic Champions</Text>
+          <Text style={cs.headerSub}>{`${stateName()} Civic Champions`}</Text>
         </View>
         <View style={cs.headerBadge}>
           <Ionicons name="trophy" size={20} color={Colors.turmeric} />
@@ -215,7 +216,7 @@ export default function LeaderboardScreen() {
           <Pressable key={t} onPress={() => setTab(t)} style={[cs.tabBtn, tab === t && cs.tabBtnActive]}>
             <Ionicons name={t === "all" ? "globe" : "location"} size={14} color={tab === t ? Colors.saffron : Colors.textMuted} />
             <Text style={[cs.tabText, tab === t && cs.tabTextActive]}>
-              {t === "all" ? "All Uttarakhand" : "My District"}
+              {t === "all" ? `All ${stateName()}` : "My District"}
             </Text>
           </Pressable>
         ))}

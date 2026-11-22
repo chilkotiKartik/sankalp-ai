@@ -12,6 +12,8 @@ import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { NotificationBell } from "@/components/NotificationBell";
 import { getApiUrl } from "@/lib/query-client";
+import { stateName, districtPhrase, stateNameLocal } from "@/constants/districts";
+import { getTenantId } from "@/lib/tenant";
 
 const CATEGORY_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
   pothole:     { label: "Pothole",     icon: "alert-circle",        color: "#F59E0B", bg: "#FFF8E7" },
@@ -62,6 +64,7 @@ function toNewsItems(anns: Array<{ id: string; type?: string; title: string; bod
 const SCHEMES_DATA = [
   {
     key: "swarojgar",
+    states: ["uttarakhand"],
     title: "CM Swarojgar Yojana",
     sub: "Self-employment loans for hill residents",
     tag: "EMPLOYMENT",
@@ -106,16 +109,17 @@ const SCHEMES_DATA = [
     benefits: [
       "₹5 lakh annual health coverage per family — fully cashless",
       "Covers 1,500+ hospital procedures including cancer, heart surgery, dialysis",
-      "Empanelled with AIIMS Rishikesh, Doon Medical College & all district hospitals",
+      "Cashless at empanelled government and private hospitals across India (portable between states)",
       "No premium payment — 100% government funded",
       "Includes pre and post-hospitalisation costs (3 days before, 15 days after)",
     ],
-    howToApply: "Visit nearest Jan Seva Kendra, Uttarakhand or empanelled hospital. Search eligibility at pmjay.gov.in. Carry Aadhaar and ration card. Free Ayushman card issued on-spot.",
+    howToApply: "Visit your nearest Common Service Centre (Jan Seva Kendra) or empanelled hospital. Search eligibility at pmjay.gov.in. Carry Aadhaar and ration card. Free Ayushman card issued on-spot.",
     helpline: "14555",
     website: "pmjay.gov.in",
   },
   {
     key: "gaura",
+    states: ["uttarakhand"],
     title: "Gaura Devi Kanya Dhan",
     sub: "₹51,000 grant for girl students",
     tag: "EDUCATION",
@@ -143,6 +147,7 @@ const SCHEMES_DATA = [
   },
   {
     key: "paryatan",
+    states: ["uttarakhand"],
     title: "Veer CS Garhwali Yojana",
     sub: "Eco-tourism homestay grants",
     tag: "TOURISM",
@@ -322,7 +327,7 @@ function NewsDetailModal({ news, onClose }: { news: any; onClose: () => void }) 
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#F0FFF4", borderRadius: 10, padding: 10 }}>
                 <Ionicons name="information-circle" size={16} color="#00A651" />
                 <Text style={{ flex: 1, color: "#065F46", fontSize: 12, fontFamily: "Inter_500Medium" }}>
-                  This article is sourced from official Uttarakhand government press releases and verified news agencies.
+                  {`This article is sourced from official ${stateName()} government press releases and verified news agencies.`}
                 </Text>
               </View>
             </View>
@@ -363,7 +368,7 @@ function NoticeModal({ notice, onClose }: { notice: any; onClose: () => void }) 
             </View>
           </View>
           <View style={ms.section}>
-            <Text style={nm.body}>{notice.content || notice.body || "This is an official government notice from the Uttarakhand Administration. Please read carefully and take any required action promptly. For queries, contact your nearest government office or helpline."}</Text>
+            <Text style={nm.body}>{notice.content || notice.body || `This is an official government notice from the ${stateName()} administration. Please read carefully and take any required action promptly. For queries, contact your nearest government office or helpline.`}</Text>
           </View>
           {notice.actionLabel && (
             <Pressable style={[ms.contactBtn, { backgroundColor: "#FF9933", borderColor: "#FF9933", margin: 16 }]}>
@@ -377,58 +382,6 @@ function NoticeModal({ notice, onClose }: { notice: any; onClose: () => void }) 
         </View>
       </View>
     </Modal>
-  );
-}
-
-const AQI_DISTRICT: Record<string, { aqi: number; temp: number; humidity: number; status: string; color: string; icon: string }> = {
-  "Dehradun":    { aqi: 87,  temp: 28, humidity: 65, status: "Moderate",  color: "#F59E0B", icon: "😶‍🌫️" },
-  "Haridwar":    { aqi: 112, temp: 31, humidity: 58, status: "Sensitive",  color: "#EF4444", icon: "🏭" },
-  "Nainital":    { aqi: 34,  temp: 22, humidity: 75, status: "Good",       color: "#22C55E", icon: "🌲" },
-  "Rishikesh":   { aqi: 72,  temp: 29, humidity: 62, status: "Moderate",   color: "#F59E0B", icon: "🏞️" },
-  "Mussoorie":   { aqi: 28,  temp: 19, humidity: 80, status: "Excellent",  color: "#06B6D4", icon: "⛰️" },
-  "Almora":      { aqi: 45,  temp: 24, humidity: 70, status: "Good",       color: "#22C55E", icon: "🌄" },
-  "Uttarkashi":  { aqi: 31,  temp: 20, humidity: 72, status: "Excellent",  color: "#06B6D4", icon: "🏔️" },
-  "Rudrapur":    { aqi: 98,  temp: 32, humidity: 55, status: "Moderate",   color: "#F59E0B", icon: "🏙️" },
-  "Pithoragarh": { aqi: 22,  temp: 18, humidity: 78, status: "Excellent",  color: "#06B6D4", icon: "🗻" },
-};
-
-function AqiWeatherWidget({ district }: { district: string }) {
-  const d = AQI_DISTRICT[district] || { aqi: 65, temp: 27, humidity: 60, status: "Good", color: "#22C55E", icon: "🌤️" };
-  return (
-    <View style={{ marginHorizontal: 16, marginTop: 12 }}>
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <View style={{ flex: 1.2, backgroundColor: d.color + "18", borderRadius: 14, padding: 12, borderWidth: 1, borderColor: d.color + "33" }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
-            <Text style={{ fontSize: 16 }}>🌫️</Text>
-            <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5 }}>AIR QUALITY</Text>
-          </View>
-          <Text style={{ color: d.color, fontSize: 30, fontFamily: "Inter_700Bold", lineHeight: 34 }}>{d.aqi}</Text>
-          <Text style={{ color: d.color, fontSize: 10, fontFamily: "Inter_700Bold", marginTop: 2 }}>{d.status}</Text>
-          <Text style={{ color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular", marginTop: 1 }}>AQI · {district}</Text>
-        </View>
-        <View style={{ flex: 2, gap: 8 }}>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <View style={{ flex: 1, backgroundColor: "#1E3A5F22", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "#3B82F622" }}>
-              <Text style={{ fontSize: 14 }}>🌡️</Text>
-              <Text style={{ color: "#60A5FA", fontSize: 18, fontFamily: "Inter_700Bold" }}>{d.temp}°</Text>
-              <Text style={{ color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular" }}>Celsius</Text>
-            </View>
-            <View style={{ flex: 1, backgroundColor: "#06B6D422", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "#06B6D433" }}>
-              <Text style={{ fontSize: 14 }}>💧</Text>
-              <Text style={{ color: "#06B6D4", fontSize: 18, fontFamily: "Inter_700Bold" }}>{d.humidity}%</Text>
-              <Text style={{ color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular" }}>Humidity</Text>
-            </View>
-          </View>
-          <View style={{ backgroundColor: "#22C55E11", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "#22C55E22", flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Text style={{ fontSize: 18 }}>{d.icon}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: "#fff", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>{district}</Text>
-              <Text style={{ color: "#6B7280", fontSize: 9, fontFamily: "Inter_400Regular" }}>Live district data</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-    </View>
   );
 }
 
@@ -478,9 +431,9 @@ function AICityAlertCard() {
 
 const HI = {
   greeting: (h: number) => h < 12 ? "सुप्रभात" : h < 17 ? "नमस्कार" : "शुभ संध्या",
-  liveCmd: "लाइव · उत्तराखंड कमांड सेंटर",
+  get liveCmd() { return `लाइव · ${stateNameLocal()} कमांड सेंटर`; },
   cityHealth: "शहर स्वास्थ्य स्कोर",
-  blocksMonitored: (n: number) => `उत्तराखंड · ${n} क्षेत्र निगरानी में`,
+  blocksMonitored: (n: number) => `${stateNameLocal()} · ${n} क्षेत्र निगरानी में`,
   quickAccess: "त्वरित पहुँच",
   myActivity: "मेरी नागरिक गतिविधि",
   seeAll: "सभी देखें",
@@ -489,7 +442,7 @@ const HI = {
   resolved: "हल",
   citySos: "SOS अलर्ट",
   todayComplaints: "आज की शिकायतें",
-  news: "उत्तराखंड समाचार",
+  get news() { return `${stateNameLocal()} समाचार`; },
   schemes: "सरकारी योजनाएं",
   notices: "सूचनाएं",
   aiChat: "AI चैट",
@@ -583,7 +536,7 @@ export default function DashboardScreen() {
                 <Text style={styles.userName}>{user?.name?.split(" ")[0] || "Citizen"} 👋</Text>
                 <View style={styles.livePill}>
                   <PulsingDot color="#fff" />
-                  <Text style={styles.liveText}>{t("Live · Uttarakhand Command Center", HI.liveCmd)}</Text>
+                  <Text style={styles.liveText}>{t(`Live · ${stateName()} Command Center`, HI.liveCmd)}</Text>
                 </View>
               </View>
               <View style={styles.headerRight}>
@@ -608,7 +561,7 @@ export default function DashboardScreen() {
             <View style={styles.healthCard}>
               <View style={styles.healthCardLeft}>
                 <Text style={styles.healthCardLabel}>{t("City Health Score", HI.cityHealth)}</Text>
-                <Text style={styles.healthCardSub}>{lang === "HI" ? HI.blocksMonitored(wards.length) : `Uttarakhand · ${wards.length} Blocks Monitored`}</Text>
+                <Text style={styles.healthCardSub}>{lang === "HI" ? HI.blocksMonitored(wards.length) : `${stateName()} · ${wards.length} Blocks Monitored`}</Text>
                 <HealthBar pct={avgHealth} color={healthColor} />
               </View>
               <View style={[styles.healthScoreBubble, { borderColor: healthColor + "44" }]}>
@@ -655,9 +608,6 @@ export default function DashboardScreen() {
           </Pressable>
         )}
 
-        {/* AQI & WEATHER */}
-        <AqiWeatherWidget district={user?.district || "Champawat"} />
-
         {/* AI CITY INTELLIGENCE */}
         <AICityAlertCard />
 
@@ -702,7 +652,7 @@ export default function DashboardScreen() {
               <Text style={{ fontSize: 18 }}>🌟</Text>
               <Text style={styles.motivText}>
                 {user?.level && user.level >= 3
-                  ? `Level ${user.level} Civic Advocate — keep making Uttarakhand better!`
+                  ? `Level ${user.level} Civic Advocate — keep making ${stateName()} better!`
                   : "File your first complaint to start earning civic points!"}
               </Text>
             </View>
@@ -749,7 +699,7 @@ export default function DashboardScreen() {
               </View>
               <View>
                 <Text style={styles.aiBannerTitle}>SANKALP AI Assistant</Text>
-                <Text style={styles.aiBannerSub}>Ask anything about Uttarakhand civic services</Text>
+                <Text style={styles.aiBannerSub}>{`Ask anything about ${stateName()} civic services`}</Text>
               </View>
             </View>
             <View style={styles.aiBannerStats}>
@@ -762,47 +712,36 @@ export default function DashboardScreen() {
           </LinearGradient>
         </Pressable>
 
-        {/* UTTARAKHAND WEATHER + AQI */}
+        {/* STATE AT A GLANCE — from the selected state's config, no invented numbers */}
         <View style={styles.aqiCard}>
           <LinearGradient colors={["#0C4A6E", "#075985", "#0369A1"]} style={styles.aqiGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <View style={styles.aqiLeft}>
-              <View style={styles.aqiIconWrap}><Text style={{ fontSize: 22 }}>🏔️</Text></View>
-              <View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text style={styles.aqiTitle}>Dehradun</Text>
-                  <View style={styles.aqiLivePill}>
-                    <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: "#4ADE80" }} />
-                    <Text style={styles.aqiLiveText}>LIVE</Text>
-                  </View>
-                </View>
-                <Text style={styles.aqiSub}>AQI 68 · Satisfactory</Text>
-                <Text style={[styles.aqiAdvice, { color: "#86EFAC" }]}>✓ Clean Himalayan air today</Text>
-              </View>
-            </View>
-            <View style={styles.aqiRight}>
-              <Text style={styles.aqiNum}>24°</Text>
-              <Text style={[styles.aqiCategory, { color: "#7DD3FC" }]}>SUNNY</Text>
-              <View style={[styles.aqiBar, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
-                <View style={[styles.aqiBarFill, { width: "25%", backgroundColor: "#4ADE80" }]} />
+              <View style={styles.aqiIconWrap}><Text style={{ fontSize: 22 }}>📍</Text></View>
+              <View style={{ flexShrink: 1 }}>
+                <Text style={styles.aqiTitle}>{user?.district && user.district !== "Other districts" ? user.district : stateName()}</Text>
+                <Text style={styles.aqiSub}>{`${stateName()} · ${districtPhrase()}`}</Text>
+                <Pressable onPress={() => Linking.openURL("https://airquality.cpcb.gov.in/AQI_India/")} accessibilityRole="link">
+                  <Text style={[styles.aqiAdvice, { color: "#86EFAC" }]}>Check live air quality (CPCB) →</Text>
+                </Pressable>
               </View>
             </View>
           </LinearGradient>
           <View style={styles.aqiBreakdown}>
             {[
-              { label: "AQI",    val: "68",   color: "#22C55E" },
-              { label: "Humid",  val: "42%",  color: "#3B82F6" },
-              { label: "Wind",   val: "12km", color: "#8B5CF6" },
-              { label: "UV",     val: "Med",  color: "#F59E0B" },
+              { label: "Emergency", val: "112", color: "#EF4444" },
+              { label: "Ambulance", val: "108", color: "#22C55E" },
+              { label: "Women", val: "181", color: "#EC4899" },
+              { label: "Disaster", val: "1070", color: "#F59E0B" },
             ].map(m => (
-              <View key={m.label} style={styles.aqiMetric}>
+              <Pressable key={m.label} style={styles.aqiMetric} onPress={() => Linking.openURL(`tel:${m.val}`)} accessibilityRole="button" accessibilityLabel={`Call ${m.label} ${m.val}`}>
                 <Text style={[styles.aqiMetricVal, { color: m.color }]}>{m.val}</Text>
                 <Text style={styles.aqiMetricLabel}>{m.label}</Text>
-              </View>
+              </Pressable>
             ))}
           </View>
         </View>
 
-        {/* UTTARAKHAND NEWS */}
+        {/* STATE NEWS */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrap}>
@@ -857,7 +796,7 @@ export default function DashboardScreen() {
             {[
               { num: "100",  label: "Police",        icon: "shield",    color: "#1A237E", bg: "#E8EAFF" },
               { num: "108",  label: "Ambulance",      icon: "heart",     color: "#EF4444", bg: "#FEF2F2" },
-              { num: "1090", label: "Women Safety",   icon: "woman",     color: "#EC4899", bg: "#FDF2F8" },
+              { num: "181", label: "Women Helpline",   icon: "woman",     color: "#EC4899", bg: "#FDF2F8" },
               { num: "101",  label: "Fire Brigade",   icon: "flame",     color: "#F59E0B", bg: "#FFFBEB" },
               { num: "1095", label: "Traffic Police", icon: "car",       color: "#06B6D4", bg: "#F0FDFF" },
               { num: "1098", label: "Child Helpline", icon: "happy",     color: "#00A651", bg: "#F0FFF4" },
@@ -880,11 +819,11 @@ export default function DashboardScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrap}>
               <Ionicons name="document-text" size={16} color="#FF9933" />
-              <Text style={styles.sectionTitle}>Uttarakhand Govt Schemes</Text>
+              <Text style={styles.sectionTitle}>Government Schemes</Text>
             </View>
             <Pressable><Text style={styles.seeAll}>View All →</Text></Pressable>
           </View>
-          {SCHEMES_DATA.map((s, idx) => (
+          {SCHEMES_DATA.filter(x => !(x as { states?: string[] }).states || (x as { states?: string[] }).states!.includes(getTenantId() ?? "")).map((s, idx) => (
             <Pressable key={s.key} onPress={() => setSelectedScheme(s)}
               style={[styles.schemeRow, { borderTopWidth: idx === 0 ? 0 : 1 }]}>
               <View style={[styles.schemeIcon, { backgroundColor: s.color + "15" }]}>

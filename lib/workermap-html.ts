@@ -1,3 +1,4 @@
+import { districtCenters, getStateCenter } from "@/constants/districts";
 import { scriptJson, ESC_JS, tileLayerJs } from "./map-safety";
 // Shared Leaflet HTML builder for Worker GPS Map
 // Used by both native (WebView) and web (iframe) versions
@@ -28,21 +29,10 @@ export interface DistrictHeatData {
   avgScore: number;
 }
 
-export const DISTRICT_CENTERS: Record<string, [number, number]> = {
-  "Dehradun":          [30.3165, 78.0322],
-  "Haridwar":          [29.9457, 78.1642],
-  "Tehri Garhwal":     [30.3822, 78.4800],
-  "Pauri Garhwal":     [29.6864, 78.9764],
-  "Rudraprayag":       [30.2846, 78.9806],
-  "Chamoli":           [30.4090, 79.3206],
-  "Uttarkashi":        [30.7268, 78.4354],
-  "Pithoragarh":       [29.5829, 80.2178],
-  "Bageshwar":         [29.8371, 79.7715],
-  "Almora":            [29.5971, 79.6596],
-  "Champawat":         [29.3377, 80.0914],
-  "Nainital":          [29.3919, 79.4542],
-  "Udham Singh Nagar": [28.9982, 79.5050],
-};
+/** P9: [lat, lng] per district of the SELECTED state (live from the tenant config; nothing hard-coded). */
+export function districtCenterPairs(): Record<string, [number, number]> {
+  return Object.fromEntries(Object.entries(districtCenters()).map(([d, c]) => [d, [c.lat, c.lng] as [number, number]]));
+}
 
 export function buildWorkerMapHTML(
   workers: WorkerMapData[],
@@ -56,7 +46,9 @@ export function buildWorkerMapHTML(
   const wJson = scriptJson(workers);
   const hJson = scriptJson(heatData);
   const sJson = scriptJson(selectedId);
-  const centersJson = scriptJson(DISTRICT_CENTERS);
+  const centersJson = scriptJson(districtCenterPairs());
+  const sc = getStateCenter();
+  const viewJs = `[${+sc.lat},${+sc.lng}],${+sc.zoom}`;
   const showHeatJs = showHeat ? "true" : "false";
   const isWebJs = isWebPlatform ? "true" : "false";
 
@@ -141,7 +133,7 @@ var showHeat=${showHeatJs};
 var isWeb=${isWebJs};
 
 var map=L.map('map',{
-  center:[30.0668,79.0193],zoom:7,
+  center:[${+sc.lat},${+sc.lng}],zoom:${+sc.zoom},
   zoomControl:true,attributionControl:true,preferCanvas:false
 });
 ${tileLayerJs(tileUrl)}
@@ -269,7 +261,7 @@ window.resetView=function(){
     var w=workers.find(function(x){return x.id===k;});
     if(w)markerMap[k].setIcon(makeIcon(w,false));
   });
-  map.setView([30.0668,79.0193],7,{animate:true});
+  map.setView(${viewJs},{animate:true});
 };
 window.setHeatVisible=function(vis){
   var leg=document.getElementById('heat-legend');

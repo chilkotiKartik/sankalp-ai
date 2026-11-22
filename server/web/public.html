@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SANKALP AI — Uttarakhand Civic Dashboard</title>
+<title>SANKALP AI — Civic Dashboard</title>
 <script src="/web/vendor/react-18.3.1.production.min.js"></script>
 <script src="/web/vendor/react-dom-18.3.1.production.min.js"></script>
 <script src="/web/vendor/babel-standalone-7.26.10.min.js"></script>
@@ -107,16 +107,16 @@ function PublicPortal() {
     fetch(`${API}/api/public/announcements`).then(r=>r.json()).then(d=>{
       if(Array.isArray(d)&&d.length>0)setAnnouncements(d.slice(0,12));
       else setAnnouncements([
-        {id:'a1',title:'📢 SANKALP AI civic governance platform is live across all 13 Uttarakhand districts',priority:'normal'},
+        {id:'a1',title:`📢 SANKALP AI civic platform for ${SK.state}`,priority:'normal'},
         {id:'a2',title:'🌐 Real-time complaint tracking, SOS alerts & department performance — all in one platform',priority:'normal'},
-        {id:'a3',title:'🆘 Emergency? Call 112 (Unified) · Women Safety: 1090 · SDRF Disaster: 1070',priority:'urgent'},
-        {id:'a4',title:'📊 All 8 departments connected — PWD, ULB, Jal Sansthan, UPCL, Forest, Health, USDMA, Police',priority:'normal'},
+        {id:'a3',title:'🆘 Emergency? Call 112 (Unified) · Women Helpline: 181 · Disaster: 1070',priority:'urgent'},
+        {id:'a4',title:`📊 Departments connected: ${Object.values(SK.depts).map(d=>d.name.split(' — ')[0]).join(', ')}`,priority:'normal'},
         {id:'a5',title:'📱 Download SANKALP AI mobile app for real-time alerts and civic engagement',priority:'normal'},
       ]);
     }).catch(()=>{
       setAnnouncements([
-        {id:'f1',title:'📢 SANKALP AI — Uttarakhand Civic Governance Platform is LIVE',priority:'normal'},
-        {id:'f2',title:'🆘 Emergency: 112 · Police: 100 · Ambulance: 108 · Fire: 101 · Women Safety: 1090',priority:'urgent'},
+        {id:'f1',title:`📢 SANKALP AI — ${SK.state} Civic Platform`,priority:'normal'},
+        {id:'f2',title:'🆘 Emergency: 112 · Police: 100 · Ambulance: 108 · Fire: 101 · Women Helpline: 181',priority:'urgent'},
       ]);
     });
     setLastUpdated(new Date());
@@ -139,7 +139,7 @@ function PublicPortal() {
       <div className="topbar">
         <div>
           <div className="logo">SANKALP<span> AI</span></div>
-          <div className="logo-sub">Uttarakhand Open Civic Data Portal</div>
+          <div className="logo-sub">{SK.state} Open Civic Data Portal</div>
         </div>
         <div className="nav">
           <a href="/web/portal">🏛️ Citizen Portal</a>
@@ -156,8 +156,8 @@ function PublicPortal() {
       <div className="container">
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:24}}>
           <div>
-            <h1>Uttarakhand Civic Health Dashboard</h1>
-            <p className="lead" style={{marginBottom:0}}>Real-time government performance data across 13 districts. Updated live every 6 seconds as citizens file complaints and departments resolve them.</p>
+            <h1>{SK.state} Civic Health Dashboard</h1>
+            <p className="lead" style={{marginBottom:0}}>Real-time government performance data across every district. Updated live every 6 seconds as citizens file complaints and departments resolve them.</p>
           </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
             <div className="live-badge"><div className="live-dot"/>LIVE DATA</div>
@@ -284,8 +284,8 @@ function PublicPortal() {
       </div>
 
       <footer>
-        <div style={{marginBottom:8}}><strong style={{color:"#E2E8F0"}}>SANKALP AI</strong> — Uttarakhand Civic Intelligence Platform</div>
-        <div>Data updates every 6 seconds · AI-powered complaint analysis · Built for Uttarakhand citizens</div>
+        <div style={{marginBottom:8}}><strong style={{color:"#E2E8F0"}}>SANKALP AI</strong> — {SK.state} Civic Intelligence Platform</div>
+        <div>Data updates every 6 seconds · AI-powered complaint analysis · Built for {SK.state} citizens</div>
         <div style={{marginTop:12,display:"flex",gap:16,justifyContent:"center",flexWrap:"wrap"}}>
           <a href="/web/portal">Citizen Portal</a>
           <a href="/web/dept">Department Portal</a>

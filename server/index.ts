@@ -25,34 +25,35 @@ async function main() {
   const restored = await startPersistence();
   logger.info("persistence", { driver: c.STORAGE_DRIVER, tenants: tenantIds(), restored });
 
-  for (const id of tenantIds()) {
-    await runInTenant(id, async () => {
-      const s = storeFor(id);
-      if (!c.DEMO_MODE && s.hasDemoData()) {
-        const removed = s.purgeDemo();
-        logger.warn("demo_data_purged", { tenant: id, removed, reason: "DEMO_MODE is off" });
-      }
-      // M5: random department codes on first boot, written once to a 0600 file (never logged).
-      const created = await s.ensureDeptCodes();
-      if (Object.keys(created).length) {
-        const root = path.resolve(c.DATA_DIR);
-        const file = id === defaultTenant() ? path.join(root, "dept-codes.initial.txt") : path.join(root, "tenants", id, "dept-codes.initial.txt");
-        fs.mkdirSync(path.dirname(file), { recursive: true });
-        fs.writeFileSync(file, Object.entries(created).map(([d, code]) => `${d}\t${code}`).join("\n") + "\n", { mode: 0o600 });
-        logger.warn("dept_codes_created", { tenant: id, departments: Object.keys(created), file, action: "Distribute securely, then delete this file" });
-      }
-    });
-  }
+  /** Per-tenant boot work: demo purge, department codes (bcrypt), optional first administrator. */
+  const prepareTenant = (id: string) => runInTenant(id, async () => {
+    const s = storeFor(id);
+    if (!c.DEMO_MODE && s.hasDemoData()) {
+      const removed = s.purgeDemo();
+      logger.warn("demo_data_purged", { tenant: id, removed, reason: "DEMO_MODE is off" });
+    }
+    // M5: random department codes on first boot, written once to a 0600 file (never logged).
+    const created = await s.ensureDeptCodes();
+    if (Object.keys(created).length) {
+      const root = path.resolve(c.DATA_DIR);
+      const file = id === defaultTenant() ? path.join(root, "dept-codes.initial.txt") : path.join(root, "tenants", id, "dept-codes.initial.txt");
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, Object.entries(created).map(([d, code]) => `${d}\t${code}`).join("\n") + "\n", { mode: 0o600 });
+      logger.warn("dept_codes_created", { tenant: id, departments: Object.keys(created), file, action: "Distribute securely, then delete this file" });
+    }
+    // First administrator: BOOTSTRAP_SUPER_ADMIN_PHONE/PIN for the default state, …_PHONE_<STATE>/…_PIN_<STATE> for others.
+    const sfx = id === defaultTenant() ? "" : `_${id.toUpperCase().replace(/-/g, "_")}`;
+    const phone = process.env[`BOOTSTRAP_SUPER_ADMIN_PHONE${sfx}`], pin = process.env[`BOOTSTRAP_SUPER_ADMIN_PIN${sfx}`];
+    if (phone && pin && !(await s.findUserByPhone(phone))) {
+      await s.createUser({ name: "State Administrator", phone, pin: await bcrypt.hash(pin, 12), role: "super_admin", district: tenant().stateLabel, points: 0, badges: ["super_admin"], level: 1 });
+      logger.warn("bootstrap_super_admin_created", { tenant: id, action: `Unset BOOTSTRAP_SUPER_ADMIN_PIN${sfx} now` });
+    }
+  });
 
-  if (c.BOOTSTRAP_SUPER_ADMIN_PHONE && c.BOOTSTRAP_SUPER_ADMIN_PIN) {
-    await runInTenant(defaultTenant(), async () => {
-      const s = storeFor(defaultTenant());
-      if (await s.findUserByPhone(c.BOOTSTRAP_SUPER_ADMIN_PHONE!)) return;
-      await s.createUser({ name: "State Administrator", phone: c.BOOTSTRAP_SUPER_ADMIN_PHONE!, pin: await bcrypt.hash(c.BOOTSTRAP_SUPER_ADMIN_PIN!, 12),
-        role: "super_admin", district: tenant().stateLabel, points: 0, badges: ["super_admin"], level: 1 });
-      logger.warn("bootstrap_super_admin_created", { tenant: defaultTenant(), action: "Unset BOOTSTRAP_SUPER_ADMIN_PIN now" });
-    });
-  }
+  // P9: states with full data are ready before we listen; state-level states are prepared right after, in the background.
+  const full = tenantIds().filter(id => tenant(id).coverage === "full");
+  for (const id of full) await prepareTenant(id);
+  const later = tenantIds().filter(id => !full.includes(id));
 
   const { server } = createApp();
   // Review P7-8: JOBS=off for restore drills (no SMS retries/reminders from a copy of production).
@@ -60,6 +61,7 @@ async function main() {
 
   // Review P7-6: on a VM behind nginx set HOST=127.0.0.1 so the app is never reachable directly (no spoofed X-Forwarded-For).
   server.listen({ port: c.PORT, host: process.env.HOST || "0.0.0.0" }, () => {
+    void (async () => { for (const id of later) { try { await prepareTenant(id); } catch (err) { logger.error("tenant_prepare_failed", { tenant: id, err: (err as Error).message }); } } })();
     logger.info("listening", { port: c.PORT, demoMode: c.DEMO_MODE, textAI: c.textProvider, visionAI: c.visionProvider, env: c.NODE_ENV });
   });
 

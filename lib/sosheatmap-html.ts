@@ -1,4 +1,5 @@
-import { DISTRICT_CENTERS } from "./workermap-html";
+import { districtCenterPairs } from "./workermap-html";
+import { getStateCenter } from "@/constants/districts";
 import { scriptJson, ESC_JS, tileLayerJs } from "./map-safety";
 import { LEAFLET_CSS, LEAFLET_JS } from "./leaflet-bundle";
 
@@ -12,7 +13,8 @@ export interface SosHeatEntry {
 
 export function buildSosHeatmapHTML(entries: SosHeatEntry[], origin = "", tileUrl: string | null = null): string {
   const eJson = scriptJson(entries);
-  const centersJson = scriptJson(DISTRICT_CENTERS);
+  const centersJson = scriptJson(districtCenterPairs());
+  const sc = getStateCenter();
 
   return `<!DOCTYPE html>
 <html>
@@ -65,7 +67,7 @@ export function buildSosHeatmapHTML(entries: SosHeatEntry[], origin = "", tileUr
 <script>
 var entries=${eJson};
 var centers=${centersJson};
-var map=L.map('map',{center:[30.0668,79.0193],zoom:7,zoomControl:true,attributionControl:true,preferCanvas:false});
+var map=L.map('map',{center:[${+sc.lat},${+sc.lng}],zoom:${+sc.zoom},zoomControl:true,attributionControl:true,preferCanvas:false});
 ${tileLayerJs(tileUrl)}
 ${ESC_JS}
 

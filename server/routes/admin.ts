@@ -1,3 +1,4 @@
+import { tenant } from "../tenancy";
 import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import type { Express } from "express";
 import { z } from "zod";
@@ -84,7 +85,7 @@ export function registerAdminRoutes(app: Express) {
     handler: ({ body, user }) => {
       const ann = storage.createAnnouncement({ title: "📋 Task Assigned by State Administration",
         body: `Directive from State Command:\n\n${body.task}\n\nPlease acknowledge and act.`, type: "emergency",
-        department: "State Government of Uttarakhand", priority: "urgent", targetDistrict: body.district, postedBy: user.name });
+        department: `Government of ${tenant().stateLabel}`, priority: "urgent", targetDistrict: body.district, postedBy: user.name });
       storage.addAuditLog("task_assigned", user.id, user.name, `Task assigned to ${body.district}`);
       return { success: true, announcement: ann, message: `Task assigned to ${body.district} administration` };
     },

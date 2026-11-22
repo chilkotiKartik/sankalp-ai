@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { getTenantId, loadTenantId } from "@/lib/tenant";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState } from "react-native";
 import { getApiUrl } from "@/lib/query-client";
@@ -101,6 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
+        // P9: tokens are bound to one state — make sure X-Tenant is known before the first authenticated call.
+        if (!getTenantId()) await loadTenantId();
         const [storedToken, storedUser] = await Promise.all([getSecure(TOKEN_KEY), AsyncStorage.getItem(USER_KEY)]);
         if (storedToken && storedUser) {
           try {
