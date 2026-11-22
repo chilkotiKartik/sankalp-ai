@@ -150,6 +150,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P9.16 Fresh-clone build fix (server/data/reference.ts was git-ignored)
 - [x] P9.17 Live on Azure, South Central India: https://172-128-32-35.sslip.io (Let's Encrypt HTTPS, nightly encrypted backup); Caddy 2.6 fix; APK and eas.json point at it
 - [x] P9.18 Own domain https://sankalpai.app (www redirects), Let's Encrypt; app and docs point at it
+- [x] P9.19 Web polish: intro shown once (it appeared twice: onboarding screen + sign-in intro), centred phone-width layout on wide screens, redirect guard, button roles; full metadata (title, description, Open Graph + Twitter card with share image, canonical, JSON-LD), robots.txt, sitemap.xml — tests/pwa.test.ts; 100-page sweep 0 errors, contrast 0, only Indian hosts
 
 ## Baseline failures out of scope
 See docs/BASELINE.md.

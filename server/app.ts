@@ -130,26 +130,58 @@ function proxyToMetro(req: Request, res: Response) {
  * The Expo web build's index.html plus what makes it an installable web app on Android and iPhone:
  * manifest, icons, theme colour, iOS standalone tags, notch-safe viewport and the service-worker script.
  */
-let pwaCache: { mtime: number; html: string } | null = null;
-const PWA_HEAD = [
-  '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />',
-  '<meta name="description" content="Report civic issues, track them to a verified fix, and get help fast with SOS — in every Indian state and UT." />',
-  '<meta name="theme-color" content="#111A29" />',
-  '<link rel="manifest" href="/manifest.webmanifest" />',
-  '<link rel="apple-touch-icon" href="/pwa/apple-touch-icon.png" />',
-  '<meta name="apple-mobile-web-app-capable" content="yes" />',
-  '<meta name="mobile-web-app-capable" content="yes" />',
-  '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
-  '<meta name="apple-mobile-web-app-title" content="SANKALP AI" />',
-  '<script src="/pwa/register.js" defer></script>',
-].join("");
+let pwaCache: { mtime: number; base: string; html: string } | null = null;
+const SITE_TITLE = "SANKALP AI — Report civic issues, track the fix, SOS for every Indian state";
+const SITE_DESC = "Report potholes, garbage, water and power problems in under a minute, track them to a photo-verified fix, and get help fast with women-safety SOS. Works in every Indian state and UT; your data stays in India.";
+const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+function pwaHead(base: string): string {
+  const abs = (p: string) => (base ? base + p : p);
+  const ld = { "@context": "https://schema.org", "@type": "WebApplication", name: "SANKALP AI", url: abs("/"), applicationCategory: "GovernmentApplication",
+    operatingSystem: "Android, iOS, Web", inLanguage: ["en-IN", "hi-IN"], description: SITE_DESC, offers: { "@type": "Offer", price: "0", priceCurrency: "INR" } };
+  return [
+    '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />',
+    `<meta name="description" content="${esc(SITE_DESC)}" />`,
+    '<meta name="keywords" content="civic complaints, grievance, pothole, garbage, women safety, SOS, India, municipal, smart city" />',
+    '<meta name="robots" content="index, follow" />',
+    ...(base ? [`<link rel="canonical" href="${esc(abs("/"))}" />`] : []),
+    '<meta property="og:type" content="website" />',
+    '<meta property="og:site_name" content="SANKALP AI" />',
+    '<meta property="og:locale" content="en_IN" />',
+    `<meta property="og:title" content="${esc(SITE_TITLE)}" />`,
+    `<meta property="og:description" content="${esc(SITE_DESC)}" />`,
+    `<meta property="og:url" content="${esc(abs("/"))}" />`,
+    `<meta property="og:image" content="${esc(abs("/pwa/og-image.png"))}" />`,
+    '<meta property="og:image:width" content="1200" />',
+    '<meta property="og:image:height" content="630" />',
+    '<meta property="og:image:alt" content="SANKALP AI — report civic issues, track them to a verified fix" />',
+    '<meta name="twitter:card" content="summary_large_image" />',
+    `<meta name="twitter:title" content="${esc(SITE_TITLE)}" />`,
+    `<meta name="twitter:description" content="${esc(SITE_DESC)}" />`,
+    `<meta name="twitter:image" content="${esc(abs("/pwa/og-image.png"))}" />`,
+    `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>`,
+    '<meta name="theme-color" content="#111A29" />',
+    '<link rel="manifest" href="/manifest.webmanifest" />',
+    '<link rel="icon" type="image/png" sizes="192x192" href="/pwa/icon-192.png" />',
+    '<link rel="apple-touch-icon" href="/pwa/apple-touch-icon.png" />',
+    '<meta name="apple-mobile-web-app-capable" content="yes" />',
+    '<meta name="mobile-web-app-capable" content="yes" />',
+    '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
+    '<meta name="apple-mobile-web-app-title" content="SANKALP AI" />',
+    '<meta name="format-detection" content="telephone=no" />',
+    '<style>html,body{background:#EDE7E1}</style>',
+    '<script src="/pwa/register.js" defer></script>',
+  ].join("");
+}
 function pwaIndex(file: string): string {
   const mtime = fs.statSync(file).mtimeMs;
-  if (pwaCache?.mtime === mtime) return pwaCache.html;
+  const base = (config().PUBLIC_BASE_URL ?? "").replace(/\/+$/, "");
+  if (pwaCache?.mtime === mtime && pwaCache.base === base) return pwaCache.html;
   const html = fs.readFileSync(file, "utf8")
     .replace(/<meta name="viewport"[^>]*>/, "")
-    .replace("</head>", `${PWA_HEAD}</head>`);
-  pwaCache = { mtime, html };
+    .replace(/<title>[^<]*<\/title>/, `<title>${esc(SITE_TITLE)}</title>`)
+    .replace('<html lang="en">', '<html lang="en-IN">')
+    .replace("</head>", `${pwaHead(base)}</head>`);
+  pwaCache = { mtime, base, html };
   return html;
 }
 
@@ -225,6 +257,19 @@ function setupStatic(app: Express) {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Service-Worker-Allowed", "/");
     res.type("application/javascript").sendFile(path.join(ROOT, "public", "sw.js"));
+  });
+  // Search engines: index the public pages only, never the API.
+  app.get("/robots.txt", (_req, res) => {
+    const base = (config().PUBLIC_BASE_URL ?? "").replace(/\/+$/, "");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.type("text/plain").send(["User-agent: *", "Allow: /", "Disallow: /api/", "Disallow: /admin", ...(base ? [`Sitemap: ${base}/sitemap.xml`] : [])].join("\n") + "\n");
+  });
+  app.get("/sitemap.xml", (_req, res) => {
+    const base = (config().PUBLIC_BASE_URL ?? "").replace(/\/+$/, "");
+    if (!base) return res.status(404).end();
+    const pages = ["/", "/web/transparency"];
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${pages.map(p => `<url><loc>${base}${p}</loc></url>`).join("")}</urlset>\n`);
   });
   app.get("/manifest.webmanifest", (_req, res) => {
     res.setHeader("Cache-Control", "public, max-age=3600");

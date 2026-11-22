@@ -3,7 +3,6 @@ import { View, Text, TextInput, Pressable, SectionList, ActivityIndicator, Style
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Location from "expo-location";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import { useTenant, type TenantSummary } from "@/context/TenantContext";
@@ -45,8 +44,7 @@ export default function StatePicker() {
       // Accounts belong to one state: a signed-in user switching state is signed out first.
       if (user && id !== tenantId) await logout();
       if (!(await selectState(id))) { setLocMsg("Could not load that state's settings. Check your connection and try again."); return; }
-      const onboarded = await AsyncStorage.getItem("@sankalp_onboarded");
-      router.replace(onboarded === "true" ? "/(auth)/login" : "/(auth)/onboarding");
+      router.replace("/(auth)/login");
     } finally { setBusy(null); }
   };
 
