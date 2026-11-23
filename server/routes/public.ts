@@ -11,6 +11,7 @@ import { route, none } from "../lib/route";
 import { readiness } from "../health";
 import { getNews } from "../news";
 import { mandiPrices } from "../datagov";
+import { officialAlerts } from "../alerts";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -82,14 +83,26 @@ export function registerPublicRoutes(app: Express) {
   // Official news: local (All India Radio, filtered to this state) and national (PIB). Never invented.
   route(app, {
     method: "get", path: "/api/public/news", auth: "public", permission: "public.dashboard",
-    params: none, query: z.object({ scope: z.enum(["state", "national", "district", "policy"]).default("state"), district: z.string().max(60).optional() }), body: none,
+    params: none, query: z.object({ scope: z.enum(["state", "national", "district", "policy"]).default("state"), district: z.string().max(60).optional(), lang: z.enum(["en", "hi"]).optional() }), body: none,
     handler: async ({ query, res }) => {
       res.setHeader("Cache-Control", "public, max-age=300");
       res.setHeader("Vary", "X-Tenant, Host");
       // District news only for a real district of this state (no free text goes to the news servers).
       const district = query.scope === "district" ? tenant().districts.find(d => d.district === query.district)?.district : undefined;
       if (query.scope === "district" && !district) throw new AppError(422, "UNKNOWN_DISTRICT", "Pick one of this state's districts");
-      return getNews(query.scope, tenant().id, { district });
+      return getNews(query.scope, tenant().id, { district, lang: query.lang });
+    },
+  });
+
+  // Official disaster & weather alerts (NDMA SACHET: IMD, CWC, SDMAs) for this state, district first.
+  route(app, {
+    method: "get", path: "/api/public/alerts", auth: "public", permission: "public.dashboard",
+    params: none, query: z.object({ district: z.string().max(60).optional() }), body: none,
+    handler: async ({ query, res }) => {
+      res.setHeader("Cache-Control", "public, max-age=300");
+      res.setHeader("Vary", "X-Tenant, Host");
+      const t = tenant();
+      return officialAlerts(t.id, t.districts.find(d => d.district === query.district)?.district);
     },
   });
 

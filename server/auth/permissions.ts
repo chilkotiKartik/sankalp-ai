@@ -27,7 +27,7 @@ export const PERMISSIONS: Record<string, Principal[]> = {
   "dept.rotate_code": SUPER, "users.create_staff": SUPER,
   // public / reference
   "public.health": PUBLIC, "public.config": PUBLIC, "public.dashboard": PUBLIC, "public.reference": PUBLIC,
-  "reference.read": USERS, "wards.read": USERS, "risk.read": USERS, "leaderboard.read": USERS, "insights.read": USERS,
+  "reference.read": USERS, "wards.read": USERS, "risk.read": USERS, "leaderboard.read": USERS, "points.read": USERS, "points.certificate_verify": PUBLIC, "insights.read": USERS,
   "budget.read": USERS, "departments.summary": USERS,
   // complaints
   "complaints.list": USERS, "complaints.read": USERS, "complaints.create": USERS, "complaints.upvote": USERS,

@@ -138,3 +138,11 @@ describe("district, policy and regional news (P9.24)", () => {
     expect(out[0].title).toBe("Akashvani Lucknow — latest regional news bulletin");
   });
 });
+
+describe("Hindi news", () => {
+  it("asks PIB for its official Hindi national feed when the app is in Hindi", async () => {
+    const r = await request(app()).get("/api/public/news?scope=national&lang=hi").set("X-Tenant", "kerala");
+    expect(r.status).toBe(200);
+    expect(calls.some(u => u.includes("Lang=2&Regid=3"))).toBe(true);
+  });
+});

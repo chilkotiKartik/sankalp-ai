@@ -326,6 +326,9 @@ export interface PatrolVan {
   isWomenSafetyUnit: boolean;
 }
 
+/** One line of a person's Sankalp Points history (D-059). */
+export interface PointsEntry { id: string; userId: string; delta: number; reason: string; ref?: string; at: string }
+
 export interface SafetyIncident {
   id: string;
   /** The SOS this incident was opened for (voice clips and live location belong to it). */

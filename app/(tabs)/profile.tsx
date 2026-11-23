@@ -1,3 +1,4 @@
+import { LEVEL_NAMES, levelProgress } from "@/constants/points";
 import { PrivacyControls } from "@/components/PrivacyControls";
 import React, { useRef, useEffect, useState } from "react";
 import {
@@ -69,12 +70,12 @@ export default function ProfileScreen() {
 
   const myComplaints = complaints.filter(c => c.submittedByPhone === user?.phone).slice(0, 5);
   const points = user?.points || 0;
-  const level = user?.level || 1;
+  const lp = levelProgress(points);
+  const level = lp.level;
   const badges = user?.badges || [];
-  const nextLevelPoints = 100;
-  const progress = Math.min((points % 100) / 100, 1);
-  const levelTitle = LEVEL_TITLES[Math.min(level, LEVEL_TITLES.length - 1)] || "Civic Legend";
-  const myRank = leaderboard.findIndex(e => e.phone?.slice(0, 5) === user?.phone?.slice(0, 5));
+  const progress = Math.min(lp.progress, 1);
+  const levelTitle = `${LEVEL_NAMES[level]?.name ?? "Nagrik"} · ${LEVEL_NAMES[level]?.en ?? "Citizen"}`;
+  const myRank = leaderboard.findIndex(e => e.id === user?.id);
 
   useEffect(() => {
     Animated.parallel([
@@ -148,16 +149,16 @@ export default function ProfileScreen() {
                   </View>
                 )}
               </View>
-              <View style={styles.pointsBox}>
+              <Pressable style={styles.pointsBox} onPress={() => router.push("/points")} accessibilityRole="button" accessibilityLabel={`${points} Sankalp Points. Open points, badges and certificate`}>
                 <Text style={styles.pointsVal}>{points.toLocaleString()}</Text>
-                <Text style={styles.pointsLabel}>Points</Text>
-              </View>
+                <Text style={styles.pointsLabel}>Points ›</Text>
+              </Pressable>
             </View>
 
             <View style={styles.progressSection}>
               <View style={styles.progressRow}>
                 <Text style={styles.progressLabel}>Level Progress</Text>
-                <Text style={styles.progressLabel}>{points % 100}/{nextLevelPoints} pts</Text>
+                <Text style={styles.progressLabel}>{lp.span ? `${lp.into}/${lp.span} pts to next level` : "Top level"}</Text>
               </View>
               <View style={styles.progressBg}>
                 <Animated.View style={[styles.progressFill, {

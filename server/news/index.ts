@@ -27,7 +27,7 @@ const UA = "SANKALP-AI/1.0 (civic app; official news reader)";
 
 /** Other names used in news copy. */
 const ALIASES: Record<string, string[]> = {
-  kerala: ["Keralam"], "jammu-kashmir": ["J&K", "Jammu", "Kashmir", "Srinagar"], delhi: ["New Delhi", "NCR"],
+  kerala: ["Keralam", "Thiruvananthapuram", "Trivandrum"], assam: ["Guwahati"], "jammu-kashmir": ["J&K", "Jammu", "Kashmir", "Srinagar"], delhi: ["New Delhi", "NCR"],
   odisha: ["Orissa"], puducherry: ["Pondicherry", "Karaikal"], "andaman-nicobar": ["Andaman", "Nicobar", "Port Blair", "Sri Vijaya Puram"],
   "dnh-daman-diu": ["Daman", "Diu", "Dadra", "Silvassa"], ladakh: ["Leh", "Kargil"], lakshadweep: ["Kavaratti"],
   "tamil-nadu": ["Chennai"], "west-bengal": ["Kolkata", "Bengal"], telangana: ["Hyderabad"], karnataka: ["Bengaluru", "Bangalore"],
@@ -132,8 +132,9 @@ async function loadState(id: string): Promise<NewsItem[]> {
     .map(x => x.it);
 }
 
-async function loadNational(): Promise<NewsItem[]> {
-  return parseRss(await getXml("https://www.pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3&reg=3"), PIB.name).slice(0, 20);
+async function loadNational(lang: "en" | "hi" = "en"): Promise<NewsItem[]> {
+  // PIB publishes the national desk in Hindi as Lang=2 (official Hindi releases, not machine translation).
+  return parseRss(await getXml(`https://www.pib.gov.in/RssMain.aspx?ModId=6&Lang=${lang === "hi" ? 2 : 1}&Regid=3&reg=3`), PIB.name).slice(0, 20);
 }
 
 /** PIB regional offices that publish an English feed (Regid=N&reg=N); 3 is the national desk. */
@@ -206,17 +207,18 @@ async function loadPolicy(id: string): Promise<NewsItem[]> {
   return [...local, ...national].filter(it => !seen.has(it.id) && seen.add(it.id)).slice(0, 25);
 }
 
-export async function getNews(scope: NewsScope, id: string, opts: { wait?: boolean; district?: string } = {}): Promise<NewsResult> {
+export async function getNews(scope: NewsScope, id: string, opts: { wait?: boolean; district?: string; lang?: "en" | "hi" } = {}): Promise<NewsResult> {
   const district = scope === "district" ? opts.district : undefined;
   if (scope === "district" && !district) return { scope, items: [], fetchedAt: null, status: "unavailable", sources: [AIR, PIB] };
-  const key = scope === "national" ? "_national" : `${scope}:${id}${district ? `:${district}` : ""}`;
+  const lang = scope === "national" && opts.lang === "hi" ? "hi" : "en";
+  const key = scope === "national" ? `_national_${lang}` : `${scope}:${id}${district ? `:${district}` : ""}`;
   const sources = scope === "national" || scope === "policy" ? [PIB] : [AIR, PIB];
   const hit = cache.get(key);
   const fresh = hit && Date.now() - hit.at < TTL_MS;
   if (fresh) return hit.result;
   const refresh = async () => {
     try {
-      const items = scope === "national" ? await loadNational() : scope === "district" ? await loadDistrict(id, district!)
+      const items = scope === "national" ? await loadNational(lang) : scope === "district" ? await loadDistrict(id, district!)
         : scope === "policy" ? await loadPolicy(id) : await loadStateFull(id);
       cache.set(key, { at: Date.now(), result: { scope, district, items, fetchedAt: new Date().toISOString(), status: "ok", sources } });
     } catch (e) {

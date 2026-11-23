@@ -16,6 +16,7 @@ import { stateName, districtPhrase, stateNameLocal } from "@/constants/districts
 import { getTenantId } from "@/lib/tenant";
 import { OfficialNews, relTime as relNewsTime } from "@/components/OfficialNews";
 import { MandiPrices } from "@/components/MandiPrices";
+import { OfficialAlerts } from "@/components/OfficialAlerts";
 import { NATIONAL_SCHEMES, MYSCHEME_URL, type Scheme } from "@/constants/schemes";
 
 const CATEGORY_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
@@ -791,6 +792,9 @@ export default function DashboardScreen() {
             </Pressable>
           ))}
         </View>
+
+        {/* OFFICIAL ALERTS — NDMA SACHET (IMD, CWC, SDMAs); shown only when there is a current alert */}
+        <OfficialAlerts />
 
         {/* OFFICIAL NEWS — state (All India Radio) and national (PIB) */}
         <OfficialNews onOpen={it => setSelectedNews({
