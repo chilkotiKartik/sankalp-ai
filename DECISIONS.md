@@ -60,3 +60,6 @@ Each decision uses the §11 safe defaults unless noted. The human can override a
 ## D-053 — Free always-on hosting: Oracle Cloud Always Free in an Indian region
 Render's free plan sleeps after 15 minutes idle, has no Indian region and loses data without a paid disk. Oracle Cloud's Always Free VM (Mumbai or Hyderabad) never sleeps, keeps its disk and keeps data in India. `deploy/oracle-free.sh` wraps the existing systemd install with Caddy (automatic HTTPS), the firewall ports, swap and a daily encrypted backup. Free tiers carry no SLA: move to a MeitY-empanelled paid region or the State Data Centre before a government go-live.
 
+## D-054 — Real SMS through MSG91; keys added on the server with one command
+The generic `dlt-http` driver posted a format no Indian gateway accepts as-is. `SMS_DRIVER=msg91` speaks MSG91's Flow API (DLT template id + numbered variables) and fails closed: a message type with no approved DLT template is not sent. Keys never enter git or chat: `deploy/set-keys.sh` writes them to `/etc/sankalp/sankalp.env` (0600), adds only that provider's host to `EGRESS_ALLOWLIST`, restarts and tests live (Sarvam: a one-line chat call, nothing changed if it fails; MSG91: optional test code to a phone). MSG91 is an Indian company and DLT SMS travels over Indian operators; confirm its data-storage location in the contract before go-live.
+

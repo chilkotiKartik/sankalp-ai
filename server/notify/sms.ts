@@ -7,6 +7,10 @@ import { logger } from "../lib/logger";
 /**
  * SMS (P1.5; also used by Phase 3/5/6). Interface + drivers:
  *  - console (default): writes to DATA_DIR/sms-outbox.log — development/demo only; refused in production.
+ *  - msg91: MSG91 (India) Flow API v5. POSTs {template_id, short_url:"0", recipients:[{mobiles, var1, var2…}]} to
+ *    https://control.msg91.com/api/v5/flow with header `authkey: MSG91_AUTH_KEY`. Each template needs its DLT-approved
+ *    MSG91 template id in SMS_TEMPLATE_IDS (JSON: {"otp":"<id>",…}); variables are named ##var1##, ##var2##… in MSG91.
+ *    A template without an id is not sent (fail closed). Host control.msg91.com must be in EGRESS_ALLOWLIST.
  *  - dlt-http: generic Indian DLT-registered gateway. POSTs JSON {to, templateId, variables, sender, entityId} to SMS_API_URL
  *    with `Authorization: Bearer SMS_API_KEY`. The host must be in EGRESS_ALLOWLIST (safeFetch).
  * Messages use DLT templates with variables only — never names, addresses or locations (rule 2).
@@ -46,6 +50,28 @@ export async function sendSms(to: string, template: SmsTemplate, variables: stri
     fs.appendFileSync(file, `${new Date().toISOString()}\t${to}\t${text}\n`, { mode: 0o600 });
     logger.info("sms_console", { template });
     return { ok: true, driver };
+  }
+  if (driver === "msg91") {
+    const key = process.env.MSG91_AUTH_KEY;
+    let ids: Record<string, string> = {};
+    try { ids = JSON.parse(process.env.SMS_TEMPLATE_IDS || "{}"); } catch { return { ok: false, driver, error: "SMS_TEMPLATE_IDS is not valid JSON" }; }
+    if (!key) return { ok: false, driver, error: "MSG91_AUTH_KEY not configured" };
+    const templateId = ids[template];
+    if (!templateId) return { ok: false, driver, error: `no DLT template id for ${template} in SMS_TEMPLATE_IDS` };
+    const recipient: Record<string, string> = { mobiles: `91${to}` };
+    variables.forEach((v, i) => { recipient[`var${i + 1}`] = v; });
+    try {
+      const res = await safeFetch("https://control.msg91.com/api/v5/flow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", authkey: key },
+        body: JSON.stringify({ template_id: templateId, short_url: "0", recipients: [recipient] }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { type?: string; message?: unknown };
+      if (!res.ok || j.type === "error") return { ok: false, driver, error: `MSG91 HTTP ${res.status}${j.message ? `: ${String(j.message).slice(0, 120)}` : ""}` };
+      return { ok: true, driver, messageId: j.message ? String(j.message) : undefined };
+    } catch (err) {
+      return { ok: false, driver, error: (err as Error).message };
+    }
   }
   if (driver === "dlt-http") {
     const url = process.env.SMS_API_URL;
