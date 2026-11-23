@@ -46,3 +46,17 @@ describe("RTI", () => {
     expect((await request(app()).put(`/api/rti/${r.id}/official`).set(auth(b.token)).send({ regNo: "ABC/R/2026/1", filedOn: "2026-11-20", portal: "central" })).status).toBe(403);
   });
 });
+
+describe("community petitions", () => {
+  it("reaching the goal marks it ready — it is not falsely 'delivered', and it stays open", async () => {
+    const a = await makeUser("citizen", "Dehradun");
+    const p = await request(app()).post("/api/petitions").set(auth(a.token)).send({ title: "Streetlights for the park road", description: "The park road has been dark for two months.", target: "Municipal Corporation", goalSignatures: 10 });
+    for (let i = 0; i < 10; i++) { const u = await makeUser("citizen", "Dehradun"); await request(app()).put(`/api/petitions/${p.body.id}/sign`).set(auth(u.token)).send({}); }
+    const pet = storage.s.petitions.find(x => x.id === p.body.id)!;
+    expect(pet.status).toBe("active");
+    expect(pet.goalReachedAt).toBeTruthy();
+    const late = await makeUser("citizen", "Dehradun");
+    expect((await request(app()).put(`/api/petitions/${p.body.id}/sign`).set(auth(late.token)).send({})).status).toBe(200);
+    expect(pet.signerIds).toHaveLength(11);
+  });
+});

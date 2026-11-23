@@ -276,7 +276,9 @@ export interface Petition {
   district?: string;
   createdAt: string;
   createdBy: string;
+  /** "delivered" only when an official records the hand-over; reaching the goal alone sets goalReachedAt. */
   status: "active" | "closed" | "delivered";
+  goalReachedAt?: string;
   department: string;
 }
 

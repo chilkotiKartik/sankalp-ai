@@ -22,12 +22,12 @@ interface Poll {
 interface Petition {
   id: string; title: string; description: string; target: string;
   goalSignatures: number; signerIds: string[]; district?: string;
-  createdAt: string; createdBy: string; status: "active" | "closed" | "delivered";
+  createdAt: string; createdBy: string; status: "active" | "closed" | "delivered"; goalReachedAt?: string; signatureCount?: number;
   department: string;
 }
 interface CivicEvent {
   id: string; title: string; description: string; date: string; time: string;
-  location: string; type: string; district?: string; rsvpIds: string[];
+  location: string; type: string; district?: string; rsvpIds: string[]; rsvpCount?: number;
   organizer: string; createdAt: string;
 }
 
@@ -244,7 +244,7 @@ export default function CommunityScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={s.pollQ}>{poll.question}</Text>
                     <Text style={s.pollMeta}>
-                      {totalVotes.toLocaleString()} votes · {poll.district || "All Districts"} · {timeAgo(poll.createdAt)}
+                      {totalVotes.toLocaleString()} {totalVotes === 1 ? "vote" : "votes"} · {poll.district || "All Districts"} · {timeAgo(poll.createdAt)}
                     </Text>
                   </View>
                   <View style={[s.statusBadge, poll.status === "active" ? { backgroundColor: "#F0FFF4" } : { backgroundColor: "#F9FAFB" }]}>
@@ -300,9 +300,9 @@ export default function CommunityScreen() {
                 </LinearGradient>
               </Pressable>
               {petitions.map(pet => {
-                const pct = Math.min(100, Math.round((pet.signerIds.length / pet.goalSignatures) * 100));
+                const pct = Math.min(100, Math.round(((pet.signatureCount ?? pet.signerIds.length) / pet.goalSignatures) * 100));
                 const hasSigned = pet.signerIds.includes(userId);
-                const statusColor = pet.status === "active" ? "#2563EB" : pet.status === "delivered" ? "#047857" : "#9CA3AF";
+                const statusColor = pet.status === "delivered" || pet.goalReachedAt ? "#047857" : pet.status === "active" ? "#2563EB" : "#6B7280";
                 return (
                   <Pressable key={pet.id} onPress={() => setSelectedPetition(pet)} style={s.card}>
                     <View style={s.cardHeader}>
@@ -314,7 +314,7 @@ export default function CommunityScreen() {
                       </View>
                       <View style={[s.statusBadge, { backgroundColor: statusColor + "15" }]}>
                         <Text style={[s.statusText, { color: statusColor }]}>
-                          {pet.status === "delivered" ? "Delivered" : pet.status === "active" ? "Active" : "Closed"}
+                          {pet.status === "delivered" ? "Delivered" : pet.goalReachedAt ? "Goal reached — ready to submit" : pet.status === "active" ? "Active" : "Closed"}
                         </Text>
                       </View>
                     </View>
@@ -324,7 +324,7 @@ export default function CommunityScreen() {
                         <View style={[s.sigFill, { width: `${pct}%` as any }]} />
                       </View>
                       <Text style={s.sigCount}>
-                        <Text style={{ color: "#2563EB", fontFamily: "Inter_700Bold" }}>{pet.signerIds.length.toLocaleString()}</Text>
+                        <Text style={{ color: "#2563EB", fontFamily: "Inter_700Bold" }}>{(pet.signatureCount ?? pet.signerIds.length).toLocaleString()}</Text>
                         <Text style={{ color: "#6B7280" }}> / {pet.goalSignatures.toLocaleString()} signatures · {pct}%</Text>
                       </Text>
                     </View>
@@ -378,7 +378,7 @@ export default function CommunityScreen() {
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                     <Ionicons name="people-outline" size={11} color="#6B7280" />
-                    <Text style={s.eventMetaText}>{event.rsvpIds.length} going</Text>
+                    <Text style={s.eventMetaText}>{(event.rsvpCount ?? event.rsvpIds.length)} going</Text>
                   </View>
                 </View>
                 {!isPast && (
@@ -561,7 +561,7 @@ export default function CommunityScreen() {
           <View style={s.sheet}>
             <View style={s.sheetHandle} />
             {selectedPetition && (() => {
-              const pct = Math.min(100, Math.round((selectedPetition.signerIds.length / selectedPetition.goalSignatures) * 100));
+              const pct = Math.min(100, Math.round(((selectedPetition.signatureCount ?? selectedPetition.signerIds.length) / selectedPetition.goalSignatures) * 100));
               const hasSigned = selectedPetition.signerIds.includes(userId);
               return (
                 <ScrollView showsVerticalScrollIndicator={false}>
@@ -581,7 +581,7 @@ export default function CommunityScreen() {
                       {selectedPetition.description}
                     </Text>
                     <View style={{ backgroundColor: "#F0F9FF", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-                      <Text style={{ color: "#1E40AF", fontSize: 24, fontFamily: "Inter_700Bold" }}>{selectedPetition.signerIds.length.toLocaleString()}</Text>
+                      <Text style={{ color: "#1E40AF", fontSize: 24, fontFamily: "Inter_700Bold" }}>{(selectedPetition.signatureCount ?? selectedPetition.signerIds.length).toLocaleString()}</Text>
                       <Text style={{ color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular" }}>of {selectedPetition.goalSignatures.toLocaleString()} goal · {pct}% achieved</Text>
                       <View style={s.sigBar}>
                         <View style={[s.sigFill, { width: `${pct}%` as any }]} />
@@ -630,7 +630,7 @@ export default function CommunityScreen() {
                       { icon: "calendar", label: "Date", val: formatDate(selectedEvent.date) },
                       { icon: "time", label: "Time", val: selectedEvent.time },
                       { icon: "location", label: "Venue", val: selectedEvent.location },
-                      { icon: "people", label: "Attending", val: `${selectedEvent.rsvpIds.length} people` },
+                      { icon: "people", label: "Attending", val: `${(selectedEvent.rsvpCount ?? selectedEvent.rsvpIds.length)} people` },
                     ].map(row => (
                       <View key={row.label} style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
                         <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: meta.bg, alignItems: "center", justifyContent: "center" }}>
