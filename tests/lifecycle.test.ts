@@ -145,7 +145,10 @@ describe("honest data (M1, M9)", () => {
   it("bills are not faked when DEMO_MODE is off", async () => {
     const citizen = await makeUser();
     const res = await request(app()).get("/api/bills").set(auth(citizen.token));
-    expect(res.body).toMatchObject({ bills: [], integration: "not_connected" });
+    // No invented bills: only the state's official portals (verified links) and BBPS guidance.
+    expect(res.body).toMatchObject({ bills: [], integration: "official_portals" });
+    expect(res.body.portals[0].url).toMatch(/^https:\/\/www\.upcl\.org\//); // Uttarakhand → UPCL
+    expect(res.body.bbps).toMatch(/Bharat Bill Payment System/);
     expect((await request(app()).post("/api/bills/b1/pay").set(auth(citizen.token)).send({})).status).toBe(501);
   });
 

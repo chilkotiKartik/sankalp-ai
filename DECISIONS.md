@@ -105,3 +105,14 @@ The old rules gave +10 just for filing and +1 for each upvote, which rewards spa
 - The feed answers only from Indian networks.
 - When the app is in Hindi, the India news tab uses PIB's own Hindi national feed (official Hindi releases, not machine translation).
 
+## D-061 — Bills, RTI and budget: real paths only, nothing pretended
+- **Bills:** SANKALP is not a payment company and fakes no bills. Outside demo mode the bills screen lists the state's official electricity payment portals and explains Bharat Bill Payment (BBPS) in any UPI app.
+  - The portals are in `config/bill-portals.json`: 20 states and UTs, 24 links, each opened from an Indian server and kept only if it answered with the organisation's own page. One guessed domain had become a casino site and was dropped.
+  - In-app payment needs a licensed BBPS partner and the owner's KYC.
+- **RTI:**
+  - New RTIs are drafts.
+  - "Submit" no longer marks them "acknowledged" (that was fake). Instead the citizen files on RTI Online or their state portal, then records the official registration number and date, which starts the RTI Act's 30-day clock.
+  - First-appeal guidance appears after day 30; the citizen marks when the reply arrives.
+- **Budget:** officials (state, or district admin for their own district) publish budget lines that must cite an official https `.gov.in` / `.nic.in` source. Unsourced lines are hidden outside demo mode and count as demo data.
+- **Rewards:** a coin animation and toast show only when the points ledger really grew. The leaderboard adds "This month" (ledger points earned this month) and a district filter.
+

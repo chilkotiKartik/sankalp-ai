@@ -1,3 +1,4 @@
+import { config } from "../config";
 import { tenant } from "../tenancy";
 import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import type { Express } from "express";
@@ -5,7 +6,7 @@ import { z } from "zod";
 import { storage } from "../storage";
 import { DISTRICT_NAMES } from "../data/reference";
 import { route, none, idParams, scopeDistrict } from "../lib/route";
-import { forbidden, notFound, badRequest } from "../lib/errors";
+import { forbidden, notFound, badRequest, AppError } from "../lib/errors";
 import { publishEmergencyBroadcast } from "../realtime";
 import { writeLimiter } from "./limits";
 import { aiMetrics, aiStatus } from "../ai/gateway";
@@ -241,6 +242,7 @@ export function registerAdminRoutes(app: Express) {
     },
   });
 
+  // An RTI is legally filed only on the government portal; SANKALP never pretends it was acknowledged.
   route(app, {
     method: "post", path: "/api/rti/:id/submit", auth: "user", permission: "rti.file",
     params: idParams, query: none, body: none,
@@ -248,7 +250,38 @@ export function registerAdminRoutes(app: Express) {
       const r = storage.getRTI(params.id);
       if (!r) throw notFound("RTI not found");
       if (r.filedByPhone !== user.phone) throw forbidden("You can only submit your own RTI");
-      return storage.submitRTI(r.id);
+      throw new AppError(409, "FILE_ON_PORTAL", "File this RTI on the official portal (rtionline.gov.in for central departments, or your state's RTI portal), then add the registration number here.");
+    },
+  });
+
+  route(app, {
+    method: "put", path: "/api/rti/:id/official", auth: "user", permission: "rti.file",
+    params: idParams, query: none,
+    body: z.object({
+      regNo: z.string().trim().regex(/^[A-Za-z0-9/._-]{4,40}$/, "Enter the registration number exactly as the portal shows it"),
+      filedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      portal: z.enum(["central", "state"]),
+    }),
+    handler: ({ params, body, user }) => {
+      const r = storage.getRTI(params.id);
+      if (!r) throw notFound("RTI not found");
+      if (r.filedByPhone !== user.phone) throw forbidden("You can only update your own RTI");
+      const t = Date.parse(body.filedOn);
+      if (!Number.isFinite(t) || t > Date.now() + 86400000 || t < Date.now() - 2 * 365 * 86400000) throw new AppError(422, "BAD_DATE", "Use the date shown on the portal's acknowledgement");
+      return storage.markRTIOfficial(r.id, body.regNo, new Date(t).toISOString(), body.portal);
+    },
+  });
+
+  route(app, {
+    method: "put", path: "/api/rti/:id/reply-received", auth: "user", permission: "rti.file",
+    params: idParams, query: none,
+    body: z.object({ receivedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), summary: z.string().trim().max(2000).optional() }),
+    handler: ({ params, body, user }) => {
+      const r = storage.getRTI(params.id);
+      if (!r) throw notFound("RTI not found");
+      if (r.filedByPhone !== user.phone) throw forbidden("You can only update your own RTI");
+      if (r.status !== "filed_official") throw new AppError(409, "NOT_FILED", "Add the official registration number first");
+      return storage.markRTIReplyReceived(r.id, new Date(body.receivedOn).toISOString(), body.summary);
     },
   });
 
@@ -315,7 +348,43 @@ export function registerAdminRoutes(app: Express) {
   route(app, {
     method: "get", path: "/api/budget", auth: "user", permission: "budget.read",
     params: none, query: z.object({ district: z.string().max(60).optional() }), body: none,
-    handler: ({ query }) => storage.getBudgetItems(query.district),
+    // Only sourced (published) lines are shown outside demo mode — no unsourced numbers.
+    handler: ({ query }) => storage.getBudgetItems(query.district).filter(b => config().DEMO_MODE || (!!b.sourceUrl && !b.isDemo)),
+  });
+
+  // Officials publish budget lines; each must cite the official document it comes from (.gov.in / .nic.in).
+  route(app, {
+    method: "post", path: "/api/budget", auth: "admin", permission: "budget.publish",
+    params: none, query: none,
+    body: z.object({
+      department: z.string().trim().min(2).max(120), category: z.string().trim().min(2).max(80),
+      allocated: z.number().nonnegative().max(1e13), spent: z.number().nonnegative().max(1e13),
+      district: z.string().trim().max(60), year: z.number().int().min(2000).max(2100),
+      description: z.string().trim().min(5).max(1000),
+      sourceUrl: z.string().url().max(500).refine(u => { try { const h = new URL(u); return h.protocol === "https:" && /(\.gov\.in|\.nic\.in)$/.test(h.hostname); } catch { return false; } },
+        "The source must be an official https link on a .gov.in or .nic.in site"),
+    }),
+    handler: ({ body, user, res }) => {
+      if (!isStateUser(user) && body.district !== user.district) throw forbidden("You can publish only for your district");
+      if (!tenant().districts.some(d => d.district === body.district) && !isStateUser(user)) throw forbidden("Unknown district");
+      const b = storage.publishBudgetItem({ ...body, publishedBy: user.name });
+      storage.addAuditLog("budget_published", user.id, user.name, `Budget line "${body.category}" (${body.department}, ${body.district}, FY ${body.year}) from ${new URL(body.sourceUrl).hostname}`);
+      res.status(201);
+      return b;
+    },
+  });
+
+  route(app, {
+    method: "delete", path: "/api/budget/:id", auth: "admin", permission: "budget.publish",
+    params: idParams, query: none, body: none,
+    handler: ({ params, user }) => {
+      const item = storage.getBudgetItems().find(b => b.id === params.id);
+      if (!item) throw notFound("Budget line not found");
+      if (!isStateUser(user) && item.district !== user.district) throw forbidden("Outside your district");
+      storage.removeBudgetItem(item.id);
+      storage.addAuditLog("budget_removed", user.id, user.name, `Budget line ${item.id.slice(0, 8)} removed`);
+      return { removed: true };
+    },
   });
 
   route(app, {

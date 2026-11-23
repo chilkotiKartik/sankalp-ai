@@ -130,13 +130,15 @@ export default function LeaderboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<"all" | "district">("all");
+  // "This month" = points earned this calendar month (from the points ledger); "All time" = total points.
+  const [period, setPeriod] = useState<"month" | "all">("month");
   const [sortKey, setSortKey] = useState<"points" | "badges" | "level">("points");
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
       const tok = await getSecure("@sankalp_token");
-      const res = await fetch(`${getApiUrl()}api/leaderboard`, {
+      const res = await fetch(`${getApiUrl()}api/leaderboard?period=${period}`, {
         headers: { Authorization: `Bearer ${tok}` },
       });
       if (res.ok) {
@@ -145,9 +147,9 @@ export default function LeaderboardScreen() {
       }
     } catch {}
     finally { setLoading(false); setRefreshing(false); }
-  }, []);
+  }, [period]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
     let list = tab === "district"
@@ -195,6 +197,16 @@ export default function LeaderboardScreen() {
           </View>
         </LinearGradient>
       )}
+
+      {/* Period: this month / all time */}
+      <View style={cs.tabRow}>
+        {(["month", "all"] as const).map(p => (
+          <Pressable key={p} onPress={() => setPeriod(p)} style={[cs.tabBtn, period === p && cs.tabBtnActive]} accessibilityRole="tab" accessibilityState={{ selected: period === p }}>
+            <Ionicons name={p === "month" ? "calendar" : "infinite"} size={14} color={period === p ? Colors.saffron : Colors.textMuted} />
+            <Text style={[cs.tabText, period === p && cs.tabTextActive]}>{p === "month" ? "This month" : "All time"}</Text>
+          </Pressable>
+        ))}
+      </View>
 
       {/* Tab Selector */}
       <View style={cs.tabRow}>
