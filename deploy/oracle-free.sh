@@ -48,7 +48,7 @@ set_env PUBLIC_BASE_URL "https://$DOMAIN"
 set_env CORS_ORIGINS "https://$DOMAIN"
 set_env TRUST_PROXY 1
 # Official news (All India Radio, PIB). Add api.sarvam.ai here once you have a Sarvam key.
-grep -q "^EGRESS_ALLOWLIST=." "$ENV" || set_env EGRESS_ALLOWLIST "newsonair.gov.in,www.pib.gov.in"
+grep -q "^EGRESS_ALLOWLIST=." "$ENV" || set_env EGRESS_ALLOWLIST "newsonair.gov.in,www.pib.gov.in,sachet.ndma.gov.in"
 systemctl enable sankalp
 systemctl restart sankalp
 

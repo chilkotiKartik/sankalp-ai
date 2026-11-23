@@ -37,7 +37,7 @@ const CATS = [
 
 const PRIORITIES = [
   { key: "P1", label: "Critical", color: "#DC2626" },
-  { key: "P2", label: "High",     color: "#B45309" },
+  { key: "P2", label: "High",     color: "#92400E" },
   { key: "P3", label: "Medium",   color: "#2563EB" },
   { key: "P4", label: "Low",      color: "#4B5563" },
 ];

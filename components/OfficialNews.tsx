@@ -5,6 +5,7 @@ import { getApiUrl } from "@/lib/query-client";
 import { getTenantId, onTenantChange } from "@/lib/tenant";
 import { stateName } from "@/constants/districts";
 import { useAuth } from "@/context/AuthContext";
+import { getLanguage } from "@/lib/i18n";
 
 /**
  * Official news on the home screen, all from Government of India sources (Akashvani / All India Radio, PIB):
@@ -38,7 +39,8 @@ export function OfficialNews({ onOpen }: { onOpen: (item: FeedItem) => void }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const q = scope === "district" && district ? `scope=district&district=${encodeURIComponent(district)}` : `scope=${scope}`;
+      const q = scope === "district" && district ? `scope=district&district=${encodeURIComponent(district)}`
+        : scope === "national" && getLanguage() === "hi" ? "scope=national&lang=hi" : `scope=${scope}`;
       const r = await fetch(new URL(`/api/public/news?${q}`, getApiUrl()).toString());
       setFeed(r.ok ? ((await r.json()) as Feed) : { items: [], status: "unavailable", fetchedAt: null, sources: [] });
     } catch { setFeed({ items: [], status: "unavailable", fetchedAt: null, sources: [] }); }

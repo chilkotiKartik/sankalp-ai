@@ -162,6 +162,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P9.29 Smoke test runs with real photo AI on (a placeholder proof photo must go to officer review and must not close on the citizen's yes alone) and off (full close path); emergency-screen address contrast 7:1; web rebuilt; 100-page sweep 0 errors, contrast 0, only Indian hosts
 - [x] P9.30 data.gov.in connected (awaiting the owner's key): live Agmarknet mandi prices for the user's district/state on the home screen, hidden until the key is set; `set-keys.sh datagov` with live key test; key never logged or returned (D-058) — tests/datagov.test.ts
 - [x] P9.31 Sankalp Points rebuilt: earned only for verified outcomes (no points for filing/own upvotes/SOS), ledger + daily caps, levels Nagrik→Sankalp Ratna, badges from real counts, "My Sankalp Points" screen, verifiable certificate (/cert/…), real level/rank on profile (the old rank matched masked phone numbers), erasure removes the ledger (D-059) — tests/points.test.ts
+- [x] P9.32 Official live alerts on the home screen (NDMA SACHET: IMD, CWC, SDMAs; district first, 36 h window, only when there is a real alert); PIB Hindi national news for Hindi users; complaint priority contrast fix (D-060) — tests/alerts.test.ts
 
 ## Baseline failures out of scope
 See docs/BASELINE.md.

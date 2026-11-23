@@ -99,3 +99,9 @@ The old rules gave +10 just for filing and +1 for each upvote, which rewards spa
 - The certificate is a signed link anyone can open; it shows the live record with first name and initial only.
 - Rewards are recognition until a state or partner sponsors real ones; the app says so rather than showing invented prizes.
 
+## D-060 — Official live alerts from NDMA SACHET; Hindi national news from PIB
+- SACHET is NDMA's Common Alerting Protocol system, the same alerts IMD centres, CWC and State Disaster Management Authorities send to phones. We read its all-India feed (read-only) every 10 minutes.
+- An alert belongs to a state when its issuer or text names the state, its capital or a district (for example "IMD Chennai" or "Andhra Pradesh SDMA"); it belongs to a district when it names the district. Alerts are shown for 36 hours, with nothing shown if there is no current alert.
+- The feed answers only from Indian networks.
+- When the app is in Hindi, the India news tab uses PIB's own Hindi national feed (official Hindi releases, not machine translation).
+

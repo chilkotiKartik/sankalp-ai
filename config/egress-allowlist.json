@@ -5,7 +5,8 @@
     "newsonair.gov.in": "Official news (Government of India); only the state name is sent",
     "www.pib.gov.in": "Official news (Government of India); only the state name is sent",
     "control.msg91.com": "MSG91 (Indian SMS company) — DLT-template SMS, only when SMS_DRIVER=msg91; sends the mobile number and template variables (ticket ids, codes) — never names or locations",
-    "api.data.gov.in": "data.gov.in Open Government Data (Government of India) — mandi prices; only the state/district name is sent; only when DATAGOV_API_KEY is set"
+    "api.data.gov.in": "data.gov.in Open Government Data (Government of India) — mandi prices; only the state/district name is sent; only when DATAGOV_API_KEY is set",
+    "sachet.ndma.gov.in": "NDMA SACHET (Government of India) official disaster/weather alerts — read only; nothing is sent"
   },
   "indianClient": {
     "bhuvan-vec1.nrsc.gov.in": "ISRO Bhuvan base map (NRSC, Government of India). Loaded by the user's device for map tiles; Indian servers; only map-tile coordinates are requested."
