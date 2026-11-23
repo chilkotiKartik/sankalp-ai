@@ -35,6 +35,8 @@ const schema = z.object({
   EVIDENCE_ENC_KEY: z.string().optional().or(z.literal("")).transform((v) => v || undefined),
   SARVAM_API_KEY: z.string().optional(),
   SARVAM_MODEL: z.string().default("sarvam-105b"),
+  /** data.gov.in (Open Government Data) API key — mandi prices and other official datasets. Never logged. */
+  DATAGOV_API_KEY: z.string().optional(),
   // Thinking off by default: routing and JSON answers need speed, and thinking can use up the whole answer budget.
   SARVAM_REASONING: z.enum(["none", "low", "medium", "high", "default"]).default("none"),
   AI_TEXT_BASE_URL: z.string().url().optional().or(z.literal("")).transform((v) => v || undefined),
