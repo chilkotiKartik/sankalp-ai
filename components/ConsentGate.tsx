@@ -9,7 +9,7 @@ import { getApiUrl } from "@/lib/query-client";
  * filing complaints or RTIs. SOS keeps working without consent (rule 9) — the notice says so.
  */
 interface Notice {
-  version: string; controller: string; processor: string; sharing: string; sosNote: string;
+  version: string; controller: string; processor: string; sharing: string; sosNote: string; aiProcessing?: string | null;
   purposes: { id: string; text: string }[]; dataCollected: string[]; rights: string[];
   retention: { complaintsDays: number; mediaDaysAfterClosure: number; sosEvidenceDays: number };
   grievanceOfficer: { name: string; email: string; phone: string; address: string };
@@ -83,6 +83,7 @@ export function ConsentGate() {
             <Text style={s.h}>{hi ? "आपके अधिकार" : "Your rights"}</Text>
             {notice.rights.map(r => <Text key={r} style={s.li}>• {r}</Text>)}
             <Text style={s.p}>{notice.sharing}</Text>
+            {notice.aiProcessing ? <Text style={s.p}>{notice.aiProcessing}</Text> : null}
             <Text style={[s.p, s.sos]}>{notice.sosNote}</Text>
             <Text style={s.h}>{hi ? "शिकायत अधिकारी" : "Grievance officer"}</Text>
             <Text style={s.li}>{notice.grievanceOfficer.name} · {notice.grievanceOfficer.email} · {notice.grievanceOfficer.phone}</Text>

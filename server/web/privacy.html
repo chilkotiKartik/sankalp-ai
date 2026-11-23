@@ -41,7 +41,7 @@
         "<h2>"+(hi?"कौन सा डेटा":"Data collected")+"</h2>"+list(n.dataCollected)+
         "<h2>"+(hi?"अवधि":"Retention")+"</h2>"+list([(hi?"शिकायतें: ":"Complaints: ")+y(n.retention.complaintsDays)+(hi?" वर्ष":" years"),(hi?"फोटो: ":"Photos: ")+y(n.retention.mediaDaysAfterClosure)+(hi?" वर्ष (बंद होने के बाद)":" year after closure"),(hi?"SOS सबूत: ":"SOS evidence: ")+y(n.retention.sosEvidenceDays)+(hi?" वर्ष":" year")])+
         "<h2>"+(hi?"आपके अधिकार":"Your rights")+"</h2>"+list(n.rights)+
-        "<p>"+esc(n.sharing)+"</p><p class='sos'>"+esc(n.sosNote)+"</p>"+
+        "<p>"+esc(n.sharing)+"</p>"+(n.aiProcessing?"<p>"+esc(n.aiProcessing)+"</p>":"")+"<p class='sos'>"+esc(n.sosNote)+"</p>"+
         "<h2>"+(hi?"शिकायत अधिकारी":"Grievance officer")+"</h2><p>"+esc(n.grievanceOfficer.name)+"<br>"+esc(n.grievanceOfficer.email)+" · "+esc(n.grievanceOfficer.phone)+"<br>"+esc(n.grievanceOfficer.address)+"</p>";
     }).catch(function(){document.getElementById("body").textContent="Could not load the notice.";});
   }

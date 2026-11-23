@@ -8,7 +8,7 @@ import type { PromptDef } from "./prompts";
 /**
  * Sovereign AI gateway (M10, P2.1–P2.3). The ONLY module allowed to call a model.
  *  text:   Sarvam (api.sarvam.ai) | self-hosted OpenAI-compatible endpoint on Indian infra | null → caller uses rules
- *  vision: self-hosted only | null → caller routes to manual_review (fail closed)
+ *  vision: Sarvam (api.sarvam.ai /v2, image input) | self-hosted | null → caller routes to manual_review (fail closed)
  *  stt/tts: Sarvam
  * Resilience: 8 s timeout, 1 retry on network/5xx, per-provider circuit breaker (3 failures → open 60 s).
  * Every text sent to a model is PII-masked first. Every call is recorded in metrics.
@@ -108,9 +108,10 @@ async function postJson(url: string, headers: Record<string, string>, body: unkn
   return res.json();
 }
 
-function textProvider(): { name: string; url: string; model: string; headers: Record<string, string> } | null {
+function textProvider(): { name: string; url: string; model: string; headers: Record<string, string>; extra?: Record<string, unknown> } | null {
   const c = config();
-  if (c.textProvider === "sarvam" && c.SARVAM_API_KEY) return { name: "sarvam", url: "https://api.sarvam.ai/v1/chat/completions", model: c.SARVAM_MODEL, headers: { "api-subscription-key": c.SARVAM_API_KEY } };
+  // v2 accepts reasoning_effort "none": with thinking on, short answers come back empty (tokens spent on reasoning).
+  if (c.textProvider === "sarvam" && c.SARVAM_API_KEY) return { name: "sarvam", url: "https://api.sarvam.ai/v2/chat/completions", model: c.SARVAM_MODEL, headers: { "api-subscription-key": c.SARVAM_API_KEY }, extra: c.SARVAM_REASONING === "default" ? {} : { reasoning_effort: c.SARVAM_REASONING } };
   if (c.textProvider === "selfhosted" && c.AI_TEXT_BASE_URL) return { name: "selfhosted", url: `${c.AI_TEXT_BASE_URL.replace(/\/$/, "")}/chat/completions`, model: c.AI_TEXT_MODEL || "default", headers: {} };
   return null;
 }
@@ -122,7 +123,7 @@ export async function chat(messages: Msg[], opts: { maxTokens?: number; temperat
   const masked = messages.map(m => ({ ...m, content: maskPII(m.content) }));
   if (!safeToSend(masked.map(m => m.content))) return null;
   const t0 = Date.now();
-  const data = await guarded(p.name, (ms) => postJson(p.url, p.headers, { model: p.model, messages: masked, max_tokens: opts.maxTokens ?? 500, temperature: opts.temperature ?? 0.4 }, ms), opts.deadlineMs) as
+  const data = await guarded(p.name, (ms) => postJson(p.url, p.headers, { model: p.model, messages: masked, max_tokens: opts.maxTokens ?? 500, temperature: opts.temperature ?? 0.4, ...p.extra }, ms), opts.deadlineMs) as
     { choices?: Array<{ message?: { content?: string } }>; usage?: { total_tokens?: number } } | null;
   const text = data?.choices?.[0]?.message?.content?.trim();
   if (!text) return null;
@@ -163,21 +164,25 @@ export async function runPrompt<T>(def: PromptDef<T>, input: Record<string, stri
   return { data: parsed.data, provider: r.provider, model: r.model, promptVersion: def.version, inputHash: inputHash(maskPII(user)), latencyMs: r.latencyMs };
 }
 
-/** Vision — self-hosted only. null → caller MUST use manual_review. */
+/** Vision — Sarvam (India) or self-hosted. null → caller MUST use manual_review. */
 export async function vision(imageBase64: string, prompt: string): Promise<AIResult | null> {
   const c = config();
-  if (c.visionProvider !== "selfhosted" || !c.AI_VISION_BASE_URL) return null;
-  const model = c.AI_VISION_MODEL || "default";
+  const p = c.visionProvider === "sarvam" && c.SARVAM_API_KEY
+    ? { name: "sarvam-vision", url: "https://api.sarvam.ai/v2/chat/completions", model: c.SARVAM_VISION_MODEL, headers: { "api-subscription-key": c.SARVAM_API_KEY } }
+    : c.visionProvider === "selfhosted" && c.AI_VISION_BASE_URL
+      ? { name: "selfhosted-vision", url: `${c.AI_VISION_BASE_URL.replace(/\/$/, "")}/chat/completions`, model: c.AI_VISION_MODEL || "default", headers: {} as Record<string, string> }
+      : null;
+  if (!p) return null;
   const dataUrl = imageBase64.startsWith("data:") ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
   const text0 = maskPII(prompt);
   if (!safeToSend([text0])) return null;
   const t0 = Date.now();
-  const data = await guarded("selfhosted-vision", (ms) => postJson(`${c.AI_VISION_BASE_URL!.replace(/\/$/, "")}/chat/completions`, {}, {
-    model, max_tokens: 300, temperature: 0.2,
+  const data = await guarded(p.name, (ms) => postJson(p.url, p.headers, {
+    model: p.model, max_tokens: 300, temperature: 0.2,
     messages: [{ role: "user", content: [{ type: "text", text: text0 }, { type: "image_url", image_url: { url: dataUrl } }] }],
-  }, ms)) as { choices?: Array<{ message?: { content?: string } }> } | null;
+  }, Math.max(ms, 20000)), 30_000) as { choices?: Array<{ message?: { content?: string } }> } | null;
   const text = data?.choices?.[0]?.message?.content?.trim();
-  return text ? { text, provider: "selfhosted-vision", model, latencyMs: Date.now() - t0 } : null;
+  return text ? { text, provider: p.name, model: p.model, latencyMs: Date.now() - t0 } : null;
 }
 
 /** Speech-to-text via Sarvam (Indian languages). null when not configured or on failure. */

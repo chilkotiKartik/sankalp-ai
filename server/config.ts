@@ -35,10 +35,15 @@ const schema = z.object({
   EVIDENCE_ENC_KEY: z.string().optional().or(z.literal("")).transform((v) => v || undefined),
   SARVAM_API_KEY: z.string().optional(),
   SARVAM_MODEL: z.string().default("sarvam-105b"),
+  // Thinking off by default: routing and JSON answers need speed, and thinking can use up the whole answer budget.
+  SARVAM_REASONING: z.enum(["none", "low", "medium", "high", "default"]).default("none"),
   AI_TEXT_BASE_URL: z.string().url().optional().or(z.literal("")).transform((v) => v || undefined),
   AI_TEXT_MODEL: z.string().optional(),
   AI_VISION_BASE_URL: z.string().url().optional().or(z.literal("")).transform((v) => v || undefined),
   AI_VISION_MODEL: z.string().optional(),
+  // Photo analysis on Sarvam (India), /v2 chat completions with image input. "off" keeps photos on manual review.
+  AI_VISION_PROVIDER: z.enum(["sarvam", "selfhosted", "off"]).optional(),
+  SARVAM_VISION_MODEL: z.string().default("gemma4"),
   MAP_TILE_URL: z.string().optional(),
   PUSH_DRIVER: z.enum(["none", "console", "expo"]).default("console"),
   EXPO_ACCESS_TOKEN: z.string().optional(),
@@ -52,7 +57,7 @@ const schema = z.object({
 
 export type AppConfig = z.infer<typeof schema> & {
   textProvider: "sarvam" | "selfhosted" | "rules";
-  visionProvider: "selfhosted" | "manual_review";
+  visionProvider: "sarvam" | "selfhosted" | "manual_review";
   mapTileUrl: string | null;
 };
 
@@ -82,7 +87,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   else if (c.AI_TEXT_PROVIDER === "selfhosted" || (!c.AI_TEXT_PROVIDER && c.AI_TEXT_BASE_URL)) textProvider = "selfhosted";
   if (textProvider === "sarvam" && !c.SARVAM_API_KEY) textProvider = "rules";
   if (textProvider === "selfhosted" && !c.AI_TEXT_BASE_URL) textProvider = "rules";
-  const visionProvider: AppConfig["visionProvider"] = c.AI_VISION_BASE_URL ? "selfhosted" : "manual_review";
+  let visionProvider: AppConfig["visionProvider"] = "manual_review";
+  if (c.AI_VISION_PROVIDER === "selfhosted" || (!c.AI_VISION_PROVIDER && c.AI_VISION_BASE_URL)) visionProvider = c.AI_VISION_BASE_URL ? "selfhosted" : "manual_review";
+  else if (c.AI_VISION_PROVIDER === "sarvam" || (!c.AI_VISION_PROVIDER && c.SARVAM_API_KEY)) visionProvider = c.SARVAM_API_KEY ? "sarvam" : "manual_review";
 
   // Map tiles: Indian by default (Bhuvan); another source only when set explicitly; "none" = outlines only.
   const mapTileUrl = c.MAP_TILE_URL === "none" ? null : c.MAP_TILE_URL || BHUVAN_TILES;

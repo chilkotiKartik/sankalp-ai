@@ -63,3 +63,9 @@ Render's free plan sleeps after 15 minutes idle, has no Indian region and loses 
 ## D-054 — Real SMS through MSG91; keys added on the server with one command
 The generic `dlt-http` driver posted a format no Indian gateway accepts as-is. `SMS_DRIVER=msg91` speaks MSG91's Flow API (DLT template id + numbered variables) and fails closed: a message type with no approved DLT template is not sent. Keys never enter git or chat: `deploy/set-keys.sh` writes them to `/etc/sankalp/sankalp.env` (0600), adds only that provider's host to `EGRESS_ALLOWLIST`, restarts and tests live (Sarvam: a one-line chat call, nothing changed if it fails; MSG91: optional test code to a phone). MSG91 is an Indian company and DLT SMS travels over Indian operators; confirm its data-storage location in the contract before go-live.
 
+## D-055 — Sarvam AI for complaint understanding and photo analysis
+Text and photo analysis run on Sarvam's hosted models (Indian company, Indian infrastructure), through the AI gateway and `safeFetch` only.
+- Text: `sarvam-105b` on `/v2/chat/completions` with `reasoning_effort: "none"`. With thinking on (the model default), short JSON answers came back empty because the token budget went to reasoning, so every complaint silently fell back to keyword rules. `SARVAM_REASONING` can turn thinking back on.
+- Photos: `gemma4` on `/v2` (image input; `/v1` rejects images). It is used for "what does this photo show" and "is it visibly fixed". It stays fail-closed: no answer or an invalid answer means manual review, and the vision signal is one input to the verification engine, never the decision on its own.
+- The privacy notice names Sarvam as the AI processor whenever it is enabled (DPDP informed consent). `AI_VISION_PROVIDER=off` keeps photos on manual review only.
+
