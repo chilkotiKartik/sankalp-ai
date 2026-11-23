@@ -63,6 +63,8 @@ export function registerSafetyRoutes(app: Express) {
       a.status = "cancelled";
       a.cancelledAt = new Date().toISOString();
       storage.addAuditLog("sos_cancelled", user.id, "citizen", `SOS ${a.id} cancelled by the sender${body.reason ? ` — ${body.reason}` : ""}`);
+      // The police incident follows: marked safe (PIN-verified), patrol van released, every map updated live.
+      if (a.cprRequestId) storage.updateIncidentStatus(a.cprRequestId, "safe", "The person cancelled the SOS with their PIN and says they are safe", "CITIZEN");
       storage.touch();
       const owner = storage.getUserById(user.id);
       for (const d of a.contactDeliveries ?? []) {

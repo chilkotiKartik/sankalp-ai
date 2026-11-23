@@ -325,6 +325,8 @@ export interface PatrolVan {
 
 export interface SafetyIncident {
   id: string;
+  /** The SOS this incident was opened for (voice clips and live location belong to it). */
+  sosId?: string;
   isDemo?: boolean;
   citizenName: string;
   citizenId?: string;

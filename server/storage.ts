@@ -479,6 +479,28 @@ export class AppStorage {
    *    purged (audited) and deletes nothing;
    *  - SOS evidence is purged only for resolved alerts, never for open cases or ones on legal hold.
    */
+  /**
+   * SOS voice clips are deleted `sosAudioDays` (default 5) after they were recorded, once the SOS is closed — never
+   * while it is still open, and never under legal hold. Runs even while the longer retention periods await legal
+   * confirmation: deleting voice early only reduces what is kept. Returns the file names to remove from storage.
+   */
+  purgeSosAudio(at = Date.now()): string[] {
+    const days = tenant().retention.sosAudioDays;
+    const cut = at - days * 86400000;
+    const held = new Set(this.s.sosAlerts.filter(a => a.legalHold || (a.status !== "resolved" && a.status !== "cancelled")).map(a => a.id));
+    const gone = this.s.media.filter(m => m.kind === "audio" && m.sosId && !held.has(m.sosId) && new Date(m.createdAt).getTime() < cut);
+    if (!gone.length) return [];
+    const files = new Set(gone.map(m => m.fileName));
+    this.s.media = this.s.media.filter(m => !files.has(m.fileName));
+    for (const a of this.s.sosAlerts) {
+      if (a.audioChunks?.length) a.audioChunks = a.audioChunks.filter(c => !files.has(c.url.split("/").pop()!.split("?")[0]));
+      if (a.audioRecordingUrl && files.has(a.audioRecordingUrl.split("/").pop()!.split("?")[0])) a.audioRecordingUrl = undefined;
+    }
+    this.addAuditLog("sos_audio_purged", "system", "SANKALP System", `Deleted ${files.size} SOS voice clip(s) older than ${days} days (not under legal hold)`);
+    this.touch();
+    return [...files];
+  }
+
   purgeExpired(at = Date.now()): { complaints: number; media: string[]; sosEvidence: string[]; dryRun: boolean } {
     const r = tenant().retention;
     const dryRun = r.needsLegalConfirmation;
@@ -1245,11 +1267,11 @@ export class AppStorage {
     return list.sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
   }
 
-  createSafetyIncident(data: { citizenName: string; citizenId?: string; district: string; location: string; lat: number; lng: number }): SafetyIncident {
+  createSafetyIncident(data: { citizenName: string; citizenId?: string; district: string; location: string; lat: number; lng: number; sosId?: string }): SafetyIncident {
     const van = this.s.patrolVans.find(v => v.status === "active_patrol" && v.district === data.district);
     const incident: SafetyIncident = {
       ...demoFlag(),
-      id: genId(), citizenName: data.citizenName, citizenId: data.citizenId, district: data.district, location: data.location,
+      id: genId(), sosId: data.sosId, citizenName: data.citizenName, citizenId: data.citizenId, district: data.district, location: data.location,
       geo: { lat: data.lat, lng: data.lng }, status: van ? "patrol_dispatched" : "active", reportedAt: now(), escalationLevel: 1,
       assignedPatrolVan: van?.vanNumber, assignedPatrolOfficer: van?.officerInCharge, assignedPatrolPhone: van?.officerPhone,
       updates: [{ time: now(), message: `SOS received at ${data.location}`, actor: "SYSTEM" }],

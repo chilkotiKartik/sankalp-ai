@@ -108,7 +108,7 @@ export function registerSosRoutes(app: Express) {
       if (!deduplicated) {
         alertStaff(alert, "women_safety_sos");
         startContactDeliveries(alert, user);
-        cprIncident = storage.createSafetyIncident({ citizenName: user.name, citizenId: user.id, district: user.district, location: alert.location, lat: g.lat, lng: g.lng });
+        cprIncident = storage.createSafetyIncident({ citizenName: user.name, citizenId: user.id, district: user.district, location: alert.location, lat: g.lat, lng: g.lng, sosId: alert.id });
         alert.cprRequestId = cprIncident.id;
       }
       res.status(deduplicated ? 200 : 201);
@@ -214,7 +214,7 @@ export function registerSosRoutes(app: Express) {
       mustOwn(a, user);
       ownedAudio(body.chunkUrl, user, a.id);
       storage.addSOSAudioChunk(a.id, { url: body.chunkUrl, chunkIndex: body.chunkIndex, duration: body.duration ?? 10 });
-      cprEmitter.emit("event", { type: "audio_chunk", sosId: a.id, chunkUrl: body.chunkUrl, chunkIndex: body.chunkIndex, district: a.district, isWomenSafety: a.isWomenSafety, timestamp: new Date().toISOString() });
+      cprEmitter.emit("event", { type: "audio_chunk", sosId: a.id, incidentId: a.cprRequestId, chunkUrl: body.chunkUrl, chunkIndex: body.chunkIndex, district: a.district, isWomenSafety: a.isWomenSafety, timestamp: new Date().toISOString() });
       return { ok: true, chunkIndex: body.chunkIndex, totalChunks: a.audioChunks?.length ?? 0 };
     },
   });

@@ -196,7 +196,7 @@ function portalFile(file: string) {
       demoMode: config().DEMO_MODE, mapTileUrl: config().mapTileUrl,
       tenant: {
         id: t.id, name: t.name, nameLocal: t.nameLocal ?? t.name, stateLabel: t.stateLabel, coverage: t.coverage, ticketPrefix: t.ticketPrefix,
-        mapBounds: t.mapBounds, helplines: t.helplines, defaultDistrict: t.defaultDistrict,
+        mapBounds: t.mapBounds, helplines: t.helplines, defaultDistrict: t.defaultDistrict, audioDays: t.retention.sosAudioDays,
         districts: t.districts.map(d => ({ name: d.district, center: d.center })),
         departments: Object.values(t.departments).map(d => ({ id: d.id, name: d.name, nameLocal: d.nameHindi, icon: d.icon, color: d.color, slaHours: d.slaHours, categories: d.categories, helpline: d.helpline })),
       },

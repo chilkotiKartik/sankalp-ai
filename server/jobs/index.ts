@@ -3,7 +3,7 @@ import { storage, storeFor } from "../storage";
 import { tenantIds, runInTenant } from "../tenancy";
 import { logger } from "../lib/logger";
 import { unref } from "../lib/errors";
-import { runRetention } from "../routes/privacy";
+import { runRetention, runAudioRetention } from "../routes/privacy";
 import { readiness } from "../health";
 import { sendSms } from "../notify/sms";
 import { safeFetch } from "../lib/safeFetch";
@@ -58,6 +58,7 @@ export function startJobs() {
   };
   timers.push(setInterval(eachTenant("sla_job", () => { runSlaCheck(); runSlaEscalation(); }), 5 * 60 * 1000));
   timers.push(setInterval(eachTenant("retention_job", () => { runRetention(); }), 24 * 3600 * 1000));
+  timers.push(setInterval(eachTenant("sos_audio_retention_job", () => { runAudioRetention(); }), 3600 * 1000));
   timers.push(setInterval(() => { void watchReadiness(); }, 60_000));
   // P6.1: SOS SMS to trusted contacts — retries with backoff.
   timers.push(setInterval(() => { for (const id of tenantIds()) void runInTenant(id, () => runSosDeliveries()).catch(err => logger.error("sos_deliveries_failed", { tenant: id, err })); }, 15_000));

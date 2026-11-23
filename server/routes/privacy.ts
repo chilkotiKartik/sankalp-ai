@@ -23,7 +23,7 @@ export function noticeFor(lang: "en" | "hi" = "en") {
     dataCollected: lang === "hi"
       ? ["नाम और मोबाइल नंबर", "शिकायत का विवरण, फोटो और स्थान", "SOS के समय लाइव लोकेशन और ऑडियो"]
       : ["Name and mobile number", "Complaint details, photos and location", "Live location and audio during an SOS"],
-    retention: { complaintsDays: days.complaintsDays, mediaDaysAfterClosure: days.mediaDaysAfterClosure, sosEvidenceDays: days.sosEvidenceDays, needsLegalConfirmation: days.needsLegalConfirmation },
+    retention: { complaintsDays: days.complaintsDays, mediaDaysAfterClosure: days.mediaDaysAfterClosure, sosEvidenceDays: days.sosEvidenceDays, needsLegalConfirmation: days.needsLegalConfirmation, sosAudioDays: days.sosAudioDays },
     rights: lang === "hi"
       ? ["अपना डेटा देखने/डाउनलोड करने का अधिकार", "सुधार और मिटाने का अधिकार (पुलिस मामलों में कानूनी रोक लागू)", "शिकायत अधिकारी से शिकायत करने का अधिकार"]
       : ["Access and download your data", "Correction and erasure (police cases may be under legal hold)", "Complain to the grievance officer"],
@@ -126,10 +126,20 @@ export function registerPrivacyRoutes(app: Express) {
 }
 
 /** Retention job helper: purge expired records and delete their files. */
+/** Hourly: SOS voice clips older than sosAudioDays (default 5), unless under legal hold. */
+export function runAudioRetention(at = Date.now()): number {
+  const files = storage.purgeSosAudio(at);
+  const drv = mediaDriver();
+  for (const f of files) drv.remove("private", f);
+  return files.length;
+}
+
 export function runRetention(at = Date.now()) {
+  const audio = storage.purgeSosAudio(at);
   const r = storage.purgeExpired(at);
   const drv = mediaDriver();
   for (const f of r.media) { drv.remove("public", f); drv.remove("originals", f); }
-  for (const f of r.sosEvidence) drv.remove("private", f);
-  return r;
+  const sosFiles = [...new Set([...audio, ...r.sosEvidence])];
+  for (const f of sosFiles) drv.remove("private", f);
+  return { ...r, sosEvidence: sosFiles };
 }
