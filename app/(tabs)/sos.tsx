@@ -52,6 +52,7 @@ import { Audio } from "expo-av";
 import * as Speech from "expo-speech";
 import * as Notifications from "expo-notifications";
 import Colors from "@/constants/colors";
+import { ShareLiveLocation } from "@/components/ShareLiveLocation";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import type { GeoPoint } from "@/context/AppContext";
@@ -1159,7 +1160,7 @@ function SOSScreenInner() {
               <View style={s.notifiedBlock}>
                 <View style={s.notifiedHeader}>
                   <Ionicons name="shield" size={13} color="#F59E0B" />
-                  <Text style={s.notifiedHeaderText}>2 Police Stations Notified & Responding</Text>
+                  <Text style={s.notifiedHeaderText}>{`${(activeAlert.notifiedStations || []).length} Police Station${(activeAlert.notifiedStations || []).length === 1 ? "" : "s"} Notified`}</Text>
                 </View>
                 {(activeAlert.notifiedStations || []).map((ps: any, i: number) => (
                   <View key={i} style={[s.notifiedRow, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
@@ -1181,6 +1182,8 @@ function SOSScreenInner() {
                 ))}
               </View>
             )}
+
+            {activeAlert?.id ? <View style={{ marginTop: 10 }}><ShareLiveLocation alertId={activeAlert.id} token={token} /></View> : null}
 
             <Pressable onPress={() => { setTriggered(false); setActiveAlert(null); setDescription(""); setWomenPanic(false); stopLive(); setLiveCount(0); setLastUpdate(null); stopAudioRecording(); }} style={s.resetBtn}>
               <Text style={s.resetBtnText}>Reset SOS Panel</Text>
@@ -1474,6 +1477,7 @@ function SOSScreenInner() {
                   <Ionicons name="checkmark-circle" size={20} color="#4ADE80" />
                   <Text style={s.womenPanicText}>Alert sent · Police dispatched · Location shared live</Text>
                 </View>
+                {activeAlert?.id ? <ShareLiveLocation alertId={activeAlert.id} token={token} /> : null}
                 {isRecording && (
                   <View style={s.recordingRow}>
                     <View style={s.recordingDot} />

@@ -155,6 +155,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P9.21 Real SMS via MSG91 (DLT templates, fail closed) — tests/sms.test.ts; `deploy/set-keys.sh` adds Sarvam / MSG91 keys on the server with a live self-test (D-054). Keys themselves await the owner's accounts
 - [x] P9.23 Sarvam AI live: complaint understanding on sarvam-105b (v2, reasoning off — fixes empty answers that fell back to rules) and real photo analysis on gemma4 (v2 image input), fail closed; privacy notice names Sarvam; owner share-link route for SOS (D-055) — tests/vision.test.ts
 - [x] P9.24 Live official news by district, state and policy: AIR district search + 24 PIB regional-office feeds (kept only when they name the state/district), AIR station bulletins labelled; "Schemes & policies" tab (PIB scheme/policy/Cabinet releases for the state + all-India); app news card has My district / State / Schemes & policies / India — tests/news.test.ts
+- [x] P9.25 Family live location without SMS: "Share live location with family" on both active-SOS screens (share sheet / WhatsApp / copy); the family page is a live Bhuvan map that follows the person every 10 s with a trail, Call 112, nearest police and "open in my maps app" (geo:, no foreign link) — tests/sos-share.test.ts
 
 ## Baseline failures out of scope
 See docs/BASELINE.md.
