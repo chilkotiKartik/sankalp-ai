@@ -554,6 +554,14 @@ export class AppStorage {
     return created;
   }
 
+  /** Rotates every department's code (e.g. after codes were exposed). Old department sessions stop working. */
+  async rotateAllDeptCodes(): Promise<Record<string, string>> {
+    const out: Record<string, string> = {};
+    for (const id of Object.keys(DEPARTMENTS)) out[id] = await this.rotateDeptCode(id);
+    this.addAuditLog("dept_codes_rotated_all", "system", "SANKALP System", `All ${Object.keys(out).length} department access codes rotated; previous department sessions revoked`);
+    return out;
+  }
+
   async rotateDeptCode(departmentId: string): Promise<string> {
     if (!DEPARTMENTS[departmentId]) throw new StateError("NOT_FOUND", "Unknown department");
     const code = `${departmentId}-${randomBytes(9).toString("base64url")}`;
