@@ -33,6 +33,7 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { StatusBar } from "expo-status-bar";
 import { LogoAnimation } from "@/components/LogoAnimation";
 import Colors from "@/constants/colors";
+import { PointsCelebration } from "@/components/PointsCelebration";
 import { APP_MAX_WIDTH } from "@/constants/layout";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -155,6 +156,7 @@ function RootLayoutNav() {
       <DemoBadge />
       <ConsentGate />
       <InstallPrompt />
+      <PointsCelebration />
     </View>
     </WebFrame>
   );

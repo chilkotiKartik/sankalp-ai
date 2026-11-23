@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
-  Modal, ActivityIndicator, Alert, Platform,
+  Modal, ActivityIndicator, Alert, Platform, Share, Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,8 +14,9 @@ import { stateName, allDistricts } from "@/constants/districts";
 interface RTIRequest {
   id: string; ticketId: string; subject: string; description: string;
   department: string; filedBy: string; filedByPhone: string; filedAt: string;
-  status: "filed" | "acknowledged" | "processing" | "responded" | "closed";
+  status: "draft" | "filed_official" | "filed" | "acknowledged" | "processing" | "responded" | "closed";
   response?: string; respondedAt?: string; district: string; deadline: string;
+  officialRegNo?: string; officialFiledOn?: string; officialPortal?: "central" | "state";
 }
 
 const DEPARTMENTS = [
@@ -34,7 +35,9 @@ const DEPARTMENTS = [
 ];
 
 const STATUS_META: Record<string, { color: string; bg: string; icon: string; label: string }> = {
-  filed:        { color: "#4B5563", bg: "#F9FAFB", icon: "document-text",    label: "Filed" },
+  draft:        { color: "#4B5563", bg: "#F9FAFB", icon: "create-outline",   label: "Draft — not filed yet" },
+  filed:        { color: "#4B5563", bg: "#F9FAFB", icon: "create-outline",   label: "Draft — not filed yet" },
+  filed_official: { color: "#1D4ED8", bg: "#EFF6FF", icon: "document-text",  label: "Filed on official portal" },
   acknowledged: { color: "#2563EB", bg: "#EFF6FF", icon: "eye",              label: "Acknowledged" },
   processing:   { color: "#B45309", bg: "#FFFBEB", icon: "time",             label: "Processing" },
   responded:    { color: "#047857", bg: "#F0FFF4", icon: "checkmark-circle", label: "Responded" },
@@ -119,9 +122,9 @@ export default function RTIScreen() {
       setShowForm(false);
       setSubject(""); setDescription(""); setDepartment("");
       Alert.alert(
-        "RTI Filed Successfully!",
-        `Your RTI ticket is ${created.ticketId}.\n\nThe department has 30 days to respond as per Right to Information Act, 2005.`,
-        [{ text: "OK" }]
+        "Draft saved",
+        "Next step: file it on the official RTI portal (open the draft and tap \"File it officially\"). The 30-day reply time starts only when it is filed there.",
+        [{ text: "Open draft", onPress: () => setSelectedRTI(created) }, { text: "Later" }]
       );
     } catch (err: any) {
       Alert.alert("Error", err.message || "Could not file RTI");
@@ -157,7 +160,7 @@ export default function RTIScreen() {
             <Text style={s.statLabel}>Responded</Text>
           </View>
           <View style={s.statChip}>
-            <Text style={s.statVal}>{rtis.filter(r => r.status === "processing" || r.status === "acknowledged").length}</Text>
+            <Text style={s.statVal}>{rtis.filter(r => r.status === "filed_official").length}</Text>
             <Text style={s.statLabel}>Pending</Text>
           </View>
         </View>
@@ -278,8 +281,8 @@ export default function RTIScreen() {
                   <View style={{ padding: 20, gap: 16 }}>
                     {[
                       { label: "Department", val: selectedRTI.department, icon: "business" },
-                      { label: "Filed On", val: new Date(selectedRTI.filedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }), icon: "calendar" },
-                      { label: "Response Deadline", val: new Date(selectedRTI.deadline).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }), icon: "time" },
+                      { label: selectedRTI.officialFiledOn ? "Filed on portal" : "Draft created", val: new Date(selectedRTI.officialFiledOn ?? selectedRTI.filedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }), icon: "calendar" },
+                      ...(selectedRTI.status === "filed_official" || selectedRTI.status === "responded" ? [{ label: "Reply due by (30 days)", val: new Date(selectedRTI.deadline).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }), icon: "time" }] : []),
                       { label: "District", val: selectedRTI.district, icon: "location" },
                     ].map(row => (
                       <View key={row.label} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -296,7 +299,8 @@ export default function RTIScreen() {
                       <Text style={{ color: "#4B5563", fontSize: 10, fontFamily: "Inter_700Bold", textTransform: "uppercase", marginBottom: 6 }}>Your RTI Request</Text>
                       <Text style={{ color: "#374151", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 }}>{selectedRTI.description}</Text>
                     </View>
-                    {selectedRTI.response ? (
+                    <RTIOfficialPanel rti={selectedRTI} token={token} onUpdated={(r) => { setSelectedRTI(r); setRtis(prev => prev.map(x => (x.id === r.id ? r : x))); }} />
+                    {selectedRTI.status !== "filed_official" && selectedRTI.status !== "draft" && selectedRTI.status !== "filed" ? (selectedRTI.response ? (
                       <View style={{ backgroundColor: "#F0FFF4", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#A7F3D0" }}>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
                           <Ionicons name="checkmark-circle" size={16} color="#047857" />
@@ -319,7 +323,7 @@ export default function RTIScreen() {
                           The department must respond within 30 days. Deadline: {new Date(selectedRTI.deadline).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                         </Text>
                       </View>
-                    )}
+                    )) : null}
                     <View style={{ height: 10 }} />
                   </View>
                 </ScrollView>
@@ -458,6 +462,88 @@ export default function RTIScreen() {
     </View>
   );
 }
+
+
+/** RTI is filed only on the government portal; this panel takes the citizen there and tracks the legal timeline. */
+function RTIOfficialPanel({ rti, token, onUpdated }: { rti: RTIRequest; token: string | null; onUpdated: (r: RTIRequest) => void }) {
+  const [regNo, setRegNo] = useState("");
+  const [filedOn, setFiledOn] = useState(new Date().toISOString().slice(0, 10));
+  const [portal, setPortal] = useState<"central" | "state">("central");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const api = makeApiCall(token);
+  const isDraft = rti.status === "draft" || rti.status === "filed";
+  const copyText = `Subject: ${rti.subject}\n\n${rti.description}\n\nPublic authority: ${rti.department}`;
+
+  if (isDraft) {
+    return (
+      <View style={p.card}>
+        <Text style={p.h}>File it officially</Text>
+        <Text style={p.t}>An RTI is legal only when filed with the government. Central ministries and departments: RTI Online. State departments: your state&apos;s RTI portal or a written application to the department&apos;s Public Information Officer (fee ₹10; free for BPL card holders).</Text>
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <Pressable style={p.btn} onPress={() => Share.share({ message: copyText })} accessibilityRole="button"><Ionicons name="copy-outline" size={15} color="#fff" /><Text style={p.btnText}>Copy / share text</Text></Pressable>
+          <Pressable style={[p.btn, { backgroundColor: "#1D4ED8" }]} onPress={() => Linking.openURL("https://rtionline.gov.in/")} accessibilityRole="link"><Ionicons name="open-outline" size={15} color="#fff" /><Text style={p.btnText}>Open RTI Online</Text></Pressable>
+        </View>
+        <Text style={[p.h, { marginTop: 14, fontSize: 13 }]}>After filing, add the registration number</Text>
+        <TextInput value={regNo} onChangeText={setRegNo} placeholder="e.g. DOPAT/R/2026/60123" placeholderTextColor="#6B7280" style={p.input} autoCapitalize="characters" accessibilityLabel="Official registration number" />
+        <TextInput value={filedOn} onChangeText={setFiledOn} placeholder="YYYY-MM-DD" placeholderTextColor="#6B7280" style={p.input} accessibilityLabel="Date filed on the portal" />
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {(["central", "state"] as const).map(k => (
+            <Pressable key={k} onPress={() => setPortal(k)} style={[p.chip, portal === k && p.chipOn]} accessibilityRole="radio" accessibilityState={{ selected: portal === k }}>
+              <Text style={[p.chipText, portal === k && { color: "#fff" }]}>{k === "central" ? "RTI Online (central)" : "State portal / office"}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {err ? <Text style={p.err}>{err}</Text> : null}
+        <Pressable disabled={busy || regNo.trim().length < 4} onPress={async () => {
+          setBusy(true); setErr("");
+          try { onUpdated(await api(`/api/rti/${rti.id}/official`, "PUT", { regNo: regNo.trim(), filedOn, portal })); }
+          catch (e: any) { setErr(e.message || "Could not save"); } finally { setBusy(false); }
+        }} style={[p.btn, { backgroundColor: "#047857", marginTop: 10, opacity: regNo.trim().length < 4 ? 0.6 : 1 }]} accessibilityRole="button">
+          <Text style={p.btnText}>{busy ? "Saving…" : "Save — start the 30-day clock"}</Text>
+        </Pressable>
+      </View>
+    );
+  }
+  if (rti.status === "filed_official") {
+    const due = new Date(rti.deadline).getTime();
+    const left = Math.ceil((due - Date.now()) / 86400000);
+    const appealUntil = new Date(due + 30 * 86400000);
+    return (
+      <View style={p.card}>
+        <Text style={p.h}>Filed: {rti.officialRegNo}</Text>
+        {left >= 0 ? (
+          <Text style={p.t}>The Public Information Officer must reply within 30 days — {left} day{left === 1 ? "" : "s"} left. Track the status on the portal with your registration number.</Text>
+        ) : (
+          <Text style={[p.t, { color: "#B91C1C" }]}>No reply within 30 days? You can file a First Appeal to the department&apos;s First Appellate Authority until {appealUntil.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })} (on the same portal: &quot;Submit First Appeal&quot;).</Text>
+        )}
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <Pressable style={[p.btn, { backgroundColor: "#1D4ED8" }]} onPress={() => Linking.openURL("https://rtionline.gov.in/")} accessibilityRole="link"><Ionicons name="search" size={15} color="#fff" /><Text style={p.btnText}>Check status</Text></Pressable>
+          <Pressable style={[p.btn, { backgroundColor: "#047857" }]} disabled={busy} onPress={async () => {
+            setBusy(true);
+            try { onUpdated(await api(`/api/rti/${rti.id}/reply-received`, "PUT", { receivedOn: new Date().toISOString().slice(0, 10) })); }
+            catch (e: any) { setErr(e.message || "Could not save"); } finally { setBusy(false); }
+          }} accessibilityRole="button"><Ionicons name="checkmark" size={15} color="#fff" /><Text style={p.btnText}>I received the reply</Text></Pressable>
+        </View>
+        {err ? <Text style={p.err}>{err}</Text> : null}
+      </View>
+    );
+  }
+  return null;
+}
+
+const p = StyleSheet.create({
+  card: { backgroundColor: "#F8FAFC", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#CBD5E1" },
+  h: { color: "#0F172A", fontSize: 15, fontFamily: "Inter_700Bold", marginBottom: 6 },
+  t: { color: "#334155", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
+  btn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#334155", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  btnText: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold" },
+  input: { borderWidth: 1, borderColor: "#CBD5E1", borderRadius: 10, padding: 10, marginTop: 8, color: "#0F172A", fontFamily: "Inter_500Medium", fontSize: 14, backgroundColor: "#fff" },
+  chip: { borderWidth: 1, borderColor: "#94A3B8", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6, marginTop: 8 },
+  chipOn: { backgroundColor: "#1D4ED8", borderColor: "#1D4ED8" },
+  chipText: { color: "#0F172A", fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  err: { color: "#B91C1C", fontSize: 12, fontFamily: "Inter_500Medium", marginTop: 6 },
+});
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8F9FA" },

@@ -21,7 +21,8 @@
     "pib.gov.in": "Official link opened by the user",
     "newsonair.gov.in": "Official link opened by the user",
     "www.myscheme.gov.in": "Official link opened by the user",
-    "www.data.gov.in": "Source link under mandi prices (Government of India); opened only if the user taps it"
+    "www.data.gov.in": "Source link under mandi prices (Government of India); opened only if the user taps it",
+    "rtionline.gov.in": "RTI Online (Government of India): opened only when the citizen taps 'Open RTI Online' / 'Check status'"
   },
   "nonNetwork": {
     "react.dev": "URL inside an error message string",

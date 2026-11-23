@@ -68,3 +68,20 @@ describe("Sankalp Points", () => {
     expect(forged.text).toContain("Certificate not found");
   });
 });
+
+describe("leaderboard periods", () => {
+  it("'this month' ranks by points earned this month; all-time by total; earlier activity is not counted for the month", async () => {
+    const a = await makeUser("citizen", "Dehradun");
+    const b = await makeUser("citizen", "Haridwar");
+    storage.getUserById(a.user.id)!.points = 500; // earlier activity
+    storage.awardPoints(b.user.id, "complaint_fixed", "m1");
+    storage.awardPoints(a.user.id, "verification_answered", "m2");
+    const month = await request(app()).get("/api/leaderboard?period=month").set(auth(a.token));
+    expect(month.body.map((e: { id: string; points: number }) => [e.id, e.points])).toEqual([[b.user.id, 10], [a.user.id, 5]]);
+    const all = await request(app()).get("/api/leaderboard?period=all").set(auth(a.token));
+    expect(all.body[0]).toMatchObject({ id: a.user.id, points: 505 });
+    const dist = await request(app()).get("/api/leaderboard?period=all&district=Haridwar").set(auth(a.token));
+    expect(dist.body.map((e: { id: string }) => e.id)).toEqual([b.user.id]);
+    expect(JSON.stringify(all.body)).not.toContain(a.user.phone);
+  });
+});

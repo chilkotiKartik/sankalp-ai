@@ -1,0 +1,172 @@
+{
+  "$comment": "Official electricity bill-payment portals by state. Every link was opened from an Indian server on 2026-11-23 and kept only if it answered with the organisation's own page (one guessed domain had become a casino site and was dropped). States whose sites block automated checks are not listed rather than guessed. Re-check before adding more: deploy/check-portals.sh.",
+  "verifiedOn": "2026-11-23",
+  "states": {
+    "uttarakhand": [
+      {
+        "name": "UPCL — Uttarakhand Power Corporation",
+        "url": "https://www.upcl.org/",
+        "kind": "electricity"
+      }
+    ],
+    "delhi": [
+      {
+        "name": "BSES (BRPL / BYPL)",
+        "url": "https://www.bsesdelhi.com/",
+        "kind": "electricity"
+      },
+      {
+        "name": "Tata Power-DDL",
+        "url": "https://www.tatapower-ddl.com/",
+        "kind": "electricity"
+      }
+    ],
+    "maharashtra": [
+      {
+        "name": "MSEDCL (Mahavitaran)",
+        "url": "https://www.mahadiscom.in/",
+        "kind": "electricity"
+      }
+    ],
+    "kerala": [
+      {
+        "name": "KSEB — online bill payment",
+        "url": "https://wss.kseb.in/",
+        "kind": "electricity"
+      },
+      {
+        "name": "KSEB — Kerala State Electricity Board",
+        "url": "https://kseb.in/",
+        "kind": "electricity"
+      }
+    ],
+    "karnataka": [
+      {
+        "name": "BESCOM — Bangalore Electricity Supply Company",
+        "url": "https://bescom.karnataka.gov.in/",
+        "kind": "electricity"
+      }
+    ],
+    "tamil-nadu": [
+      {
+        "name": "TANGEDCO / TNPDCL",
+        "url": "https://www.tnebltd.gov.in/",
+        "kind": "electricity"
+      }
+    ],
+    "telangana": [
+      {
+        "name": "TGSPDCL — Southern Power Distribution Company of Telangana",
+        "url": "https://tgsouthernpower.org/",
+        "kind": "electricity"
+      }
+    ],
+    "andhra-pradesh": [
+      {
+        "name": "APSPDCL — Southern Power Distribution Company of A.P.",
+        "url": "https://www.apspdcl.in/",
+        "kind": "electricity"
+      }
+    ],
+    "gujarat": [
+      {
+        "name": "GUVNL — Gujarat Urja Vikas Nigam (DGVCL, MGVCL, PGVCL, UGVCL)",
+        "url": "https://www.guvnl.com/",
+        "kind": "electricity"
+      }
+    ],
+    "rajasthan": [
+      {
+        "name": "Jaipur Vidyut Vitran Nigam (JVVNL)",
+        "url": "https://energy.rajasthan.gov.in/jvvnl/",
+        "kind": "electricity"
+      }
+    ],
+    "bihar": [
+      {
+        "name": "SBPDCL — South Bihar Power Distribution",
+        "url": "https://www.sbpdcl.co.in/",
+        "kind": "electricity"
+      },
+      {
+        "name": "NBPDCL — North Bihar Power Distribution",
+        "url": "https://www.nbpdcl.co.in/",
+        "kind": "electricity"
+      }
+    ],
+    "west-bengal": [
+      {
+        "name": "WBSEDCL — West Bengal State Electricity Distribution",
+        "url": "https://www.wbsedcl.in/",
+        "kind": "electricity"
+      }
+    ],
+    "odisha": [
+      {
+        "name": "TP Central Odisha Distribution (TPCODL)",
+        "url": "https://www.tpcentralodisha.com/",
+        "kind": "electricity"
+      }
+    ],
+    "punjab": [
+      {
+        "name": "PSPCL — Punjab State Power Corporation",
+        "url": "https://www.pspcl.in/",
+        "kind": "electricity"
+      }
+    ],
+    "haryana": [
+      {
+        "name": "UHBVN — Uttar Haryana Bijli Vitran Nigam",
+        "url": "https://www.uhbvn.org.in/",
+        "kind": "electricity"
+      },
+      {
+        "name": "DHBVN — Dakshin Haryana Bijli Vitran Nigam",
+        "url": "https://www.dhbvn.org.in/",
+        "kind": "electricity"
+      }
+    ],
+    "himachal-pradesh": [
+      {
+        "name": "HPSEBL — Himachal Pradesh State Electricity Board",
+        "url": "https://www.hpseb.in/",
+        "kind": "electricity"
+      }
+    ],
+    "assam": [
+      {
+        "name": "APDCL — Assam Power Distribution Company",
+        "url": "https://www.apdcl.org/",
+        "kind": "electricity"
+      }
+    ],
+    "jharkhand": [
+      {
+        "name": "JBVNL — Jharkhand Bijli Vitran Nigam",
+        "url": "https://jbvnl.co.in/",
+        "kind": "electricity"
+      }
+    ],
+    "chhattisgarh": [
+      {
+        "name": "CSPDCL — Chhattisgarh State Power Distribution",
+        "url": "https://cspdcl.co.in/cseb/",
+        "kind": "electricity"
+      }
+    ],
+    "puducherry": [
+      {
+        "name": "Electricity Department, Government of Puducherry",
+        "url": "https://electricity.py.gov.in/",
+        "kind": "electricity"
+      }
+    ]
+  },
+  "national": {
+    "rti": {
+      "name": "RTI Online — Government of India (central ministries and departments)",
+      "url": "https://rtionline.gov.in/"
+    }
+  }
+}

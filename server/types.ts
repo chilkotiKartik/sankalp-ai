@@ -290,11 +290,16 @@ export interface RTIRequest {
   filedBy: string;
   filedByPhone: string;
   filedAt: string;
-  status: "filed" | "acknowledged" | "processing" | "responded" | "closed";
+  /** draft = written in SANKALP only (not yet an RTI in law); filed_official = filed on the government portal. */
+  status: "draft" | "filed_official" | "filed" | "acknowledged" | "processing" | "responded" | "closed";
   response?: string;
   respondedAt?: string;
   district: string;
+  /** For a filed RTI: 30 days after the official filing date (RTI Act s.7(1)). */
   deadline: string;
+  officialRegNo?: string;
+  officialFiledOn?: string;
+  officialPortal?: "central" | "state";
 }
 
 export interface NightSafetyZone {
@@ -385,6 +390,11 @@ export interface BudgetItem {
   district: string;
   year: number;
   description: string;
+  /** Official source document (.gov.in / .nic.in) — required for anything published (no unsourced numbers). */
+  sourceUrl?: string;
+  publishedBy?: string;
+  publishedAt?: string;
+  isDemo?: boolean;
 }
 
 export interface AuditLog {

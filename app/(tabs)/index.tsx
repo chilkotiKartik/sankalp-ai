@@ -16,6 +16,7 @@ import { stateName, districtPhrase, stateNameLocal } from "@/constants/districts
 import { getTenantId } from "@/lib/tenant";
 import { OfficialNews, relTime as relNewsTime } from "@/components/OfficialNews";
 import { MandiPrices } from "@/components/MandiPrices";
+import { LEVEL_NAMES } from "@/constants/points";
 import { OfficialAlerts } from "@/components/OfficialAlerts";
 import { NATIONAL_SCHEMES, MYSCHEME_URL, type Scheme } from "@/constants/schemes";
 
@@ -667,8 +668,8 @@ export default function DashboardScreen() {
               <Text style={{ fontSize: 18 }}>🌟</Text>
               <Text style={styles.motivText}>
                 {user?.level && user.level >= 3
-                  ? `Level ${user.level} Civic Advocate — keep making ${stateName()} better!`
-                  : "File your first complaint to start earning civic points!"}
+                  ? `${LEVEL_NAMES[Math.min(user.level, 6)]?.name ?? "Sahayak"} — keep making ${stateName()} better!`
+                  : "Report a real problem — you earn Sankalp Points when the department accepts it and when the fix is verified."}
               </Text>
             </View>
           </View>

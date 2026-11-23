@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
+import { Linking,
   View, Text, StyleSheet, ScrollView, Pressable,
   ActivityIndicator, RefreshControl, Modal, Animated,
 } from "react-native";
@@ -23,6 +23,8 @@ interface BudgetItem {
   allocated: number;
   spent: number;
   description: string;
+  sourceUrl?: string;
+  publishedBy?: string;
 }
 
 const DEPT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -306,7 +308,8 @@ export default function BudgetScreen() {
             {filtered.length === 0 && (
               <View style={cs.empty}>
                 <Ionicons name="bar-chart-outline" size={48} color={Colors.textMuted} />
-                <Text style={cs.emptyText}>No budget data available</Text>
+                <Text style={cs.emptyText}>No official budget lines published for this area yet</Text>
+                <Text style={[cs.emptyText, { fontSize: 12, marginTop: 6, textAlign: "center", paddingHorizontal: 24 }]}>District and state officials publish budget lines here, each with a link to the official document it comes from. Nothing is shown without a source.</Text>
               </View>
             )}
           </>
@@ -338,6 +341,14 @@ export default function BudgetScreen() {
                   </View>
 
                   <Text style={cs.detailDesc}>{selectedItem.description}</Text>
+                  {selectedItem.sourceUrl ? (
+                    <Pressable onPress={() => Linking.openURL(selectedItem.sourceUrl!)} accessibilityRole="link" style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 }}>
+                      <Ionicons name="document-text-outline" size={14} color="#60A5FA" />
+                      <Text style={{ color: "#93C5FD", fontSize: 12, fontFamily: "Inter_600SemiBold", textDecorationLine: "underline" }}>
+                        Source: {new URL(selectedItem.sourceUrl).hostname}{selectedItem.publishedBy ? ` · published by ${selectedItem.publishedBy}` : ""}
+                      </Text>
+                    </Pressable>
+                  ) : null}
 
                   <View style={cs.detailStatsGrid}>
                     {[

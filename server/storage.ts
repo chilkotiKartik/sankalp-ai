@@ -214,7 +214,7 @@ export class AppStorage {
   hasDemoData(): boolean {
     const s = this.s;
     return [s.users, s.complaints, s.sosAlerts, s.workers, s.announcements, s.polls, s.petitions, s.civicEvents, s.rtis, s.safetyIncidents, s.nightSafetyZones]
-      .some((xs: Array<{ isDemo?: boolean }>) => xs.some(x => x.isDemo)) || s.patrolVans.length > 0 || s.budgetItems.length > 0;
+      .some((xs: Array<{ isDemo?: boolean }>) => xs.some(x => x.isDemo)) || s.patrolVans.length > 0 || s.budgetItems.some(b => b.isDemo || !b.sourceUrl);
   }
 
   // ── USERS ───────────────────────────────────────────────────────────────────
@@ -1072,9 +1072,21 @@ export class AppStorage {
   }
 
   // ── LEADERBOARD ─────────────────────────────────────────────────────────────
-  getLeaderboard() {
-    return this.s.users.filter(u => u.role === "citizen").sort((a, b) => b.points - a.points).slice(0, 20)
-      .map((u, i) => ({ rank: i + 1, id: u.id, name: shortName(u.name), phone: "XXXXXXXXXX", points: u.points, level: u.level, badges: u.badges, district: u.district }));
+  /** All-time (total points) or this calendar month (points earned this month from the ledger), optionally one district. */
+  getLeaderboard(opts: { period?: "all" | "month"; district?: string } = {}) {
+    const citizens = this.s.users.filter(u => u.role === "citizen" && (!opts.district || u.district === opts.district));
+    let score = (u: AppUser) => u.points;
+    if (opts.period === "month") {
+      const start = new Date(); start.setDate(1); start.setHours(0, 0, 0, 0);
+      const month = new Map<string, number>();
+      for (const e of this.s.pointsLedger) {
+        if (e.reason === "earlier_activity" || new Date(e.at).getTime() < start.getTime()) continue;
+        month.set(e.userId, (month.get(e.userId) ?? 0) + e.delta);
+      }
+      score = (u: AppUser) => month.get(u.id) ?? 0;
+    }
+    return citizens.map(u => ({ u, p: score(u) })).filter(x => x.p > 0 || opts.period !== "month").sort((a, b) => b.p - a.p).slice(0, 50)
+      .map(({ u, p }, i) => ({ rank: i + 1, id: u.id, name: shortName(u.name), phone: "XXXXXXXXXX", points: p, level: u.level, badges: u.badges, district: u.district }));
   }
 
   // ── ANNOUNCEMENTS ───────────────────────────────────────────────────────────
@@ -1166,16 +1178,27 @@ export class AppStorage {
   createRTI(data: Omit<RTIRequest, "id" | "ticketId" | "filedAt" | "deadline" | "status">, actorId: string): RTIRequest {
     const filed = new Date();
     const rti: RTIRequest = { ...demoFlag(), ...data, id: genId(), ticketId: `RTI-${tenant().ticketPrefix}-${randomUUID().slice(0, 8).toUpperCase()}`,
-      filedAt: filed.toISOString(), deadline: new Date(filed.getTime() + 30 * 86400000).toISOString(), status: "filed" };
+      filedAt: filed.toISOString(), deadline: new Date(filed.getTime() + 30 * 86400000).toISOString(), status: "draft" };
     this.s.rtis.unshift(rti);
-    this.addAuditLog("rti_filed", actorId, "citizen", `RTI ${rti.ticketId} filed`, rti.id);
+    this.addAuditLog("rti_drafted", actorId, "citizen", `RTI draft ${rti.ticketId} created`, rti.id);
     this.touch();
     return rti;
   }
-  submitRTI(id: string): RTIRequest | null {
+  /** The citizen filed the RTI on the government portal: record the registration number; the 30-day clock starts. */
+  markRTIOfficial(id: string, regNo: string, filedOn: string, portal: "central" | "state"): RTIRequest | null {
     const r = this.getRTI(id);
     if (!r) return null;
-    if (r.status === "filed") r.status = "acknowledged";
+    r.officialRegNo = regNo; r.officialFiledOn = filedOn; r.officialPortal = portal;
+    r.status = "filed_official";
+    r.deadline = new Date(Date.parse(filedOn) + 30 * 86400000).toISOString();
+    this.addAuditLog("rti_filed_official", "citizen", "Citizen", `RTI ${r.ticketId} filed on the ${portal} portal as ${regNo}`, r.id);
+    this.touch();
+    return r;
+  }
+  markRTIReplyReceived(id: string, receivedOn: string, summary?: string): RTIRequest | null {
+    const r = this.getRTI(id);
+    if (!r) return null;
+    r.status = "responded"; r.respondedAt = receivedOn; if (summary) r.response = summary;
     this.touch();
     return r;
   }
@@ -1198,6 +1221,19 @@ export class AppStorage {
   }
 
   // ── BUDGET ──────────────────────────────────────────────────────────────────
+  publishBudgetItem(data: Omit<BudgetItem, "id" | "publishedAt">): BudgetItem {
+    const b: BudgetItem = { ...data, id: genId(), publishedAt: now() };
+    this.s.budgetItems.unshift(b);
+    this.touch();
+    return b;
+  }
+  removeBudgetItem(id: string): boolean {
+    const n = this.s.budgetItems.length;
+    this.s.budgetItems = this.s.budgetItems.filter(b => b.id !== id);
+    if (this.s.budgetItems.length !== n) this.touch();
+    return this.s.budgetItems.length !== n;
+  }
+
   getBudgetItems(district?: string): BudgetItem[] {
     if (district && !isStateWide(district)) return this.s.budgetItems.filter(b => b.district === district);
     return [...this.s.budgetItems];

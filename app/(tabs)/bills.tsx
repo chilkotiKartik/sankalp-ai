@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, Pressable,
+  View, Text, StyleSheet, ScrollView, Pressable, Linking,
   Modal, Platform, Animated, TextInput, ActivityIndicator, RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -170,6 +170,9 @@ export default function BillsScreen() {
   const [payMethod, setPayMethod] = useState("upi");
   const [upiId, setUpiId] = useState("");
   const [payRef, setPayRef] = useState("");
+  // Not connected to a biller: the state's official portals (verified links) and BBPS guidance. Nothing invented.
+  const [portals, setPortals] = useState<Array<{ name: string; url: string; kind: string }>>([]);
+  const [bbps, setBbps] = useState<string>("");
   const headerAnim = useRef(new Animated.Value(-20)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
 
@@ -183,6 +186,8 @@ export default function BillsScreen() {
         const data = await res.json();
         setBills(data.bills || []);
         setLiveUser(data.user || null);
+        setPortals(data.portals || []);
+        setBbps(data.bbps || "");
       }
     } catch {}
     setLoading(false);
@@ -266,6 +271,41 @@ export default function BillsScreen() {
           <AnimatedSpinner color={Colors.saffron}/>
           <Text style={{color:Colors.textMuted,fontSize:13,fontFamily:"Inter_400Regular"}}>Loading your bills…</Text>
         </View>
+      ) : bills.length === 0 ? (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom:botPad+100}}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.saffron}/>}>
+          <View style={s.portalCard}>
+            <View style={{flexDirection:"row",alignItems:"center",gap:10,marginBottom:6}}>
+              <Ionicons name="flash" size={20} color="#F59E0B"/>
+              <Text style={s.portalTitle}>Pay electricity bills — official portals</Text>
+            </View>
+            <Text style={s.portalText}>Pay directly on your power company&apos;s own website. SANKALP only opens the official site; your money never passes through SANKALP.</Text>
+            {portals.length ? portals.map(p => (
+              <Pressable key={p.url} onPress={() => Linking.openURL(p.url)} style={s.portalRow} accessibilityRole="link" accessibilityLabel={`Open ${p.name}`}>
+                <View style={{flex:1}}>
+                  <Text style={s.portalName}>{p.name}</Text>
+                  <Text style={s.portalUrl}>{p.url.replace(/^https:\/\//, "").replace(/\/$/, "")}</Text>
+                </View>
+                <Ionicons name="open-outline" size={18} color="#60A5FA"/>
+              </Pressable>
+            )) : (
+              <Text style={[s.portalText,{marginTop:8}]}>We have not yet verified your state&apos;s official portal. Use Bharat BillPay below — it covers every state.</Text>
+            )}
+          </View>
+          {bbps ? (
+            <View style={s.portalCard}>
+              <View style={{flexDirection:"row",alignItems:"center",gap:10,marginBottom:6}}>
+                <Ionicons name="phone-portrait-outline" size={20} color="#22C55E"/>
+                <Text style={s.portalTitle}>Any bill, any state — Bharat BillPay</Text>
+              </View>
+              <Text style={s.portalText}>{bbps}</Text>
+            </View>
+          ) : null}
+          <View style={s.infoBox}>
+            <Ionicons name="information-circle-outline" size={18} color={Colors.textMuted}/>
+            <Text style={s.infoText}>In-app bill payment needs a licensed Bharat BillPay partner and will appear here once connected. Electricity complaints: call 1912.</Text>
+          </View>
+        </ScrollView>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}
           contentContainerStyle={{paddingBottom:botPad+100}}
@@ -574,6 +614,12 @@ export default function BillsScreen() {
 }
 
 const s = StyleSheet.create({
+  portalCard: { marginHorizontal: 16, marginTop: 14, borderRadius: 16, padding: 16, backgroundColor: "#0F172A", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
+  portalTitle: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold", flexShrink: 1 },
+  portalText: { color: "#CBD5E1", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
+  portalRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)", marginTop: 6 },
+  portalName: { color: "#F1F5F9", fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  portalUrl: { color: "#93C5FD", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
   container:{flex:1,backgroundColor:Colors.bg},
   header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",paddingHorizontal:20,paddingTop:10,paddingBottom:14},
   headerTitle:{color:"#fff",fontSize:22,fontFamily:"Inter_700Bold"},

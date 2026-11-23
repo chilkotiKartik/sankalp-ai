@@ -8,6 +8,8 @@ import { config } from "../config";
 import { route, none, scopeDistrict } from "../lib/route";
 import { AppError } from "../lib/errors";
 import { geo, text } from "./common";
+import fs from "node:fs";
+import path from "node:path";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { POINT_RULES, LEVELS } from "../domain/points";
 import { runInTenant, tenant } from "../tenancy";
@@ -77,8 +79,8 @@ export function registerCitizenRoutes(app: Express) {
 
   route(app, {
     method: "get", path: "/api/leaderboard", auth: "user", permission: "leaderboard.read",
-    params: none, query: none, body: none,
-    handler: () => storage.getLeaderboard(),
+    params: none, query: z.object({ period: z.enum(["all", "month"]).optional(), district: z.string().max(60).optional() }), body: none,
+    handler: ({ query }) => storage.getLeaderboard({ period: query.period, district: query.district }),
   });
 
   route(app, {
@@ -145,7 +147,13 @@ export function registerCitizenRoutes(app: Express) {
     method: "get", path: "/api/bills", auth: "user", permission: "bills.read",
     params: none, query: none, body: none,
     handler: ({ user }) => {
-      if (!config().DEMO_MODE) return { bills: [], integration: "not_connected", message: "Bill payment is not connected for your district yet.", user: { name: user.name, district: user.district } };
+      if (!config().DEMO_MODE) {
+        // No bill data is invented: people pay on their state's official portal (links verified from India) or via BBPS.
+        const reg = billPortals();
+        return { bills: [], integration: "official_portals", portals: reg.states[currentTenantId()] ?? [], verifiedOn: reg.verifiedOn,
+          bbps: "Any electricity, water, gas, broadband or FASTag bill can also be paid in your UPI app (BHIM, PhonePe, Google Pay, Paytm and others) under Bills / Bharat Connect — the Reserve Bank's Bharat Bill Payment System. SANKALP never handles your money.",
+          user: { name: user.name, district: user.district } };
+      }
       return { demo: true, bills: demoBills(user.district), user: { name: user.name, district: user.district } };
     },
   });
@@ -205,4 +213,14 @@ ${c.badges.length ? `<p class="k">Badges: ${c.badges.map(esc).join(" · ")}</p>`
 .v{font-size:13px;color:#047857;margin-top:16px}.bar{height:6px;display:flex;margin:-32px -28px 24px}.bar i{flex:1}@media print{body{background:#fff}}</style></head>
 <body><main><div class="bar"><i style="background:#FF9933"></i><i style="background:#fff"></i><i style="background:#138808"></i></div><div class="t">SANKALP · Civic contribution certificate</div>${body}
 <p class="k" style="font-size:12px;margin-top:14px">To keep a copy, use your browser's Print → Save as PDF.</p></main></body></html>`;
+}
+
+// ── official bill portals (config/bill-portals.json, verified from India) ──
+let portalCache: { states: Record<string, Array<{ name: string; url: string; kind: string }>>; verifiedOn: string } | null = null;
+function billPortals() {
+  if (!portalCache) {
+    try { portalCache = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), "config", "bill-portals.json"), "utf8")); }
+    catch { portalCache = { states: {}, verifiedOn: "" }; }
+  }
+  return portalCache!;
 }

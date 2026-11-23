@@ -163,6 +163,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P9.30 data.gov.in connected (awaiting the owner's key): live Agmarknet mandi prices for the user's district/state on the home screen, hidden until the key is set; `set-keys.sh datagov` with live key test; key never logged or returned (D-058) — tests/datagov.test.ts
 - [x] P9.31 Sankalp Points rebuilt: earned only for verified outcomes (no points for filing/own upvotes/SOS), ledger + daily caps, levels Nagrik→Sankalp Ratna, badges from real counts, "My Sankalp Points" screen, verifiable certificate (/cert/…), real level/rank on profile (the old rank matched masked phone numbers), erasure removes the ledger (D-059) — tests/points.test.ts
 - [x] P9.32 Official live alerts on the home screen (NDMA SACHET: IMD, CWC, SDMAs; district first, 36 h window, only when there is a real alert); PIB Hindi national news for Hindi users; complaint priority contrast fix (D-060) — tests/alerts.test.ts
+- [x] P9.33 Bills: official state portals (20 states/UTs, 24 links verified from India; a hijacked casino domain caught and excluded) + BBPS guidance, no fake bills; RTI: honest draft → official filing with registration number → 30-day clock → first-appeal guidance (the old "acknowledged" was fake); budget: officials publish lines with a required .gov.in/.nic.in source; coin animation on real points; leaderboard This month / All time / district (D-061) — tests/rti.test.ts, tests/budget.test.ts
 
 ## Baseline failures out of scope
 See docs/BASELINE.md.
