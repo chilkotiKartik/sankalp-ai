@@ -54,7 +54,54 @@ export function requireConsent(user: { id: string; role: string }) {
   }
 }
 
+/** Real labels only: officer-worked categories for "before" photos, the citizen's own yes/no for "proof" photos. */
+const WORKED: ReadonlySet<string> = new Set(["ASSIGNED", "IN_PROGRESS", "PROOF_SUBMITTED", "VERIFYING", "NEEDS_REVIEW", "CITIZEN_VERIFIED", "CLOSED", "REJECTED_BY_CITIZEN", "REOPENED", "ESCALATED"]);
+const publicPhoto = (u?: string) => (u && /^\/uploads\/[0-9a-f-]{36}\.(jpg|jpeg|png|webp)$/.test(u) ? u : null);
+export function trainingManifest() {
+  const optedIn = new Set(storage.s.users.filter(u => u.trainingOptIn).map(u => u.id));
+  const items: Array<{ task: "scene" | "fixed"; url: string; complaintRef: string; label: string; district: string }> = [];
+  for (const c of storage.s.complaints) {
+    if (!c.userId || !optedIn.has(c.userId) || c.isDemo) continue;
+    const ref = c.id.slice(0, 8);
+    const before = publicPhoto(c.beforePhoto);
+    if (before && WORKED.has(c.state)) items.push({ task: "scene", url: before, complaintRef: ref, label: c.category, district: c.district });
+    const proof = publicPhoto(c.proofPhoto ?? c.afterPhoto);
+    if (proof && (c.citizenAnswer === "yes" || c.citizenAnswer === "no")) items.push({ task: "fixed", url: proof, complaintRef: ref, label: c.citizenAnswer === "yes" ? "fixed" : "not_fixed", district: c.district });
+  }
+  const count = (t: string) => items.filter(i => i.task === t).length;
+  return { generatedAt: new Date().toISOString(), contributors: optedIn.size, counts: { scene: count("scene"), fixed: count("fixed") }, items };
+}
+
 export function registerPrivacyRoutes(app: Express) {
+  // Optional, separate consent to let this person's complaint photos train SANKALP's own AI (off by default).
+  route(app, {
+    method: "get", path: "/api/privacy/training-consent", auth: "user", permission: "privacy.training_consent",
+    params: none, query: none, body: none,
+    handler: ({ user }) => ({ allow: !!user.trainingOptIn, since: user.trainingOptInAt ?? null }),
+  });
+  route(app, {
+    method: "put", path: "/api/privacy/training-consent", auth: "user", permission: "privacy.training_consent",
+    params: none, query: none, body: z.object({ allow: z.boolean() }),
+    handler: ({ user, body }) => {
+      user.trainingOptIn = body.allow;
+      user.trainingOptInAt = body.allow ? new Date().toISOString() : undefined;
+      storage.touch();
+      storage.addAuditLog(body.allow ? "training_consent_given" : "training_consent_withdrawn", user.id, user.role, body.allow ? "Allowed complaint photos to train SANKALP AI" : "Withdrew consent for AI training");
+      return { allow: body.allow };
+    },
+  });
+  // State admins export the labelled, EXIF-stripped photos of people who opted in (for training on Indian infrastructure).
+  route(app, {
+    method: "get", path: "/api/admin/training-export", auth: "admin", permission: "ai.training_export",
+    params: none, query: none, body: none,
+    handler: ({ user, res }) => {
+      res.setHeader("Cache-Control", "no-store");
+      const m = trainingManifest();
+      storage.addAuditLog("training_export", user.id, user.role, `AI training manifest: ${m.counts.scene} scene + ${m.counts.fixed} fix photos from ${m.contributors} consenting people`);
+      return m;
+    },
+  });
+
   route(app, {
     method: "get", path: "/api/public/privacy-notice", auth: "public", permission: "public.reference",
     params: none, query: z.object({ lang: z.enum(["en", "hi"]).optional() }), body: none,

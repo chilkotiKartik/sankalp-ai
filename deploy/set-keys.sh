@@ -3,6 +3,7 @@
 # Azure portal → sankalp-vm → Run command → RunShellScript:
 #
 #   bash /root/sankalp-ai/deploy/set-keys.sh sarvam <SARVAM_API_KEY> [model]
+#   bash /root/sankalp-ai/deploy/set-keys.sh patram <https://gpu-host/v1> <PATRAM_API_KEY>   (own Patram-7B, deploy/gpu)
 #   bash /root/sankalp-ai/deploy/set-keys.sh msg91 <MSG91_AUTH_KEY> '<template ids JSON>' [test-mobile]
 #        template ids JSON: {"otp":"<MSG91 template id>","status_update":"…","verify_request":"…"}
 #        (each id is a DLT-approved template in MSG91; variables in the template are ##var1##, ##var2##…)
@@ -56,5 +57,18 @@ case "${1:-}" in
       echo "  MSG91's answer is above: \"type\":\"success\" means it was accepted. Check the phone."
     fi
     ;;
-  *) sed -n 2,10p "$0"; exit 1 ;;
+  patram)
+    URL="${2:?usage: set-keys.sh patram <https://gpu-host/v1> <PATRAM_API_KEY>}"; KEY="${3:?PATRAM_API_KEY required}"
+    case "$URL" in https://*/v1) ;; *) echo "✗ the URL must look like https://<gpu-host>/v1"; exit 1 ;; esac
+    HOST="$(printf '%s' "$URL" | sed -E 's#^https://([^/]+)/.*#\1#')"
+    echo "Testing the Patram server…"
+    CODE=$(curl -s -o /tmp/patram-test.json -w "%{http_code}" -m 30 "${URL%/v1}/health")
+    if [ "$CODE" != 200 ]; then echo "✗ Patram answered HTTP $CODE: $(head -c 200 /tmp/patram-test.json). Nothing was changed."; rm -f /tmp/patram-test.json; exit 1; fi
+    rm -f /tmp/patram-test.json
+    set_env AI_VISION_PROVIDER selfhosted; set_env AI_VISION_BASE_URL "$URL"; set_env AI_VISION_MODEL patram-7b-instruct; set_env AI_VISION_API_KEY "$KEY"
+    allow_host "$HOST"; restart
+    echo "✓ Photos are now analysed by your own Patram-7B: $(curl -s http://127.0.0.1:5000/api/public/config | python3 -c 'import json,sys;print(json.load(sys.stdin)["ai"])')"
+    echo "  To switch back to Sarvam: set AI_VISION_PROVIDER=sarvam in /etc/sankalp/sankalp.env and restart."
+    ;;
+  *) sed -n 2,12p "$0"; exit 1 ;;
 esac

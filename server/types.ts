@@ -28,6 +28,9 @@ export interface AppUser {
   createdAt: string;
   /** P6.1: up to 5 people alerted by SMS when this user triggers an SOS. */
   trustedContacts?: Array<{ id: string; label: string; phone: string; addedAt: string }>;
+  /** Separate, optional consent (DPDP purpose limitation): this person's complaint photos may train SANKALP's own AI. */
+  trainingOptIn?: boolean;
+  trainingOptInAt?: string;
   /** P5.2: complaint text received by SMS/WhatsApp before the sender accepted the privacy notice. */
   pendingChannelText?: string;
   pendingChannelAt?: string;

@@ -41,6 +41,8 @@ const schema = z.object({
   AI_TEXT_MODEL: z.string().optional(),
   AI_VISION_BASE_URL: z.string().url().optional().or(z.literal("")).transform((v) => v || undefined),
   AI_VISION_MODEL: z.string().optional(),
+  /** Bearer key for the self-hosted vision server (e.g. Patram-7B on your own GPU in India). */
+  AI_VISION_API_KEY: z.string().optional(),
   // Photo analysis on Sarvam (India), /v2 chat completions with image input. "off" keeps photos on manual review.
   AI_VISION_PROVIDER: z.enum(["sarvam", "selfhosted", "off"]).optional(),
   SARVAM_VISION_MODEL: z.string().default("gemma4"),
