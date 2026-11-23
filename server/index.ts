@@ -25,6 +25,11 @@ async function main() {
   const restored = await startPersistence();
   logger.info("persistence", { driver: c.STORAGE_DRIVER, tenants: tenantIds(), restored });
 
+  // One-time rotation of every department code in every state (deploy/rotate-dept-codes.sh places this marker).
+  const rotateMarker = path.join(path.resolve(c.DATA_DIR), ".rotate-dept-codes");
+  const rotateAll = fs.existsSync(rotateMarker);
+  if (rotateAll) logger.warn("dept_codes_rotation_requested", { action: "Rotating all department codes in every state" });
+
   /** Per-tenant boot work: demo purge, department codes (bcrypt), optional first administrator. */
   const prepareTenant = (id: string) => runInTenant(id, async () => {
     const s = storeFor(id);
@@ -33,7 +38,7 @@ async function main() {
       logger.warn("demo_data_purged", { tenant: id, removed, reason: "DEMO_MODE is off" });
     }
     // M5: random department codes on first boot, written once to a 0600 file (never logged).
-    const created = await s.ensureDeptCodes();
+    const created = rotateAll ? await s.rotateAllDeptCodes() : await s.ensureDeptCodes();
     if (Object.keys(created).length) {
       const root = path.resolve(c.DATA_DIR);
       const file = id === defaultTenant() ? path.join(root, "dept-codes.initial.txt") : path.join(root, "tenants", id, "dept-codes.initial.txt");
@@ -61,7 +66,10 @@ async function main() {
 
   // Review P7-6: on a VM behind nginx set HOST=127.0.0.1 so the app is never reachable directly (no spoofed X-Forwarded-For).
   server.listen({ port: c.PORT, host: process.env.HOST || "0.0.0.0" }, () => {
-    void (async () => { for (const id of later) { try { await prepareTenant(id); } catch (err) { logger.error("tenant_prepare_failed", { tenant: id, err: (err as Error).message }); } } })();
+    void (async () => {
+      for (const id of later) { try { await prepareTenant(id); } catch (err) { logger.error("tenant_prepare_failed", { tenant: id, err: (err as Error).message }); } }
+      if (rotateAll) { try { fs.unlinkSync(rotateMarker); } catch { /* already gone */ } logger.warn("dept_codes_rotation_done", { states: full.length + later.length }); }
+    })();
     logger.info("listening", { port: c.PORT, demoMode: c.DEMO_MODE, textAI: c.textProvider, visionAI: c.visionProvider, env: c.NODE_ENV });
   });
 

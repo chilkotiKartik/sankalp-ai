@@ -60,3 +60,15 @@ describe("community petitions", () => {
     expect(pet.signerIds).toHaveLength(11);
   });
 });
+
+describe("department code rotation", () => {
+  it("rotateAllDeptCodes replaces every code: old codes stop working, new ones work, and it is audited", async () => {
+    await storage.ensureDeptCodes();
+    const before = await storage.rotateDeptCode("police");
+    const all = await storage.rotateAllDeptCodes();
+    expect(Object.keys(all).length).toBeGreaterThanOrEqual(8);
+    expect(await storage.verifyDeptCode("police", before)).toBe(false);
+    expect(await storage.verifyDeptCode("police", all.police)).toBe(true);
+    expect(storage.s.auditLogs.some(l => l.action === "dept_codes_rotated_all")).toBe(true);
+  });
+});
