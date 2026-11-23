@@ -1145,7 +1145,8 @@ export class AppStorage {
     if (!p || p.status !== "active") return null;
     if (!p.signerIds.includes(userId)) {
       p.signerIds.push(userId);
-      if (p.signerIds.length >= p.goalSignatures) p.status = "delivered";
+      // Reaching the goal does not mean it was delivered — it stays open and is marked ready to submit.
+      if (p.signerIds.length >= p.goalSignatures && !p.goalReachedAt) p.goalReachedAt = now();
       this.touch();
     }
     return p;
