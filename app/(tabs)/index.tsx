@@ -15,6 +15,7 @@ import { getApiUrl } from "@/lib/query-client";
 import { stateName, districtPhrase, stateNameLocal } from "@/constants/districts";
 import { getTenantId } from "@/lib/tenant";
 import { OfficialNews, relTime as relNewsTime } from "@/components/OfficialNews";
+import { MandiPrices } from "@/components/MandiPrices";
 import { NATIONAL_SCHEMES, MYSCHEME_URL, type Scheme } from "@/constants/schemes";
 
 const CATEGORY_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
@@ -796,6 +797,9 @@ export default function DashboardScreen() {
           id: it.id, tag: "NEWS", headline: it.title, time: relNewsTime(it.publishedAt), icon: "newspaper-outline", color: "#1D4ED8", bg: "#EFF6FF",
           source: it.source, readTime: "", body: it.summary || it.title, link: it.link,
         })} />
+
+        {/* MANDI PRICES — Agmarknet via data.gov.in (hidden until the server has a data.gov.in key) */}
+        <MandiPrices />
 
         {/* EMERGENCY CONTACTS */}
         <View style={styles.sectionCard}>

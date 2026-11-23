@@ -3,6 +3,7 @@
 # Azure portal → sankalp-vm → Run command → RunShellScript:
 #
 #   bash /root/sankalp-ai/deploy/set-keys.sh sarvam <SARVAM_API_KEY> [model]
+#   bash /root/sankalp-ai/deploy/set-keys.sh datagov <DATAGOV_API_KEY>       (data.gov.in: live mandi prices and more)
 #   bash /root/sankalp-ai/deploy/set-keys.sh patram <https://gpu-host/v1> <PATRAM_API_KEY>   (own Patram-7B, deploy/gpu)
 #   bash /root/sankalp-ai/deploy/set-keys.sh msg91 <MSG91_AUTH_KEY> '<template ids JSON>' [test-mobile]
 #        template ids JSON: {"otp":"<MSG91 template id>","status_update":"…","verify_request":"…"}
@@ -56,6 +57,17 @@ case "${1:-}" in
         -d "{\"template_id\":\"$OTP_ID\",\"short_url\":\"0\",\"recipients\":[{\"mobiles\":\"91$PHONE\",\"var1\":\"$(shuf -i 100000-999999 -n 1)\"}]}"; echo
       echo "  MSG91's answer is above: \"type\":\"success\" means it was accepted. Check the phone."
     fi
+    ;;
+  datagov)
+    KEY="${2:?usage: set-keys.sh datagov <DATAGOV_API_KEY>}"
+    echo "Testing the key with data.gov.in (daily mandi prices)…"
+    CODE=$(curl -s -o /tmp/datagov-test.json -w "%{http_code}" -m 40 "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=$KEY&format=json&limit=1")
+    if [ "$CODE" != 200 ] || ! grep -q '"records"' /tmp/datagov-test.json; then
+      echo "✗ data.gov.in answered HTTP $CODE: $(head -c 200 /tmp/datagov-test.json | sed "s/$KEY/[key]/g"). Nothing was changed."; rm -f /tmp/datagov-test.json; exit 1
+    fi
+    rm -f /tmp/datagov-test.json
+    set_env DATAGOV_API_KEY "$KEY"; allow_host api.data.gov.in; restart
+    echo "✓ data.gov.in is on. Check: curl -s 'http://127.0.0.1:5000/api/public/mandi-prices' -H 'X-Tenant: kerala' | head -c 300"
     ;;
   patram)
     URL="${2:?usage: set-keys.sh patram <https://gpu-host/v1> <PATRAM_API_KEY>}"; KEY="${3:?PATRAM_API_KEY required}"

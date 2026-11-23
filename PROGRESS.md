@@ -160,6 +160,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P9.27 Police control rooms: live SOS heat map (SOS, incidents, unsafe-area reports in ~1 km cells; 7/30/90 days; refreshes on new incidents and every minute; counts only, police-only); hospitals and fire stations now actually drawn (both portals skipped every place: API sends lat/lng, maps expected geo) and loaded for the area in view from the all-India data — tests/heatmap.test.ts
 - [x] P9.28 Own-AI preparation: separate opt-in for AI training (app switch, audited), real-label training manifest + state-admin export (`scripts/export-training.mjs`, EXIF-stripped only), Patram-7B self-host kit for an Indian GPU (`deploy/gpu/`, untested on GPU), `set-keys.sh patram`, bearer key for self-hosted vision; docs/AI_TRAINING.md (D-057) — tests/training.test.ts
 - [x] P9.29 Smoke test runs with real photo AI on (a placeholder proof photo must go to officer review and must not close on the citizen's yes alone) and off (full close path); emergency-screen address contrast 7:1; web rebuilt; 100-page sweep 0 errors, contrast 0, only Indian hosts
+- [x] P9.30 data.gov.in connected (awaiting the owner's key): live Agmarknet mandi prices for the user's district/state on the home screen, hidden until the key is set; `set-keys.sh datagov` with live key test; key never logged or returned (D-058) — tests/datagov.test.ts
 
 ## Baseline failures out of scope
 See docs/BASELINE.md.

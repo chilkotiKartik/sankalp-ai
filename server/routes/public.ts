@@ -10,6 +10,7 @@ import { aiStatus } from "../ai/gateway";
 import { route, none } from "../lib/route";
 import { readiness } from "../health";
 import { getNews } from "../news";
+import { mandiPrices } from "../datagov";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -89,6 +90,19 @@ export function registerPublicRoutes(app: Express) {
       const district = query.scope === "district" ? tenant().districts.find(d => d.district === query.district)?.district : undefined;
       if (query.scope === "district" && !district) throw new AppError(422, "UNKNOWN_DISTRICT", "Pick one of this state's districts");
       return getNews(query.scope, tenant().id, { district });
+    },
+  });
+
+  // Official daily mandi prices (Agmarknet via data.gov.in) for this state, district first. Public data, cached.
+  route(app, {
+    method: "get", path: "/api/public/mandi-prices", auth: "public", permission: "public.dashboard",
+    params: none, query: z.object({ district: z.string().max(60).optional() }), body: none,
+    handler: async ({ query, res }) => {
+      res.setHeader("Cache-Control", "public, max-age=900");
+      res.setHeader("Vary", "X-Tenant, Host");
+      const t = tenant();
+      const district = t.districts.find(d => d.district === query.district)?.district; // only a real district of this state
+      return mandiPrices(t.name, district);
     },
   });
 

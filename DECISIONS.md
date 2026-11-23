@@ -82,3 +82,11 @@ Training needs real labels, so labels come only from what happened: officer-work
 - Patram is document-focused, so street-photo classification should come from a model fine-tuned on our own labelled data. A new model goes live only if it beats the current one on a fixed test set (docs/AI_TRAINING.md).
 - Until a GPU is rented, Sarvam (Indian) does the AI work.
 
+## D-058 — Open Government Data (data.gov.in): live mandi prices first
+data.gov.in is the Government of India's open-data API (free key). The first use is daily mandi prices from Agmarknet for the user's district, falling back to the state, cached for an hour. Only the state and district names are sent.
+- The key has to go in the query string, so it is never logged, it is scrubbed from errors, and it never appears in responses.
+- data.gov.in answers only from Indian networks, which suits our hosting.
+- Without a key the feature reports `not_configured` and the app hides the card.
+- `set-keys.sh datagov` tests the key on the server before saving it.
+- Full scheme details (eligibility, how to apply) are not on data.gov.in; they need myScheme access through API Setu.
+

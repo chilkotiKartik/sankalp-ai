@@ -4,7 +4,8 @@
     "api.sarvam.ai": "Sarvam AI (India) — text AI provider, only when SARVAM_API_KEY is set",
     "newsonair.gov.in": "Official news (Government of India); only the state name is sent",
     "www.pib.gov.in": "Official news (Government of India); only the state name is sent",
-    "control.msg91.com": "MSG91 (Indian SMS company) — DLT-template SMS, only when SMS_DRIVER=msg91; sends the mobile number and template variables (ticket ids, codes) — never names or locations"
+    "control.msg91.com": "MSG91 (Indian SMS company) — DLT-template SMS, only when SMS_DRIVER=msg91; sends the mobile number and template variables (ticket ids, codes) — never names or locations",
+    "api.data.gov.in": "data.gov.in Open Government Data (Government of India) — mandi prices; only the state/district name is sent; only when DATAGOV_API_KEY is set"
   },
   "indianClient": {
     "bhuvan-vec1.nrsc.gov.in": "ISRO Bhuvan base map (NRSC, Government of India). Loaded by the user's device for map tiles; Indian servers; only map-tile coordinates are requested."
@@ -18,7 +19,8 @@
     "airquality.cpcb.gov.in": "CPCB national AQI (Government of India), opened by the user from the home screen",
     "pib.gov.in": "Official link opened by the user",
     "newsonair.gov.in": "Official link opened by the user",
-    "www.myscheme.gov.in": "Official link opened by the user"
+    "www.myscheme.gov.in": "Official link opened by the user",
+    "www.data.gov.in": "Source link under mandi prices (Government of India); opened only if the user taps it"
   },
   "nonNetwork": {
     "react.dev": "URL inside an error message string",
