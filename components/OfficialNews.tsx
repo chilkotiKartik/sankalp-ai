@@ -1,13 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getApiUrl } from "@/lib/query-client";
 import { getTenantId, onTenantChange } from "@/lib/tenant";
 import { stateName } from "@/constants/districts";
+import { useAuth } from "@/context/AuthContext";
 
 /**
- * Official news on the home screen: the selected state's regional news (Akashvani / All India Radio)
- * and national press releases (PIB). Real headlines with links to the original; nothing is written by us.
+ * Official news on the home screen, all from Government of India sources (Akashvani / All India Radio, PIB):
+ * the user's own district, the state, policies & schemes for the state, and national releases.
+ * Real headlines with links to the original; nothing is written by us.
  */
 export interface FeedItem { id: string; title: string; summary: string; link: string; publishedAt: string | null; source: string }
 interface Feed { items: FeedItem[]; status: "ok" | "stale" | "unavailable"; fetchedAt: string | null; sources: { name: string; url: string }[] }
@@ -19,7 +21,14 @@ export function relTime(iso: string | null): string {
 }
 
 export function OfficialNews({ onOpen }: { onOpen: (item: FeedItem) => void }) {
-  const [scope, setScope] = useState<"state" | "national">("state");
+  const { user } = useAuth();
+  const district = user?.district;
+  type Scope = "district" | "state" | "policy" | "national";
+  const [scope, setScope] = useState<Scope>(district ? "district" : "state");
+  const tabs: { key: Scope; label: string }[] = [
+    ...(district ? [{ key: "district" as const, label: district }] : []),
+    { key: "state", label: stateName() }, { key: "policy", label: "Schemes & policies" }, { key: "national", label: "India" },
+  ];
   const [feed, setFeed] = useState<Feed | null>(null);
   const [loading, setLoading] = useState(true);
   const [tid, setTid] = useState(getTenantId());
@@ -29,16 +38,17 @@ export function OfficialNews({ onOpen }: { onOpen: (item: FeedItem) => void }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(new URL(`/api/public/news?scope=${scope}`, getApiUrl()).toString());
+      const q = scope === "district" && district ? `scope=district&district=${encodeURIComponent(district)}` : `scope=${scope}`;
+      const r = await fetch(new URL(`/api/public/news?${q}`, getApiUrl()).toString());
       setFeed(r.ok ? ((await r.json()) as Feed) : { items: [], status: "unavailable", fetchedAt: null, sources: [] });
     } catch { setFeed({ items: [], status: "unavailable", fetchedAt: null, sources: [] }); }
     finally { setLoading(false); }
-  }, [scope, tid]);
+  }, [scope, tid, district]);
   useEffect(() => { load(); setShowAll(false); }, [load]);
 
   const items = feed?.items ?? [];
   const shown = showAll ? items : items.slice(0, 5);
-  const source = feed?.sources?.[0]?.name ?? (scope === "state" ? "Akashvani News (All India Radio)" : "Press Information Bureau");
+  const source = (feed?.sources ?? []).map(x => x.name.replace(", Government of India", "")).join(" · ") || "All India Radio · Press Information Bureau";
 
   return (
     <View style={s.card}>
@@ -47,14 +57,14 @@ export function OfficialNews({ onOpen }: { onOpen: (item: FeedItem) => void }) {
           <View style={s.icon}><Ionicons name="newspaper" size={14} color="#1D4ED8" /></View>
           <Text style={s.title}>News</Text>
         </View>
-        <View style={s.tabs} accessibilityRole="tablist">
-          {(["state", "national"] as const).map(k => (
-            <Pressable key={k} onPress={() => setScope(k)} style={[s.tab, scope === k && s.tabOn]} accessibilityRole="tab" accessibilityState={{ selected: scope === k }}>
-              <Text style={[s.tabText, scope === k && s.tabTextOn]}>{k === "state" ? stateName() : "India"}</Text>
-            </Pressable>
-          ))}
-        </View>
       </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabs} accessibilityRole="tablist">
+        {tabs.map(t => (
+          <Pressable key={t.key} onPress={() => setScope(t.key)} style={[s.tab, scope === t.key && s.tabOn]} accessibilityRole="tab" accessibilityState={{ selected: scope === t.key }}>
+            <Text style={[s.tabText, scope === t.key && s.tabTextOn]} numberOfLines={1}>{t.label}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
       <Text style={s.source}>{`Source: ${source}${feed?.status === "stale" ? " · refreshing" : ""}`}</Text>
 
       {loading && !feed ? <ActivityIndicator color="#1D4ED8" style={{ paddingVertical: 16 }} /> : null}
@@ -62,7 +72,9 @@ export function OfficialNews({ onOpen }: { onOpen: (item: FeedItem) => void }) {
         <Pressable onPress={load} accessibilityRole="button"><Text style={s.empty}>News could not be loaded right now. Tap to try again.</Text></Pressable>
       )}
       {!loading && feed?.status !== "unavailable" && items.length === 0 && (
-        <Text style={s.empty}>{scope === "state" ? `No recent official news mentions ${stateName()}.` : "No recent press releases."}</Text>
+        <Text style={s.empty}>{scope === "district" ? `No recent official news names ${district}. Try the ${stateName()} tab.`
+          : scope === "state" ? `No recent official news mentions ${stateName()}.`
+          : scope === "policy" ? "No new scheme or policy releases right now." : "No recent press releases."}</Text>
       )}
 
       {shown.map((it, i) => (
@@ -89,8 +101,8 @@ const s = StyleSheet.create({
   titleWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
   icon: { width: 28, height: 28, borderRadius: 8, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
   title: { color: "#111827", fontSize: 16, fontFamily: "Inter_700Bold" },
-  tabs: { flexDirection: "row", backgroundColor: "#F3F4F6", borderRadius: 10, padding: 2 },
-  tab: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, maxWidth: 140 },
+  tabs: { flexDirection: "row", backgroundColor: "#F3F4F6", borderRadius: 10, padding: 2, marginTop: 10, gap: 2 },
+  tab: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, maxWidth: 170 },
   tabOn: { backgroundColor: "#fff" },
   tabText: { color: "#4B5563", fontSize: 12, fontFamily: "Inter_600SemiBold" },
   tabTextOn: { color: "#1D4ED8" },

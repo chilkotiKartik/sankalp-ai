@@ -154,6 +154,7 @@ Legend: `[ ]` todo · `[x]` done (commit) · `[~]` partial · `[!]` blocked (rea
 - [x] P9.20 Police stations, hospitals and fire stations for every state and UT (config/places, OpenStreetMap ODbL, built 2026-11-22): 3,964 police, 54,488 hospitals, 557 fire across 36 states/UTs; Lakshadweep has no police station mapped yet (shows 112). Live on sankalpai.app
 - [x] P9.21 Real SMS via MSG91 (DLT templates, fail closed) — tests/sms.test.ts; `deploy/set-keys.sh` adds Sarvam / MSG91 keys on the server with a live self-test (D-054). Keys themselves await the owner's accounts
 - [x] P9.23 Sarvam AI live: complaint understanding on sarvam-105b (v2, reasoning off — fixes empty answers that fell back to rules) and real photo analysis on gemma4 (v2 image input), fail closed; privacy notice names Sarvam; owner share-link route for SOS (D-055) — tests/vision.test.ts
+- [x] P9.24 Live official news by district, state and policy: AIR district search + 24 PIB regional-office feeds (kept only when they name the state/district), AIR station bulletins labelled; "Schemes & policies" tab (PIB scheme/policy/Cabinet releases for the state + all-India); app news card has My district / State / Schemes & policies / India — tests/news.test.ts
 
 ## Baseline failures out of scope
 See docs/BASELINE.md.

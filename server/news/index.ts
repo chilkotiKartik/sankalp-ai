@@ -8,11 +8,17 @@ import { logger } from "../lib/logger";
  *              Its search feed for the state name, plus the national "Regional News" feed, filtered to
  *              stories that actually name the state, an alias, its capital or one of its districts.
  *  - National: Press Information Bureau (pib.gov.in) press releases.
+ *  - District: All India Radio's search for the district + PIB regional-office releases that name the district.
+ *  - Policy:   PIB releases (national + regional offices) about schemes, policies, Cabinet decisions and launches,
+ *              for the selected state or the whole country.
+ *  PIB regional offices: every regional feed is read and a story is kept only if it names the state/district —
+ *  no hand-made office→state mapping to go stale.
  * Only the state's name is sent (no personal data). Hosts must be in EGRESS_ALLOWLIST (safeFetch).
  * Stale-while-revalidate cache per state; on failure the last good copy (or nothing) is served.
  */
 export interface NewsItem { id: string; title: string; summary: string; link: string; publishedAt: string | null; source: string }
-export interface NewsResult { scope: "state" | "national"; items: NewsItem[]; fetchedAt: string | null; status: "ok" | "stale" | "unavailable"; sources: { name: string; url: string }[] }
+export type NewsScope = "state" | "national" | "district" | "policy";
+export interface NewsResult { scope: NewsScope; district?: string; items: NewsItem[]; fetchedAt: string | null; status: "ok" | "stale" | "unavailable"; sources: { name: string; url: string }[] }
 
 const AIR = { name: "Akashvani News (All India Radio)", url: "https://newsonair.gov.in" };
 const PIB = { name: "Press Information Bureau, Government of India", url: "https://www.pib.gov.in" };
@@ -130,21 +136,94 @@ async function loadNational(): Promise<NewsItem[]> {
   return parseRss(await getXml("https://www.pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3&reg=3"), PIB.name).slice(0, 20);
 }
 
-export async function getNews(scope: "state" | "national", id: string, opts: { wait?: boolean } = {}): Promise<NewsResult> {
-  const key = scope === "national" ? "_national" : id;
-  const sources = scope === "national" ? [PIB] : [AIR];
+/** PIB regional offices that publish an English feed (Regid=N&reg=N); 3 is the national desk. */
+export const PIB_REGIONS = [1, 5, 6, 17, 20, 21, 22, 23, 24, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44];
+let regionalPool: { at: number; items: NewsItem[]; loading?: Promise<NewsItem[]> } | null = null;
+/** All PIB regional releases, fetched together and shared by every state for 30 minutes. */
+async function pibRegional(): Promise<NewsItem[]> {
+  if (regionalPool && Date.now() - regionalPool.at < TTL_MS) return regionalPool.items;
+  if (regionalPool?.loading) return regionalPool.loading;
+  const loading = (async () => {
+    const settled = await Promise.allSettled(PIB_REGIONS.map(r => getXml(`https://www.pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=${r}&reg=${r}`)));
+    const seen = new Set<string>();
+    const items = settled.flatMap(x => (x.status === "fulfilled" ? parseRss(x.value, PIB.name) : [])).filter(it => !seen.has(it.id) && seen.add(it.id));
+    if (!items.length && settled.every(x => x.status === "rejected")) throw new Error("PIB regional feeds failed");
+    regionalPool = { at: Date.now(), items };
+    return items;
+  })();
+  regionalPool = { at: regionalPool?.at ?? 0, items: regionalPool?.items ?? [], loading };
+  try { return await loading; } finally { if (regionalPool) regionalPool.loading = undefined; }
+}
+
+/** AIR station bulletins come titled just "Lucknow": label them, and keep only the newest per station. */
+export function tidyBulletins(items: NewsItem[]): NewsItem[] {
+  const seenStation = new Set<string>();
+  const out: NewsItem[] = [];
+  for (const it of [...items].sort((a, b) => (Date.parse(b.publishedAt ?? "") || 0) - (Date.parse(a.publishedAt ?? "") || 0))) {
+    const m = it.link.match(/newsonair\.gov\.in\/bulletins\/([a-z-]+?)-\d+\/?$/);
+    if (!m) { out.push(it); continue; }
+    if (seenStation.has(m[1])) continue;
+    seenStation.add(m[1]);
+    out.push({ ...it, title: `Akashvani ${it.title} — latest regional news bulletin`, summary: it.summary || `Listen to the latest news bulletin from All India Radio ${it.title}.` });
+  }
+  return out;
+}
+
+const byDate = (a: NewsItem, b: NewsItem) => (Date.parse(b.publishedAt ?? "") || 0) - (Date.parse(a.publishedAt ?? "") || 0);
+
+async function loadStateFull(id: string): Promise<NewsItem[]> {
+  const terms = stateTerms(id);
+  const [air, pib] = await Promise.allSettled([loadState(id), pibRegional()]);
+  if (air.status === "rejected" && pib.status === "rejected") throw new Error("all news sources failed");
+  const seen = new Set<string>();
+  const regional = (pib.status === "fulfilled" ? pib.value : []).filter(it => matchesState(it, terms) > 0);
+  return tidyBulletins([...(air.status === "fulfilled" ? air.value : []), ...regional].filter(it => !seen.has(it.id) && seen.add(it.id))).slice(0, 25);
+}
+
+/** A district's own news: the district name must appear as a whole word (and the state too, if the name exists in two states). */
+async function loadDistrict(id: string, district: string): Promise<NewsItem[]> {
+  const ambiguous = (owners().get(district)?.size ?? 1) > 1;
+  const stateT = stateTerms(id).filter(t => t !== district);
+  const named = (it: NewsItem) => matchesState(it, [district]) > 0 && (!ambiguous || matchesState(it, stateT) > 0);
+  const [air, pib] = await Promise.allSettled([getXml(`https://newsonair.gov.in/?s=${encodeURIComponent(district)}&feed=rss2`), pibRegional()]);
+  if (air.status === "rejected" && pib.status === "rejected") throw new Error("all news sources failed");
+  const seen = new Set<string>();
+  const merged = [...(air.status === "fulfilled" ? parseRss(air.value, AIR.name) : []), ...(pib.status === "fulfilled" ? pib.value : [])]
+    .filter(it => named(it) && !seen.has(it.id) && seen.add(it.id)).sort(byDate).slice(0, 40);
+  return tidyBulletins(merged).slice(0, 20);
+}
+
+/** Schemes, policies, Cabinet decisions, launches and official notifications — for this state, or all-India. */
+export const POLICY_RX = /\b(scheme|yojana|yojna|abhiyan|mission|policy|policies|cabinet|approve[sd]?|approval|launch(es|ed)?|notif(y|ies|ied|ication)|guidelines?|subsid(y|ies)|welfare|beneficiar(y|ies)|entitlement|portal|programme|initiative|reform|allocat(es|ed|ion)|sanction(ed|s)?|budget)\b/i;
+async function loadPolicy(id: string): Promise<NewsItem[]> {
+  const terms = stateTerms(id);
+  const [nat, reg] = await Promise.allSettled([loadNational(), pibRegional()]);
+  if (nat.status === "rejected" && reg.status === "rejected") throw new Error("all news sources failed");
+  const isPolicy = (it: NewsItem) => POLICY_RX.test(it.title) || POLICY_RX.test(it.summary);
+  const seen = new Set<string>();
+  const local = (reg.status === "fulfilled" ? reg.value : []).filter(it => isPolicy(it) && matchesState(it, terms) > 0);
+  const national = (nat.status === "fulfilled" ? nat.value : []).filter(isPolicy);
+  return [...local, ...national].filter(it => !seen.has(it.id) && seen.add(it.id)).slice(0, 25);
+}
+
+export async function getNews(scope: NewsScope, id: string, opts: { wait?: boolean; district?: string } = {}): Promise<NewsResult> {
+  const district = scope === "district" ? opts.district : undefined;
+  if (scope === "district" && !district) return { scope, items: [], fetchedAt: null, status: "unavailable", sources: [AIR, PIB] };
+  const key = scope === "national" ? "_national" : `${scope}:${id}${district ? `:${district}` : ""}`;
+  const sources = scope === "national" || scope === "policy" ? [PIB] : [AIR, PIB];
   const hit = cache.get(key);
   const fresh = hit && Date.now() - hit.at < TTL_MS;
   if (fresh) return hit.result;
   const refresh = async () => {
     try {
-      const items = scope === "national" ? await loadNational() : await loadState(id);
-      cache.set(key, { at: Date.now(), result: { scope, items, fetchedAt: new Date().toISOString(), status: "ok", sources } });
+      const items = scope === "national" ? await loadNational() : scope === "district" ? await loadDistrict(id, district!)
+        : scope === "policy" ? await loadPolicy(id) : await loadStateFull(id);
+      cache.set(key, { at: Date.now(), result: { scope, district, items, fetchedAt: new Date().toISOString(), status: "ok", sources } });
     } catch (e) {
-      logger.warn("news_fetch_failed", { scope, state: scope === "state" ? id : undefined, error: (e as Error).message });
+      logger.warn("news_fetch_failed", { scope, state: scope === "national" ? undefined : id, error: (e as Error).message });
       const prev = cache.get(key);
       // Retry no sooner than 5 minutes; keep the last good copy, marked stale.
-      cache.set(key, { at: Date.now() - TTL_MS + 5 * 60 * 1000, result: prev ? { ...prev.result, status: "stale" } : { scope, items: [], fetchedAt: null, status: "unavailable", sources } });
+      cache.set(key, { at: Date.now() - TTL_MS + 5 * 60 * 1000, result: prev ? { ...prev.result, status: "stale" } : { scope, district, items: [], fetchedAt: null, status: "unavailable", sources } });
     }
   };
   if (hit && !opts.wait) {
@@ -155,4 +234,4 @@ export async function getNews(scope: "state" | "national", id: string, opts: { w
   return cache.get(key)!.result;
 }
 
-export const _resetNewsCache = () => { cache.clear(); districtOwners = null; };
+export const _resetNewsCache = () => { cache.clear(); districtOwners = null; regionalPool = null; };
