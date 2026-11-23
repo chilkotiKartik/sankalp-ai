@@ -1,4 +1,4 @@
-import { startContactDeliveries } from "../safety/sos";
+import { startContactDeliveries, shareToken } from "../safety/sos";
 import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import type { Express } from "express";
 import { z } from "zod";
@@ -177,6 +177,20 @@ export function registerSosRoutes(app: Express) {
     if (!rec || rec.ownerId !== user.id) throw unprocessable("INVALID_MEDIA", "Upload the audio via /api/upload/audio first");
     storage.linkMedia(rec.id, { sosId });
   };
+
+  // The person in danger can send their own live-location link (WhatsApp, share sheet, copy) — works without SMS.
+  // The link holds no location: it opens a signed page on this server that expires in 24 hours.
+  route(app, {
+    method: "get", path: "/api/sos/:id/share-link", auth: "sos", permission: "sos.share_link",
+    params: idParams, query: none, body: none,
+    handler: ({ params, user, res }) => {
+      const a = mustSos(params.id);
+      mustOwn(a, user);
+      if (a.status === "resolved" || a.status === "cancelled") throw unprocessable("SOS_CLOSED", "This SOS is closed");
+      res.setHeader("Cache-Control", "no-store");
+      return { path: `/s/${shareToken(a)}`, expiresInHours: 24 };
+    },
+  });
 
   route(app, {
     method: "put", path: "/api/sos/:id/audio-url", auth: "sos", permission: "sos.attach_audio",

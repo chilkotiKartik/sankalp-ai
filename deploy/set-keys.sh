@@ -28,9 +28,9 @@ case "${1:-}" in
   sarvam)
     KEY="${2:?usage: set-keys.sh sarvam <SARVAM_API_KEY> [model]}"; MODEL="${3:-$(grep -E '^SARVAM_MODEL=' "$ENV" | cut -d= -f2- || true)}"; MODEL="${MODEL:-sarvam-105b}"
     echo "Testing the key with Sarvam (model $MODEL)…"
-    CODE=$(curl -s -o /tmp/sarvam-test.json -w "%{http_code}" -m 60 https://api.sarvam.ai/v1/chat/completions \
+    CODE=$(curl -s -o /tmp/sarvam-test.json -w "%{http_code}" -m 60 https://api.sarvam.ai/v2/chat/completions \
       -H "api-subscription-key: $KEY" -H "Content-Type: application/json" \
-      -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with the single word OK\"}],\"max_tokens\":20}")
+      -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with the single word OK\"}],\"max_tokens\":20,\"reasoning_effort\":\"none\"}")
     if [ "$CODE" != 200 ]; then
       echo "✗ Sarvam answered HTTP $CODE: $(head -c 300 /tmp/sarvam-test.json)"; rm -f /tmp/sarvam-test.json
       echo "  Nothing was changed. If the model name is the problem, re-run with the model your Sarvam dashboard lists, e.g.: set-keys.sh sarvam <key> sarvam-m"

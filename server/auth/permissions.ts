@@ -44,7 +44,7 @@ export const PERMISSIONS: Record<string, Principal[]> = {
   "complaints.officer_update": [...ADMINS, ...DEPT], "complaints.assign_worker": DEPT,
   // SOS (rule 9: every signed-in person can raise SOS)
   "sos.create": USERS, "sos.create_women_safety": USERS, "sos.create_forest_fire": USERS, "sos.update_location": USERS,
-  "sos.attach_audio": USERS, "sos.list": [...USERS, "dept_token"],
+  "sos.attach_audio": USERS, "sos.share_link": USERS, "sos.list": [...USERS, "dept_token"],
   "sos.resolve": [...ADMINS, ...POLICE, ...DEPT], "sos.legal_hold": [...STATE, "police", "dept_token:police"], "sos.read_evidence": [...ADMINS, ...POLICE, ...DEPT],
   // media
   "media.upload_image": [...USERS], "media.signed_read": PUBLIC, "media.upload_audio": USERS, "media.read_evidence": [...USERS, ...POLICE, "dept_token"],

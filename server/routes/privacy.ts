@@ -1,3 +1,4 @@
+import { config } from "../config";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
@@ -26,10 +27,23 @@ export function noticeFor(lang: "en" | "hi" = "en") {
     rights: lang === "hi"
       ? ["अपना डेटा देखने/डाउनलोड करने का अधिकार", "सुधार और मिटाने का अधिकार (पुलिस मामलों में कानूनी रोक लागू)", "शिकायत अधिकारी से शिकायत करने का अधिकार"]
       : ["Access and download your data", "Correction and erasure (police cases may be under legal hold)", "Complain to the grievance officer"],
-    sharing: lang === "hi" ? "आपका डेटा बेचा या साझा नहीं किया जाता। डेटा भारत में ही रहता है।" : "Your data is never sold or shared. It stays in India.",
+    sharing: lang === "hi" ? "आपका डेटा बेचा नहीं जाता। डेटा भारत में ही रहता है।" : "Your data is never sold. It stays in India.",
+    // Processors that see complaint content (named so consent is informed). Text is PII-masked before it is sent.
+    aiProcessing: aiProcessors(lang),
     grievanceOfficer: t.grievanceOfficer,
     sosNote: lang === "hi" ? "SOS हमेशा काम करता है, सहमति के बिना भी।" : "SOS always works, even without consent.",
   };
+}
+
+function aiProcessors(lang: "en" | "hi"): string | null {
+  const c = config();
+  const uses: string[] = [];
+  if (c.textProvider === "sarvam") uses.push(lang === "hi" ? "शिकायत का पाठ (नाम/नंबर हटाकर)" : "complaint text (names and numbers removed)");
+  if (c.visionProvider === "sarvam") uses.push(lang === "hi" ? "शिकायत और सुधार की फोटो" : "complaint and repair photos");
+  if (!uses.length) return null;
+  return lang === "hi"
+    ? `सही विभाग चुनने और फोटो जाँचने के लिए ${uses.join(" और ")} Sarvam AI (भारत) को भेजे जाते हैं। वे भारत में ही प्रोसेस होते हैं।`
+    : `To route your complaint and check photos, ${uses.join(" and ")} are processed by Sarvam AI, an Indian company, in India.`;
 }
 
 /** Throws 428 if the signed-in citizen has not accepted the current notice. Staff accounts are exempt. */

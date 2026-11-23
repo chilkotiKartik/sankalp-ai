@@ -77,6 +77,10 @@ describe("config (m13, M5)", () => {
     expect(loadConfig({ ...base, NODE_ENV: "development" }).mapTileUrl).not.toMatch(/openstreetmap/);
     expect(loadConfig({ ...base, MAP_TILE_URL: "none" }).mapTileUrl).toBeNull();
     expect(loadConfig({ ...base, SARVAM_API_KEY: "k" }).textProvider).toBe("sarvam");
+    // Photo analysis on Sarvam (India) when a key is set; "off" keeps every photo on manual review.
+    expect(loadConfig({ ...base, SARVAM_API_KEY: "k" }).visionProvider).toBe("sarvam");
+    expect(loadConfig({ ...base, SARVAM_API_KEY: "k", AI_VISION_PROVIDER: "off" }).visionProvider).toBe("manual_review");
+    expect(loadConfig({ ...base, AI_VISION_PROVIDER: "sarvam" }).visionProvider).toBe("manual_review");
   });
 });
 
