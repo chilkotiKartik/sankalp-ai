@@ -1,3 +1,4 @@
+import { config } from "../config";
 import { openSse, sseKey } from "../lib/sse";
 import { isAdminUser, isStateUser, isDistrictAdmin } from "../auth/roles";
 import { currentTenantId, tenant } from "../tenancy";
@@ -143,6 +144,33 @@ export function registerCprRoutes(app: Express) {
   });
 
   // Reference data — safe to be public (no personal data).
+  // Police heat map: where SOS alerts, police incidents and night-safety reports cluster (last N days).
+  // Aggregated into ~1 km cells — counts only, no names, phones or exact points.
+  route(app, {
+    method: "get", path: "/api/cpr/heatmap", auth: "police", permission: "cpr.command_read",
+    params: none, query: z.object({ days: z.coerce.number().int().min(1).max(365).default(30), district: z.string().max(60).optional() }), body: none,
+    handler: ({ query, actor }) => {
+      const since = Date.now() - query.days * 86400000;
+      const scope = actor.user && isDistrictAdmin(actor.user) ? actor.user.district : query.district;
+      const real = (x: { isDemo?: boolean }) => config().DEMO_MODE || !x.isDemo;
+      const inScope = (d?: string) => !scope || d === scope;
+      type P = { lat: number; lng: number; kind: "sos" | "women" | "incident" | "night" };
+      const pts: P[] = [];
+      for (const a of storage.s.sosAlerts) if (real(a) && inScope(a.district) && Date.parse(a.triggeredAt) >= since && a.geo) pts.push({ ...(a.liveGeo ?? a.geo), kind: a.isWomenSafety ? "women" : "sos" });
+      for (const i of storage.s.safetyIncidents) if (!i.sosId && real(i) && inScope(i.district) && Date.parse(i.reportedAt) >= since) pts.push({ ...i.geo, kind: "incident" });
+      for (const n of storage.s.nightSafetyZones) if (n.geo && real(n) && inScope(n.district) && Date.parse(n.reportedAt) >= since) pts.push({ ...n.geo, kind: "night" });
+      const cells = new Map<string, { lat: number; lng: number; count: number; women: number; sos: number; incident: number; night: number }>();
+      for (const p of pts) {
+        const key = `${Math.floor(p.lat * 100)}:${Math.floor(p.lng * 100)}`;
+        const c = cells.get(key) ?? { lat: (Math.floor(p.lat * 100) + 0.5) / 100, lng: (Math.floor(p.lng * 100) + 0.5) / 100, count: 0, women: 0, sos: 0, incident: 0, night: 0 };
+        c.count++; c[p.kind]++;
+        cells.set(key, c);
+      }
+      const list = [...cells.values()].sort((a, b) => b.count - a.count);
+      return { days: query.days, district: scope ?? null, total: pts.length, max: list[0]?.count ?? 0, cells: list.slice(0, 2000) };
+    },
+  });
+
   route(app, {
     method: "get", path: "/api/cpr/emergency-locations", auth: "public", permission: "public.reference",
     params: none,

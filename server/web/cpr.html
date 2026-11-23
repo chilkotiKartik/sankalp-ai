@@ -44,6 +44,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;displa
 .fab-loc.on{background:#1E3A5F;border-color:var(--blue);color:#60A5FA}
 .fab-night{bottom:70px;left:14px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);color:#C4B5FD;border-radius:10px;padding:8px 13px;font-size:11px}
 .fab-night:hover{background:rgba(139,92,246,.3)}
+.fab-sosheat-wrap{top:64px;right:14px;display:flex;gap:6px;align-items:center;background:transparent;padding:0;border:none}
+.fab-sosheat{background:rgba(220,38,38,.14);border:1px solid rgba(220,38,38,.45);color:#FCA5A5;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer}
+.fab-sosheat.on{background:rgba(220,38,38,.3);color:#fff}
+.heat-days{background:#0F172A;color:#E2E8F0;border:1px solid #334155;border-radius:8px;padding:6px;font-size:12px}
+.heat-total{background:#0F172A;color:#FCA5A5;border:1px solid #334155;border-radius:8px;padding:6px 8px;font-size:11px}
 .map-legend{position:absolute;bottom:14px;left:14px;background:rgba(11,17,32,.95);border:1px solid var(--border);border-radius:10px;padding:10px 12px;z-index:1000;font-size:11px;display:flex;flex-direction:column;gap:5px}
 .leg-row{display:flex;align-items:center;gap:7px;color:var(--muted)}
 .leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
@@ -452,6 +457,33 @@ function CPRPortal(){
   const mapRef=useRef(null);
   const mapObj=useRef(null);
   const markers=useRef({incidents:{},patrols:{},user:null,night:{},hospitals:[],fire:[]});
+  // ── SOS heat map: where SOS alerts, incidents and unsafe-area reports cluster (server aggregates ~1 km cells) ──
+  const [showSosHeat,setShowSosHeat]=useState(false);
+  const [heatDays,setHeatDays]=useState(30);
+  const [sosHeat,setSosHeat]=useState(null);
+  const heatLayer=useRef(null);
+  useEffect(()=>{
+    if(!showSosHeat)return;
+    const load=()=>fetch(`${API}/api/cpr/heatmap?days=${heatDays}`).then(r=>r.ok?r.json():null).then(d=>{if(d)setSosHeat(d);}).catch(()=>{});
+    load();
+    const t=setInterval(load,60000);
+    return()=>clearInterval(t);
+  },[showSosHeat,heatDays,incidents.length]);
+  useEffect(()=>{
+    const map=mapObj.current;if(!map)return;
+    if(heatLayer.current){map.removeLayer(heatLayer.current);heatLayer.current=null;}
+    if(!showSosHeat||!sosHeat||!sosHeat.cells.length)return;
+    const g=L.layerGroup();
+    const mix=(a,b,t)=>Math.round(a+(b-a)*t);
+    const col=t=>t<.5?`rgb(${mix(253,249,t*2)},${mix(224,115,t*2)},${mix(71,22,t*2)})`:`rgb(${mix(249,220,(t-.5)*2)},${mix(115,38,(t-.5)*2)},${mix(22,38,(t-.5)*2)})`;
+    sosHeat.cells.forEach(c=>{
+      const t=Math.min(1,c.count/Math.max(1,sosHeat.max));
+      L.circle([c.lat,c.lng],{radius:520+420*t,stroke:false,fillColor:col(t),fillOpacity:.28+.42*t,interactive:true})
+        .bindPopup(`<div style="font:12px sans-serif;min-width:170px"><b>${c.count} report${c.count===1?"":"s"} in ${sosHeat.days} days</b><br/>${c.women?`🛡️ Women-safety SOS: ${c.women}<br/>`:""}${c.sos?`🆘 Other SOS: ${c.sos}<br/>`:""}${c.incident?`🚔 Police incidents: ${c.incident}<br/>`:""}${c.night?`🌙 Unsafe-area reports: ${c.night}`:""}</div>`)
+        .addTo(g);
+    });
+    g.addTo(map);heatLayer.current=g;
+  },[showSosHeat,sosHeat]);
   const watchId=useRef(null);
   const esRef=useRef(null);
 
@@ -463,7 +495,7 @@ function CPRPortal(){
     fetch(`${API}/api/cpr/patrols${dist}`).then(r=>r.json()).then(d=>setPatrols(Array.isArray(d)?d:[])).catch(()=>{});
     fetch(`${API}/api/cpr/night-safety`).then(r=>r.json()).then(d=>setNightZones(Array.isArray(d)?d:[])).catch(()=>{});
     fetch(`${API}/api/cpr/emergency-services`).then(r=>r.json()).then(d=>setEmergencyServices(Array.isArray(d)?d:[])).catch(()=>{});
-    fetch(`${API}/api/cpr/emergency-locations`).then(r=>r.json()).then(d=>setEmergencyLocations(Array.isArray(d)?d:[])).catch(()=>{});
+    // Hospitals and fire stations load for the area in view once zoomed in (see the map's moveend handler).
   },[distFilter]);
 
   useEffect(()=>{loadAll();},[loadAll]);
@@ -506,6 +538,17 @@ function CPRPortal(){
     sankalpTileLayer(L,map);
     sankalpDistrictLayer(L,map,true);
     mapObj.current=map;
+    // Hospitals and fire stations for the area in view (district zoom and closer; also works when the map falls back to outlines at zoom 10), from the all-India places data.
+    let placesTimer=null;
+    map.on("moveend",()=>{
+      clearTimeout(placesTimer);
+      placesTimer=setTimeout(()=>{
+        if(map.getZoom()<10)return;
+        const b=map.getBounds(),f=x=>x.toFixed(4);
+        fetch(`${API}/api/cpr/emergency-locations?bbox=${f(b.getSouth())},${f(b.getWest())},${f(b.getNorth())},${f(b.getEast())}&limit=600`)
+          .then(r=>r.ok?r.json():null).then(d=>{if(Array.isArray(d))setEmergencyLocations(d);}).catch(()=>{});
+      },400);
+    });
     if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{setUserGeo({lat:p.coords.latitude,lng:p.coords.longitude});map.setView([p.coords.latitude,p.coords.longitude],10);},()=>{});
   },[]);
 
@@ -532,6 +575,8 @@ function CPRPortal(){
     markers.current.hospitals=[];
     markers.current.fire=[];
     emergencyLocations.forEach(loc=>{
+      // The API sends flat lat/lng; older data used geo.
+      if(!loc.geo&&typeof loc.lat==="number")loc={...loc,geo:{lat:loc.lat,lng:loc.lng}};
       if(!loc.geo)return;
       const isHosp=loc.type==="hospital";
       const col=isHosp?"#EC4899":"#F97316";
@@ -618,6 +663,13 @@ function CPRPortal(){
           {tracking?"⏹ Stop Tracking":"📍 My Location"}
         </button>
         <button className="map-fab fab-night" onClick={()=>setShowNight(true)}>🌙 Report Unsafe Area</button>
+        <div className="map-fab fab-sosheat-wrap">
+          <button className={`fab-sosheat ${showSosHeat?"on":""}`} onClick={()=>setShowSosHeat(v=>!v)} aria-pressed={showSosHeat}>🔥 {showSosHeat?"Hide SOS heat map":"SOS heat map"}</button>
+          {showSosHeat&&<select aria-label="Heat map period" value={heatDays} onChange={e=>setHeatDays(+e.target.value)} className="heat-days">
+            <option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option>
+          </select>}
+          {showSosHeat&&sosHeat&&<span className="heat-total">{sosHeat.total} reports</span>}
+        </div>
         <div className="map-legend">
           <div className="leg-row"><div className="leg-dot" style={{background:"#EF4444"}}/><span>Active SOS</span></div>
           <div className="leg-row"><div className="leg-dot" style={{background:"#F59E0B"}}/><span>Patrol dispatched</span></div>
@@ -626,6 +678,7 @@ function CPRPortal(){
           <div className="leg-row"><div className="leg-dot" style={{background:"#3B82F6"}}/><span>Your location</span></div>
           <div className="leg-row"><div style={{fontSize:12,lineHeight:1}}>🏥</div><span>Hospital</span></div>
           <div className="leg-row"><div style={{fontSize:12,lineHeight:1}}>🔥</div><span>Fire Station</span></div>
+          <div className="leg-row" style={{opacity:.75,fontSize:10}}><span>Zoom in to see hospitals &amp; fire stations</span></div>
         </div>
       </div>
 
