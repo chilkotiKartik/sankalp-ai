@@ -65,6 +65,26 @@ az vm run-command invoke -g sankalp-rg -n sankalp-vm --command-id RunShellScript
 ```
 To log in yourself, use Azure portal → `sankalp-vm` → **Reset password**, add your own SSH public key for user `azureuser`, then `ssh azureuser@172.128.32.35`. Keep the public IP static: the domain's A records point at it.
 
+### Turning on Sarvam AI and real SMS (keys stay on the server)
+Run these from **Azure portal → sankalp-vm → Run command → RunShellScript** (or over SSH as root). Never paste keys into chat, issues or git.
+
+**Sarvam AI** (Indian; complaint understanding, speech-to-text and text-to-speech): create an account at dashboard.sarvam.ai and copy the API key. Then:
+```bash
+bash /root/sankalp-ai/deploy/set-keys.sh sarvam <SARVAM_API_KEY>
+```
+The script tests the key first and changes nothing if Sarvam refuses it. If it reports an unknown model, add the model name your Sarvam dashboard lists as a third argument, e.g. `sarvam-m`.
+
+**SMS through MSG91** (Indian; needs DLT registration, which is required by TRAI for every business SMS in India):
+1. Register your business as a **Principal Entity** on a DLT portal (Jio, Vodafone Idea, Airtel or BSNL). This needs business documents and a fee, and takes a few days.
+2. Register a 6-letter **sender ID** (header), e.g. `SNKLPI`.
+3. Register the message **templates** from `server/notify/sms.ts` (`TEMPLATES`) on DLT. Start with `otp`, `status_update`, `verify_request` and `sos_contact`. Each `{#var#}` stays a variable.
+4. In MSG91, add the same templates using `##var1##`, `##var2##`… for the variables, and copy each MSG91 template id.
+5. Run:
+```bash
+bash /root/sankalp-ai/deploy/set-keys.sh msg91 <MSG91_AUTH_KEY> '{"otp":"<id>","status_update":"<id>","verify_request":"<id>","sos_contact":"<id>"}' <your-mobile>
+```
+Message types without a template id are not sent and are recorded as failed; the app never falls back to sending unapproved text.
+
 ### Oracle Cloud Always Free, Mumbai or Hyderabad — free, always on, in India (recommended for pilots)
 Oracle's Always Free tier gives a VM that never sleeps and keeps its disk. The Ampere ARM shape has up to 4 cores, 24 GB RAM and 200 GB of disk. Data stays in India because the VM runs in an Indian region (D-053).
 
