@@ -113,6 +113,7 @@ export function registerVerificationRoutes(app: Express) {
       c.neighbourAnswers = [...(c.neighbourAnswers ?? []).filter(a => a.userId !== user.id), { userId: user.id, fixed: body.fixed, at: new Date().toISOString() }];
       c.verification = evaluate(c);
       storage.addAuditLog("neighbour_answer", "neighbour", "Neighbour", `${c.ticketId}: a neighbour says ${body.fixed ? "fixed" : "not fixed"}`, c.id);
+      storage.awardPoints(user.id, "neighbour_verified", c.id);
       storage.touch();
       return { recorded: true };
     },

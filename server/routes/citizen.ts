@@ -8,6 +8,9 @@ import { config } from "../config";
 import { route, none, scopeDistrict } from "../lib/route";
 import { AppError } from "../lib/errors";
 import { geo, text } from "./common";
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { POINT_RULES, LEVELS } from "../domain/points";
+import { runInTenant, tenant } from "../tenancy";
 
 /** Citizen-facing reference + misc routes, worker location (M1), push registration, demo-only bills. */
 export function registerCitizenRoutes(app: Express) {
@@ -40,6 +43,36 @@ export function registerCitizenRoutes(app: Express) {
     method: "get", path: "/api/nearest-police", auth: "user", permission: "reference.read",
     params: none, query: z.object({ lat: z.coerce.number().min(-90).max(90), lng: z.coerce.number().min(-180).max(180) }), body: none,
     handler: ({ actor, query }) => storage.getNearestPoliceStations({ lat: query.lat, lng: query.lng }, 3, scopeDistrict(actor)),
+  });
+
+  // ── Sankalp Points (D-059): my points, level, badges and history (with the rules, so nothing is hidden) ──
+  route(app, {
+    method: "get", path: "/api/me/points", auth: "user", permission: "points.read",
+    params: none, query: none, body: none,
+    handler: ({ user }) => ({
+      ...storage.pointsSummary(user.id)!,
+      rules: Object.entries(POINT_RULES).map(([id, r]) => ({ id, points: r.points, dailyCap: r.dailyCap ?? null, en: r.en, hi: r.hi })),
+      levels: LEVELS.map(l => ({ n: l.n, name: l.name, en: l.en, min: l.min })),
+    }),
+  });
+
+  // A certificate anyone can verify: the link is signed, and the page shows the live record (first name + initial only).
+  route(app, {
+    method: "get", path: "/api/me/certificate", auth: "user", permission: "points.read",
+    params: none, query: none, body: none,
+    handler: ({ user }) => ({ path: `/cert/${certificateCode(user.id)}` }),
+  });
+  route(app, {
+    method: "get", path: "/cert/:code", auth: "public", permission: "points.certificate_verify",
+    params: z.object({ code: z.string().min(20).max(200) }), query: none, body: none,
+    handler: ({ params, res }) => {
+      const id = readCertificateCode(params.code);
+      const t = id ? runInTenant(id.tenantId, () => { const u = storage.getUserById(id.userId); const p = u ? storage.pointsSummary(u.id) : null; return u && p ? { u, p, state: tenant().stateLabel } : null; }) : null;
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Referrer-Policy", "no-referrer");
+      res.type("html").send(certificatePage(t ? { name: displayName(t.u.name), district: t.u.district, state: t.state, points: t.p.points, level: `${t.p.level.name} (${t.p.level.en})`, fixes: t.p.verifiedFixes, badges: t.p.badges.filter(b => b.earned).map(b => b.name) } : null));
+      return undefined;
+    },
   });
 
   route(app, {
@@ -137,4 +170,39 @@ function demoBills(district: string) {
   ];
   bills.forEach(b => { if (new Date(b.dueDate) < d) b.status = "overdue"; });
   return bills;
+}
+
+// ── certificate helpers ──
+const certSig = (p: string) => createHmac("sha256", config().JWT_SECRET).update(`sankalp-cert:${p}`).digest("base64url").slice(0, 32);
+function certificateCode(userId: string): string {
+  const p = `${currentTenantId()}.${userId}`;
+  return `${Buffer.from(p).toString("base64url")}.${certSig(p)}`;
+}
+function readCertificateCode(code: string): { tenantId: string; userId: string } | null {
+  const [b, sig] = code.split(".");
+  if (!b || !sig) return null;
+  const p = Buffer.from(b, "base64url").toString();
+  const e = Buffer.from(certSig(p)), g = Buffer.from(sig);
+  if (e.length !== g.length || !timingSafeEqual(e, g)) return null;
+  const [tenantId, userId] = p.split(".");
+  return tenantId && userId ? { tenantId, userId } : null;
+}
+/** "Ravi Kumar Sharma" → "Ravi S." — enough to recognise, not enough to identify a stranger. */
+const displayName = (n: string) => { const w = n.trim().split(/\s+/); return w.length > 1 ? `${w[0]} ${w[w.length - 1][0]}.` : w[0]; };
+function certificatePage(c: { name: string; district: string; state: string; points: number; level: string; fixes: number; badges: string[] } | null): string {
+  const esc = (v: string) => v.replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
+  const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  const body = c ? `<p class="k">This is to recognise</p><h1>${esc(c.name)}</h1><p class="k">${esc(c.district)}, ${esc(c.state)}</p>
+<p class="lead">for helping fix public problems through SANKALP, with every fix checked and confirmed.</p>
+<div class="g"><div><b>${c.fixes}</b><span>verified fixes</span></div><div><b>${c.points}</b><span>Sankalp Points</span></div><div><b>${esc(c.level)}</b><span>level</span></div></div>
+${c.badges.length ? `<p class="k">Badges: ${c.badges.map(esc).join(" · ")}</p>` : ""}
+<p class="v">✓ Checked against SANKALP records on ${today}. Points are earned only for real, verified outcomes.</p>`
+    : `<h1>Certificate not found</h1><p>This link is not valid, or the account no longer exists.</p>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>SANKALP civic contribution certificate</title>
+<style>body{margin:0;background:#F5F3EF;font:16px system-ui,sans-serif;color:#1F2937}main{max-width:720px;margin:24px auto;background:#fff;border:6px double #C2410C;border-radius:14px;padding:32px 28px;text-align:center}
+.t{color:#9A3412;letter-spacing:.08em;font-weight:800;font-size:14px;text-transform:uppercase}h1{font-size:34px;margin:6px 0;color:#111827}.k{color:#4B5563;margin:4px 0}.lead{font-size:17px;margin:14px 0}
+.g{display:flex;gap:12px;justify-content:center;margin:18px 0;flex-wrap:wrap}.g div{border:1px solid #E5E7EB;border-radius:10px;padding:10px 16px;min-width:120px}.g b{display:block;font-size:22px;color:#9A3412}.g span{font-size:12px;color:#4B5563}
+.v{font-size:13px;color:#047857;margin-top:16px}.bar{height:6px;display:flex;margin:-32px -28px 24px}.bar i{flex:1}@media print{body{background:#fff}}</style></head>
+<body><main><div class="bar"><i style="background:#FF9933"></i><i style="background:#fff"></i><i style="background:#138808"></i></div><div class="t">SANKALP · Civic contribution certificate</div>${body}
+<p class="k" style="font-size:12px;margin-top:14px">To keep a copy, use your browser's Print → Save as PDF.</p></main></body></html>`;
 }

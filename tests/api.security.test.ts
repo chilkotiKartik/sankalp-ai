@@ -128,7 +128,8 @@ describe("complaint integrity (C5, C6, C7, M7)", () => {
     await request(app()).put(`/api/dept/complaints/${c.id}`).set(auth(pwd)).send({ status: "resolved", proofPhoto: PNG_1PX });
     expect((await request(app()).put(`/api/complaints/${c.id}/resolve`).set(auth(owner.token)).send({ rating: 4 })).status).toBe(200);
     expect((await request(app()).put(`/api/complaints/${c.id}/resolve`).set(auth(owner.token)).send({ rating: 4 })).status).toBe(409);
-    expect(storage.getUserById(owner.user.id)!.points).toBe(15);
+    // D-059: nothing for filing; +3 accepted, +10 fixed and verified, +5 for answering — each once.
+    expect(storage.getUserById(owner.user.id)!.points).toBe(18);
   });
 });
 

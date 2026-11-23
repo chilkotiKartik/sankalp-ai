@@ -1,3 +1,4 @@
+import { BADGE_META, LEVEL_NAMES } from "@/constants/points";
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
@@ -25,24 +26,9 @@ interface LeaderEntry {
   resolvedComplaints?: number;
 }
 
-const BADGE_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string; label: string }> = {
-  new_citizen:      { icon: "person-add",         color: "#9CA3AF", label: "New Citizen" },
-  first_report:     { icon: "flag",                color: "#60A5FA", label: "First Report" },
-  active_citizen:   { icon: "people",              color: "#34D399", label: "Active Citizen" },
-  civic_hero:       { icon: "shield-checkmark",    color: "#F59E0B", label: "Civic Hero" },
-  city_champion:    { icon: "trophy",              color: "#F87171", label: "City Champion" },
-  super_admin:      { icon: "star",                color: "#FF9933", label: "Super Admin" },
-  district_admin:   { icon: "business",            color: "#A78BFA", label: "District Admin" },
-};
+// Badges and level names come from constants/points (the same rules as the server).
 
-const LEVEL_LABEL = (level: number) => {
-  if (level >= 10) return "Legend";
-  if (level >= 8) return "Champion";
-  if (level >= 6) return "Hero";
-  if (level >= 4) return "Active";
-  if (level >= 2) return "Starter";
-  return "Newbie";
-};
+const LEVEL_LABEL = (level: number) => LEVEL_NAMES[Math.min(Math.max(level, 1), 6)]?.name ?? "Nagrik";
 
 const LEVEL_COLOR = (level: number) => {
   if (level >= 10) return "#FF9933";
@@ -292,9 +278,15 @@ export default function LeaderboardScreen() {
             </View>
           )}
 
+          <Pressable onPress={() => router.push("/points")} style={cs.myPointsBtn} accessibilityRole="button" accessibilityLabel="My Sankalp Points, badges and certificate">
+            <Ionicons name="star" size={16} color="#fff" />
+            <Text style={cs.myPointsText}>My points, badges & certificate</Text>
+            <Ionicons name="chevron-forward" size={16} color="#fff" />
+          </Pressable>
+
           {/* Achievement Legend */}
           <View style={cs.legendCard}>
-            <Text style={cs.legendTitle}>Badges</Text>
+            <Text style={cs.legendTitle}>Badges (earned only from verified results)</Text>
             <View style={cs.legendGrid}>
               {Object.entries(BADGE_META).slice(0, 6).map(([key, meta]) => (
                 <View key={key} style={cs.legendItem}>
@@ -326,6 +318,8 @@ export default function LeaderboardScreen() {
 }
 
 const cs = StyleSheet.create({
+  myPointsBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#C2410C", borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, marginHorizontal: 16, marginBottom: 12 },
+  myPointsText: { flex: 1, color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" },
   root: { flex: 1, backgroundColor: Colors.bg },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.bgCard, alignItems: "center", justifyContent: "center" },

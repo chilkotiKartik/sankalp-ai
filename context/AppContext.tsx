@@ -184,6 +184,7 @@ export interface RiskZone {
 
 export interface LeaderboardEntry {
   rank: number;
+  id?: string;
   name: string;
   phone: string;
   district: string;

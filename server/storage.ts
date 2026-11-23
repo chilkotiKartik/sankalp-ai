@@ -1,3 +1,4 @@
+import { POINT_RULES, LEVELS, BADGES, levelFor, type PointsReason } from "./domain/points";
 import { isAdminUser, isStateUser, isDistrictAdmin } from "./auth/roles";
 import { randomUUID, createHmac, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { EventEmitter } from "node:events";
@@ -16,7 +17,7 @@ import {
   type ComplaintState, legacyStatus, applyPath, pathToInProgress, pathToVerifying,
   citizenConfirm as smConfirm, citizenReject as smReject, TERMINAL, type TransitionStep, type ActorKind,
 } from "./domain/complaintState";
-import type {
+import type { PointsEntry,
   AppUser, AuthToken, Complaint, ProofVerification, CheckIn, DisasterReport, ReliefCamp, MissingPerson, DisasterModeState, YatraGroup, ComplaintCategory, SOSAlert, Ward, Worker, PoliceStation, GeoPoint, RiskZone,
   Announcement, Poll, Petition, RTIRequest, NightSafetyZone, PatrolVan, SafetyIncident, CivicEvent, ChatMessage,
   BudgetItem, AuditLog, EmergencyService, PredictiveAlert, MediaRecord, ComplaintEvent, ReviewTask, DeptCredential,
@@ -142,13 +143,14 @@ interface State {
   missingPersons: MissingPerson[];
   disasterMode: DisasterModeState;
   yatraGroups: YatraGroup[];
+  pointsLedger: PointsEntry[];
 }
 
 const emptyState = (): State => ({
   users: [], tokens: [], sessions: [], refreshTokens: [], otps: [], workerPins: [], deptCredentials: [], complaints: [], complaintEvents: [], sosAlerts: [],
   workers: [], patrolVans: [], safetyIncidents: [], nightSafetyZones: [], announcements: [], polls: [], petitions: [],
   rtis: [], civicEvents: [], chatMessages: [], budgetItems: [], auditLogs: [], media: [], reviewTasks: [], pushTokens: [],
-  demoRiskZones: [], consents: [], erasureRequests: [], checkins: [], disasterReports: [], reliefCamps: [], missingPersons: [], disasterMode: { active: false }, yatraGroups: [],
+  demoRiskZones: [], consents: [], erasureRequests: [], checkins: [], disasterReports: [], reliefCamps: [], missingPersons: [], disasterMode: { active: false }, yatraGroups: [], pointsLedger: [],
 });
 
 export class AppStorage {
@@ -416,6 +418,7 @@ export class AppStorage {
     const u = this.getUserById(userId);
     if (!u) return;
     const own = new Set(this.s.complaints.filter(x => x.userId === userId).map(x => x.id));
+    this.s.pointsLedger = this.s.pointsLedger.filter(e => e.userId !== userId); // points history is personal data too
     for (const c of this.s.complaints.filter(x => x.userId === userId)) {
       c.userId = undefined; c.submittedBy = "Erased citizen"; c.submittedByPhone = undefined; c.feedback = undefined;
     }
@@ -615,8 +618,7 @@ export class AppStorage {
     };
     this.s.complaints.unshift(complaint);
     this.recordEvent(complaint.id, null, "NEW", "citizen_owner", user.id);
-    const u = this.getUserById(user.id);
-    if (u) u.points += 10;
+    // No points just for filing (D-059): they come when a department accepts it and when the fix is verified.
     this.touch();
     bus.emit("complaint", { type: "complaint_new", complaint });
     return complaint;
@@ -624,6 +626,61 @@ export class AppStorage {
 
   private recordEvent(complaintId: string, from: ComplaintState | null, to: ComplaintState, actorKind: string, actorId: string, note?: string) {
     this.s.complaintEvents.push({ id: genId(), complaintId, from, to, actorKind, actorId, note, at: now() });
+    // Sankalp Points for real outcomes only: accepted by a department, then fixed and verified.
+    const owner = to === "ASSIGNED" || to === "CLOSED" ? this.s.complaints.find(c => c.id === complaintId)?.userId : undefined;
+    if (owner) this.awardPoints(owner, to === "ASSIGNED" ? "complaint_accepted" : "complaint_fixed", complaintId);
+  }
+
+  // ── SANKALP POINTS (D-059) ────────────────────────────────────────────────
+  /** Awards once per (reason, ref), respects daily caps, keeps level and badges in step. Returns the points given. */
+  awardPoints(userId: string, reason: Exclude<PointsReason, "earlier_activity">, ref?: string, at = Date.now()): number {
+    const u = this.getUserById(userId);
+    const rule = POINT_RULES[reason];
+    if (!u || !rule) return 0;
+    this.migratePoints(u);
+    const mine = this.s.pointsLedger.filter(e => e.userId === userId);
+    if (ref && mine.some(e => e.reason === reason && e.ref === ref)) return 0;
+    if (rule.dailyCap) {
+      const dayStart = new Date(at); dayStart.setHours(0, 0, 0, 0);
+      if (mine.filter(e => e.reason === reason && new Date(e.at).getTime() >= dayStart.getTime()).length >= rule.dailyCap) return 0;
+    }
+    this.s.pointsLedger.push({ id: genId(), userId, delta: rule.points, reason, ref, at: new Date(at).toISOString() });
+    u.points += rule.points;
+    this.refreshRank(u);
+    this.touch();
+    return rule.points;
+  }
+
+  /** Points earned before the ledger existed are kept as one "earlier activity" line (balance unchanged). */
+  private migratePoints(u: AppUser) {
+    if (u.points > 0 && !this.s.pointsLedger.some(e => e.userId === u.id)) {
+      this.s.pointsLedger.push({ id: genId(), userId: u.id, delta: u.points, reason: "earlier_activity", at: u.createdAt ?? now() });
+    }
+  }
+
+  private refreshRank(u: AppUser) {
+    u.level = levelFor(u.points).n;
+    const counts = new Map<string, number>();
+    for (const e of this.s.pointsLedger) if (e.userId === u.id) counts.set(e.reason, (counts.get(e.reason) ?? 0) + 1);
+    u.badges = BADGES.filter(b => (counts.get(b.reason) ?? 0) >= b.count).map(b => b.id);
+  }
+
+  pointsSummary(userId: string) {
+    const u = this.getUserById(userId);
+    if (!u) return null;
+    this.migratePoints(u);
+    const mine = this.s.pointsLedger.filter(e => e.userId === userId);
+    const counts = new Map<string, number>();
+    for (const e of mine) counts.set(e.reason, (counts.get(e.reason) ?? 0) + 1);
+    const rank = [...this.s.users].filter(x => x.role === "citizen").sort((a, b) => b.points - a.points).findIndex(x => x.id === userId) + 1;
+    return {
+      points: u.points,
+      level: levelFor(u.points),
+      rank: rank > 0 ? rank : null,
+      badges: BADGES.map(b => ({ id: b.id, name: b.name, desc: b.desc, progress: Math.min(counts.get(b.reason) ?? 0, b.count), need: b.count, earned: (counts.get(b.reason) ?? 0) >= b.count })),
+      history: mine.slice(-50).reverse().map(e => ({ delta: e.delta, reason: e.reason, ref: e.ref ? e.ref.slice(0, 8) : undefined, at: e.at })),
+      verifiedFixes: counts.get("complaint_fixed") ?? 0,
+    };
   }
 
   getComplaintEvents(complaintId: string): ComplaintEvent[] {
@@ -700,6 +757,7 @@ export class AppStorage {
 
   private recordAnswer(c: Complaint, answer: "yes" | "no", channel: "app" | "voice" | "sms") {
     c.citizenAnswer = answer; c.citizenAnswerChannel = channel; c.citizenAnsweredAt = now();
+    if (c.userId) this.awardPoints(c.userId, "verification_answered", c.id); // an honest "no" earns the same as "yes"
     c.verification = evaluate(c);
     this.addAuditLog("citizen_answer", "citizen", "Citizen", `${c.ticketId}: citizen said ${answer} via ${channel} → ${c.verification.decision}`, c.id);
   }
@@ -717,8 +775,7 @@ export class AppStorage {
     this.recordAnswer(c, "yes", channel);
     if (rating !== undefined) c.rating = rating;
     if (feedback) c.feedback = feedback;
-    const u = this.getUserById(userId);
-    if (u && first) u.points += 5;
+    void first; // points for answering are given in recordAnswer (once per complaint, yes or no)
     // Checks still running: the answer is recorded and applyVerification decides (review P3-1).
     if (c.verificationPending) { this.touch(); return c; }
     if (c.state === "VERIFYING") {
@@ -775,8 +832,7 @@ export class AppStorage {
     if (!c.upvotedBy.includes(userId)) {
       c.upvotes++;
       c.upvotedBy.push(userId);
-      const u = this.getUserById(userId);
-      if (u) u.points += 1;
+      if (c.userId !== userId) this.awardPoints(userId, "upvote_given", c.id);
       this.touch();
       bus.emit("complaint", { type: "upvote", complaint: c });
     }
@@ -1320,6 +1376,7 @@ export class AppStorage {
   createNightSafetyZone(data: { location: string; district: string; description: string; riskType: NightSafetyZone["riskType"]; geo: GeoPoint | null; reporterName: string; reporterId?: string }): NightSafetyZone {
     const z: NightSafetyZone = { ...demoFlag(), ...data, id: genId(), reportedAt: now(), status: "active", patrolVisits: 0 };
     this.s.nightSafetyZones.unshift(z);
+    if (data.reporterId) this.awardPoints(data.reporterId, "unsafe_area_reported", z.id);
     this.touch();
     return z;
   }

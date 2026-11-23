@@ -80,8 +80,11 @@ describe("Postgres persistence round trip", () => {
     await p2.flush();
     expect((await db.query<{ status: string }>("SELECT status FROM complaints WHERE id=$1", [ids.c]))[0].status).toBe("IN_PROGRESS");
     expect((await db.query("SELECT 1 FROM records WHERE collection='tokens' AND tenant_id='uttarakhand'")).length).toBe(0);
+    // Starting work means a department accepted the complaint, so its owner earns Sankalp Points (D-059):
+    // that user row legitimately changes; the ledger line is persisted too.
     const after = await db.query<{ updated_at: string }>("SELECT updated_at FROM users WHERE tenant_id='uttarakhand'");
-    expect(after[0].updated_at).toEqual(before[0].updated_at);
+    expect(new Date(after[0].updated_at).getTime()).toBeGreaterThanOrEqual(new Date(before[0].updated_at).getTime());
+    expect(runInTenant("uttarakhand", () => s.getUserById(ids.u)?.points)).toBe(3);
     expect((await db.query("SELECT 1 FROM complaint_events WHERE tenant_id='uttarakhand'")).length).toBe(3);
   });
 });

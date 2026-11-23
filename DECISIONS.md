@@ -90,3 +90,12 @@ data.gov.in is the Government of India's open-data API (free key). The first use
 - `set-keys.sh datagov` tests the key on the server before saving it.
 - Full scheme details (eligibility, how to apply) are not on data.gov.in; they need myScheme access through API Setu.
 
+## D-059 — Sankalp Points: earned only for real, verified outcomes
+The old rules gave +10 just for filing and +1 for each upvote, which rewards spam. Now:
+- Points: +3 when a department accepts a complaint, +10 when the fix is verified, and +5 for answering whether a fix was real (an honest "no" earns the same as "yes"). Smaller points with daily caps: checking a neighbour's repair (+3, up to 5 a day), supporting someone else's complaint (+1, up to 5), reporting an unsafe area (+2, up to 3).
+- Nothing for filing, nothing for supporting your own complaint, nothing for SOS. Each outcome is awarded once.
+- Every award is a ledger line; people see their history and the rules. Earlier points are kept as one "earlier activity" line, and erasure deletes the ledger.
+- Levels run Nagrik → Sankalp Ratna (0/50/150/400/1000/2500). Badges come from ledger counts only.
+- The certificate is a signed link anyone can open; it shows the live record with first name and initial only.
+- Rewards are recognition until a state or partner sponsors real ones; the app says so rather than showing invented prizes.
+
