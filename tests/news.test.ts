@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import request from "supertest";
 import { loadTenants } from "../server/tenancy";
 import { config, setConfig } from "../server/config";
-import { parseRss, stateTerms, matchesState, getNews, _resetNewsCache } from "../server/news";
+import { parseRss, stateTerms, matchesState, tidyBulletins, POLICY_RX, getNews, _resetNewsCache } from "../server/news";
 import { app, stopApp } from "./helpers";
 
 /** Official news: real feeds (recorded fixtures from newsonair.gov.in and pib.gov.in), never invented items. */
@@ -104,5 +104,37 @@ describe("GET /api/public/news", () => {
     const r = await getNews("state", "punjab", { wait: true });
     expect(r.status).toBe("unavailable");
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe("district, policy and regional news (P9.24)", () => {
+  it("district news keeps only stories that name the district, and labels AIR station bulletins", async () => {
+    const r = await request(app()).get("/api/public/news?scope=district&district=Alappuzha").set("X-Tenant", "kerala");
+    expect(r.status).toBe(200);
+    expect(r.body.scope).toBe("district");
+    expect(r.body.items.length).toBeGreaterThan(0);
+    for (const it of r.body.items) expect(`${it.title} ${it.summary}`).toMatch(/Alappuzha/);
+    expect(calls.some(u => u.includes("?s=Alappuzha"))).toBe(true);
+  });
+
+  it("refuses a district that is not in the state (no free text reaches the news servers)", async () => {
+    const r = await request(app()).get("/api/public/news?scope=district&district=Mumbai").set("X-Tenant", "kerala");
+    expect(r.status).toBe(422);
+    expect(calls.some(u => u.includes("Mumbai"))).toBe(false);
+  });
+
+  it("policy news reads PIB regional offices and keeps only scheme/policy releases", async () => {
+    const r = await request(app()).get("/api/public/news?scope=policy").set("X-Tenant", "kerala");
+    expect(r.status).toBe(200);
+    for (const it of r.body.items) expect(POLICY_RX.test(`${it.title} ${it.summary}`)).toBe(true);
+    expect(calls.some(u => /Regid=(31|44)&reg=(31|44)/.test(u))).toBe(true);
+  });
+
+  it("tidyBulletins keeps the newest bulletin per AIR station with a clear title", () => {
+    const b = (n: number, at: string) => ({ id: `b${n}`, title: "Lucknow", summary: "", link: `https://newsonair.gov.in/bulletins/lucknow-${n}/`, publishedAt: at, source: "AIR" });
+    const out = tidyBulletins([b(1, "2026-11-22T07:00:00Z"), b(2, "2026-11-22T13:00:00Z")]);
+    expect(out).toHaveLength(1);
+    expect(out[0].id).toBe("b2");
+    expect(out[0].title).toBe("Akashvani Lucknow — latest regional news bulletin");
   });
 });

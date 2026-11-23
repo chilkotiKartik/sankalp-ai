@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, Pressable, StyleSheet, Alert, Platform, Share, Linking } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, Pressable, StyleSheet, Alert, Platform, Share, Linking, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
@@ -8,6 +8,24 @@ import { getApiUrl } from "@/lib/query-client";
 export function PrivacyControls() {
   const { token, logout } = useAuth();
   const [busy, setBusy] = useState(false);
+  // Separate, optional consent: complaint photos may help train SANKALP's own AI (off unless the person turns it on).
+  const [training, setTraining] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${getApiUrl()}api/privacy/training-consent`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => (r.ok ? r.json() : null)).then(d => setTraining(d ? !!d.allow : null)).catch(() => {});
+  }, [token]);
+  const setTrainingConsent = async (allow: boolean) => {
+    if (!token) return;
+    const prev = training;
+    setTraining(allow);
+    try {
+      const r = await fetch(`${getApiUrl()}api/privacy/training-consent`, {
+        method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ allow }),
+      });
+      if (!r.ok) throw new Error(String(r.status));
+    } catch { setTraining(prev); }
+  };
 
   const download = async () => {
     if (!token) return;
@@ -68,6 +86,15 @@ export function PrivacyControls() {
       <Text style={s.title} accessibilityRole="header">Privacy & my data</Text>
       <Row icon="document-text-outline" label="Privacy notice (हिन्दी / English)" onPress={() => Linking.openURL(`${getApiUrl()}web/privacy`)} />
       <Row icon="download-outline" label="Download my data" onPress={download} />
+      {training !== null ? (
+        <View style={s.toggleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.label}>Help improve SANKALP&apos;s AI with my complaint photos</Text>
+            <Text style={s.hint}>Optional. Only photos (location data removed) and the confirmed problem type are used, on servers in India. You can turn this off at any time.</Text>
+          </View>
+          <Switch value={training} onValueChange={setTrainingConsent} accessibilityLabel="Allow my complaint photos to train SANKALP AI" trackColor={{ true: "#C2410C" }} thumbColor="#fff" />
+        </View>
+      ) : null}
       <Row icon="trash-outline" label="Delete my account" onPress={erase} danger />
     </View>
   );
@@ -78,4 +105,6 @@ const s = StyleSheet.create({
   title: { fontSize: 14, fontFamily: "Inter_700Bold", color: "#111827", marginBottom: 6 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48 },
   label: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium", color: "#1F2937" },
+  toggleRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
+  hint: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#4B5563", marginTop: 2, lineHeight: 16 },
 });

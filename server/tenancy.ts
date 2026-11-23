@@ -26,7 +26,9 @@ export const TenantConfigSchema = z.object({
   mapBounds: z.object({ center: geo, zoom: z.number(), south: z.number(), west: z.number(), north: z.number(), east: z.number() }),
   helplines: z.record(z.string(), z.string()),
   grievanceOfficer: z.object({ name: z.string(), email: z.string(), phone: z.string(), address: z.string() }),
-  retention: z.object({ complaintsDays: z.number().int().positive(), mediaDaysAfterClosure: z.number().int().positive(), sosEvidenceDays: z.number().int().positive(), needsLegalConfirmation: z.boolean() }),
+  retention: z.object({ complaintsDays: z.number().int().positive(), mediaDaysAfterClosure: z.number().int().positive(), sosEvidenceDays: z.number().int().positive(), needsLegalConfirmation: z.boolean(),
+    /** SOS voice clips are deleted this many days after recording unless under legal hold. */
+    sosAudioDays: z.number().int().min(1).max(3650).default(5) }),
   departments: z.record(z.string(), z.object({
     id: z.string(), name: z.string(), nameHindi: z.string(), icon: z.string(), color: z.string(), helpline: z.string(),
     slaHours: z.number(), categories: z.array(z.string()),
@@ -231,7 +233,7 @@ export function stateLevelConfig(r: RegistryState): unknown {
     mapBounds: { center: centre, zoom: span > 6 ? 6 : span > 3 ? 7 : span > 1 ? 8 : 10, ...r.bounds },
     helplines: { emergency: "112", ambulance: "108", women: "181", disaster: "1070", child: "1098", electricity: "1912" },
     grievanceOfficer: { name: "To be designated by the State", email: "", phone: "", address: r.capital },
-    retention: { complaintsDays: 1095, mediaDaysAfterClosure: 365, sosEvidenceDays: 365, needsLegalConfirmation: true },
+    retention: { complaintsDays: 1095, mediaDaysAfterClosure: 365, sosEvidenceDays: 365, needsLegalConfirmation: true, sosAudioDays: 5 },
     departments: NATIONAL_DEPARTMENTS, categoryDepartment,
     categoryDepartmentLabel: Object.fromEntries(Object.entries(categoryDepartment).map(([c, d]) => [c, NATIONAL_DEPARTMENTS[d as keyof typeof NATIONAL_DEPARTMENTS].name])),
     fallbackDepartment: "pwd",

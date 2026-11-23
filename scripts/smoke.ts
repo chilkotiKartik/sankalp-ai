@@ -25,7 +25,7 @@ function fail(msg: string): never {
 }
 function ok(msg: string) { process.stdout.write(`✓ ${String(step).padStart(2, "0")} ${msg}\n`); }
 
-async function call(method: string, p: string, body?: unknown, token?: string, expect = 200) {
+async function call(method: string, p: string, body?: unknown, token?: string, expect = 200) { // expect 0 = any status
   step++;
   const res = await fetch(`${BASE}${p}`, {
     method,
@@ -35,7 +35,7 @@ async function call(method: string, p: string, body?: unknown, token?: string, e
   const text = await res.text();
   let json: any = null;
   try { json = text ? JSON.parse(text) : null; } catch { /* non-JSON */ }
-  if (res.status !== expect) fail(`${method} ${p} → ${res.status} (expected ${expect}) ${text.slice(0, 200)}`);
+  if (expect !== 0 && res.status !== expect) fail(`${method} ${p} → ${res.status} (expected ${expect}) ${text.slice(0, 200)}`);
   return json;
 }
 
@@ -95,20 +95,30 @@ async function main() {
 
   // 3. Worker submits proof; it cannot close the case.
   const proof = await call("PUT", `/api/complaints/${c.id}/proof`, { phone: "9000012345", pin: assign.pin, proofPhoto: PNG, proofNote: "Filled and compacted" });
-  if (proof.state !== "VERIFYING") fail(`after proof state=${proof.state}`);
-  ok("proof photo accepted → awaiting citizen confirmation");
+  // With photo AI on, the 1-pixel placeholder is (correctly) not accepted as proof of a repair → officer review.
+  const visionOn = (await call("GET", "/api/public/config")).ai?.vision !== "manual_review";
+  const flaggedByAi = visionOn && proof.state === "NEEDS_REVIEW";
+  if (proof.state !== "VERIFYING" && !flaggedByAi) fail(`after proof state=${proof.state}`);
+  ok(flaggedByAi ? "placeholder proof photo sent to officer review by the AI photo check (fail closed)" : "proof photo accepted → awaiting citizen confirmation");
 
-  // 4. Citizen confirms → CLOSED.
-  const closed = await call("PUT", `/api/complaints/${c.id}/confirm`, { rating: 5, feedback: "Fixed" }, citizen);
-  if (closed.state !== "CLOSED") fail(`state=${closed.state}`);
-  ok("citizen confirmed → CLOSED");
+  if (!flaggedByAi) {
+    // 4. Citizen confirms → CLOSED.
+    const closed = await call("PUT", `/api/complaints/${c.id}/confirm`, { rating: 5, feedback: "Fixed" }, citizen);
+    if (closed.state !== "CLOSED") fail(`state=${closed.state}`);
+    ok("citizen confirmed → CLOSED");
 
-  // 5. Public dashboard reflects it (aggregates only).
-  const report = await call("GET", "/api/public/department-report");
-  const pwdRow = report.find((r: { id: string }) => r.id === "pwd");
-  if (!pwdRow || pwdRow.resolved < 1) fail("public report did not count the closure");
-  if (JSON.stringify(report).includes(phone)) fail("public report leaked a phone number");
-  ok(`public dashboard: PWD resolved=${pwdRow.resolved}, n=${pwdRow.n}`);
+    // 5. Public dashboard reflects it (aggregates only).
+    const report = await call("GET", "/api/public/department-report");
+    const pwdRow = report.find((r: { id: string }) => r.id === "pwd");
+    if (!pwdRow || pwdRow.resolved < 1) fail("public report did not count the closure");
+    if (JSON.stringify(report).includes(phone)) fail("public report leaked a phone number");
+    ok(`public dashboard: PWD resolved=${pwdRow.resolved}, n=${pwdRow.n}`);
+  } else {
+    // A flagged case must NOT close on the citizen's "yes" alone.
+    const yes = await call("PUT", `/api/complaints/${c.id}/confirm`, { rating: 5, feedback: "Fixed" }, citizen, 0);
+    if (yes?.state === "CLOSED") fail("a case flagged for review closed on the citizen's yes alone");
+    ok("flagged case does not close on the citizen's yes alone");
+  }
 
   // 6. SOS → police CPR console.
   const sos = await call("POST", "/api/sos/women-safety", { geo: near(0, 0) }, citizen, 201);

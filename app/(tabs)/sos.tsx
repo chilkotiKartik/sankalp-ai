@@ -52,6 +52,7 @@ import { Audio } from "expo-av";
 import * as Speech from "expo-speech";
 import * as Notifications from "expo-notifications";
 import Colors from "@/constants/colors";
+import { ShareLiveLocation } from "@/components/ShareLiveLocation";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import type { GeoPoint } from "@/context/AppContext";
@@ -449,8 +450,61 @@ function SOSScreenInner() {
   }, []);
 
   // ── AUDIO RECORDING: 10-second chunked streaming for Women Safety SOS ───────
+  // Web / iPhone (PWA): the browser's own recorder, same 10-second clips and the same upload as the app.
+  const webStreamRef = useRef<MediaStream | null>(null);
+  const uploadAudioChunk = useCallback(async (base64: string, alertId: string, chunkIdx: number) => {
+    const { getApiUrl } = await import("@/lib/query-client");
+    const baseUrl = getApiUrl();
+    const uploadRes = await fetch(`${baseUrl}api/upload/audio`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ audio: base64, sosId: alertId }),
+    });
+    if (!uploadRes.ok) return;
+    const data = await uploadRes.json();
+    if (data.url) {
+      await fetch(`${baseUrl}api/sos/${alertId}/audio-chunk`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ chunkUrl: data.url, chunkIndex: chunkIdx, duration: 10 }),
+      }).catch(() => {});
+    }
+  }, [token]);
+
+  const startWebRecording = useCallback(async (alertId?: string) => {
+    const g = globalThis as unknown as { navigator?: Navigator; MediaRecorder?: typeof MediaRecorder };
+    if (!alertId || !g.navigator?.mediaDevices?.getUserMedia || !g.MediaRecorder) return;
+    let stream: MediaStream;
+    try { stream = await g.navigator.mediaDevices.getUserMedia({ audio: true }); } catch { return; }
+    webStreamRef.current = stream;
+    audioChunkActiveRef.current = true;
+    audioChunkIndexRef.current = 0;
+    const MAX_CHUNKS = 6;
+    const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"].find(m => g.MediaRecorder!.isTypeSupported?.(m));
+    setIsRecording(true);
+    const one = () => {
+      if (!audioChunkActiveRef.current || audioChunkIndexRef.current >= MAX_CHUNKS) {
+        setIsRecording(false); stream.getTracks().forEach(t => t.stop()); webStreamRef.current = null; return;
+      }
+      const parts: Blob[] = [];
+      const rec = new g.MediaRecorder!(stream, mime ? { mimeType: mime } : undefined);
+      rec.ondataavailable = e => { if (e.data.size) parts.push(e.data); };
+      rec.onstop = () => {
+        const idx = audioChunkIndexRef.current++;
+        const blob = new Blob(parts, { type: rec.mimeType || mime || "audio/webm" });
+        const fr = new FileReader();
+        fr.onloadend = () => { const b64 = String(fr.result).split(",")[1]; if (b64) void uploadAudioChunk(b64, alertId, idx).catch(() => {}); };
+        fr.readAsDataURL(blob);
+        if (audioChunkActiveRef.current) setTimeout(one, 200); else { setIsRecording(false); stream.getTracks().forEach(t => t.stop()); webStreamRef.current = null; }
+      };
+      rec.start();
+      setTimeout(() => { if (rec.state !== "inactive") rec.stop(); }, 10000);
+    };
+    one();
+  }, [uploadAudioChunk]);
+
   const startAudioRecording = useCallback(async (alertId?: string): Promise<string | null> => {
-    if (Platform.OS === "web") return null;
+    if (Platform.OS === "web") { void startWebRecording(alertId); return null; }
     try {
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== "granted") return null;
@@ -490,23 +544,7 @@ function SOSScreenInner() {
         if (uri && alertId) {
           try {
             const base64 = await FileSystem.readAsStringAsync(uri, { encoding: "base64" as any });
-            const { getApiUrl } = await import("@/lib/query-client");
-            const baseUrl = getApiUrl();
-            const uploadRes = await fetch(`${baseUrl}api/upload/audio`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-              body: JSON.stringify({ audio: base64, sosId: alertId }),
-            });
-            if (uploadRes.ok) {
-              const data = await uploadRes.json();
-              if (data.url) {
-                await fetch(`${baseUrl}api/sos/${alertId}/audio-chunk`, {
-                  method: "PUT",
-                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                  body: JSON.stringify({ chunkUrl: data.url, chunkIndex: chunkIdx, duration: 10 }),
-                }).catch(() => {});
-              }
-            }
+            await uploadAudioChunk(base64, alertId, chunkIdx);
           } catch {}
         }
         // Record next chunk after 500ms gap
@@ -519,10 +557,11 @@ function SOSScreenInner() {
 
     recordOneChunk();
     return null;
-  }, [token]);
+  }, [token, startWebRecording, uploadAudioChunk]);
 
   const stopAudioRecording = useCallback(async () => {
     audioChunkActiveRef.current = false;
+    if (webStreamRef.current) { webStreamRef.current.getTracks().forEach(t => t.stop()); webStreamRef.current = null; setIsRecording(false); }
     const rec = audioRecordingRef.current;
     if (!rec) return;
     try {
@@ -1159,7 +1198,7 @@ function SOSScreenInner() {
               <View style={s.notifiedBlock}>
                 <View style={s.notifiedHeader}>
                   <Ionicons name="shield" size={13} color="#F59E0B" />
-                  <Text style={s.notifiedHeaderText}>2 Police Stations Notified & Responding</Text>
+                  <Text style={s.notifiedHeaderText}>{`${(activeAlert.notifiedStations || []).length} Police Station${(activeAlert.notifiedStations || []).length === 1 ? "" : "s"} Notified`}</Text>
                 </View>
                 {(activeAlert.notifiedStations || []).map((ps: any, i: number) => (
                   <View key={i} style={[s.notifiedRow, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
@@ -1181,6 +1220,8 @@ function SOSScreenInner() {
                 ))}
               </View>
             )}
+
+            {activeAlert?.id ? <View style={{ marginTop: 10 }}><ShareLiveLocation alertId={activeAlert.id} token={token} /></View> : null}
 
             <Pressable onPress={() => { setTriggered(false); setActiveAlert(null); setDescription(""); setWomenPanic(false); stopLive(); setLiveCount(0); setLastUpdate(null); stopAudioRecording(); }} style={s.resetBtn}>
               <Text style={s.resetBtnText}>Reset SOS Panel</Text>
@@ -1474,6 +1515,7 @@ function SOSScreenInner() {
                   <Ionicons name="checkmark-circle" size={20} color="#4ADE80" />
                   <Text style={s.womenPanicText}>Alert sent · Police dispatched · Location shared live</Text>
                 </View>
+                {activeAlert?.id ? <ShareLiveLocation alertId={activeAlert.id} token={token} /> : null}
                 {isRecording && (
                   <View style={s.recordingRow}>
                     <View style={s.recordingDot} />

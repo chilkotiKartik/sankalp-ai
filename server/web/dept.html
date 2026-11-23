@@ -140,6 +140,19 @@ label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bot
 <div id="root"></div>
 <script type="text/babel">
 const {useState,useEffect,useRef,useCallback,useMemo}=React;
+// Evidence audio: a short-lived signed link (audited); no login token ever goes into a URL.
+function AudioClip({url}){
+  const [src,setSrc]=React.useState(null);
+  const [err,setErr]=React.useState(false);
+  React.useEffect(()=>{
+    const file=(url||"").split("/").pop().split("?")[0];
+    if(!file)return;
+    fetch(`${API}/api/media/${encodeURIComponent(file)}/sign`,{method:"POST"}).then(r=>r.ok?r.json():Promise.reject(r.status)).then(d=>setSrc(d.url)).catch(()=>setErr(true));
+  },[url]);
+  if(err)return <div style={{fontSize:12,color:"#B91C1C"}}>This recording could not be opened (deleted after the retention period, or not yours to view).</div>;
+  if(!src)return <div style={{fontSize:12}}>Loading recording…</div>;
+  return <audio controls preload="metadata" src={src} style={{width:"100%"}}>Your browser does not support audio.</audio>;
+}
 const API=window.location.origin;
 
 /* ── DEPT METADATA ─────────────────────────────────────────────────────────── */
@@ -852,7 +865,7 @@ function SOSPage({token,dept,addToast}){
         {selected.description&&<div style={{background:'#1c2128',borderRadius:8,padding:12,fontSize:13,lineHeight:1.6,marginBottom:14}}>{selected.description}</div>}
         {selected.audioRecordingUrl&&<div style={{background:'rgba(188,140,255,.1)',border:'1px solid rgba(188,140,255,.25)',borderRadius:8,padding:12,marginBottom:14}}>
           <div style={{color:'var(--purple)',fontWeight:600,fontSize:13,marginBottom:4}}>🎙️ Audio Recording Available</div>
-          <audio controls src={selected.audioRecordingUrl+"?token="+encodeURIComponent(token||"")} style={{width:"100%"}}/>
+          <AudioClip url={selected.audioRecordingUrl}/>
         </div>}
         {selected.geo&&<a href={`https://www.openstreetmap.org/?mlat=${selected.geo.lat}&mlon=${selected.geo.lng}#map=17/${selected.geo.lat}/${selected.geo.lng}`} target="_blank" rel="noopener noreferrer" style={{display:'block',marginTop:10}}>
           <button className="btn btn-blue" style={{width:'100%',justifyContent:'center'}}>🗺️ Open in Google Maps</button>

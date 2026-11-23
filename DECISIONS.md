@@ -69,3 +69,16 @@ Text and photo analysis run on Sarvam's hosted models (Indian company, Indian in
 - Photos: `gemma4` on `/v2` (image input; `/v1` rejects images). It is used for "what does this photo show" and "is it visibly fixed". It stays fail-closed: no answer or an invalid answer means manual review, and the vision signal is one input to the verification engine, never the decision on its own.
 - The privacy notice names Sarvam as the AI processor whenever it is enabled (DPDP informed consent). `AI_VISION_PROVIDER=off` keeps photos on manual review only.
 
+## D-056 — SOS voice: 10-second clips to police, deleted 5 days after recording once closed
+The phone records 10-second clips (up to six) during a women-safety SOS and sends each to the police the moment it is recorded, from the Android app and now also from the web/iPhone app (browser MediaRecorder).
+- Police play the clips from the incident on both command screens through short-lived signed links. Each signing is audited, and no login token ever goes into a URL; the old `?token=` players returned 401 and leaked the token into logs.
+- Clips are deleted `retention.sosAudioDays` (default 5) days after recording, but only once the SOS is closed, never while it is open, and never under legal hold. Police can press "Keep as evidence" to place a legal hold. The hourly job logs every deletion, and the privacy notice states the rule.
+- Fixed along the way: incidents now carry `sosId`, so clips reach the right incident on the police screens; cancelling an SOS with the PIN marks the police incident safe and frees the patrol van.
+
+## D-057 — Own AI: consented real training data now, self-hosted Patram-7B when a GPU is rented
+Training needs real labels, so labels come only from what happened: officer-worked categories for "before" photos, and the citizen's own yes/no for proof photos.
+- Use of photos for training is a separate opt-in (off by default, audited, can be withdrawn). The state-admin export uses EXIF-stripped copies only and is audited.
+- Patram-7B (BharatGen, Apache-2.0, gated) gets a ready setup for an Indian GPU VM (`deploy/gpu/`): an OpenAI-compatible endpoint behind HTTPS, reachable only from the SANKALP server, with a bearer key. `set-keys.sh patram` switches vision to it after a health check.
+- Patram is document-focused, so street-photo classification should come from a model fine-tuned on our own labelled data. A new model goes live only if it beats the current one on a fixed test set (docs/AI_TRAINING.md).
+- Until a GPU is rented, Sarvam (Indian) does the AI work.
+

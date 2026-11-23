@@ -1,3 +1,4 @@
+import { config } from "../config";
 import type { Express } from "express";
 import bcrypt from "bcrypt";
 import { z } from "zod";
@@ -62,6 +63,8 @@ export function registerSafetyRoutes(app: Express) {
       a.status = "cancelled";
       a.cancelledAt = new Date().toISOString();
       storage.addAuditLog("sos_cancelled", user.id, "citizen", `SOS ${a.id} cancelled by the sender${body.reason ? ` — ${body.reason}` : ""}`);
+      // The police incident follows: marked safe (PIN-verified), patrol van released, every map updated live.
+      if (a.cprRequestId) storage.updateIncidentStatus(a.cprRequestId, "safe", "The person cancelled the SOS with their PIN and says they are safe", "CITIZEN");
       storage.touch();
       const owner = storage.getUserById(user.id);
       for (const d of a.contactDeliveries ?? []) {
@@ -176,11 +179,18 @@ ${info.geo ? `<p>Last shared location: <a style="background:#1D4ED8" href="geo:$
 /** ~2 KB page for any phone browser (works on 2G): refreshes the location every 20 s. */
 function sharePage(token: string, ok: boolean): string {
   const esc = (v: string) => v.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+  const tiles = config().mapTileUrl ?? "";
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
-<title>SANKALP SOS — live location</title><style>body{font:16px system-ui,sans-serif;margin:0;padding:16px;background:#fff;color:#111}h1{font-size:20px;color:#991B1B}a.b{display:block;text-align:center;padding:14px;margin:10px 0;border-radius:10px;font-weight:700;text-decoration:none}.r{background:#B91C1C;color:#fff}.g{background:#1D4ED8;color:#fff}small{color:#374151}</style></head>
-<body${ok ? ` data-token="${esc(token)}"` : ""}><h1>🆘 SOS — someone needs help</h1>${ok ? `<p id="st">Loading the latest location…</p><a class="b g" id="map" href="#">Open location in maps</a>` : `<p>This link has expired or the alert was closed.</p>`}
-<a class="b r" href="tel:112">Call 112 (emergency)</a><p id="ps"></p><small>Shared by SANKALP because you are a trusted contact. The link expires automatically.</small>
-${ok ? `<script src="/web/vendor/sos-share.js"></script>` : ""}</body></html>`;
+<title>SANKALP SOS — live location</title>${ok ? `<link rel="stylesheet" href="/leaflet/leaflet.css">` : ""}
+<style>body{font:16px system-ui,sans-serif;margin:0;background:#fff;color:#111}main{max-width:560px;margin:0 auto;padding:16px}h1{font-size:21px;color:#991B1B;margin:4px 0 8px}
+#map{height:46vh;min-height:260px;border-radius:12px;border:1px solid #E5E7EB;background:#EEF2F7}#st{font-weight:600;margin:10px 0 2px}#age{color:#374151;font-size:14px;margin:0 0 6px}
+a.b{display:block;text-align:center;padding:14px;margin:10px 0;border-radius:10px;font-weight:700;text-decoration:none}.r{background:#B91C1C;color:#fff}.g{background:#1D4ED8;color:#fff}.k{background:#F3F4F6;color:#111}small{color:#374151}.closed{color:#047857}</style></head>
+<body${ok ? ` data-token="${esc(token)}" data-tiles="${esc(tiles)}"` : ""}><main><h1>🆘 SOS — someone needs help</h1>
+${ok ? `<div id="map" role="img" aria-label="Live location on a map"></div><p id="st" aria-live="polite">Loading the latest location…</p><p id="age"></p>
+<a class="b r" href="tel:112">Call 112 (emergency)</a><a class="b g" id="dir" href="#" rel="noopener">Open in my maps app</a><a class="b k" id="ps" href="#" hidden></a>`
+    : `<p>This link has expired or the alert was closed.</p><a class="b r" href="tel:112">Call 112 (emergency)</a>`}
+<small>Shared through SANKALP. The position updates automatically every 10 seconds. The link stops working 24 hours after it was sent, or one hour after the alert is closed.</small></main>
+${ok ? `<script src="/leaflet/leaflet.js"></script><script src="/web/vendor/sos-share.js"></script>` : ""}</body></html>`;
 }
 
 export { maskPhone };

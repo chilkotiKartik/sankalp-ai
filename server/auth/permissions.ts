@@ -70,6 +70,7 @@ export const PERMISSIONS: Record<string, Principal[]> = {
   "push.register": USERS, "bills.read": USERS, "bills.pay": USERS,
   // DPDP (P1.9)
   "privacy.consent": USERS, "privacy.export": USERS, "privacy.erasure_request": USERS, "privacy.erasure_review": STATE,
+  "privacy.training_consent": USERS, "ai.training_export": STATE,
 };
 
 /** True if any of the actor's principals is allowed. Unknown permissions are denied (fail closed). */

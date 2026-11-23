@@ -170,7 +170,7 @@ export async function vision(imageBase64: string, prompt: string): Promise<AIRes
   const p = c.visionProvider === "sarvam" && c.SARVAM_API_KEY
     ? { name: "sarvam-vision", url: "https://api.sarvam.ai/v2/chat/completions", model: c.SARVAM_VISION_MODEL, headers: { "api-subscription-key": c.SARVAM_API_KEY } }
     : c.visionProvider === "selfhosted" && c.AI_VISION_BASE_URL
-      ? { name: "selfhosted-vision", url: `${c.AI_VISION_BASE_URL.replace(/\/$/, "")}/chat/completions`, model: c.AI_VISION_MODEL || "default", headers: {} as Record<string, string> }
+      ? { name: "selfhosted-vision", url: `${c.AI_VISION_BASE_URL.replace(/\/$/, "")}/chat/completions`, model: c.AI_VISION_MODEL || "default", headers: (c.AI_VISION_API_KEY ? { Authorization: `Bearer ${c.AI_VISION_API_KEY}` } : {}) as Record<string, string> }
       : null;
   if (!p) return null;
   const dataUrl = imageBase64.startsWith("data:") ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;

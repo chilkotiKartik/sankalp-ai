@@ -1,3 +1,4 @@
+import { AppError } from "../lib/errors";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage, DEPARTMENTS } from "../storage";
@@ -80,11 +81,14 @@ export function registerPublicRoutes(app: Express) {
   // Official news: local (All India Radio, filtered to this state) and national (PIB). Never invented.
   route(app, {
     method: "get", path: "/api/public/news", auth: "public", permission: "public.dashboard",
-    params: none, query: z.object({ scope: z.enum(["state", "national"]).default("state") }), body: none,
+    params: none, query: z.object({ scope: z.enum(["state", "national", "district", "policy"]).default("state"), district: z.string().max(60).optional() }), body: none,
     handler: async ({ query, res }) => {
       res.setHeader("Cache-Control", "public, max-age=300");
       res.setHeader("Vary", "X-Tenant, Host");
-      return getNews(query.scope, tenant().id);
+      // District news only for a real district of this state (no free text goes to the news servers).
+      const district = query.scope === "district" ? tenant().districts.find(d => d.district === query.district)?.district : undefined;
+      if (query.scope === "district" && !district) throw new AppError(422, "UNKNOWN_DISTRICT", "Pick one of this state's districts");
+      return getNews(query.scope, tenant().id, { district });
     },
   });
 

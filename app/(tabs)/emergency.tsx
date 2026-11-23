@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   serviceName: { color: "#F9FAFB", fontSize: 14, fontFamily: "Inter_600SemiBold", flex: 1 },
   serviceDistrict: { color: "#D1D5DB", fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 2 },
   serviceDetail: { color: "#D1D5DB", fontSize: 11, fontFamily: "Inter_400Regular" },
-  serviceAddress: { color: "#4B5563", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 2 },
+  serviceAddress: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   serviceActions: { flexShrink: 0 },
   callBtn: {
     width: 36, height: 36, borderRadius: 18,

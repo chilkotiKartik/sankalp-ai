@@ -11,7 +11,7 @@ import { getApiUrl } from "@/lib/query-client";
 interface Notice {
   version: string; controller: string; processor: string; sharing: string; sosNote: string; aiProcessing?: string | null;
   purposes: { id: string; text: string }[]; dataCollected: string[]; rights: string[];
-  retention: { complaintsDays: number; mediaDaysAfterClosure: number; sosEvidenceDays: number };
+  retention: { complaintsDays: number; mediaDaysAfterClosure: number; sosEvidenceDays: number; sosAudioDays?: number };
   grievanceOfficer: { name: string; email: string; phone: string; address: string };
 }
 
@@ -78,8 +78,8 @@ export function ConsentGate() {
             <Text style={s.h}>{hi ? "कौन सा डेटा" : "What data"}</Text>
             {notice.dataCollected.map(d => <Text key={d} style={s.li}>• {d}</Text>)}
             <Text style={s.h}>{hi ? "कितने समय तक" : "How long"}</Text>
-            <Text style={s.li}>• {hi ? `शिकायतें: ${years(notice.retention.complaintsDays)} वर्ष · फोटो: बंद होने के ${years(notice.retention.mediaDaysAfterClosure)} वर्ष बाद तक · SOS सबूत: ${years(notice.retention.sosEvidenceDays)} वर्ष`
-              : `Complaints: ${years(notice.retention.complaintsDays)} years · Photos: ${years(notice.retention.mediaDaysAfterClosure)} year after closure · SOS evidence: ${years(notice.retention.sosEvidenceDays)} year`}</Text>
+            <Text style={s.li}>• {hi ? `शिकायतें: ${years(notice.retention.complaintsDays)} वर्ष · फोटो: बंद होने के ${years(notice.retention.mediaDaysAfterClosure)} वर्ष बाद तक · SOS सबूत: ${years(notice.retention.sosEvidenceDays)} वर्ष · SOS आवाज़: SOS बंद होने के बाद, रिकॉर्डिंग से ${notice.retention.sosAudioDays ?? 5} दिन पर मिटा दी जाती है (पुलिस सबूत रखे तो छोड़कर)`
+              : `Complaints: ${years(notice.retention.complaintsDays)} years · Photos: ${years(notice.retention.mediaDaysAfterClosure)} year after closure · SOS evidence: ${years(notice.retention.sosEvidenceDays)} year · SOS voice clips: deleted ${notice.retention.sosAudioDays ?? 5} days after recording once the SOS is closed (unless police keep them as evidence)`}</Text>
             <Text style={s.h}>{hi ? "आपके अधिकार" : "Your rights"}</Text>
             {notice.rights.map(r => <Text key={r} style={s.li}>• {r}</Text>)}
             <Text style={s.p}>{notice.sharing}</Text>

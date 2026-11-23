@@ -102,7 +102,7 @@ export function buildTenantConfig(dir: string, o: OnboardOptions): TenantConfig 
       south: Math.min(...lats) - 0.5, west: Math.min(...lngs) - 0.5, north: Math.max(...lats) + 0.5, east: Math.max(...lngs) + 0.5 },
     helplines: { emergency: "112", ambulance: "108", women: "1090", disaster: "1070" },
     grievanceOfficer: o.grievance,
-    retention: { complaintsDays: 1095, mediaDaysAfterClosure: 365, sosEvidenceDays: 365, needsLegalConfirmation: true },
+    retention: { complaintsDays: 1095, mediaDaysAfterClosure: 365, sosEvidenceDays: 365, needsLegalConfirmation: true, sosAudioDays: 5 },
     departments, categoryDepartment,
     categoryDepartmentLabel: Object.fromEntries(Object.entries(categoryDepartment).map(([c, d]) => [c, departments[d].name])),
     fallbackDepartment: o.fallbackDepartment ?? categoryDepartment.other,
