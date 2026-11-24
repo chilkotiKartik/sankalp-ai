@@ -158,6 +158,11 @@ export default function AnnouncementsScreen() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Announcement | null>(null);
+  // Real official updates (PIB, All India Radio) shown when departments have posted nothing yet — never invented.
+  const [official, setOfficial] = useState<{ id: string; title: string; summary?: string; link: string; publishedAt: string; source: string }[]>([]);
+  useEffect(() => {
+    fetch(`${getApiUrl()}api/public/news`).then(r => (r.ok ? r.json() : null)).then(d => setOfficial(Array.isArray(d?.items) ? d.items.slice(0, 20) : [])).catch(() => {});
+  }, []);
   const intervalRef = useRef<any>(null);
 
   const load = useCallback(async (silent = false) => {
@@ -349,6 +354,17 @@ export default function AnnouncementsScreen() {
           <ActivityIndicator size="large" color="#FF9933" />
           <Text style={styles.loadingTxt}>Fetching notices…</Text>
         </View>
+      ) : filtered.length === 0 && filter === "all" && official.length > 0 ? (
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+          <Text style={styles.offHead}>No department notices yet. Latest official government updates:</Text>
+          {official.map(n => (
+            <Pressable key={n.id} onPress={() => Linking.openURL(n.link)} style={styles.offCard} accessibilityRole="link" accessibilityLabel={`${n.source}: ${n.title}`}>
+              <Text style={styles.offTitle}>{n.title}</Text>
+              {n.summary ? <Text style={styles.offSummary} numberOfLines={3}>{n.summary}</Text> : null}
+              <Text style={styles.offMeta}>{n.source} · {new Date(n.publishedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · Read more ›</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       ) : filtered.length === 0 ? (
         <View style={styles.center}>
           <Text style={{ fontSize: 40, marginBottom: 12 }}>📢</Text>
@@ -427,6 +443,11 @@ const styles = StyleSheet.create({
   filterChipTxt: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#9CA3AF" },
   filterCount: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#FF9933", backgroundColor: "#FF993318", borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1, overflow: "hidden" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
+  offHead: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#4B5563", marginBottom: 10 },
+  offCard: { backgroundColor: "#FFFFFF", borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: "#E5E7EB" },
+  offTitle: { fontSize: 14.5, fontFamily: "Inter_700Bold", color: "#111827", lineHeight: 20 },
+  offSummary: { fontSize: 12.5, fontFamily: "Inter_400Regular", color: "#4B5563", marginTop: 6, lineHeight: 18 },
+  offMeta: { fontSize: 11, fontFamily: "Inter_500Medium", color: "#92400E", marginTop: 8 },
   loadingTxt: { marginTop: 12, fontSize: 13, fontFamily: "Inter_400Regular", color: "#4B5563" },
   emptyTitle: { fontSize: 17, fontFamily: "Inter_700Bold", color: "#374151", marginBottom: 8 },
   emptyBody: { fontSize: 13, fontFamily: "Inter_400Regular", color: "#374151", textAlign: "center", lineHeight: 20 },
