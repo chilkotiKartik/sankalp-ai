@@ -1,12 +1,14 @@
 import { openInMaps, openInMapsQuery } from "@/lib/maps";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { SHAKES_NEEDED, onShakeCount, shakeStatus, enableShakeOnTap, type ShakeStatus } from "@/lib/shake";
 import { openSosSms } from "@/lib/sos-fallback";
 import React, { useRef, useEffect, useState, useCallback, Component } from "react";
 import {
   View, Text, StyleSheet, Pressable, Animated, ScrollView,
   Modal, TextInput, Platform, ActivityIndicator, Alert, Vibration, Linking, AppState,
 } from "react-native";
-import * as FileSystem from "expo-file-system";
+// SDK 54: readAsStringAsync lives in the legacy entry; the main entry throws at runtime (voice clips never uploaded).
+import * as FileSystem from "expo-file-system/legacy";
 import { getDistrictCenter, stateName } from "@/constants/districts";
 
 class SOSErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: string }> {
@@ -47,7 +49,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
-import { Accelerometer } from "expo-sensors";
 import { Audio } from "expo-av";
 import * as Speech from "expo-speech";
 import * as Notifications from "expo-notifications";
@@ -214,8 +215,6 @@ function SOSScreenInner() {
   const appStateHistory = useRef<number[]>([]);
 
   // Shake detection
-  const lastAccel = useRef({ x: 0, y: 0, z: 0 });
-  const shakeTs = useRef<number[]>([]);
   // Ref to hold latest activateWomenSafety — avoids stale closure in accelerometer listener
   const activateWomenSafetyRef = useRef<(source: string) => void>(() => {});
   // Ref to control chunked audio loop
@@ -327,30 +326,18 @@ function SOSScreenInner() {
     };
   }, [policeStations, user]);
 
-  // ── ACCELEROMETER SHAKE ───────────────────────────────────────────────────
+  // ── SHAKE ─────────────────────────────────────────────────────────────────
+  // Detection lives in lib/shake.ts and runs on every tab (see app/(tabs)/_layout.tsx); it opens this screen with
+  // ?panic=shake. Here we show the live count and raise the women-safety SOS.
+  const [shakeState, setShakeState] = useState<ShakeStatus>(shakeStatus());
+  useEffect(() => onShakeCount(setShakeCount), []);
+  const params = useLocalSearchParams<{ panic?: string; at?: string }>();
   useEffect(() => {
-    if (Platform.OS === "web") return;
-    Accelerometer.setUpdateInterval(80);
-    const sub = Accelerometer.addListener(({ x, y, z }) => {
-      const last = lastAccel.current;
-      const delta = Math.abs(x - last.x) + Math.abs(y - last.y) + Math.abs(z - last.z);
-      lastAccel.current = { x, y, z };
-      if (delta > 2.5) {
-        const now = Date.now();
-        shakeTs.current = shakeTs.current.filter(t => now - t < 2000);
-        shakeTs.current.push(now);
-        setShakeCount(shakeTs.current.length);
-        // Auto-clear display after 2s of no new shakes
-        setTimeout(() => setShakeCount(c => Math.max(0, c - 1)), 2100);
-        if (shakeTs.current.length >= 4) {
-          shakeTs.current = [];
-          setShakeCount(0);
-          activateWomenSafetyRef.current("shake");
-        }
-      }
-    });
-    return () => sub.remove();
-  }, []);
+    if (params.panic !== "shake" || !params.at || Date.now() - Number(params.at) > 15000) return;
+    // Wait one tick: on a fresh open this effect runs before activateWomenSafetyRef is pointed at the real handler.
+    const t = setTimeout(() => activateWomenSafetyRef.current("shake"), 150);
+    return () => clearTimeout(t);
+  }, [params.panic, params.at]);
 
   // ── APPSTATE: detects rapid screen-off/on (iOS side button) ──────────────
   useEffect(() => {
@@ -850,6 +837,7 @@ function SOSScreenInner() {
       setTriggered(true);
       setShowModal(false);
       startLive(alert.id);
+      void startAudioRecording(alert.id); // 10-second voice clips for the control room (every SOS, not only women safety)
       // Voice confirmation
       try {
         Speech.speak(`${cat?.label || "Emergency"} SOS sent. Emergency services notified. Stay safe.`, {
@@ -1494,16 +1482,22 @@ function SOSScreenInner() {
                     <View style={s.shakeCircleOuter}>
                       <View style={[s.shakeCircleFill, { borderColor: shakeCount > 0 ? "#34D399" : "rgba(52,211,153,0.3)" }]}>
                         <Text style={s.shakeCircleNum}>{shakeCount}</Text>
-                        <Text style={s.tapCircleSub}>of 3</Text>
+                        <Text style={s.tapCircleSub}>of {SHAKES_NEEDED}</Text>
                       </View>
                     </View>
                     <View style={s.bigPipRow}>
-                      {Array.from({ length: 3 }).map((_, i) => (
+                      {Array.from({ length: SHAKES_NEEDED }).map((_, i) => (
                         <View key={i} style={[s.bigPip, s.bigPipShakeBase, i < shakeCount && s.bigPipActiveShake]} />
                       ))}
                     </View>
-                    <Text style={s.bigMethodTitle}>SHAKE 3×</Text>
-                    <Text style={s.bigMethodSub}>Shake your phone</Text>
+                    <Text style={s.bigMethodTitle}>SHAKE {SHAKES_NEEDED}×</Text>
+                    {shakeState === "needs_tap" ? (
+                      <Pressable onPress={async () => { if (await enableShakeOnTap()) setShakeState("on"); }} accessibilityRole="button" accessibilityLabel="Turn on shake SOS">
+                        <Text style={[s.bigMethodSub, { color: "#34D399", textDecorationLine: "underline" }]}>Tap to turn on</Text>
+                      </Pressable>
+                    ) : (
+                      <Text style={s.bigMethodSub}>{shakeState === "unsupported" ? "Not available here" : "Shake hard, any screen"}</Text>
+                    )}
                   </View>
                 </View>
               </>

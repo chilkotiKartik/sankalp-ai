@@ -1,6 +1,7 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
+import { onShakeSOS } from "@/lib/shake";
 import { Ionicons } from "@expo/vector-icons";
 import { useApp } from "@/context/AppContext";
 import { useI18n } from "@/lib/i18n";
@@ -10,6 +11,8 @@ export default function TabLayout() {
   const { getStats } = useApp();
   const stats = getStats();
   const isWeb = Platform.OS === "web";
+  // Shake-to-SOS works on every tab: shaking opens the SOS screen, which raises the women-safety SOS (panic=shake).
+  useEffect(() => onShakeSOS(() => router.navigate({ pathname: "/sos", params: { panic: "shake", at: String(Date.now()) } })), []);
 
   return (
     <Tabs
