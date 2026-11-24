@@ -66,15 +66,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;displa
 .fab-sos:hover{background:#991B1B;box-shadow:0 6px 28px rgba(239,68,68,.7)}
 .fab-loc{top:14px;right:14px;background:var(--panel);color:#93C5FD;border:1px solid #1E3A5F;border-radius:10px;padding:8px 13px;font-size:12px}
 .fab-loc.on{background:#1E3A5F;border-color:var(--blue);color:#60A5FA}
-.fab-night{bottom:110px;left:14px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);color:#C4B5FD;border-radius:10px;padding:8px 13px;font-size:11px}
-.fab-night:hover{background:rgba(139,92,246,.3)}
+.fab-night{top:114px;right:14px;background:#2E1065;border:1px solid rgba(139,92,246,.35);color:#C4B5FD;border-radius:10px;padding:8px 13px;font-size:11px}
+.fab-night:hover{background:#4C1D95}
 .fab-sosheat-wrap{top:64px;right:14px;display:flex;gap:6px;align-items:center;background:transparent;padding:0;border:none}
-.fab-sosheat{background:rgba(220,38,38,.14);border:1px solid rgba(220,38,38,.45);color:#FCA5A5;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer}
-.fab-sosheat.on{background:rgba(220,38,38,.3);color:#fff}
+.fab-sosheat{background:#450A0A;border:1px solid rgba(220,38,38,.45);color:#FCA5A5;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer}
+.fab-sosheat.on{background:#991B1B;color:#fff}
 .heat-days{background:#0F172A;color:#E2E8F0;border:1px solid #334155;border-radius:8px;padding:6px;font-size:12px}
 .heat-total{background:#0F172A;color:#FCA5A5;border:1px solid #334155;border-radius:8px;padding:6px 8px;font-size:11px}
-.fab-heat{bottom:70px;left:14px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);color:#FCD34D;border-radius:10px;padding:8px 13px;font-size:11px}
-.fab-heat:hover{background:rgba(245,158,11,.25)}
+.fab-heat{top:160px;right:14px;background:#451A03;border:1px solid rgba(245,158,11,.35);color:#FCD34D;border-radius:10px;padding:8px 13px;font-size:11px}
+.fab-heat:hover{background:#78350F}
 .fab-heat.on{background:rgba(245,158,11,.25);border-color:var(--yellow)}
 .heat-legend{position:absolute;bottom:14px;right:14px;background:rgba(11,17,32,.95);border:1px solid var(--border);border-radius:10px;padding:10px 12px;z-index:1000;font-size:10px;display:flex;flex-direction:column;gap:4px;min-width:130px}
 .heat-leg-row{display:flex;align-items:center;gap:6px;color:var(--muted)}
@@ -937,7 +937,8 @@ function PCRPortal(){
                   </div>;
                 })()}
 
-                {filtered.inc.map(inc=>{
+                {/* Live cases first, then safe/closed ones (newest first within each group). */}
+                {[...activeIncs,...filtered.inc.filter(i=>i.status==="safe"||i.status==="closed")].map(inc=>{
                   const isWomen=inc.emergencyType==="women_safety"||inc.category==="women_safety";
                   const isActive=inc.status!=="safe"&&inc.status!=="closed";
                   const incChunks=audioChunks[inc.id]||[];
