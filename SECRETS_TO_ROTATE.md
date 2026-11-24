@@ -8,3 +8,4 @@
 | Seeded CPR officer phone numbers | `server/storage.ts` PATROL_VANS_SEED | Real-looking numbers; replaced with placeholders in demo seed. |
 | Live department access codes (all states: police, pwd, ulb, water, power, forest, health, usdma) | Pasted into an AI chat on 2026-11-23 (not in git) | Rotate on the server: `bash /root/sankalp-ai/deploy/rotate-dept-codes.sh` (rotates every state, signs out old sessions, prints no codes). |
 | `SARVAM_API_KEY` | Pasted into an AI chat on 2026-11-23 (kept only in the git-ignored `.env`) | Create a new key on the Sarvam dashboard, delete the old one, then `set-keys.sh sarvam <new key>` on the server and update the local `.env`. |
+- Bootstrap admin PIN shown in the chat on 2026-11-24 (never became active). Use `deploy/make-admin.sh` for a fresh PIN.

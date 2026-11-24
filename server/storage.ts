@@ -231,6 +231,24 @@ export class AppStorage {
 
   getUserById(id: string): AppUser | undefined { return this.s.users.find(u => u.id === id); }
 
+  /** Owner-run admin setup (deploy/make-admin.sh): create a state administrator, or promote the existing account
+   *  with this phone, and set a new PIN. Earlier sessions of that account are signed out. */
+  async makeAdmin(phone: string, pin: string): Promise<"created" | "promoted"> {
+    const hash = await bcrypt.hash(pin, 12);
+    const u = this.s.users.find(x => x.phone === phone);
+    if (!u) {
+      await this.createUser({ name: "State Administrator", phone, pin: hash, role: "super_admin", district: tenant().stateLabel, points: 0, badges: ["super_admin"], level: 1 });
+      return "created";
+    }
+    u.role = "super_admin";
+    u.pin = hash;
+    u.district = tenant().stateLabel;
+    if (!u.badges.includes("super_admin")) u.badges = [...u.badges, "super_admin"];
+    this.s.tokens = this.s.tokens.filter(t => t.userId !== u.id);
+    this.touch();
+    return "promoted";
+  }
+
   /** M15: replace a legacy/plaintext PIN with a bcrypt hash. */
   async setPinHash(userId: string, pin: string) {
     const u = this.getUserById(userId);

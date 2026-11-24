@@ -30,6 +30,18 @@ async function main() {
   const rotateAll = fs.existsSync(rotateMarker);
   if (rotateAll) logger.warn("dept_codes_rotation_requested", { action: "Rotating all department codes in every state" });
 
+  // Owner-run admin setup (deploy/make-admin.sh places this 0600 marker: "<state-id>\t<phone>\t<pin>" per line).
+  const adminMarker = path.join(path.resolve(c.DATA_DIR), ".make-admin");
+  const adminResult = adminMarker + ".result";
+  const adminWanted = new Map<string, { phone: string; pin: string }>();
+  if (fs.existsSync(adminMarker)) {
+    for (const line of fs.readFileSync(adminMarker, "utf8").split("\n")) {
+      const [id, phone, pin] = line.trim().split("\t");
+      if (id && /^\d{10}$/.test(phone ?? "") && /^\d{6}$/.test(pin ?? "") && tenantIds().includes(id)) adminWanted.set(id, { phone, pin });
+    }
+    fs.writeFileSync(adminResult, "", { mode: 0o600 });
+  }
+
   /** Per-tenant boot work: demo purge, department codes (bcrypt), optional first administrator. */
   const prepareTenant = (id: string) => runInTenant(id, async () => {
     const s = storeFor(id);
@@ -53,6 +65,13 @@ async function main() {
       await s.createUser({ name: "State Administrator", phone, pin: await bcrypt.hash(pin, 12), role: "super_admin", district: tenant().stateLabel, points: 0, badges: ["super_admin"], level: 1 });
       logger.warn("bootstrap_super_admin_created", { tenant: id, action: `Unset BOOTSTRAP_SUPER_ADMIN_PIN${sfx} now` });
     }
+    const want = adminWanted.get(id);
+    if (want) {
+      const how = await s.makeAdmin(want.phone, want.pin);
+      fs.appendFileSync(adminResult, `${id}\t${how}\n`);
+      logger.warn("state_admin_ready", { tenant: id, how }); // never the phone or PIN
+      adminWanted.delete(id);
+    }
   });
 
   // P9: states with full data are ready before we listen; state-level states are prepared right after, in the background.
@@ -68,6 +87,7 @@ async function main() {
   server.listen({ port: c.PORT, host: process.env.HOST || "0.0.0.0" }, () => {
     void (async () => {
       for (const id of later) { try { await prepareTenant(id); } catch (err) { logger.error("tenant_prepare_failed", { tenant: id, err: (err as Error).message }); } }
+      if (fs.existsSync(adminMarker)) { try { fs.unlinkSync(adminMarker); } catch { /* already gone */ } }
       if (rotateAll) { try { fs.unlinkSync(rotateMarker); } catch { /* already gone */ } logger.warn("dept_codes_rotation_done", { states: full.length + later.length }); }
     })();
     logger.info("listening", { port: c.PORT, demoMode: c.DEMO_MODE, textAI: c.textProvider, visionAI: c.visionProvider, env: c.NODE_ENV });
