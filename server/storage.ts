@@ -1411,6 +1411,12 @@ export class AppStorage {
     const prev = inc.status;
     inc.status = status;
     inc.updates.push({ time: now(), message, actor });
+    // Police marking the person safe also closes the SOS itself, so the citizen's app stops showing it as open
+    // and their next SOS is a fresh alert (not merged into this one).
+    if ((status === "safe" || status === "closed") && inc.sosId) {
+      const a = this.getSOSAlert(inc.sosId);
+      if (a && a.status !== "resolved" && a.status !== "cancelled") this.resolveSos(a.id);
+    }
     if ((status === "safe" || status === "closed") && inc.assignedPatrolVan) {
       const van = this.s.patrolVans.find(v => v.vanNumber === inc.assignedPatrolVan);
       if (van?.status === "responding") van.status = "active_patrol";
