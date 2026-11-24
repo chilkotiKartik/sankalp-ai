@@ -11,7 +11,8 @@ import { Slot, router, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { View, StyleSheet, Animated, Text, Pressable, Platform } from "react-native";
+import { View, StyleSheet, Animated, Text, Pressable, Platform, Linking } from "react-native";
+import { reloadAppAsync } from "expo";
 
 // KeyboardProvider requires native code unavailable in Expo Go — use a safe fallback
 let KeyboardProvider: React.ComponentType<{ children: React.ReactNode }>;
@@ -78,13 +79,32 @@ function AuthGate() {
     }
   }, [user, isLoading, segments, tenantReady, tenantId]);
 
-  if (isLoading || !tenantReady) {
+  // Startup: the logo stays visible until the app is ready (it used to fade to nothing while a slow phone
+  // connection was still loading — a black screen). A slow start says so and offers Try again / Call 112.
+  const [slow, setSlow] = useState(0);
+  const loading = isLoading || !tenantReady;
+  useEffect(() => {
+    if (!loading) return;
+    const a = setTimeout(() => setSlow(1), 5000), b = setTimeout(() => setSlow(2), 12000);
+    return () => { clearTimeout(a); clearTimeout(b); };
+  }, [loading]);
+  void fadeOut;
+
+  if (loading) {
     return (
-      <Animated.View style={[styles.splash, { opacity: fadeOut }]}>
-        <LogoAnimation size="lg" showText onAnimationEnd={() => {
-          Animated.timing(fadeOut, { toValue: 0, duration: 400, delay: 800, useNativeDriver: true }).start();
-        }} />
-      </Animated.View>
+      <View style={styles.splash}>
+        <LogoAnimation size="lg" showText />
+        {slow >= 1 ? <Text style={styles.splashMsg}>Connecting to SANKALP…</Text> : null}
+        {slow >= 2 ? (
+          <View style={{ alignItems: "center", gap: 10, marginTop: 14 }}>
+            <Text style={styles.splashSub}>Slow connection. Check mobile data or Wi-Fi.</Text>
+            <Pressable onPress={() => { reloadAppAsync().catch(() => { if (Platform.OS === "web") (globalThis as unknown as { location: Location }).location.reload(); }); }}
+              style={styles.splashBtn} accessibilityRole="button"><Text style={styles.splashBtnText}>Try again</Text></Pressable>
+            <Pressable onPress={() => Linking.openURL("tel:112")} style={[styles.splashBtn, { backgroundColor: "#B91C1C" }]} accessibilityRole="button" accessibilityLabel="Emergency: call 112">
+              <Text style={styles.splashBtnText}>Emergency? Call 112</Text></Pressable>
+          </View>
+        ) : null}
+      </View>
     );
   }
 
@@ -222,6 +242,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  splashMsg: { color: "#E5E7EB", fontSize: 14, fontFamily: "Inter_500Medium", marginTop: 18 },
+  splashSub: { color: "#9CA3AF", fontSize: 12.5, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 24 },
+  splashBtn: { backgroundColor: "#C2410C", paddingHorizontal: 22, paddingVertical: 11, borderRadius: 12, minWidth: 220, alignItems: "center" },
+  splashBtnText: { color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" },
   emergencyBuzzer: {
     position: "absolute",
     left: 16,

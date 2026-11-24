@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { AppState } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiUrl, queryClient } from "@/lib/query-client";
@@ -50,7 +51,7 @@ const CFG_KEY = "sankalp_state_cfg_";
 
 async function getJson<T>(path: string, tenantId?: string | null): Promise<T> {
   const url = new URL(path, getApiUrl()).toString();
-  const res = await fetch(url, { headers: tenantId ? { "X-Tenant": tenantId } : {} });
+  const res = await fetchWithTimeout(url, { headers: tenantId ? { "X-Tenant": tenantId } : {} });
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json() as Promise<T>;
 }

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { getTenantId, loadTenantId } from "@/lib/tenant";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState } from "react-native";
@@ -47,7 +48,7 @@ const REFRESH_EVERY_MS = 12 * 60 * 1000;
 interface SessionPayload { user: AuthUser; token: string; refreshToken?: string }
 
 async function postJson(path: string, body: unknown, token?: string | null): Promise<Response> {
-  return fetch(new URL(path, getApiUrl()).toString(), {
+  return fetchWithTimeout(new URL(path, getApiUrl()).toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify(body),
@@ -108,12 +109,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (storedToken && storedUser) {
           try {
             let active = storedToken;
-            let res = await fetch(new URL("/api/auth/me", getApiUrl()).toString(), { headers: { Authorization: `Bearer ${active}` } });
+            let res = await fetchWithTimeout(new URL("/api/auth/me", getApiUrl()).toString(), { headers: { Authorization: `Bearer ${active}` } });
             if (res.status === 401) {
               const renewed = await refreshSession();
               if (renewed) {
                 active = renewed;
-                res = await fetch(new URL("/api/auth/me", getApiUrl()).toString(), { headers: { Authorization: `Bearer ${active}` } });
+                res = await fetchWithTimeout(new URL("/api/auth/me", getApiUrl()).toString(), { headers: { Authorization: `Bearer ${active}` } });
               }
             }
             if (res.ok) {
