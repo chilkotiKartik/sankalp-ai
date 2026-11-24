@@ -116,3 +116,6 @@ The old rules gave +10 just for filing and +1 for each upvote, which rewards spa
 - **Budget:** officials (state, or district admin for their own district) publish budget lines that must cite an official https `.gov.in` / `.nic.in` source. Unsourced lines are hidden outside demo mode and count as demo data.
 - **Rewards:** a coin animation and toast show only when the points ledger really grew. The leaderboard adds "This month" (ledger points earned this month) and a district filter.
 
+
+## D-062 — Event demo runs as a separate copy, never on the real site
+The live site stays real: empty sections fill only as citizens use it. For events and training, `deploy/demo-site.sh <host>` runs a second copy on the same server (own data folder, own secrets, port 5001 bound to localhost, `DEMO_MODE=true`, no SMS/WhatsApp keys, no shared database), seeded by `scripts/seed-demo.ts` with every record flagged demo and the "DEMO · simulated data" badge on every screen. It is served over HTTPS at a separate address (an sslip.io name needs no DNS change). Re-running resets it; `--remove` deletes it. Demo data never mixes with real data.

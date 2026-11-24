@@ -644,7 +644,7 @@ export default function DashboardScreen() {
             </View>
             <View style={styles.activityStats}>
               {(() => {
-                const myC = complaints.filter(c => c.submittedByPhone === user?.phone);
+                const myC = complaints.filter(c => c.isMine || (!!user?.phone && c.submittedByPhone === user.phone));
                 const myR = myC.filter(c => c.status === "resolved");
                 const myP = myC.filter(c => c.status === "pending" || c.status === "in_progress");
                 return [

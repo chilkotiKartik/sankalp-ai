@@ -74,6 +74,8 @@ export const SOS_META: Record<string, { icon: string; color: string; label: stri
 
 export interface Complaint {
   id: string;
+  /** Set by the server for the signed-in citizen (phone numbers are not sent to citizens). */
+  isMine?: boolean;
   ticketId: string;
   category: string;
   description: string;

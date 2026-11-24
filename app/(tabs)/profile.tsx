@@ -68,7 +68,7 @@ export default function ProfileScreen() {
     setShowLangModal(false);
   };
 
-  const myComplaints = complaints.filter(c => c.submittedByPhone === user?.phone).slice(0, 5);
+  const myComplaints = complaints.filter(c => c.isMine || (!!user?.phone && c.submittedByPhone === user.phone)).slice(0, 5);
   const points = user?.points || 0;
   const lp = levelProgress(points);
   const level = lp.level;

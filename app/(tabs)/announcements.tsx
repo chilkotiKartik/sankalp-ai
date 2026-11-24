@@ -163,7 +163,7 @@ export default function AnnouncementsScreen() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await fetch(`${getApiUrl()}/api/announcements`, {
+      const res = await fetch(`${getApiUrl()}api/announcements`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {

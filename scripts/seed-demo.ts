@@ -41,21 +41,21 @@ async function main() {
   // Complaints moved through the REAL state machine, so every state is reachable and consistent.
   const cats = Object.keys(COMPLAINT_DESCS) as ComplaintCategory[];
   for (let i = 0; i < 140; i++) {
-    const ward = pick(WARDS_DATA);
+    const ward = i < 6 ? (WARDS_DATA.find(w => w.district === "Dehradun") ?? pick(WARDS_DATA)) : pick(WARDS_DATA);
     const owner = i < 6 ? citizen : pick(others);
     const category = pick(cats);
     const geo = { lat: +(ward.center.lat + (Math.random() - 0.5) * 0.04).toFixed(5), lng: +(ward.center.lng + (Math.random() - 0.5) * 0.04).toFixed(5) };
-    const priority: Priority = pick(["P1", "P2", "P2", "P3", "P3", "P3", "P4"] as const);
+    const priority: Priority = pick(["P1", "P2", "P2", "P3", "P3", "P3", "P3", "P4", "P4", "P4"] as const);
     const cmp = storage.createComplaint({ category, description: pick(COMPLAINT_DESCS[category]), location: `${pick(LOCATIONS_PREFIX)}, ${ward.name}`,
       geo, ward: ward.name, wardNumber: ward.number, district: ward.district, priority, isDemo: true,
       aiRouting: { method: "rules:category→department", department: getDeptIdForCategory(category), confidence: 0.6, reason: "demo seed" }, photoReview: "not_required" }, owner);
     const hoursBack = randomInt(1, 24 * 40);
     cmp.submittedAt = new Date(Date.now() - hoursBack * 3600000).toISOString();
     const roll = Math.random();
-    if (roll > 0.25) storage.startWork(cmp.id, "officer", admin.id);
-    if (roll > 0.5) storage.submitProof(cmp.id, { photoUrl: "/assets/images/icon.png", note: "Demo proof" }, "officer", admin.id);
-    if (roll > 0.65) storage.citizenConfirm(cmp.id, cmp.userId!, randomInt(3, 6), "Demo confirmation");
-    else if (roll > 0.6) storage.citizenReject(cmp.id, cmp.userId!, "Demo rejection");
+    if (roll > 0.12) storage.startWork(cmp.id, "officer", admin.id);
+    if (roll > 0.25) storage.submitProof(cmp.id, { photoUrl: "/assets/images/icon.png", note: "Demo proof" }, "officer", admin.id);
+    if (roll > 0.38) storage.citizenConfirm(cmp.id, cmp.userId!, randomInt(3, 6), "Demo confirmation");
+    else if (roll > 0.33) storage.citizenReject(cmp.id, cmp.userId!, "Demo rejection");
     if (cmp.resolvedAt) cmp.resolvedAt = new Date(new Date(cmp.submittedAt).getTime() + randomInt(4, 96) * 3600000).toISOString();
     cmp.upvotes = randomInt(0, 40);
   }
@@ -85,6 +85,26 @@ async function main() {
       allocated: Math.round(b.allocated * scale.alloc), spent: Math.round(b.spent * scale.spent) });
   }
   demoRTIs().forEach(r => storage.s.rtis.push({ ...r, id: `demo-rti-${r.ticketId}`, filedByPhone: citizen.phone, filedBy: citizen.name }));
+
+  // Police control room: a few demo SOS cases at different stages (active, responding, safe), all flagged demo.
+  const sosPlaces = WARDS_DATA.filter(w => w.district === "Dehradun").slice(0, 6);
+  sosPlaces.forEach((ward, i) => {
+    const who = others[i % others.length];
+    const women = i % 2 === 0;
+    const g = { lat: +(ward.center.lat + i * 0.002).toFixed(5), lng: +(ward.center.lng - i * 0.002).toFixed(5) };
+    const { alert } = storage.createSos({
+      category: women ? "women_safety" : (["medical", "accident", "fire"] as const)[i % 3],
+      description: women ? "PANIC SOS — Women Safety Emergency (demo)" : "Emergency reported via SANKALP AI (demo)",
+      location: `${pick(LOCATIONS_PREFIX)}, ${ward.name}`, geo: g, ward: ward.name, wardNumber: ward.number, district: "Dehradun",
+      status: "active", triggeredBy: who.name, triggeredByPhone: who.phone, isWomenSafety: women, isDemo: true,
+    } as Parameters<typeof storage.createSos>[0], who.id);
+    alert.triggeredAt = new Date(Date.now() - (i * 17 + 3) * 60000).toISOString();
+    const inc = storage.createSafetyIncident({ citizenName: who.name, citizenId: who.id, district: "Dehradun", location: alert.location, lat: g.lat, lng: g.lng, sosId: alert.id });
+    (inc as { isDemo?: boolean }).isDemo = true;
+    alert.cprRequestId = inc.id;
+    if (i >= 4) storage.updateIncidentStatus(inc.id, "safe", "Officer confirmed the person is safe (demo)", "PCR");
+    else if (i >= 2) storage.updateIncidentStatus(inc.id, "police_responding", "Patrol on the way (demo)", "PCR");
+  });
 
   const codes = await storage.ensureDeptCodes();
   storage.touch();
