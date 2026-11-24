@@ -37,7 +37,8 @@ const loc = (g: { lat: number; lng: number }) => `GPS: ${g.lat.toFixed(4)}, ${g.
 function alertStaff(a: SOSAlert, kind: "women_safety_sos" | "forest_fire_sos" | "sos_new") {
   const payload = { type: kind, alert: a, district: a.district, timestamp: new Date().toISOString() };
   cprEmitter.emit("event", { ...payload, type: "sos_new" });
-  const depts = a.category === "forest_fire" ? ["forest", "usdma"] : a.category === "women_safety" ? ["police", "usdma"] : ["usdma"];
+  // Police get every SOS except forest fires (forest department + disaster management handle those).
+  const depts = a.category === "forest_fire" ? ["forest", "usdma"] : ["police", "usdma"];
   for (const departmentId of depts) deptEmitter.emit("event", { type: "sos_alert", departmentId, alert: a, priority: "HIGH" });
   // M17: no name, phone or location in the push body.
   void sendPush(storage.adminPushTokensForDistrict(a.district), { kind: "sos", id: a.id, ref: `SOS-${a.id.slice(0, 6).toUpperCase()}` }, { urgent: true });
@@ -82,7 +83,13 @@ export function registerSosRoutes(app: Express) {
         nearestPoliceStation: near?.name, nearestPolicePhone: near?.phone, policeDistance: near?.distance, isWomenSafety: body.category === "women_safety",
         notifiedStations: near ? [{ name: near.name, phone: near.phone, distance: near.distance, address: near.address }] : undefined,
       }, user.id);
-      if (!deduplicated) { alertStaff(alert, "sos_new"); startContactDeliveries(alert, user); }
+      if (!deduplicated) {
+        alertStaff(alert, "sos_new");
+        startContactDeliveries(alert, user);
+        // Every SOS (not only women safety) opens a police control-room case: live map, voice clips, "Mark Safe".
+        const inc = storage.createSafetyIncident({ citizenName: user.name, citizenId: user.id, district: user.district, location: alert.location, lat: g.lat, lng: g.lng, sosId: alert.id, emergencyType: body.category });
+        alert.cprRequestId = inc.id;
+      }
       res.status(deduplicated ? 200 : 201);
       return { ...alert, deduplicated };
     },
@@ -108,7 +115,7 @@ export function registerSosRoutes(app: Express) {
       if (!deduplicated) {
         alertStaff(alert, "women_safety_sos");
         startContactDeliveries(alert, user);
-        cprIncident = storage.createSafetyIncident({ citizenName: user.name, citizenId: user.id, district: user.district, location: alert.location, lat: g.lat, lng: g.lng, sosId: alert.id });
+        cprIncident = storage.createSafetyIncident({ citizenName: user.name, citizenId: user.id, district: user.district, location: alert.location, lat: g.lat, lng: g.lng, sosId: alert.id, emergencyType: "women_safety" });
         alert.cprRequestId = cprIncident.id;
       }
       res.status(deduplicated ? 200 : 201);

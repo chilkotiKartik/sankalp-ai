@@ -1389,11 +1389,11 @@ export class AppStorage {
     return list.sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
   }
 
-  createSafetyIncident(data: { citizenName: string; citizenId?: string; district: string; location: string; lat: number; lng: number; sosId?: string }): SafetyIncident {
+  createSafetyIncident(data: { citizenName: string; citizenId?: string; district: string; location: string; lat: number; lng: number; sosId?: string; emergencyType?: string }): SafetyIncident {
     const van = this.s.patrolVans.find(v => v.status === "active_patrol" && v.district === data.district);
     const incident: SafetyIncident = {
       ...demoFlag(),
-      id: genId(), sosId: data.sosId, citizenName: data.citizenName, citizenId: data.citizenId, district: data.district, location: data.location,
+      id: genId(), sosId: data.sosId, emergencyType: data.emergencyType, citizenName: data.citizenName, citizenId: data.citizenId, district: data.district, location: data.location,
       geo: { lat: data.lat, lng: data.lng }, status: van ? "patrol_dispatched" : "active", reportedAt: now(), escalationLevel: 1,
       assignedPatrolVan: van?.vanNumber, assignedPatrolOfficer: van?.officerInCharge, assignedPatrolPhone: van?.officerPhone,
       updates: [{ time: now(), message: `SOS received at ${data.location}`, actor: "SYSTEM" }],

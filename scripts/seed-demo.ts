@@ -13,7 +13,7 @@ import { storage, getDeptIdForCategory, type ComplaintCategory, type AppUser, ty
 import { saveSnapshot, snapshotPath } from "../server/persistence";
 import { WARDS_DATA } from "../server/data/reference";
 import {
-  WORKER_NAMES, COMPLAINT_DESCS, LOCATIONS_PREFIX, PATROL_VANS_SEED, demoAnnouncements, demoPolls, demoPetitions, demoEvents,
+  WORKER_NAMES, COMPLAINT_DESCS, LOCATIONS_PREFIX, demoAnnouncements, demoPolls, demoPetitions, demoEvents,
   DEMO_BUDGET, DEMO_BUDGET_SCALE, demoRTIs,
 } from "../server/demo/content";
 
@@ -75,7 +75,6 @@ async function main() {
   });
   storage.reportWorkerLocation(worker, { lat: 30.3255, lng: 78.0437 }, "active", "Pothole repair, Rajpur Road");
 
-  storage.s.patrolVans = PATROL_VANS_SEED.map(v => ({ ...v }));
   demoAnnouncements().forEach(a => storage.createAnnouncement({ ...a, title: `${a.title}`, postedBy: `${a.postedBy} (Demo)` }));
   demoPolls().forEach(p => storage.createPoll(p));
   demoPetitions().forEach(p => storage.createPetition(p));
@@ -85,26 +84,6 @@ async function main() {
       allocated: Math.round(b.allocated * scale.alloc), spent: Math.round(b.spent * scale.spent) });
   }
   demoRTIs().forEach(r => storage.s.rtis.push({ ...r, id: `demo-rti-${r.ticketId}`, filedByPhone: citizen.phone, filedBy: citizen.name }));
-
-  // Police control room: a few demo SOS cases at different stages (active, responding, safe), all flagged demo.
-  const sosPlaces = WARDS_DATA.filter(w => w.district === "Dehradun").slice(0, 6);
-  sosPlaces.forEach((ward, i) => {
-    const who = others[i % others.length];
-    const women = i % 2 === 0;
-    const g = { lat: +(ward.center.lat + i * 0.002).toFixed(5), lng: +(ward.center.lng - i * 0.002).toFixed(5) };
-    const { alert } = storage.createSos({
-      category: women ? "women_safety" : (["medical", "accident", "fire"] as const)[i % 3],
-      description: women ? "PANIC SOS — Women Safety Emergency (demo)" : "Emergency reported via SANKALP AI (demo)",
-      location: `${pick(LOCATIONS_PREFIX)}, ${ward.name}`, geo: g, ward: ward.name, wardNumber: ward.number, district: "Dehradun",
-      status: "active", triggeredBy: who.name, triggeredByPhone: who.phone, isWomenSafety: women, isDemo: true,
-    } as Parameters<typeof storage.createSos>[0], who.id);
-    alert.triggeredAt = new Date(Date.now() - (i * 17 + 3) * 60000).toISOString();
-    const inc = storage.createSafetyIncident({ citizenName: who.name, citizenId: who.id, district: "Dehradun", location: alert.location, lat: g.lat, lng: g.lng, sosId: alert.id });
-    (inc as { isDemo?: boolean }).isDemo = true;
-    alert.cprRequestId = inc.id;
-    if (i >= 4) storage.updateIncidentStatus(inc.id, "safe", "Officer confirmed the person is safe (demo)", "PCR");
-    else if (i >= 2) storage.updateIncidentStatus(inc.id, "police_responding", "Patrol on the way (demo)", "PCR");
-  });
 
   const codes = await storage.ensureDeptCodes();
   storage.touch();

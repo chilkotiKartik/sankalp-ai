@@ -36,3 +36,26 @@ describe("ending an SOS", () => {
     expect(storage.getSOSAlert(r.body.alert.id)?.status).toBe("resolved");
   });
 });
+
+describe("every SOS reaches the police control room", () => {
+  it.each(["medical", "road_accident", "fire_risk", "gas_leak", "women_safety"] as const)("%s SOS opens a police case, alerts police, follows location, ends with PIN", async category => {
+    const { cprEmitter, deptEmitter } = await import("../server/storage");
+    const cpr: Array<{ type: string; incident?: { emergencyType?: string } }> = [];
+    const dept: Array<{ type: string; departmentId?: string }> = [];
+    const onC = (e: (typeof cpr)[number]) => cpr.push(e); const onD = (e: (typeof dept)[number]) => dept.push(e);
+    cprEmitter.on("event", onC); deptEmitter.on("event", onD);
+    try {
+      const { token, pin } = await makeUser("citizen");
+      const r = await request(app()).post("/api/sos").set(auth(token)).send({ category, geo: { lat: 30.3165, lng: 78.0322 }, location: "GPS: 30.3165, 78.0322" });
+      expect(r.status).toBe(201);
+      const inc = storage.s.safetyIncidents.find(i => i.sosId === r.body.id);
+      expect(inc?.emergencyType).toBe(category);
+      expect(cpr.some(e => e.type === "safety_incident_new" && e.incident?.emergencyType === category)).toBe(true);
+      expect(dept.some(e => e.type === "sos_alert" && e.departmentId === "police")).toBe(true);
+      expect((await request(app()).put(`/api/sos/${r.body.id}/location`).set(auth(token)).send({ lat: 30.32, lng: 78.04 })).status).toBe(200);
+      expect(storage.s.safetyIncidents.find(i => i.sosId === r.body.id)?.geo).toEqual({ lat: 30.32, lng: 78.04 });
+      expect((await request(app()).put(`/api/sos/${r.body.id}/cancel`).set(auth(token)).send({ pin })).status).toBe(200);
+      expect(storage.s.safetyIncidents.find(i => i.sosId === r.body.id)?.status).toBe("safe");
+    } finally { cprEmitter.off("event", onC); deptEmitter.off("event", onD); }
+  });
+});

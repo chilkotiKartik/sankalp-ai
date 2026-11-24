@@ -118,4 +118,5 @@ The old rules gave +10 just for filing and +1 for each upvote, which rewards spa
 
 
 ## D-062 — Event demo: demo data ON the live site, added next to real data, removed with one command
+No demo SOS cases or patrol vans are ever added: everything on the police screens is real.
 The owner wants the live site itself to look full at events, not a separate site. Rule 3 allows simulated data only with DEMO_MODE=true and a visible badge, so: `deploy/demo-mode.sh on [states]` sets DEMO_MODE=true and the server ADDS demo records to the listed states at boot (`server/demo/seed.ts`; never resets, never touches real records). Every screen shows the "DEMO · simulated data" badge. Uttarakhand uses the written demo content; other states get neutral text built from their own districts. `deploy/demo-mode.sh off` sets DEMO_MODE=false and the existing boot purge removes every demo-flagged record. Consequence, stated in the script: anything created while demo mode is on (visitor reports, SOS, sign-ups) is demo and is removed by "off"; the administrator made by make-admin.sh is explicitly kept (isDemo cleared). Real SOS still reaches the police control room while demo is on.

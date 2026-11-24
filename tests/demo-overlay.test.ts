@@ -24,7 +24,8 @@ describe("demo overlay on the live site", () => {
     await addDemoData(storage, "246810");
     expect(storage.getComplaints().length).toBeGreaterThan(realComplaints + 50);
     expect(storage.getComplaints().filter(c => c.state === "CLOSED" && c.isDemo).length).toBeGreaterThan(30);
-    expect(storage.getSafetyIncidents().length).toBeGreaterThanOrEqual(6);
+    expect(storage.getSafetyIncidents().length).toBe(0); // never demo SOS (owner decision)
+    expect(storage.getSosAlerts().filter(a => a.isDemo).length).toBe(0);
     setConfig(base);
     storage.purgeDemo();
     expect(storage.hasDemoData()).toBe(false);

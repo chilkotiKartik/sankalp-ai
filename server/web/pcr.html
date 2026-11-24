@@ -98,6 +98,12 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;displa
 .inc-card.sel{border-color:var(--red)}
 .inc-card.women{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.05)}
 .inc-card.women:hover{border-color:#8B5CF6}
+/* Live cases glow; a case that just arrived flashes for 30 s so nobody misses it (no refresh needed). */
+.inc-card.live{animation:slideIn .25s ease,glow 1.6s ease-in-out infinite}
+.inc-card.fresh{animation:bounceIn .5s ease,sosPulse 1s ease-in-out infinite;border-color:#EF4444}
+.inc-card.fresh.women{animation:bounceIn .5s ease,womenSosPulse 1s ease-in-out infinite;border-color:#8B5CF6}
+.new-chip{font-size:9px;font-weight:900;color:#fff;background:#DC2626;padding:1px 7px;border-radius:8px;animation:pulse .8s infinite;letter-spacing:.06em}
+.type-chip{font-size:9px;font-weight:800;color:#FCA5A5;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.35);padding:1px 7px;border-radius:8px}
 .pat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:7px;animation:slideIn .25s ease}
 .dept-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;transition:all .15s}
 .dept-card:hover{border-color:#484f5a}
@@ -153,6 +159,8 @@ const {useState,useEffect,useRef,useCallback,useMemo}=React;
 const API=window.location.origin;
 const UK_DISTRICTS=SK.districts;
 
+const SOS_LABEL={women_safety:"🛡️ WOMEN SAFETY",medical:"🚑 MEDICAL",road_accident:"🚗 ACCIDENT",fire_risk:"🔥 FIRE",gas_leak:"🔴 GAS LEAK",electric_hazard:"⚡ ELECTRIC HAZARD",water_burst:"💧 WATER BURST",infrastructure:"🏗️ STRUCTURE",disaster:"🌊 DISASTER",forest_fire:"🌲 FOREST FIRE",other:"⚠️ EMERGENCY"};
+function sosLabel(t){return SOS_LABEL[t]||"⚠️ EMERGENCY";}
 function timeAgo(d){if(!d)return"—";const s=Math.round((Date.now()-new Date(d))/1000);if(s<60)return`${s}s ago`;if(s<3600)return`${Math.round(s/60)}m ago`;if(s<86400)return`${Math.round(s/3600)}h ago`;return`${Math.round(s/86400)}d ago`;}
 function fmtTime(d){if(!d)return"—";return new Date(d).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});}
 function fmtDate(d){if(!d)return"—";return new Date(d).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});}
@@ -536,7 +544,7 @@ function SOSPopup({popup,onDismiss,onView}){
     <div className={`sos-popup ${isWomen?"women":"regular"}`}>
       <span className="sos-popup-icon">{isWomen?"🛡️":"🆘"}</span>
       <div className="sos-popup-title" style={{color:isWomen?"#C4B5FD":"#F87171"}}>
-        {isWomen?"WOMEN SAFETY SOS!":"SOS EMERGENCY ALERT!"}
+        {isWomen?"WOMEN SAFETY SOS!":`SOS — ${(popup.label||"EMERGENCY").replace(/^\S+\s/,"")}!`}
       </div>
       <div className="sos-popup-body">
         <b style={{color:"#F1F5F9",fontSize:15}}>{popup.citizenName||popup.triggeredBy||"Unknown"}</b><br/>
@@ -557,6 +565,8 @@ function SOSPopup({popup,onDismiss,onView}){
 function PCRPortal(){
   const [tab,setTab]=useState("incidents");
   const [incidents,setIncidents]=useState([]);
+  const [freshIds,setFreshIds]=useState({}); // incidents that arrived live in the last 30 s
+  const markFresh=useCallback(id=>{setFreshIds(p=>({...p,[id]:true}));setTimeout(()=>setFreshIds(p=>{const n={...p};delete n[id];return n;}),30000);},[]);
   const [patrols,setPatrols]=useState([]);
   const [nightZones,setNightZones]=useState([]);
   const [emergencyServices,setEmergencyServices]=useState([]);
@@ -643,18 +653,19 @@ function PCRPortal(){
         const d=JSON.parse(e.data);
         if(d.type==="safety_incident_new"){
           setIncidents(prev=>[d.incident,...prev.filter(i=>i.id!==d.incident.id)]);
-          const isWomen=d.category==="women_safety"||d.autoCreated;
-          addToast({title:isWomen?"🛡️ WOMEN SAFETY SOS! PCR Auto-Activated":"🆘 NEW SOS INCIDENT",body:`${d.incident.citizenName} — ${d.incident.district} · ${d.incident.location}`},isWomen?"warn":"error");
-          setSosPopup({isWomen,citizenName:d.incident.citizenName,location:d.incident.location,district:d.incident.district,assignedPatrolVan:d.incident.assignedPatrolVan,incidentRef:d.incident,time:new Date()});
+          markFresh(d.incident.id);
+          const isWomen=d.incident.emergencyType==="women_safety";
+          addToast({title:`🆘 NEW SOS — ${sosLabel(d.incident.emergencyType)}`,body:`${d.incident.citizenName} — ${d.incident.district} · ${d.incident.location}`},isWomen?"women":"error");
+          setSosPopup({isWomen,label:sosLabel(d.incident.emergencyType),citizenName:d.incident.citizenName,location:d.incident.location,district:d.incident.district,assignedPatrolVan:d.incident.assignedPatrolVan,incidentRef:d.incident,time:new Date()});
+          if(d.incident.geo&&mapObj.current)mapObj.current.flyTo([d.incident.geo.lat,d.incident.geo.lng],14,{duration:1.2});
           setTab("incidents");
         }
         if(d.type==="incident_updated") setIncidents(prev=>prev.map(i=>i.id===d.incident.id?d.incident:i));
         if(d.type==="incident_escalated"){setIncidents(prev=>prev.map(i=>i.id===d.incident.id?d.incident:i));addToast({title:"⚠️ INCIDENT ESCALATED",body:`Level ${d.level} — ${d.incident.district}`},"warn");}
         if(d.type==="night_safety_new"){setNightZones(prev=>[d.zone,...prev]);addToast({title:"🌙 Night Safety Report",body:d.zone.location},"info");}
-        if(d.type==="sos_new"){
-          addToast({title:"🆘 SOS ALERT — Women Safety",body:`${d.triggeredBy||"Unknown"} · ${d.district}`},"error");
-          setSosPopup({isWomen:true,triggeredBy:d.triggeredBy,district:d.district,location:d.location,time:new Date()});
-          setTab("incidents");
+        if(d.type==="sos_new"&&d.alert){
+          // The case card and popup come with safety_incident_new; this is the early heads-up.
+          addToast({title:`🆘 SOS — ${sosLabel(d.alert.category)}`,body:`${d.alert.triggeredBy||"Citizen"} · ${d.district||d.alert.district||""}`},d.alert.category==="women_safety"?"women":"error");
         }
         if(d.type==="audio_chunk"){
           // Clips belong to the SOS; the lists and the popup show incidents, so key them by the incident too.
@@ -669,7 +680,7 @@ function PCRPortal(){
       }catch{}
     };
     return()=>{es.close();};
-  },[addToast]);
+  },[addToast,markFresh]);
 
   // Map init
   useEffect(()=>{
@@ -717,10 +728,11 @@ function PCRPortal(){
       const col=inc.status==="active"?"#EF4444":inc.status==="safe"||inc.status==="closed"?"#22C55E":"#F59E0B";
       const womenActive=isWomen&&inc.status==="active";
       const markerSize=isWomen?20:14;
-      const blinkStyle=womenActive?`animation:womenBlink 1s infinite;`:`box-shadow:0 0 10px ${col}88;`;
+      const live=inc.status!=="safe"&&inc.status!=="closed";
+      const blinkStyle=womenActive?`animation:womenBlink 1s infinite;`:live?`animation:sosPulse 1.1s infinite;`:`box-shadow:0 0 10px ${col}88;`;
       const innerContent=isWomen?`<span style="font-size:9px;line-height:1">🛡️</span>`:`<span style="font-size:9px">⚡</span>`;
       const icon=L.divIcon({className:"",html:`<div style="width:${markerSize}px;height:${markerSize}px;background:${col};border:2.5px solid white;border-radius:50%;${blinkStyle}cursor:pointer;display:flex;align-items:center;justify-content:center">${innerContent}</div>`,iconSize:[markerSize,markerSize]});
-      const popup=`<div style="font-size:12px;min-width:190px;font-family:sans-serif"><b style="color:${sankalpEsc(isWomen?"#C4B5FD":"#F87171")}">${sankalpEsc(isWomen?"🛡️ WOMEN SAFETY":"⚠️ EMERGENCY")}</b><br/><b>${sankalpEsc(inc.citizenName)}</b><br/><span style="color:#94A3B8">${sankalpEsc(inc.location)}</span><br/><span style="color:#94A3B8">${sankalpEsc(inc.district)}</span>${sankalpEsc(inc.assignedPatrolVan?`<br/><b style="color:#FCD34D">🚔 ${inc.assignedPatrolVan}</b>`:"")}<br/><span style="color:#86EFAC">${sankalpEsc((inc.status||"").replace("_"," ").toUpperCase())}</span></div>`;
+      const popup=`<div style="font-size:12px;min-width:190px;font-family:sans-serif"><b style="color:${sankalpEsc(isWomen?"#C4B5FD":"#F87171")}">${sankalpEsc(sosLabel(inc.emergencyType||(isWomen?"women_safety":"other")))}</b><br/><b>${sankalpEsc(inc.citizenName)}</b><br/><span style="color:#94A3B8">${sankalpEsc(inc.location)}</span><br/><span style="color:#94A3B8">${sankalpEsc(inc.district)}</span>${sankalpEsc(inc.assignedPatrolVan?`<br/><b style="color:#FCD34D">🚔 ${inc.assignedPatrolVan}</b>`:"")}<br/><span style="color:#86EFAC">${sankalpEsc((inc.status||"").replace("_"," ").toUpperCase())}</span></div>`;
       if(markers.current.incidents[inc.id]){markers.current.incidents[inc.id].setLatLng([inc.geo.lat,inc.geo.lng]).setIcon(icon).getPopup()?.setContent(popup);}
       else{const m=L.marker([inc.geo.lat,inc.geo.lng],{icon}).addTo(map).bindPopup(popup);m.on("click",()=>setIncModal(inc));markers.current.incidents[inc.id]=m;}
     });
@@ -943,11 +955,13 @@ function PCRPortal(){
                   const isActive=inc.status!=="safe"&&inc.status!=="closed";
                   const incChunks=audioChunks[inc.id]||[];
                   return(
-                    <div key={inc.id} className={`inc-card ${selInc===inc.id?"sel":""} ${isWomen?"women":""}`}
+                    <div key={inc.id} className={`inc-card ${selInc===inc.id?"sel":""} ${isWomen?"women":""} ${freshIds[inc.id]?"fresh":isActive?"live":""}`}
                       onClick={()=>{setSelInc(inc.id);flyTo(inc.geo);}}>
                       <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
                         <span className={`sbadge sb-${inc.status}`}>{(inc.status||"active").replace("_"," ").toUpperCase()}</span>
+                        {freshIds[inc.id]&&<span className="new-chip">NEW</span>}
                         {isWomen&&<span className="sbadge sb-women" style={{animation:isActive?"womenBlink 1.5s infinite":undefined}}>🛡️ WOMEN</span>}
+                        {!isWomen&&inc.emergencyType&&<span className="type-chip">{sosLabel(inc.emergencyType)}</span>}
                         {incChunks.length>0&&<span style={{fontSize:9,fontWeight:800,color:"#C4B5FD",background:"rgba(139,92,246,.2)",border:"1px solid rgba(139,92,246,.4)",padding:"1px 6px",borderRadius:8}}>🎙️ {incChunks.length}</span>}
                         {isActive&&<span style={{marginLeft:"auto"}}><ElapsedTimer since={inc.reportedAt}/></span>}
                         {!isActive&&<span style={{fontSize:10,color:"#94A3B8",marginLeft:"auto"}}>{timeAgo(inc.reportedAt)}</span>}

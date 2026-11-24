@@ -5,7 +5,7 @@ import { tenant } from "../tenancy";
 import { getDeptIdForCategory, type AppStorage, type ComplaintCategory, type AppUser, type Priority } from "../storage";
 import { randomUUID as genId } from "node:crypto";
 import {
-  WORKER_NAMES, COMPLAINT_DESCS, LOCATIONS_PREFIX, PATROL_VANS_SEED, demoAnnouncements, demoPolls, demoPetitions, demoEvents,
+  WORKER_NAMES, COMPLAINT_DESCS, LOCATIONS_PREFIX, demoAnnouncements, demoPolls, demoPetitions, demoEvents,
   DEMO_BUDGET, DEMO_BUDGET_SCALE, demoRTIs,
 } from "./content";
 
@@ -101,13 +101,7 @@ export async function addDemoData(store: AppStorage, pin: string): Promise<{ acc
   const hc = (homeWards[0] ?? wards[0]).center;
   store.reportWorkerLocation(worker, { lat: hc.lat + 0.004, lng: hc.lng + 0.004 }, "active", "Pothole repair (demo)");
 
-  // Police patrol vans.
-  if (isUK) store.s.patrolVans.push(...PATROL_VANS_SEED.map(v => ({ ...v, id: `demo-${v.id}` })));
-  else PATROL_VANS_SEED.slice(0, 4).forEach((v, i) => {
-    const w = wards[i % wards.length];
-    store.s.patrolVans.push({ ...v, id: `demo-pv-${t.id}-${i}`, vanNumber: `${t.ticketPrefix}-PCR-00${i + 1} (Demo)`, officerInCharge: `SI Demo Officer ${i + 1}`,
-      district: w.district, zone: `${w.district} patrol zone`, geo: { lat: w.center.lat + 0.01 * i, lng: w.center.lng - 0.01 * i } });
-  });
+  // No demo police data: patrol vans and SOS are only ever real (owner decision, D-062).
 
   // Community: announcements, polls, petitions, events (state-neutral text outside Uttarakhand).
   const ann = demoAnnouncements();
@@ -150,26 +144,6 @@ export async function addDemoData(store: AppStorage, pin: string): Promise<{ acc
   demoRTIs().forEach(r => store.s.rtis.push({ ...r, ...(isUK ? {} : { ticketId: `RTI-${t.ticketPrefix}-${randomInt(10000, 99999)}`, subject: `Status of road repair work in ${home}`,
     description: `I request information on the status, budget and contractor of road repair work sanctioned in ${home} this financial year.` }), id: `demo-rti-${genId()}`, filedByPhone: citizen.phone, filedBy: citizen.name, isDemo: true } as (typeof store.s.rtis)[number]));
 
-  // Police control room: SOS cases at different stages (active, police responding, safe).
-  const sosWards = (homeWards.length ? homeWards : wards).slice(0, 6);
-  for (let i = 0; i < 6; i++) {
-    const ward = sosWards[i % sosWards.length];
-    const who = others[i % others.length];
-    const women = i % 2 === 0;
-    const g = { lat: +(ward.center.lat + i * 0.003).toFixed(5), lng: +(ward.center.lng - i * 0.003).toFixed(5) };
-    const { alert } = store.createSos({
-      category: women ? "women_safety" : (["medical", "accident", "fire"] as const)[i % 3],
-      description: women ? "PANIC SOS — Women Safety Emergency (demo)" : "Emergency reported via SANKALP AI (demo)",
-      location: `${pick(LOCATIONS_PREFIX)}, ${ward.name}`, geo: g, ward: ward.name, wardNumber: ward.number, district: ward.district,
-      status: "active", triggeredBy: who.name, triggeredByPhone: who.phone, isWomenSafety: women, isDemo: true,
-    } as Parameters<typeof store.createSos>[0], who.id);
-    alert.triggeredAt = new Date(Date.now() - (i * 17 + 3) * 60000).toISOString();
-    const inc = store.createSafetyIncident({ citizenName: who.name, citizenId: who.id, district: ward.district, location: alert.location, lat: g.lat, lng: g.lng, sosId: alert.id });
-    (inc as { isDemo?: boolean }).isDemo = true;
-    alert.cprRequestId = inc.id;
-    if (i >= 4) store.updateIncidentStatus(inc.id, "safe", "Officer confirmed the person is safe (demo)", "PCR");
-    else if (i >= 2) store.updateIncidentStatus(inc.id, "police_responding", "Patrol on the way (demo)", "PCR");
-  }
   store.touch();
   void phoneTaken;
   return { accounts: { "Citizen": "9000000001", [`District admin (${home})`]: "9000000002", "Super admin": "9000000003", "Worker": "9000000004" } };

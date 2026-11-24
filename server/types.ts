@@ -340,6 +340,8 @@ export interface SafetyIncident {
   id: string;
   /** The SOS this incident was opened for (voice clips and live location belong to it). */
   sosId?: string;
+  /** SOS category: women_safety, medical, accident, fire, crime… (shown on the police card). */
+  emergencyType?: string;
   isDemo?: boolean;
   citizenName: string;
   citizenId?: string;
