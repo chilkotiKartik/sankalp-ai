@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { randomBytes } from "node:crypto";
 import bcrypt from "bcrypt";
 import { config } from "./config";
 import { storeFor } from "./storage";
@@ -8,6 +9,7 @@ import { startPersistence, stopPersistence } from "./persistence-driver";
 import { startJobs, stopJobs } from "./jobs";
 import { closeRealtime } from "./realtime";
 import { logger } from "./lib/logger";
+import { addDemoData } from "./demo/seed";
 import { unref } from "./lib/errors";
 import { loadTenants, tenantIds, defaultTenant, runInTenant, tenant } from "./tenancy";
 
@@ -42,6 +44,15 @@ async function main() {
     fs.writeFileSync(adminResult, "", { mode: 0o600 });
   }
 
+  // D-062: demo data ADDED to the live states listed in this marker (deploy/demo-mode.sh on). DEMO_MODE only.
+  const demoMarker = path.join(path.resolve(c.DATA_DIR), ".demo-data");
+  const demoWanted = new Set<string>();
+  const demoPin = String(100000 + (randomBytes(4).readUInt32BE() % 900000));
+  if (c.DEMO_MODE && fs.existsSync(demoMarker)) {
+    for (const id of fs.readFileSync(demoMarker, "utf8").split(/\s+/)) if (id && tenantIds().includes(id)) demoWanted.add(id);
+    fs.writeFileSync(demoMarker + ".result", "", { mode: 0o600 });
+  }
+
   /** Per-tenant boot work: demo purge, department codes (bcrypt), optional first administrator. */
   const prepareTenant = (id: string) => runInTenant(id, async () => {
     const s = storeFor(id);
@@ -65,6 +76,20 @@ async function main() {
       await s.createUser({ name: "State Administrator", phone, pin: await bcrypt.hash(pin, 12), role: "super_admin", district: tenant().stateLabel, points: 0, badges: ["super_admin"], level: 1 });
       logger.warn("bootstrap_super_admin_created", { tenant: id, action: `Unset BOOTSTRAP_SUPER_ADMIN_PIN${sfx} now` });
     }
+    if (demoWanted.has(id)) {
+      const root = path.resolve(c.DATA_DIR);
+      const file = id === defaultTenant() ? path.join(root, "demo-credentials.txt") : path.join(root, "tenants", id, "demo-credentials.txt");
+      if (s.hasDemoData()) fs.appendFileSync(demoMarker + ".result", `${id}\talready\n`);
+      else {
+        const { accounts } = await addDemoData(s, demoPin);
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, [`SANKALP AI DEMO accounts for ${tenant().name} (placeholder numbers; DEMO_MODE only)`, `PIN for all demo accounts: ${demoPin}`,
+          ...Object.entries(accounts).map(([k, v]) => `${k.padEnd(28)} ${v}`)].join("\n") + "\n", { mode: 0o600 });
+        fs.appendFileSync(demoMarker + ".result", `${id}\tadded\n`);
+        logger.warn("demo_data_added", { tenant: id });
+      }
+      demoWanted.delete(id);
+    }
     const want = adminWanted.get(id);
     if (want) {
       const how = await s.makeAdmin(want.phone, want.pin);
@@ -87,6 +112,7 @@ async function main() {
   server.listen({ port: c.PORT, host: process.env.HOST || "0.0.0.0" }, () => {
     void (async () => {
       for (const id of later) { try { await prepareTenant(id); } catch (err) { logger.error("tenant_prepare_failed", { tenant: id, err: (err as Error).message }); } }
+      if (fs.existsSync(demoMarker)) { try { fs.unlinkSync(demoMarker); } catch { /* already gone */ } }
       if (fs.existsSync(adminMarker)) { try { fs.unlinkSync(adminMarker); } catch { /* already gone */ } }
       if (rotateAll) { try { fs.unlinkSync(rotateMarker); } catch { /* already gone */ } logger.warn("dept_codes_rotation_done", { states: full.length + later.length }); }
     })();

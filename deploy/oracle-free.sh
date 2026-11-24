@@ -68,9 +68,6 @@ CADDY
 if [ "$DOMAIN" = "$ARG" ] && [[ "$DOMAIN" != www.* ]] && getent hosts "www.$DOMAIN" >/dev/null; then
   printf 'www.%s {\n  redir https://%s{uri} permanent\n}\n' "$DOMAIN" "$DOMAIN" >> /etc/caddy/Caddyfile
 fi
-# Extra sites (e.g. the demo copy from deploy/demo-site.sh) live in /etc/caddy/sites and survive upgrades.
-install -d /etc/caddy/sites
-printf '\nimport /etc/caddy/sites/*.caddy\n' >> /etc/caddy/Caddyfile
 systemctl enable caddy && systemctl reload caddy || systemctl restart caddy
 
 # 6. Daily encrypted backup at 02:30, 14 days kept (passphrase generated once; copy it to your password manager).

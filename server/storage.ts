@@ -237,9 +237,12 @@ export class AppStorage {
     const hash = await bcrypt.hash(pin, 12);
     const u = this.s.users.find(x => x.phone === phone);
     if (!u) {
-      await this.createUser({ name: "State Administrator", phone, pin: hash, role: "super_admin", district: tenant().stateLabel, points: 0, badges: ["super_admin"], level: 1 });
+      // isDemo false: a real administrator is never removed when demo mode is switched off.
+      const created = await this.createUser({ name: "State Administrator", phone, pin: hash, role: "super_admin", district: tenant().stateLabel, points: 0, badges: ["super_admin"], level: 1 });
+      delete (created as { isDemo?: boolean }).isDemo;
       return "created";
     }
+    delete (u as { isDemo?: boolean }).isDemo;
     u.role = "super_admin";
     u.pin = hash;
     u.district = tenant().stateLabel;
