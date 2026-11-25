@@ -11,7 +11,7 @@ import { Slot, router, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { View, StyleSheet, Animated, Text, Pressable, Platform, Linking } from "react-native";
+import { View, StyleSheet, Animated, Text, Pressable, Platform, Linking, ActivityIndicator } from "react-native";
 import { reloadAppAsync } from "expo";
 
 // KeyboardProvider requires native code unavailable in Expo Go — use a safe fallback
@@ -167,6 +167,17 @@ function WebFrame({ children }: { children: React.ReactNode }) {
   );
 }
 
+function BootSplash() {
+  return (
+    <View style={styles.boot} accessibilityRole="progressbar" accessibilityLabel="Loading SANKALP AI">
+      <View style={styles.bootMark}><Text style={styles.bootMarkText}>S</Text></View>
+      <Text style={styles.bootTitle}>SANKALP AI</Text>
+      <Text style={styles.bootSub}>Loading your civic app…</Text>
+      <ActivityIndicator color="#B4380A" style={{ marginTop: 6 }} />
+    </View>
+  );
+}
+
 function RootLayoutNav() {
   return (
     <WebFrame>
@@ -205,7 +216,9 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError, fontTimeout]);
 
-  if (!fontsLoaded && !fontError && !fontTimeout) return null;
+  // Same look as the page's instant loading screen (server/app.ts BOOT_HTML), so there is never a blank gap
+  // while fonts download on a phone (system font here: the app fonts are what we are waiting for).
+  if (!fontsLoaded && !fontError && !fontTimeout) return <BootSplash />;
 
   return (
     <ErrorBoundary>
@@ -242,6 +255,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  boot: { flex: 1, backgroundColor: "#F7F3EE", alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
+  bootMark: { width: 84, height: 84, borderRadius: 22, backgroundColor: "#C2410C", alignItems: "center", justifyContent: "center" },
+  bootMarkText: { color: "#FFFFFF", fontSize: 46, fontWeight: "900" },
+  bootTitle: { color: "#1F1A17", fontSize: 24, fontWeight: "800", letterSpacing: 0.5, marginTop: 4 },
+  bootSub: { color: "#5B4A3B", fontSize: 14 },
   splashMsg: { color: "#E5E7EB", fontSize: 14, fontFamily: "Inter_500Medium", marginTop: 18 },
   splashSub: { color: "#9CA3AF", fontSize: 12.5, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 24 },
   splashBtn: { backgroundColor: "#C2410C", paddingHorizontal: 22, paddingVertical: 11, borderRadius: 12, minWidth: 220, alignItems: "center" },
