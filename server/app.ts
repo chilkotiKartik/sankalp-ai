@@ -197,6 +197,18 @@ function pwaIndex(file: string): string {
   return html;
 }
 
+/** Version of the shared portal script (its file time): a new deploy changes the URL, so a browser never pairs a
+ *  fresh portal page with a cached old script (that mismatch blanked the PCR page after an update). */
+let commonJsVer: { mtime: number; v: string } | null = null;
+function commonJsVersion(): string {
+  const f = path.join(ROOT, "server", "web", "vendor", "sankalp-common.js");
+  try {
+    const mtime = fs.statSync(f).mtimeMs;
+    if (commonJsVer?.mtime !== mtime) commonJsVer = { mtime, v: Math.round(mtime).toString(36) };
+    return commonJsVer.v;
+  } catch { return "0"; }
+}
+
 /** Portals get the runtime config injected (demo badge, tile URL) without inline user data. */
 function portalFile(file: string) {
   const full = path.join(ROOT, "server", "web", file);
@@ -213,7 +225,7 @@ function portalFile(file: string) {
         departments: Object.values(t.departments).map(d => ({ id: d.id, name: d.name, nameLocal: d.nameHindi, icon: d.icon, color: d.color, slaHours: d.slaHours, categories: d.categories, helpline: d.helpline })),
       },
     };
-    const inject = `<script>window.__SANKALP__=${JSON.stringify(cfg).replace(/</g, "\\u003c")};</script><script src="/web/vendor/sankalp-common.js"></script>`;
+    const inject = `<script>window.__SANKALP__=${JSON.stringify(cfg).replace(/</g, "\\u003c")};</script><script src="/web/vendor/sankalp-common.js?v=${commonJsVersion()}"></script>`;
     res.setHeader("Cache-Control", "no-store");
     res.type("html").send(html.replace("</head>", `${inject}</head>`));
   };
