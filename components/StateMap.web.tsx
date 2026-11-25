@@ -1,6 +1,7 @@
 import { scriptJson, ESC_JS, tileLayerJs } from "@/lib/map-safety";
 import { useRuntimeConfig } from "@/lib/runtime-config";
 import { useDistrictGeo, districtLayerJs, type DistrictGeo } from "@/lib/geo";
+import { PLACE_CLUSTER_JS } from "@/lib/map-places";
 import React, { useEffect, useRef, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import type { Complaint, SOSAlert, Worker, PoliceStation, RiskZone, GeoPoint } from "@/context/AppContext";
@@ -63,11 +64,11 @@ function buildLeafletHTML(
 <link rel="stylesheet" href="leaflet/leaflet.css"/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body,#map{width:100%;height:100%;background:#0d1117}
-  .leaflet-container{background:#0d1117}
-  .leaflet-popup-content-wrapper{background:#1a1f2e;border:1px solid #2d3347;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.5);padding:0}
-  .leaflet-popup-content{margin:0;color:#e6edf3}
-  .leaflet-popup-tip{background:#1a1f2e}
+  html,body,#map{width:100%;height:100%;background:#F7F3EE}
+  .leaflet-container{background:#F7F3EE}
+  .leaflet-popup-content-wrapper{background:#FFFFFF;border:1px solid #E7DCD0;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.5);padding:0}
+  .leaflet-popup-content{margin:0;color:#1F2937}
+  .leaflet-popup-tip{background:#FFFFFF}
   .leaflet-popup-tip-container{display:none}
   .leaflet-control-zoom{border:1px solid #2d3347!important;border-radius:10px!important;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.4)!important}
   .leaflet-control-zoom a{background:#1a1f2e!important;color:#e6edf3!important;border:none!important;font-size:16px!important;width:32px!important;height:32px!important;line-height:32px!important;border-bottom:1px solid #2d3347!important}
@@ -77,8 +78,8 @@ function buildLeafletHTML(
   .leaflet-control-attribution{background:rgba(13,17,23,0.85)!important;color:#6B7280!important;font-size:9px!important;border-radius:6px!important;border:1px solid #2d3347!important;padding:2px 6px!important}
   .leaflet-control-attribution a{color:#9CA3AF!important}
   .popup-box{padding:10px 12px;min-width:180px}
-  .popup-title{font-weight:700;font-size:12px;color:#e6edf3;margin-bottom:4px;font-family:sans-serif;line-height:1.3}
-  .popup-sub{font-size:11px;color:#9CA3AF;font-family:sans-serif;line-height:1.4}
+  .popup-title{font-weight:700;font-size:12px;color:#1F2937;margin-bottom:4px;font-family:sans-serif;line-height:1.3}
+  .popup-sub{font-size:11px;color:#4B5563;font-family:sans-serif;line-height:1.4}
   .popup-type{display:inline-block;font-size:9px;font-weight:700;letter-spacing:0.5px;padding:2px 7px;border-radius:4px;margin-bottom:6px;text-transform:uppercase}
   .popup-call{background:#22C55E;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-top:6px}
 </style>
@@ -103,6 +104,8 @@ var typeLabels={
   complaint:'ISSUE',sos:'SOS',worker:'WORKER',police:'POLICE',risk:'RISK',hospital:'HOSPITAL',fire:'FIRE'
 };
 
+${PLACE_CLUSTER_JS}
+var PLACES=[];
 var markersData=${markersJson};
 // CSP-safe: no inline handlers; one delegated listener for the call buttons in popups.
 document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('.popup-call');if(!b)return;var m=markersData[+b.getAttribute('data-mi')];if(m&&m.phone)window.open('tel:'+String(m.phone).replace(/[^0-9+]/g,''),'_self');});
@@ -150,7 +153,10 @@ markersData.forEach(function(m,mi){
   }
   popupHTML+='</div>';
   marker.bindPopup(popupHTML,{maxWidth:260,closeButton:false});
+  // Hospitals, fire and police stations are grouped into count bubbles (no pile of icons in big cities).
+  if(m.type==='hospital'||m.type==='fire'||m.type==='police'){map.removeLayer(marker);PLACES.push({lat:m.lat,lng:m.lng,kind:m.type,marker:marker});}
 });
+placeCluster(L,map,PLACES);
 
 var userLoc=${userJson};
 if(userLoc){

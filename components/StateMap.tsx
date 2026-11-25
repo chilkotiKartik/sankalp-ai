@@ -1,6 +1,7 @@
 import { scriptJson, ESC_JS, tileLayerJs } from "@/lib/map-safety";
 import { useRuntimeConfig } from "@/lib/runtime-config";
 import { useDistrictGeo, districtLayerJs, type DistrictGeo } from "@/lib/geo";
+import { PLACE_CLUSTER_JS } from "@/lib/map-places";
 import React, { useRef, useMemo, useState } from "react";
 import { View, StyleSheet, Pressable, Alert, Linking, Modal, Text, TouchableOpacity } from "react-native";
 import { WebView } from "react-native-webview";
@@ -116,6 +117,8 @@ function postNotify(name){
   else window.parent.postMessage(msg,'*');
 }
 
+${PLACE_CLUSTER_JS}
+var PLACES=[];
 var markersData=${markersJson};
 
 markersData.forEach(function(m,mi){
@@ -172,7 +175,10 @@ markersData.forEach(function(m,mi){
   }
   popupHTML+='</div>';
   marker.bindPopup(popupHTML,{maxWidth:260,closeButton:false});
+  // Hospitals, fire and police stations are grouped into count bubbles (no pile of icons in big cities).
+  if(m.type==='hospital'||m.type==='fire'||m.type==='police'){map.removeLayer(marker);PLACES.push({lat:m.lat,lng:m.lng,kind:m.type,marker:marker});}
 });
+placeCluster(L,map,PLACES);
 
 var userLoc=${userJson};
 if(userLoc){
