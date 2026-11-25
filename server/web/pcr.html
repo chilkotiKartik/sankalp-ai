@@ -774,7 +774,9 @@ function PCRPortal(){
       const popup=`<div style="font-size:12px;min-width:190px;font-family:sans-serif;padding:8px"><b style="color:${sankalpEsc(col)}">${isHosp?"🏥 HOSPITAL":"🔥 FIRE STATION"}</b><br/><b>${sankalpEsc(loc.name)}</b><br/><span style="color:#64748B">${sankalpEsc(loc.address||loc.district||"")}</span>${loc.phone?`<br/><a href="tel:${sankalpEsc(loc.phone)}" style="color:#1D4ED8">📞 ${sankalpEsc(loc.phone)}</a>`:""}</div>`;
       items.push({lat,lng,kind:isHosp?"hospital":"fire",popup});
     });
-    markers.current.places=window.sankalpPlaceLayer(L,map,items);
+    // Never let a missing helper (e.g. an old cached script) blank the console: fall back to plain markers.
+    if(typeof window.sankalpPlaceLayer==="function")markers.current.places=window.sankalpPlaceLayer(L,map,items);
+    else{const g=L.layerGroup(items.map(it=>L.marker([it.lat,it.lng]).bindPopup(it.popup))).addTo(map);markers.current.places={remove:()=>map.removeLayer(g)};}
   },[emergencyLocations]);
 
   // Draw patrol markers
