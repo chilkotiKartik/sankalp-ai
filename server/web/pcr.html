@@ -32,6 +32,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;displa
 .sos-popup-title{font-size:22px;font-weight:900;letter-spacing:.05em;margin-bottom:6px}
 .sos-popup-body{font-size:13px;color:#94A3B8;margin-bottom:20px;line-height:1.6}
 .sos-popup-btns{display:flex;gap:10px;justify-content:center}
+.official-strip{background:#7F1D1D;padding:7px 16px;display:flex;gap:10px;overflow-x:auto;align-items:center;flex-shrink:0;min-height:38px}
+.official-strip.calm{background:#14532D}
+.official-chip{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;white-space:nowrap;font-size:11px;font-weight:700;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);text-decoration:none;flex-shrink:0;animation:pulse 2s infinite}
+.official-chip:hover{background:rgba(255,255,255,.25)}
 .anomaly-strip{background:rgba(239,68,68,.08);border-bottom:1px solid rgba(239,68,68,.2);padding:6px 16px;display:flex;gap:10px;overflow-x:auto;align-items:center;flex-shrink:0;min-height:36px}
 .anomaly-chip{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;white-space:nowrap;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;transition:all .15s}
 .anomaly-chip.critical{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#F87171}
@@ -630,6 +634,24 @@ function PCRPortal(){
   }
 
   const addToast=useCallback((msg,type="info")=>{const id=Date.now();setToasts(p=>[...p,{id,msg,type}]);setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),6000);},[]);
+  // Official live alerts (NDMA SACHET: IMD, CWC, state disaster authorities) — refreshed every 2 minutes, no page reload.
+  const [official,setOfficial]=useState({items:[],status:"loading",checked:null,source:null});
+  const seenAlerts=useRef(null);
+  useEffect(()=>{
+    let alive=true;
+    const load=()=>{
+      const q=distFilter!=="all"?`?district=${encodeURIComponent(distFilter)}`:"";
+      fetch(`${API}/api/public/alerts${q}`).then(r=>r.ok?r.json():Promise.reject(r.status)).then(d=>{
+        if(!alive)return;
+        const items=Array.isArray(d.items)?d.items:[];
+        if(seenAlerts.current){items.filter(a=>!seenAlerts.current.has(a.id)).forEach(a=>addToast({title:"⚠️ NEW OFFICIAL ALERT",body:`${a.issuer||"NDMA"} · ${a.title}`},"error"));}
+        seenAlerts.current=new Set(items.map(a=>a.id));
+        setOfficial({items,status:d.status||"ok",checked:new Date(),source:d.source||null,scope:d.scope});
+      }).catch(()=>{if(alive)setOfficial(o=>({...o,status:"unavailable",checked:new Date()}));});
+    };
+    load();const t=setInterval(load,120000);
+    return()=>{alive=false;clearInterval(t);};
+  },[distFilter,addToast]);
 
   const loadAll=useCallback(()=>{
     const dist=distFilter!=="all"?`?district=${encodeURIComponent(distFilter)}`:"";
@@ -741,24 +763,18 @@ function PCRPortal(){
   // Draw hospital + fire station markers
   useEffect(()=>{
     const map=mapObj.current;if(!map||!emergencyLocations.length)return;
-    // Remove old hospital/fire markers
-    (markers.current.hospitals||[]).forEach(m=>map.removeLayer(m));
-    (markers.current.fire||[]).forEach(m=>map.removeLayer(m));
-    markers.current.hospitals=[];
-    markers.current.fire=[];
+    // Hospitals and fire stations: grouped into count bubbles so a city never turns into a pile of icons.
+    if(markers.current.places)markers.current.places.remove();
+    const items=[];
     emergencyLocations.forEach(loc=>{
-      // The API sends flat lat/lng; older data used geo.
-      if(!loc.geo&&typeof loc.lat==="number")loc={...loc,geo:{lat:loc.lat,lng:loc.lng}};
-      if(!loc.geo)return;
+      const lat=typeof loc.lat==="number"?loc.lat:loc.geo&&loc.geo.lat,lng=typeof loc.lng==="number"?loc.lng:loc.geo&&loc.geo.lng;
+      if(typeof lat!=="number"||typeof lng!=="number")return;
       const isHosp=loc.type==="hospital";
-      const col=isHosp?"#EC4899":"#F97316";
-      const emoji=isHosp?"🏥":"🔥";
-      const icon=L.divIcon({className:"",html:`<div style="width:24px;height:24px;background:${col};border:2.5px solid white;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 10px ${col}88;cursor:pointer">${emoji}</div>`,iconSize:[24,24],iconAnchor:[12,12]});
-      const popup=`<div style="font-size:12px;min-width:190px;font-family:sans-serif;padding:8px"><b style="color:${sankalpEsc(col)}">${sankalpEsc(emoji)} ${sankalpEsc(isHosp?"HOSPITAL":"FIRE STATION")}</b><br/><b>${sankalpEsc(loc.name)}</b><br/><span style="color:#94A3B8">${sankalpEsc(loc.address||loc.district)}</span>${sankalpEsc(loc.beds?`<br/><span style="color:#86EFAC">🛏️ ${loc.beds} beds</span>`:"")}${sankalpEsc(loc.available===false?`<br/><span style="color:#F87171">⚠️ Full capacity</span>`:"")}${sankalpEsc(loc.phone?`<br/><a href="tel:${loc.phone}" style="color:#93C5FD">📞 ${loc.phone}</a>`:"")}</div>`;
-      const m=L.marker([loc.geo.lat,loc.geo.lng],{icon}).addTo(map).bindPopup(popup);
-      if(isHosp)markers.current.hospitals.push(m);
-      else markers.current.fire.push(m);
+      const col=isHosp?"#BE185D":"#C2410C";
+      const popup=`<div style="font-size:12px;min-width:190px;font-family:sans-serif;padding:8px"><b style="color:${sankalpEsc(col)}">${isHosp?"🏥 HOSPITAL":"🔥 FIRE STATION"}</b><br/><b>${sankalpEsc(loc.name)}</b><br/><span style="color:#64748B">${sankalpEsc(loc.address||loc.district||"")}</span>${loc.phone?`<br/><a href="tel:${sankalpEsc(loc.phone)}" style="color:#1D4ED8">📞 ${sankalpEsc(loc.phone)}</a>`:""}</div>`;
+      items.push({lat,lng,kind:isHosp?"hospital":"fire",popup});
     });
+    markers.current.places=window.sankalpPlaceLayer(L,map,items);
   },[emergencyLocations]);
 
   // Draw patrol markers
@@ -857,6 +873,14 @@ function PCRPortal(){
     </div>
 
     {/* AI Anomaly Strip */}
+    <div className={`official-strip ${official.items.length?"":"calm"}`} role="region" aria-label="Official live alerts" aria-live="polite">
+      <span style={{fontSize:10,fontWeight:900,color:"#fff",flexShrink:0,letterSpacing:".06em"}}>🚨 OFFICIAL ALERTS · LIVE</span>
+      {official.items.map(a=>(
+        <a key={a.id} className="official-chip" href={a.link} target="_blank" rel="noopener noreferrer" title={a.title}>⚠️ {a.issuer?`${a.issuer}: `:""}{a.title.length>90?a.title.slice(0,90)+"…":a.title}</a>
+      ))}
+      {!official.items.length&&<span style={{fontSize:11,fontWeight:700,color:"#DCFCE7"}}>{official.status==="loading"?"Checking NDMA SACHET…":official.status==="unavailable"?"Alert feed unreachable — retrying every 2 min":`✓ No active official alerts for ${distFilter!=="all"?distFilter:SK.state} right now`}</span>}
+      <span style={{marginLeft:"auto",fontSize:10,color:"rgba(255,255,255,.75)",flexShrink:0}}>{official.source?.name||"NDMA SACHET"}{official.checked?` · checked ${official.checked.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}`:""}</span>
+    </div>
     {anomalies.length>0&&(
       <div className="anomaly-strip">
         <span style={{fontSize:10,fontWeight:800,color:"#94A3B8",flexShrink:0,marginRight:2}}>🤖 AI ALERTS</span>
