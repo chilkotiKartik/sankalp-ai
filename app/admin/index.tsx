@@ -32,8 +32,8 @@ const CAT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   drain: "flash", electricity: "flash", tree: "leaf", other: "ellipsis-horizontal",
 };
 const CAT_COLORS: Record<string, string> = {
-  pothole: "#F59E0B", garbage: "#F87171", streetlight: "#FCD34D", water: "#60A5FA",
-  drain: "#06B6D4", electricity: "#A78BFA", tree: "#22C55E", other: "#9CA3AF",
+  pothole: "#92400E", garbage: "#B91C1C", streetlight: "#854D0E", water: "#1D4ED8",
+  drain: "#06B6D4", electricity: "#6D28D9", tree: "#166534", other: "#4B5563",
 };
 const SOS_ICON_NAMES: Record<string, keyof typeof Ionicons.glyphMap> = {
   gas_leak: "flame-outline", water_burst: "water-outline", electric_hazard: "flash-outline",
@@ -41,13 +41,13 @@ const SOS_ICON_NAMES: Record<string, keyof typeof Ionicons.glyphMap> = {
   medical: "medkit-outline", infrastructure: "construct-outline",
 };
 const SOS_ICON_COLORS: Record<string, string> = {
-  gas_leak: "#F59E0B", water_burst: "#60A5FA", electric_hazard: "#F87171",
-  fire_risk: "#F87171", road_accident: "#F59E0B", women_safety: "#A78BFA",
-  medical: "#22C55E", infrastructure: "#9CA3AF",
+  gas_leak: "#92400E", water_burst: "#1D4ED8", electric_hazard: "#B91C1C",
+  fire_risk: "#B91C1C", road_accident: "#92400E", women_safety: "#6D28D9",
+  medical: "#166534", infrastructure: "#4B5563",
 };
-const RISK_COLORS = { flood: "#60A5FA", garbage: "#22C55E", infrastructure: "#F59E0B", crime: "#F87171" };
-const PRIORITY_COLORS: Record<string, string> = { P1: "#F87171", P2: "#F59E0B", P3: "#60A5FA", P4: "#9CA3AF" };
-const STATUS_COLORS: Record<string, string> = { pending: "#F59E0B", in_progress: "#60A5FA", resolved: "#22C55E", closed: "#9CA3AF" };
+const RISK_COLORS = { flood: "#1D4ED8", garbage: "#166534", infrastructure: "#92400E", crime: "#B91C1C" };
+const PRIORITY_COLORS: Record<string, string> = { P1: "#B91C1C", P2: "#92400E", P3: "#1D4ED8", P4: "#4B5563" };
+const STATUS_COLORS: Record<string, string> = { pending: "#92400E", in_progress: "#1D4ED8", resolved: "#166534", closed: "#4B5563" };
 
 function FlashBadge({ count }: { count: number }) {
   const flash = useRef(new Animated.Value(1)).current;
@@ -62,7 +62,7 @@ function FlashBadge({ count }: { count: number }) {
   }, [count]);
   if (count === 0) return null;
   return (
-    <Animated.View style={{ opacity: flash, backgroundColor: "#DC2626", borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2, marginLeft: 6 }}>
+    <Animated.View style={{ opacity: flash, backgroundColor: "#B91C1C", borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2, marginLeft: 6 }}>
       <Text style={{ color: "#fff", fontSize: 10, fontFamily: "Inter_700Bold" }}>{count}</Text>
     </Animated.View>
   );
@@ -75,10 +75,10 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
   onReject: (id: string) => void;
 }) {
   if (!complaint) return null;
-  const priColor = PRIORITY_COLORS[complaint.priority] || "#9CA3AF";
-  const statusColor = STATUS_COLORS[complaint.status] || "#9CA3AF";
+  const priColor = PRIORITY_COLORS[complaint.priority] || "#4B5563";
+  const statusColor = STATUS_COLORS[complaint.status] || "#4B5563";
   const catIcon = CAT_ICONS[complaint.category] || "ellipsis-horizontal";
-  const catColor = CAT_COLORS[complaint.category] || "#9CA3AF";
+  const catColor = CAT_COLORS[complaint.category] || "#4B5563";
   const timeAgo = (iso: string) => {
     const diff = Date.now() - new Date(iso).getTime();
     const h = Math.floor(diff / 3600000);
@@ -116,8 +116,8 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
               </View>
               {complaint.isCluster && (
                 <View style={[styles.chip, { backgroundColor: "#06B6D422", borderColor: "#06B6D444" }]}>
-                  <Ionicons name="git-merge" size={12} color="#06B6D4" />
-                  <Text style={[styles.chipText, { color: "#06B6D4" }]}>{complaint.clusterSize} cluster</Text>
+                  <Ionicons name="git-merge" size={12} color="#0E7490" />
+                  <Text style={[styles.chipText, { color: "#0E7490" }]}>{complaint.clusterSize} cluster</Text>
                 </View>
               )}
             </View>
@@ -140,8 +140,8 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
 
             {complaint.workerName && (
               <View style={styles.detailInfoRow}>
-                <Ionicons name="construct" size={14} color="#06B6D4" />
-                <Text style={[styles.detailInfoText, { color: "#06B6D4" }]}>Assigned: {complaint.workerName}</Text>
+                <Ionicons name="construct" size={14} color="#0E7490" />
+                <Text style={[styles.detailInfoText, { color: "#0E7490" }]}>Assigned: {complaint.workerName}</Text>
               </View>
             )}
 
@@ -152,7 +152,7 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
                 <Text style={styles.detailStatLbl}>Upvotes</Text>
               </View>
               <View style={styles.detailStat}>
-                <Ionicons name="hardware-chip" size={16} color="#A78BFA" />
+                <Ionicons name="hardware-chip" size={16} color="#6D28D9" />
                 <Text style={styles.detailStatVal}>{complaint.aiScore}%</Text>
                 <Text style={styles.detailStatLbl}>AI Score</Text>
               </View>
@@ -198,7 +198,7 @@ function ComplaintDetailModal({ complaint, onClose, onResolve, onReject }: {
                   <Text style={styles.resolveBtnText}>Upload proof & mark fixed</Text>
                 </Pressable>
                 <Pressable onPress={() => onReject(complaint.id)} style={styles.rejectBtn}>
-                  <Ionicons name="close-circle" size={16} color="#F87171" />
+                  <Ionicons name="close-circle" size={16} color="#B91C1C" />
                   <Text style={styles.rejectBtnText}>Start work</Text>
                 </Pressable>
               </View>
@@ -311,13 +311,13 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Text style={sas.title}>⚡ State Command</Text>
             <Animated.View style={{ opacity: liveAnim, backgroundColor: "#F59E0B22", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-              <Text style={{ color: "#F59E0B", fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 1 }}>LIVE</Text>
+              <Text style={{ color: "#92400E", fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 1 }}>LIVE</Text>
             </Animated.View>
           </View>
           <Text style={sas.sub}>Super Admin · {user?.name} · All {districtPhrase()}</Text>
         </View>
         <Pressable onPress={() => setShowBroadcast(true)} style={sas.broadcastBtn}>
-          <Ionicons name="radio-outline" size={16} color="#F87171" />
+          <Ionicons name="radio-outline" size={16} color="#B91C1C" />
           <Text style={sas.broadcastBtnText}>Alert</Text>
         </Pressable>
       </Animated.View>
@@ -326,14 +326,14 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[{ flexShrink: 0 }, sas.navWrap]} contentContainerStyle={sas.navRow}>
         {ADMIN_TABS.map(tab => {
           const isActive = tab.key === "command";
-          const tabColor = isActive ? "#F59E0B" : Colors.textMuted;
+          const tabColor = isActive ? "#92400E" : Colors.textMuted;
           return (
             <Pressable key={tab.key} onPress={() => tab.route && router.push(tab.route)}
               style={[sas.navTab, isActive && sas.navTabActive]}>
               <View style={[sas.navTabIcon, isActive && { backgroundColor: "#F59E0B22" }]}>
                 <Ionicons name={tab.icon} size={16} color={tabColor} />
               </View>
-              <Text style={[sas.navTabText, isActive && { color: "#F59E0B" }]}>{tab.label}</Text>
+              <Text style={[sas.navTabText, isActive && { color: "#92400E" }]}>{tab.label}</Text>
               {tab.key === "alerts" && activeSos.length > 0 && (
                 <View style={sas.badge}><Text style={sas.badgeText}>{activeSos.length}</Text></View>
               )}
@@ -344,24 +344,24 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
         {/* Logout — always visible at end of nav */}
         <Pressable onPress={logout} style={sas.navLogoutBtn}>
           <View style={[sas.navTabIcon, { backgroundColor: "#EF444420" }]}>
-            <Feather name="log-out" size={16} color="#F87171" />
+            <Feather name="log-out" size={16} color="#B91C1C" />
           </View>
           <Text style={sas.navLogoutText}>Logout</Text>
         </Pressable>
       </ScrollView>
 
       <ScrollView
-        refreshControl={<RefreshControl refreshing={isLoading || districtLoading} onRefresh={() => { refresh(); fetchDistricts(); }} tintColor="#F59E0B" />}
+        refreshControl={<RefreshControl refreshing={isLoading || districtLoading} onRefresh={() => { refresh(); fetchDistricts(); }} tintColor="#92400E" />}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 40 : insets.bottom + 24 }}
       >
         {/* State-Level KPIs */}
         <View style={sas.kpiRow}>
           {[
-            { val: totalComplaints, label: "Reports", color: "#F59E0B", icon: "list-outline" as const },
-            { val: totalResolved, label: "Resolved", color: "#22C55E", icon: "checkmark-circle" as const },
-            { val: totalPending, label: "Pending", color: "#F87171", icon: "time-outline" as const },
-            { val: activeSos.length, label: "Active SOS", color: "#A78BFA", icon: "warning" as const },
+            { val: totalComplaints, label: "Reports", color: "#92400E", icon: "list-outline" as const },
+            { val: totalResolved, label: "Resolved", color: "#166534", icon: "checkmark-circle" as const },
+            { val: totalPending, label: "Pending", color: "#B91C1C", icon: "time-outline" as const },
+            { val: activeSos.length, label: "Active SOS", color: "#6D28D9", icon: "warning" as const },
           ].map((k, i) => (
             <Pressable key={i} onPress={() => k.label === "Active SOS" ? router.push("/admin/alerts") : router.push("/admin/reports")} style={sas.kpiCard}>
               <Ionicons name={k.icon} size={16} color={k.color} />
@@ -376,10 +376,10 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
           <Text style={{ color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1, marginBottom: 8 }}>ADMIN TOOLS</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {[
-              { label: "Audit Trail",   icon: "git-network" as const,      color: "#06B6D4", bg: "#06B6D411", route: "/admin/audit" },
-              { label: "Emergency Dir", icon: "medkit" as const,            color: "#F87171", bg: "#EF444411", route: "/admin/emergency" },
-              { label: "Worker Map",    icon: "map" as const,               color: "#22C55E", bg: "#22C55E11", route: "/admin/workermap" },
-              { label: "Heatmap",       icon: "analytics" as const,         color: "#F59E0B", bg: "#F59E0B11", route: "/admin/reports" },
+              { label: "Audit Trail",   icon: "git-network" as const,      color: "#0E7490", bg: "#06B6D411", route: "/admin/audit" },
+              { label: "Emergency Dir", icon: "medkit" as const,            color: "#B91C1C", bg: "#EF444411", route: "/admin/emergency" },
+              { label: "Worker Map",    icon: "map" as const,               color: "#166534", bg: "#22C55E11", route: "/admin/workermap" },
+              { label: "Heatmap",       icon: "analytics" as const,         color: "#92400E", bg: "#F59E0B11", route: "/admin/reports" },
             ].map(tool => (
               <Pressable key={tool.label} onPress={() => router.push(tool.route as any)}
                 style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: tool.bg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: tool.color + "33" }}>
@@ -393,10 +393,10 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
         {/* Heatmap — District Health Overview */}
         <View style={{ marginHorizontal: 16, backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border, marginBottom: 12 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <Ionicons name="grid" size={14} color="#F59E0B" />
+            <Ionicons name="grid" size={14} color="#92400E" />
             <Text style={{ color: "#fff", fontSize: 14, fontFamily: "Inter_600SemiBold", flex: 1 }}>Heatmap — All {districtPhrase()}</Text>
             <View style={{ flexDirection: "row", gap: 6 }}>
-              {[{ label: "Good", color: "#22C55E" }, { label: "Ok", color: "#F59E0B" }, { label: "Risk", color: "#F87171" }].map(l => (
+              {[{ label: "Good", color: "#166534" }, { label: "Ok", color: "#92400E" }, { label: "Risk", color: "#B91C1C" }].map(l => (
                 <View key={l.label} style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
                   <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: l.color }} />
                   <Text style={{ color: Colors.textMuted, fontSize: 9, fontFamily: "Inter_400Regular" }}>{l.label}</Text>
@@ -407,13 +407,13 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
             {districtStats.map(d => {
               const health = d.avgHealthScore || d.avgHealth || 0;
-              const color = health >= 70 ? "#22C55E" : health >= 50 ? "#F59E0B" : "#F87171";
+              const color = health >= 70 ? "#166534" : health >= 50 ? "#92400E" : "#B91C1C";
               const pending = d.pending || d.pendingComplaints || 0;
               return (
                 <Pressable key={d.district} onPress={() => setSelectedDistrict(d as any)}
                   style={{ backgroundColor: color + "18", borderRadius: 8, borderWidth: 1, borderColor: color + "44", padding: 8, alignItems: "center", minWidth: 75 }}>
                   <Text style={{ color, fontSize: 15, fontFamily: "Inter_700Bold" }}>{health}%</Text>
-                  <Text style={{ color: "#fff", fontSize: 9, fontFamily: "Inter_600SemiBold", textAlign: "center", marginTop: 2 }} numberOfLines={1}>{d.district}</Text>
+                  <Text style={{ color: Colors.textPrimary, fontSize: 9, fontFamily: "Inter_600SemiBold", textAlign: "center", marginTop: 2 }} numberOfLines={1}>{d.district}</Text>
                   <Text style={{ color: Colors.textMuted, fontSize: 8, fontFamily: "Inter_400Regular" }}>{pending} open</Text>
                 </Pressable>
               );
@@ -463,7 +463,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
         {/* District Overview Header */}
         <View style={{ paddingHorizontal: 16, marginBottom: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <View>
-            <Text style={{ color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" }}>District Overview</Text>
+            <Text style={{ color: Colors.textPrimary, fontSize: 15, fontFamily: "Inter_700Bold" }}>District Overview</Text>
             <Text style={{ color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>
               Tap any district to view details & assign work
             </Text>
@@ -476,7 +476,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
 
         {districtLoading && districtStats.length === 0 ? (
           <View style={{ padding: 40, alignItems: "center" }}>
-            <ActivityIndicator color="#F59E0B" size="large" />
+            <ActivityIndicator color="#92400E" size="large" />
             <Text style={{ color: Colors.textMuted, marginTop: 10, fontSize: 13, fontFamily: "Inter_400Regular" }}>
               Loading all {districtPhrase()}…
             </Text>
@@ -489,7 +489,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
               const pending = d.pending || d.pendingComplaints || 0;
               const health = d.avgHealthScore || d.avgHealth || 0;
               const resRate = total > 0 ? Math.round(resolved / total * 100) : 0;
-              const healthColor = health >= 70 ? "#22C55E" : health >= 50 ? "#F59E0B" : "#F87171";
+              const healthColor = health >= 70 ? "#166534" : health >= 50 ? "#92400E" : "#B91C1C";
               const distSosCount = activeSos.filter((s: any) => s.district === d.district).length;
               const isTopPerformer = i < 3;
               const hasCritical = (d.activeSos || 0) > 0 || distSosCount > 0;
@@ -500,7 +500,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                       <View style={[sas.rankBadge, isTopPerformer && { backgroundColor: "#F59E0B22", borderColor: "#F59E0B44" }]}>
-                        <Text style={[sas.rankText, isTopPerformer && { color: "#F59E0B" }]}>#{i + 1}</Text>
+                        <Text style={[sas.rankText, isTopPerformer && { color: "#92400E" }]}>#{i + 1}</Text>
                       </View>
                       <View>
                         <Text style={sas.distName}>{d.district}</Text>
@@ -509,7 +509,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
                     </View>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                       {distSosCount > 0 && (
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#DC2626", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#B91C1C", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 }}>
                           <Ionicons name="warning" size={10} color="#fff" />
                           <Text style={{ color: "#fff", fontSize: 9, fontFamily: "Inter_700Bold" }}>{distSosCount} SOS</Text>
                         </View>
@@ -523,10 +523,10 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
 
                   <View style={{ flexDirection: "row", gap: 6 }}>
                     {[
-                      { val: total, label: "Total", color: "#F59E0B" },
-                      { val: resolved, label: "Done", color: "#22C55E" },
-                      { val: pending, label: "Open", color: "#F87171" },
-                      { val: `${resRate}%`, label: "Rate", color: "#06B6D4" },
+                      { val: total, label: "Total", color: "#92400E" },
+                      { val: resolved, label: "Done", color: "#166534" },
+                      { val: pending, label: "Open", color: "#B91C1C" },
+                      { val: `${resRate}%`, label: "Rate", color: "#0E7490" },
                     ].map(s => (
                       <View key={s.label} style={sas.statChip}>
                         <Text style={[sas.statChipVal, { color: s.color }]}>{s.val}</Text>
@@ -555,13 +555,13 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
                 </View>
 
                 {/* District Header */}
-                <LinearGradient colors={["#1A0D00", "#2D1A00"]} style={{ borderRadius: 14, padding: 16, marginBottom: 16 }}>
+                <LinearGradient colors={["#FFF7ED", "#FFEDD5"]} style={{ borderRadius: 14, padding: 16, marginBottom: 16 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 }}>
                     <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "#F59E0B22", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#F59E0B44" }}>
                       <Text style={{ fontSize: 22 }}>🏛️</Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: "#fff", fontSize: 18, fontFamily: "Inter_700Bold" }}>{selectedDistrict.district}</Text>
+                      <Text style={{ color: Colors.textPrimary, fontSize: 18, fontFamily: "Inter_700Bold" }}>{selectedDistrict.district}</Text>
                       <Text style={{ color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>
                         District Administration · {stateName()}
                       </Text>
@@ -573,10 +573,10 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
 
                   <View style={{ flexDirection: "row", gap: 8 }}>
                     {[
-                      { label: "Total", value: selectedDistrict.total, color: "#F59E0B" },
-                      { label: "Resolved", value: selectedDistrict.resolved, color: "#22C55E" },
-                      { label: "Pending", value: selectedDistrict.pending, color: "#F87171" },
-                      { label: "Health", value: `${selectedDistrict.health || selectedDistrict.avgHealthScore || 0}%`, color: "#A78BFA" },
+                      { label: "Total", value: selectedDistrict.total, color: "#92400E" },
+                      { label: "Resolved", value: selectedDistrict.resolved, color: "#166534" },
+                      { label: "Pending", value: selectedDistrict.pending, color: "#B91C1C" },
+                      { label: "Health", value: `${selectedDistrict.health || selectedDistrict.avgHealthScore || 0}%`, color: "#6D28D9" },
                     ].map(s => (
                       <View key={s.label} style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 10, padding: 10, alignItems: "center" }}>
                         <Text style={{ color: s.color, fontSize: 16, fontFamily: "Inter_700Bold" }}>{s.value}</Text>
@@ -590,15 +590,15 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
                 {selectedDistrict.distSosCount > 0 && (
                   <View style={{ backgroundColor: "#EF444411", borderRadius: 12, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: "#EF444433" }}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                      <Ionicons name="warning" size={14} color="#F87171" />
-                      <Text style={{ color: "#F87171", fontSize: 12, fontFamily: "Inter_700Bold" }}>
+                      <Ionicons name="warning" size={14} color="#B91C1C" />
+                      <Text style={{ color: "#B91C1C", fontSize: 12, fontFamily: "Inter_700Bold" }}>
                         {selectedDistrict.distSosCount} Active SOS in this district
                       </Text>
                     </View>
                     {activeSos.filter((s: any) => s.district === selectedDistrict.district).slice(0, 3).map((a: any) => (
                       <View key={a.id} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
-                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#DC2626" }} />
-                        <Text style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", flex: 1 }} numberOfLines={1}>
+                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#B91C1C" }} />
+                        <Text style={{ color: "#4B5563", fontSize: 11, fontFamily: "Inter_400Regular", flex: 1 }} numberOfLines={1}>
                           {a.category.replace(/_/g, " ").toUpperCase()} — {a.location}
                         </Text>
                       </View>
@@ -649,7 +649,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
                   <Pressable
                     onPress={handleAssignTask}
                     disabled={!assignTask.trim() || assignLoading}
-                    style={[{ flex: 2, backgroundColor: "#F59E0B", borderRadius: 12, padding: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }, (!assignTask.trim() || assignLoading) && { opacity: 0.5 }]}
+                    style={[{ flex: 2, backgroundColor: "#92400E", borderRadius: 12, padding: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }, (!assignTask.trim() || assignLoading) && { opacity: 0.5 }]}
                   >
                     {assignLoading
                       ? <ActivityIndicator color="#fff" size="small" />
@@ -669,10 +669,10 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
           <View style={sas.sheet}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 }}>
               <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "#EF444422", alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="radio-outline" size={24} color="#F87171" />
+                <Ionicons name="radio-outline" size={24} color="#B91C1C" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" }}>State Emergency Broadcast</Text>
+                <Text style={{ color: Colors.textPrimary, fontSize: 16, fontFamily: "Inter_700Bold" }}>State Emergency Broadcast</Text>
                 <Text style={{ color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>
                   Alerts all {districtPhrase()} simultaneously
                 </Text>
@@ -695,7 +695,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
                 <Text style={{ color: Colors.textMuted, fontSize: 14, fontFamily: "Inter_600SemiBold" }}>Cancel</Text>
               </Pressable>
               <Pressable onPress={handleBroadcast} disabled={broadcastLoading}
-                style={[{ flex: 2, backgroundColor: "#DC2626", borderRadius: 12, padding: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }, broadcastLoading && { opacity: 0.7 }]}>
+                style={[{ flex: 2, backgroundColor: "#B91C1C", borderRadius: 12, padding: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }, broadcastLoading && { opacity: 0.7 }]}>
                 {broadcastLoading
                   ? <ActivityIndicator color="#fff" size="small" />
                   : <><Ionicons name="warning" size={16} color="#fff" /><Text style={{ color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" }}>BROADCAST NOW</Text></>}
@@ -812,7 +812,7 @@ function DistrictAdminDashboard() {
   return (
     <View style={[styles.container, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
       {emergencyMode && (
-        <Animated.View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#DC2626", opacity: emergencyBg.interpolate({ inputRange: [0, 1], outputRange: [0, 0.1] }), zIndex: 0, pointerEvents: "none" }} />
+        <Animated.View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#B91C1C", opacity: emergencyBg.interpolate({ inputRange: [0, 1], outputRange: [0, 0.1] }), zIndex: 0, pointerEvents: "none" }} />
       )}
 
       {/* Header */}
@@ -835,14 +835,14 @@ function DistrictAdminDashboard() {
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Text style={styles.headerTitle}>War Room</Text>
                 <Animated.View style={{ opacity: liveAnim, backgroundColor: "#EF444422", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <Text style={{ color: "#F87171", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1 }}>LIVE</Text>
+                  <Text style={{ color: "#B91C1C", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1 }}>LIVE</Text>
                 </Animated.View>
               </View>
               <Text style={styles.headerSub}>{user?.name} · {user?.district}</Text>
             </View>
             <View style={{ flexDirection: "row", gap: 8 }}>
-              <Pressable onPress={() => setShowEmergencyModal(true)} style={[styles.emergencyBtn, emergencyMode && { backgroundColor: "#DC2626" }]}>
-                <Ionicons name="warning" size={16} color={emergencyMode ? "#fff" : "#F87171"} />
+              <Pressable onPress={() => setShowEmergencyModal(true)} style={[styles.emergencyBtn, emergencyMode && { backgroundColor: "#B91C1C" }]}>
+                <Ionicons name="warning" size={16} color={emergencyMode ? "#fff" : "#B91C1C"} />
                 <Text style={[styles.emergencyText, emergencyMode && { color: "#fff" }]}>
                   {emergencyMode ? "EMERGENCY" : "Emergency"}
                 </Text>
@@ -879,7 +879,7 @@ function DistrictAdminDashboard() {
         {/* Logout — always visible at end of nav */}
         <Pressable onPress={logout} style={styles.navLogoutBtn}>
           <View style={[styles.navTabIcon, { backgroundColor: "#EF444420" }]}>
-            <Feather name="log-out" size={16} color="#F87171" />
+            <Feather name="log-out" size={16} color="#B91C1C" />
           </View>
           <Text style={styles.navLogoutText}>Logout</Text>
         </Pressable>
@@ -893,14 +893,14 @@ function DistrictAdminDashboard() {
         {/* KPI Grid */}
         <View style={styles.kpiGrid}>
           {[
-            { label: "Total", value: stats.total, color: "#F59E0B", icon: "list-outline" as const, route: "/admin/reports" as const },
-            { label: "P1 Critical", value: p1Count, color: "#F87171", icon: "alert-circle" as const, route: "/admin/reports" as const },
-            { label: "Active SOS", value: activeAlerts.length, color: "#F87171", icon: "warning" as const, route: "/admin/alerts" as const },
-            { label: "Today", value: todayComplaints.length, color: "#22C55E", icon: "today-outline" as const, route: "/admin/reports" as const },
-            { label: "Pending", value: stats.pending, color: "#F59E0B", icon: "time-outline" as const, route: "/admin/reports" as const },
-            { label: "Resolved", value: stats.resolved, color: "#22C55E", icon: "checkmark-circle" as const, route: "/admin/reports" as const },
-            { label: "Workers", value: activeWorkers.length, color: "#06B6D4", icon: "people-outline" as const, route: "/admin/workers" as const },
-            { label: "Avg Score", value: `${avgHealth}%`, color: "#A78BFA", icon: "pulse-outline" as const, route: "/admin/workers" as const },
+            { label: "Total", value: stats.total, color: "#92400E", icon: "list-outline" as const, route: "/admin/reports" as const },
+            { label: "P1 Critical", value: p1Count, color: "#B91C1C", icon: "alert-circle" as const, route: "/admin/reports" as const },
+            { label: "Active SOS", value: activeAlerts.length, color: "#B91C1C", icon: "warning" as const, route: "/admin/alerts" as const },
+            { label: "Today", value: todayComplaints.length, color: "#166534", icon: "today-outline" as const, route: "/admin/reports" as const },
+            { label: "Pending", value: stats.pending, color: "#92400E", icon: "time-outline" as const, route: "/admin/reports" as const },
+            { label: "Resolved", value: stats.resolved, color: "#166534", icon: "checkmark-circle" as const, route: "/admin/reports" as const },
+            { label: "Workers", value: activeWorkers.length, color: "#0E7490", icon: "people-outline" as const, route: "/admin/workers" as const },
+            { label: "Avg Score", value: `${avgHealth}%`, color: "#6D28D9", icon: "pulse-outline" as const, route: "/admin/workers" as const },
           ].map((kpi, i) => (
             <Pressable key={i} onPress={() => router.push(kpi.route)} style={styles.kpiCard}>
               <Ionicons name={kpi.icon} size={18} color={kpi.color} />
@@ -925,12 +925,12 @@ function DistrictAdminDashboard() {
         {/* Stale complaints warning */}
         {stalePendingComplaints.length > 0 && (
           <Pressable onPress={() => router.push("/admin/reports")} style={{ marginHorizontal: 16, marginBottom: 12, borderRadius: 12, backgroundColor: "#F59E0B11", padding: 12, borderWidth: 1, borderColor: "#F59E0B33", flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Ionicons name="time" size={18} color="#F59E0B" />
+            <Ionicons name="time" size={18} color="#92400E" />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: "#F59E0B", fontSize: 12, fontFamily: "Inter_700Bold" }}>{stalePendingComplaints.length} stale complaints (&gt;3 days)</Text>
+              <Text style={{ color: "#92400E", fontSize: 12, fontFamily: "Inter_700Bold" }}>{stalePendingComplaints.length} stale complaints (&gt;3 days)</Text>
               <Text style={{ color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 }}>Requires immediate attention</Text>
             </View>
-            <Ionicons name="chevron-forward" size={14} color="#F59E0B" />
+            <Ionicons name="chevron-forward" size={14} color="#92400E" />
           </Pressable>
         )}
 
@@ -958,14 +958,14 @@ function DistrictAdminDashboard() {
                     👤 {a.triggeredBy || "Citizen"}
                   </Text>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 }}>
-                    <Ionicons name="location" size={11} color="#A78BFA" />
-                    <Text style={{ color: "#C4B5FD", fontSize: 11, fontFamily: "Inter_400Regular" }} numberOfLines={1}>
+                    <Ionicons name="location" size={11} color="#6D28D9" />
+                    <Text style={{ color: "#6D28D9", fontSize: 11, fontFamily: "Inter_400Regular" }} numberOfLines={1}>
                       {a.location}
                     </Text>
                   </View>
                   {a.nearestPoliceStation && (
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 }}>
-                      <Ionicons name="shield-checkmark" size={11} color="#F59E0B" />
+                      <Ionicons name="shield-checkmark" size={11} color="#92400E" />
                       <Text style={{ color: "#FDE68A", fontSize: 11, fontFamily: "Inter_500Medium" }}>
                         {a.nearestPoliceStation} · {a.policeDistance} km away
                       </Text>
@@ -982,7 +982,7 @@ function DistrictAdminDashboard() {
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <View style={styles.redDot} />
-              <Text style={[styles.sectionTitle, { color: "#F87171" }]}>ACTIVE SOS ALERTS</Text>
+              <Text style={[styles.sectionTitle, { color: "#B91C1C" }]}>ACTIVE SOS ALERTS</Text>
               <Text style={styles.alertCount}>{activeAlerts.length}</Text>
               <Pressable onPress={() => router.push("/admin/alerts")}><Text style={styles.seeAll}>View All</Text></Pressable>
             </View>
@@ -990,11 +990,11 @@ function DistrictAdminDashboard() {
               <Pressable key={alert.id} onPress={() => router.push("/admin/alerts")}>
                 <LinearGradient colors={alert.category === "women_safety" ? ["#4C1D9522", "#4C1D9511"] : ["#7F1D1D22", "#7F1D1D11"]} style={[styles.sosCard, alert.category === "women_safety" && { borderColor: "#7C3AED44" }]}>
                   <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
-                    <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: (SOS_ICON_COLORS[alert.category] || "#F87171") + "22", alignItems: "center", justifyContent: "center" }}>
-                      <Ionicons name={SOS_ICON_NAMES[alert.category] || "warning"} size={16} color={SOS_ICON_COLORS[alert.category] || "#F87171"} />
+                    <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: (SOS_ICON_COLORS[alert.category] || "#B91C1C") + "22", alignItems: "center", justifyContent: "center" }}>
+                      <Ionicons name={SOS_ICON_NAMES[alert.category] || "warning"} size={16} color={SOS_ICON_COLORS[alert.category] || "#B91C1C"} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.sosCategory, alert.category === "women_safety" && { color: "#A78BFA" }]}>{alert.category.replace(/_/g, " ").toUpperCase()}</Text>
+                      <Text style={[styles.sosCategory, alert.category === "women_safety" && { color: "#6D28D9" }]}>{alert.category.replace(/_/g, " ").toUpperCase()}</Text>
                       <Text style={styles.sosDesc} numberOfLines={2}>{alert.description}</Text>
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 }}>
                         <Ionicons name="location-outline" size={11} color={Colors.textMuted} />
@@ -1002,7 +1002,7 @@ function DistrictAdminDashboard() {
                       </View>
                       {alert.nearestPoliceStation && (
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
-                          <Ionicons name="shield-outline" size={11} color="#F59E0B" />
+                          <Ionicons name="shield-outline" size={11} color="#92400E" />
                           <Text style={styles.sosPolice}>{alert.nearestPoliceStation} · {alert.policeDistance} km</Text>
                         </View>
                       )}
@@ -1030,16 +1030,16 @@ function DistrictAdminDashboard() {
             <View style={styles.aiItem}><Text style={styles.aiValue}>{complaints.filter(c => c.upvotes >= 20).length}</Text><Text style={styles.aiItemLabel}>High Upvotes</Text></View>
           </View>
           <Pressable onPress={() => router.push("/admin/departments")} style={{ marginTop: 12, backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 10, padding: 10, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "rgba(167,139,250,0.2)" }}>
-            <Ionicons name="hardware-chip" size={14} color="#A78BFA" />
-            <Text style={{ flex: 1, color: "#C4B5FD", fontSize: 12, fontFamily: "Inter_500Medium" }}>View AI Department Routing Analysis</Text>
-            <Ionicons name="chevron-forward" size={14} color="#A78BFA" />
+            <Ionicons name="hardware-chip" size={14} color="#6D28D9" />
+            <Text style={{ flex: 1, color: "#6D28D9", fontSize: 12, fontFamily: "Inter_500Medium" }}>View AI Department Routing Analysis</Text>
+            <Ionicons name="chevron-forward" size={14} color="#6D28D9" />
           </Pressable>
         </LinearGradient>
 
         {/* SOS Incident Heatmap */}
         <View style={[styles.sectionCard, { padding: 0, overflow: "hidden" }]}>
           <View style={[styles.sectionHeader, { padding: 14, paddingBottom: 10 }]}>
-            <Ionicons name="map" size={16} color="#F87171" />
+            <Ionicons name="map" size={16} color="#B91C1C" />
             <Text style={styles.sectionTitle}>SOS Incident Heatmap</Text>
             <Text style={{ color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_400Regular" }}>Live · By district</Text>
           </View>
@@ -1049,7 +1049,7 @@ function DistrictAdminDashboard() {
         {/* Critical P1 Complaints */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="alert-circle" size={16} color="#F87171" />
+            <Ionicons name="alert-circle" size={16} color="#B91C1C" />
             <Text style={styles.sectionTitle}>Critical P1 Complaints</Text>
             <Text style={styles.seeAll} onPress={() => router.push("/admin/reports")}>View All ({criticalComplaints.length})</Text>
           </View>
@@ -1060,9 +1060,9 @@ function DistrictAdminDashboard() {
             </View>
           )}
           {criticalComplaints.slice(0, 5).map(c => {
-            const catColor = CAT_COLORS[c.category] || "#9CA3AF";
+            const catColor = CAT_COLORS[c.category] || "#4B5563";
             const catIcon = CAT_ICONS[c.category] || "ellipsis-horizontal";
-            const statusColor = STATUS_COLORS[c.status] || "#9CA3AF";
+            const statusColor = STATUS_COLORS[c.status] || "#4B5563";
             return (
               <Pressable key={c.id} onPress={() => setSelectedComplaint(c)} style={styles.criticalRow}>
                 <View style={[styles.criticalCatIcon, { backgroundColor: catColor + "22" }]}>
@@ -1091,18 +1091,18 @@ function DistrictAdminDashboard() {
         {/* Risk Zones */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="flame" size={16} color="#A78BFA" />
+            <Ionicons name="flame" size={16} color="#6D28D9" />
             <Text style={styles.sectionTitle}>AI Risk Zones</Text>
           </View>
           {riskZones.slice(0, 5).map(rz => (
             <Pressable key={rz.id} onPress={() => setSelectedRiskZone(rz)} style={styles.riskRow}>
-              <View style={[styles.riskDot, { backgroundColor: (RISK_COLORS as any)[rz.type] || "#9CA3AF" }]} />
+              <View style={[styles.riskDot, { backgroundColor: (RISK_COLORS as any)[rz.type] || "#4B5563" }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.riskDesc}>{rz.description}</Text>
                 <Text style={styles.riskCount}>{rz.complaintCount} complaints · {rz.type}</Text>
               </View>
-              <View style={[styles.riskBadge, { backgroundColor: ((RISK_COLORS as any)[rz.type] || "#9CA3AF") + "22" }]}>
-                <Text style={[styles.riskBadgeText, { color: (RISK_COLORS as any)[rz.type] || "#9CA3AF" }]}>{rz.severity}</Text>
+              <View style={[styles.riskBadge, { backgroundColor: ((RISK_COLORS as any)[rz.type] || "#4B5563") + "22" }]}>
+                <Text style={[styles.riskBadgeText, { color: (RISK_COLORS as any)[rz.type] || "#4B5563" }]}>{rz.severity}</Text>
               </View>
               <Ionicons name="chevron-forward" size={13} color={Colors.textMuted} style={{ marginLeft: 4 }} />
             </Pressable>
@@ -1112,7 +1112,7 @@ function DistrictAdminDashboard() {
         {/* Police Stations */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="shield-checkmark" size={16} color="#60A5FA" />
+            <Ionicons name="shield-checkmark" size={16} color="#1D4ED8" />
             <Text style={styles.sectionTitle}>Police Stations — {user?.district}</Text>
             <Pressable onPress={() => router.push("/admin/alerts")}>
               <Text style={styles.seeAll}>View Alerts</Text>
@@ -1126,7 +1126,7 @@ function DistrictAdminDashboard() {
             return (
               <Pressable key={ps.id} onPress={() => setSelectedStation(ps)} style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 }, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
                 <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: districtSos > 0 ? "#EF444422" : "#3B82F622", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: districtSos > 0 ? "#EF444444" : "#3B82F644" }}>
-                  <Ionicons name="shield" size={16} color={districtSos > 0 ? "#F87171" : "#60A5FA"} />
+                  <Ionicons name="shield" size={16} color={districtSos > 0 ? "#B91C1C" : "#1D4ED8"} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" }} numberOfLines={1}>{ps.name}</Text>
@@ -1138,8 +1138,8 @@ function DistrictAdminDashboard() {
                 <View style={{ alignItems: "flex-end", gap: 4 }}>
                   {districtSos > 0 && (
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#EF444422", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                      <Ionicons name="warning" size={9} color="#F87171" />
-                      <Text style={{ color: "#F87171", fontSize: 9, fontFamily: "Inter_700Bold" }}>{districtSos} SOS</Text>
+                      <Ionicons name="warning" size={9} color="#B91C1C" />
+                      <Text style={{ color: "#B91C1C", fontSize: 9, fontFamily: "Inter_700Bold" }}>{districtSos} SOS</Text>
                     </View>
                   )}
                   <Ionicons name="chevron-forward" size={13} color={Colors.textMuted} />
@@ -1149,15 +1149,15 @@ function DistrictAdminDashboard() {
           })}
           <View style={{ flexDirection: "row", gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.border }}>
             <View style={{ flex: 1, backgroundColor: Colors.bg, borderRadius: 10, padding: 10, alignItems: "center", gap: 2 }}>
-              <Text style={{ color: "#60A5FA", fontSize: 16, fontFamily: "Inter_700Bold" }}>{policeStations.length}</Text>
+              <Text style={{ color: "#1D4ED8", fontSize: 16, fontFamily: "Inter_700Bold" }}>{policeStations.length}</Text>
               <Text style={{ color: Colors.textMuted, fontSize: 9, fontFamily: "Inter_400Regular" }}>Stations</Text>
             </View>
             <View style={{ flex: 1, backgroundColor: Colors.bg, borderRadius: 10, padding: 10, alignItems: "center", gap: 2 }}>
-              <Text style={{ color: "#F87171", fontSize: 16, fontFamily: "Inter_700Bold" }}>{sosAlerts.filter((s: any) => s.status === "active").length}</Text>
+              <Text style={{ color: "#B91C1C", fontSize: 16, fontFamily: "Inter_700Bold" }}>{sosAlerts.filter((s: any) => s.status === "active").length}</Text>
               <Text style={{ color: Colors.textMuted, fontSize: 9, fontFamily: "Inter_400Regular" }}>Active SOS</Text>
             </View>
             <View style={{ flex: 1, backgroundColor: Colors.bg, borderRadius: 10, padding: 10, alignItems: "center", gap: 2 }}>
-              <Text style={{ color: "#22C55E", fontSize: 16, fontFamily: "Inter_700Bold" }}>24/7</Text>
+              <Text style={{ color: "#166534", fontSize: 16, fontFamily: "Inter_700Bold" }}>24/7</Text>
               <Text style={{ color: Colors.textMuted, fontSize: 9, fontFamily: "Inter_400Regular" }}>Response</Text>
             </View>
           </View>
@@ -1167,14 +1167,14 @@ function DistrictAdminDashboard() {
         {workers.length > 0 && (
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="people" size={16} color="#06B6D4" />
+              <Ionicons name="people" size={16} color="#0E7490" />
               <Text style={styles.sectionTitle}>Field Workers</Text>
               <Pressable onPress={() => router.push("/admin/workers")}><Text style={styles.seeAll}>View All ({workers.length})</Text></Pressable>
             </View>
             {workers.slice(0, 5).map((w, i) => (
               <Pressable key={w.id} onPress={() => setSelectedFieldWorker(w)} style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 }, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
                 <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "#06B6D422", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#06B6D444" }}>
-                  <Ionicons name="person" size={16} color="#06B6D4" />
+                  <Ionicons name="person" size={16} color="#0E7490" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" }}>{w.name}</Text>
@@ -1182,10 +1182,10 @@ function DistrictAdminDashboard() {
                 </View>
                 <View style={{ alignItems: "flex-end", gap: 3 }}>
                   <View style={[{ borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }, { backgroundColor: w.status === "active" ? "#22C55E22" : "#F59E0B22" }]}>
-                    <Text style={{ fontSize: 9, fontFamily: "Inter_700Bold", color: w.status === "active" ? "#22C55E" : "#F59E0B" }}>{w.status.toUpperCase()}</Text>
+                    <Text style={{ fontSize: 9, fontFamily: "Inter_700Bold", color: w.status === "active" ? "#166534" : "#92400E" }}>{w.status.toUpperCase()}</Text>
                   </View>
                   <View style={{ width: 60, height: 4, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden" }}>
-                    <View style={{ height: 4, backgroundColor: w.score >= 70 ? "#22C55E" : w.score >= 50 ? "#F59E0B" : "#F87171", borderRadius: 2, width: `${w.score}%` }} />
+                    <View style={{ height: 4, backgroundColor: w.score >= 70 ? "#166534" : w.score >= 50 ? "#92400E" : "#B91C1C", borderRadius: 2, width: `${w.score}%` }} />
                   </View>
                   <Text style={{ color: Colors.textMuted, fontSize: 9, fontFamily: "Inter_400Regular" }}>{w.score}% score</Text>
                 </View>
@@ -1213,8 +1213,8 @@ function DistrictAdminDashboard() {
             <ScrollView showsVerticalScrollIndicator={false}>
               {selectedRiskZone && (() => {
                 const rz = selectedRiskZone;
-                const rzColor = (RISK_COLORS as any)[rz.type] || "#9CA3AF";
-                const sevColor = rz.severity === "high" ? "#F87171" : rz.severity === "medium" ? "#F59E0B" : "#22C55E";
+                const rzColor = (RISK_COLORS as any)[rz.type] || "#4B5563";
+                const sevColor = rz.severity === "high" ? "#B91C1C" : rz.severity === "medium" ? "#92400E" : "#166534";
                 const RECS: Record<string, string[]> = {
                   flood: ["Deploy sandbag barriers", "Alert drainage dept", "Evacuate low-lying areas"],
                   garbage: ["Schedule emergency pickup", "Deploy street sweepers", "Issue ULB notice"],
@@ -1251,7 +1251,7 @@ function DistrictAdminDashboard() {
                     </View>
                     <View style={styles.detailStatsGrid}>
                       <View style={styles.detailStat}>
-                        <Text style={[styles.detailStatVal, { color: "#F87171" }]}>{rz.complaintCount}</Text>
+                        <Text style={[styles.detailStatVal, { color: "#B91C1C" }]}>{rz.complaintCount}</Text>
                         <Text style={styles.detailStatLbl}>Complaints</Text>
                       </View>
                       <View style={styles.detailStat}>
@@ -1274,7 +1274,7 @@ function DistrictAdminDashboard() {
                           <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: rzColor + "22", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
                             <Text style={{ color: rzColor, fontSize: 9, fontFamily: "Inter_700Bold" }}>{i + 1}</Text>
                           </View>
-                          <Text style={{ color: "#D1D5DB", fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 }}>{r}</Text>
+                          <Text style={{ color: "#374151", fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 }}>{r}</Text>
                         </View>
                       ))}
                     </View>
@@ -1300,7 +1300,7 @@ function DistrictAdminDashboard() {
                   <>
                     <View style={styles.detailHeader}>
                       <View style={[styles.detailCatIcon, { backgroundColor: hasActive ? "#EF444422" : "#3B82F622" }]}>
-                        <Ionicons name="shield-checkmark" size={22} color={hasActive ? "#F87171" : "#60A5FA"} />
+                        <Ionicons name="shield-checkmark" size={22} color={hasActive ? "#B91C1C" : "#1D4ED8"} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.detailTicket} numberOfLines={2}>{ps.name}</Text>
@@ -1312,21 +1312,21 @@ function DistrictAdminDashboard() {
                     </View>
                     {hasActive && (
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#EF444411", borderRadius: 10, padding: 10, marginBottom: 12, borderWidth: 1, borderColor: "#EF444433" }}>
-                        <Ionicons name="warning" size={16} color="#F87171" />
-                        <Text style={{ color: "#F87171", fontSize: 12, fontFamily: "Inter_700Bold" }}>{stationSos.length} ACTIVE SOS nearby</Text>
+                        <Ionicons name="warning" size={16} color="#B91C1C" />
+                        <Text style={{ color: "#B91C1C", fontSize: 12, fontFamily: "Inter_700Bold" }}>{stationSos.length} ACTIVE SOS nearby</Text>
                       </View>
                     )}
                     <View style={styles.detailStatsGrid}>
                       <View style={styles.detailStat}>
-                        <Text style={[styles.detailStatVal, { color: "#F87171" }]}>{stationSos.length}</Text>
+                        <Text style={[styles.detailStatVal, { color: "#B91C1C" }]}>{stationSos.length}</Text>
                         <Text style={styles.detailStatLbl}>Active SOS</Text>
                       </View>
                       <View style={styles.detailStat}>
-                        <Text style={[styles.detailStatVal, { color: "#F59E0B" }]}>{totalSos}</Text>
+                        <Text style={[styles.detailStatVal, { color: "#92400E" }]}>{totalSos}</Text>
                         <Text style={styles.detailStatLbl}>Total SOS</Text>
                       </View>
                       <View style={styles.detailStat}>
-                        <Text style={[styles.detailStatVal, { color: "#22C55E" }]}>24/7</Text>
+                        <Text style={[styles.detailStatVal, { color: "#166534" }]}>24/7</Text>
                         <Text style={styles.detailStatLbl}>Response</Text>
                       </View>
                     </View>
@@ -1350,8 +1350,8 @@ function DistrictAdminDashboard() {
                         <Text style={styles.detailSectionLabel}>Active SOS Incidents</Text>
                         {stationSos.slice(0, 3).map((a, i) => (
                           <View key={a.id} style={[{ paddingVertical: 6 }, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
-                            <Text style={{ color: "#F87171", fontSize: 10, fontFamily: "Inter_700Bold" }}>{a.category.replace(/_/g, " ").toUpperCase()}</Text>
-                            <Text style={{ color: "#D1D5DB", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={1}>{a.location}</Text>
+                            <Text style={{ color: "#B91C1C", fontSize: 10, fontFamily: "Inter_700Bold" }}>{a.category.replace(/_/g, " ").toUpperCase()}</Text>
+                            <Text style={{ color: "#374151", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }} numberOfLines={1}>{a.location}</Text>
                           </View>
                         ))}
                       </View>
@@ -1378,13 +1378,13 @@ function DistrictAdminDashboard() {
             <ScrollView showsVerticalScrollIndicator={false}>
               {selectedFieldWorker && (() => {
                 const w = selectedFieldWorker;
-                const scoreColor = w.score >= 70 ? "#22C55E" : w.score >= 50 ? "#F59E0B" : "#F87171";
-                const statusColor = w.status === "active" ? "#22C55E" : w.status === "idle" ? "#F59E0B" : "#9CA3AF";
+                const scoreColor = w.score >= 70 ? "#166534" : w.score >= 50 ? "#92400E" : "#B91C1C";
+                const statusColor = w.status === "active" ? "#166534" : w.status === "idle" ? "#92400E" : "#4B5563";
                 return (
                   <>
                     <View style={styles.detailHeader}>
                       <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#06B6D422", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#06B6D444" }}>
-                        <Ionicons name="person" size={22} color="#06B6D4" />
+                        <Ionicons name="person" size={22} color="#0E7490" />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.detailTicket}>{w.name}</Text>
@@ -1406,7 +1406,7 @@ function DistrictAdminDashboard() {
                     </View>
                     <View style={styles.detailStatsGrid}>
                       <View style={styles.detailStat}>
-                        <Text style={[styles.detailStatVal, { color: "#22C55E" }]}>{w.resolvedToday}</Text>
+                        <Text style={[styles.detailStatVal, { color: "#166534" }]}>{w.resolvedToday}</Text>
                         <Text style={styles.detailStatLbl}>Today</Text>
                       </View>
                       <View style={styles.detailStat}>
@@ -1414,7 +1414,7 @@ function DistrictAdminDashboard() {
                         <Text style={styles.detailStatLbl}>Total</Text>
                       </View>
                       <View style={styles.detailStat}>
-                        <Text style={[styles.detailStatVal, { color: "#F59E0B" }]}>{w.avgRating.toFixed(1)}★</Text>
+                        <Text style={[styles.detailStatVal, { color: "#92400E" }]}>{w.avgRating.toFixed(1)}★</Text>
                         <Text style={styles.detailStatLbl}>Rating</Text>
                       </View>
                       <View style={styles.detailStat}>
@@ -1471,7 +1471,7 @@ function DistrictAdminDashboard() {
           <View style={styles.modalCard}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 }}>
               <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "#EF444422", alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="radio-outline" size={24} color="#F87171" />
+                <Ionicons name="radio-outline" size={24} color="#B91C1C" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.modalTitle}>District Emergency Broadcast</Text>
@@ -1512,12 +1512,12 @@ function DistrictAdminDashboard() {
 const sas = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },
-  title: { color: "#fff", fontSize: 19, fontFamily: "Inter_700Bold" },
+  title: { color: Colors.textPrimary, fontSize: 19, fontFamily: "Inter_700Bold" },
   sub: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   broadcastBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#EF444444", backgroundColor: "#EF444411" },
-  broadcastBtnText: { color: "#F87171", fontSize: 11, fontFamily: "Inter_700Bold" },
+  broadcastBtnText: { color: "#B91C1C", fontSize: 11, fontFamily: "Inter_700Bold" },
   logoutBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#EF444440", backgroundColor: "#EF444412" },
-  logoutText: { color: "#F87171", fontSize: 11, fontFamily: "Inter_700Bold" },
+  logoutText: { color: "#B91C1C", fontSize: 11, fontFamily: "Inter_700Bold" },
   navWrap: { backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: Colors.border },
   navRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
   navTab: {
@@ -1529,15 +1529,15 @@ const sas = StyleSheet.create({
   navTabActive: { backgroundColor: "#F59E0B0D", borderColor: "#F59E0B55" },
   navTabIcon: { width: 32, height: 32, borderRadius: 9, backgroundColor: Colors.bgCardAlt, alignItems: "center", justifyContent: "center" },
   navTabText: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_600SemiBold", textAlign: "center" },
-  navTabDot: { position: "absolute", bottom: 5, width: 4, height: 4, borderRadius: 2, backgroundColor: "#F59E0B" },
+  navTabDot: { position: "absolute", bottom: 5, width: 4, height: 4, borderRadius: 2, backgroundColor: "#92400E" },
   navLogoutBtn: {
     flexDirection: "column", alignItems: "center", gap: 4,
     paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12,
     backgroundColor: "#EF444410", borderWidth: 1, borderColor: "#EF444440",
     minWidth: 66,
   },
-  navLogoutText: { color: "#F87171", fontSize: 10, fontFamily: "Inter_700Bold" },
-  badge: { backgroundColor: "#DC2626", borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 },
+  navLogoutText: { color: "#B91C1C", fontSize: 10, fontFamily: "Inter_700Bold" },
+  badge: { backgroundColor: "#B91C1C", borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 },
   badgeText: { color: "#fff", fontSize: 9, fontFamily: "Inter_700Bold" },
   kpiRow: { flexDirection: "row", paddingHorizontal: 16, gap: 8, marginBottom: 12 },
   kpiCard: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1, borderColor: Colors.border, gap: 4 },
@@ -1554,7 +1554,7 @@ const sas = StyleSheet.create({
   statChipVal: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold" },
   statChipLabel: { color: Colors.textMuted, fontSize: 8, fontFamily: "Inter_400Regular", marginTop: 1 },
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.85)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: "#111827", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderColor: Colors.border, maxHeight: "90%" },
+  sheet: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderColor: Colors.border, maxHeight: "90%" },
 });
 
 // ── DISTRICT ADMIN STYLES ──────────────────────────────────────────────────────
@@ -1564,9 +1564,9 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#fff", fontSize: 20, fontFamily: "Inter_700Bold" },
   headerSub: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   emergencyBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#EF444444", backgroundColor: "#EF444411" },
-  emergencyText: { color: "#F87171", fontSize: 11, fontFamily: "Inter_700Bold" },
+  emergencyText: { color: "#B91C1C", fontSize: 11, fontFamily: "Inter_700Bold" },
   logoutBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#EF444440", backgroundColor: "#EF444412" },
-  logoutText: { color: "#F87171", fontSize: 11, fontFamily: "Inter_700Bold" },
+  logoutText: { color: "#B91C1C", fontSize: 11, fontFamily: "Inter_700Bold" },
   navWrap: { backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: Colors.border },
   navRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
   navTab: {
@@ -1585,7 +1585,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#EF444410", borderWidth: 1, borderColor: "#EF444440",
     minWidth: 66,
   },
-  navLogoutText: { color: "#F87171", fontSize: 10, fontFamily: "Inter_700Bold" },
+  navLogoutText: { color: "#B91C1C", fontSize: 10, fontFamily: "Inter_700Bold" },
   kpiGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 16, gap: 8, marginBottom: 12 },
   kpiCard: { width: "22%", backgroundColor: Colors.bgCard, borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
   kpiValue: { fontSize: 18, fontFamily: "Inter_700Bold", marginTop: 4 },
@@ -1598,31 +1598,31 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
   sectionTitle: { color: "#fff", fontSize: 14, fontFamily: "Inter_600SemiBold", flex: 1 },
   seeAll: { color: Colors.green, fontSize: 12, fontFamily: "Inter_500Medium" },
-  redDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#DC2626" },
+  redDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#B91C1C" },
   alertCount: { color: Colors.textMuted, fontSize: 12, fontFamily: "Inter_400Regular" },
   sosCard: { borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: "#EF444422" },
-  sosCategory: { color: "#F87171", fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
+  sosCategory: { color: "#B91C1C", fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
   sosDesc: { color: "#fff", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 3, lineHeight: 16 },
   sosLoc: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular" },
-  sosPolice: { color: "#F59E0B", fontSize: 10, fontFamily: "Inter_500Medium" },
-  sosBadge: { backgroundColor: "#DC2626", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  sosPolice: { color: "#92400E", fontSize: 10, fontFamily: "Inter_500Medium" },
+  sosBadge: { backgroundColor: "#B91C1C", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
   sosBadgeText: { color: "#fff", fontSize: 10, fontFamily: "Inter_700Bold" },
   aiPanel: { marginHorizontal: 16, borderRadius: 16, padding: 16, marginBottom: 12 },
   aiHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   aiTitle: { color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" },
   aiBadge: { backgroundColor: "#22C55E22", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: "#22C55E44" },
-  aiBadgeText: { color: "#22C55E", fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 1 },
+  aiBadgeText: { color: "#166534", fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 1 },
   aiGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   aiItem: { flex: 1, minWidth: "40%", backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 10, alignItems: "center" },
-  aiValue: { color: "#A78BFA", fontSize: 22, fontFamily: "Inter_700Bold" },
+  aiValue: { color: "#6D28D9", fontSize: 22, fontFamily: "Inter_700Bold" },
   aiItemLabel: { color: "rgba(255,255,255,0.4)", fontSize: 9, fontFamily: "Inter_400Regular", marginTop: 3 },
   criticalRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderTopWidth: 1, borderTopColor: Colors.border },
   criticalCatIcon: { width: 32, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   criticalTicket: { color: "#fff", fontSize: 12, fontFamily: "Inter_700Bold" },
   p1Badge: { backgroundColor: "#EF444422", borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1 },
-  p1Text: { color: "#F87171", fontSize: 9, fontFamily: "Inter_700Bold" },
+  p1Text: { color: "#B91C1C", fontSize: 9, fontFamily: "Inter_700Bold" },
   criticalStatusText: { fontSize: 9, fontFamily: "Inter_500Medium", textTransform: "capitalize" },
-  criticalDesc: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular" },
+  criticalDesc: { color: "#4B5563", fontSize: 11, fontFamily: "Inter_400Regular" },
   criticalLoc: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_400Regular" },
   riskRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: Colors.border },
   riskDot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
@@ -1631,16 +1631,16 @@ const styles = StyleSheet.create({
   riskBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
   riskBadgeText: { fontSize: 9, fontFamily: "Inter_700Bold", textTransform: "capitalize" },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.8)", justifyContent: "flex-end" },
-  modalCard: { backgroundColor: "#111827", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderColor: Colors.border },
+  modalCard: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderColor: Colors.border },
   modalTitle: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
   modalSub: { color: Colors.textMuted, fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
   broadcastMsgLabel: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_500Medium", marginBottom: 8 },
   broadcastMsgInput: { backgroundColor: Colors.bg, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: Colors.border, color: "#fff", fontSize: 13, fontFamily: "Inter_400Regular", minHeight: 70, textAlignVertical: "top" },
   cancelBtn: { flex: 1, backgroundColor: Colors.bg, borderRadius: 12, padding: 14, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
   cancelText: { color: Colors.textMuted, fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  emergencyConfirmBtn: { flex: 2, backgroundColor: "#DC2626", borderRadius: 12, padding: 14, alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "center" },
+  emergencyConfirmBtn: { flex: 2, backgroundColor: "#B91C1C", borderRadius: 12, padding: 14, alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "center" },
   emergencyConfirmText: { color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" },
-  detailCard: { backgroundColor: "#111827", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderColor: Colors.border, maxHeight: "90%" },
+  detailCard: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderColor: Colors.border, maxHeight: "90%" },
   detailHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
   detailCatIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   detailTicket: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
@@ -1650,9 +1650,9 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 10, fontFamily: "Inter_600SemiBold", textTransform: "capitalize" },
   detailSection: { backgroundColor: Colors.bg, borderRadius: 10, padding: 12, marginBottom: 10 },
   detailSectionLabel: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 },
-  detailDesc: { color: "#D1D5DB", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  detailDesc: { color: "#374151", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
   detailInfoRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
-  detailInfoText: { color: "#9CA3AF", fontSize: 12, fontFamily: "Inter_400Regular" },
+  detailInfoText: { color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular" },
   detailInfoMuted: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular" },
   detailStatsGrid: { flexDirection: "row", backgroundColor: Colors.bg, borderRadius: 12, padding: 12, marginVertical: 12, gap: 4 },
   detailStat: { flex: 1, alignItems: "center", gap: 3 },
@@ -1667,5 +1667,5 @@ const styles = StyleSheet.create({
   resolveBtn: { flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: Colors.green, borderRadius: 12, padding: 12 },
   resolveBtnText: { color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" },
   rejectBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#EF444422", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#EF444444" },
-  rejectBtnText: { color: "#F87171", fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  rejectBtnText: { color: "#B91C1C", fontSize: 14, fontFamily: "Inter_600SemiBold" },
 });

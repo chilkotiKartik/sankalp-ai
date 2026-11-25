@@ -14,32 +14,32 @@ import { getApiUrl } from "@/lib/query-client";
 import { getSecure } from "@/lib/secure-session";
 
 const CAT_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-  pothole:     { label: "Pothole",     icon: "alert-circle",        color: "#F59E0B" },
-  garbage:     { label: "Garbage",     icon: "trash",               color: "#F87171" },
-  streetlight: { label: "Streetlight", icon: "bulb",                color: "#FCD34D" },
-  water:       { label: "Water",       icon: "water",               color: "#60A5FA" },
-  drain:       { label: "Drain",       icon: "git-network",         color: "#06B6D4" },
-  electricity: { label: "Electricity", icon: "flash",               color: "#A78BFA" },
-  tree:        { label: "Tree",        icon: "leaf",                color: "#22C55E" },
-  other:       { label: "Other",       icon: "ellipsis-horizontal", color: "#9CA3AF" },
+  pothole:     { label: "Pothole",     icon: "alert-circle",        color: "#B45309" },
+  garbage:     { label: "Garbage",     icon: "trash",               color: "#DC2626" },
+  streetlight: { label: "Streetlight", icon: "bulb",                color: "#92400E" },
+  water:       { label: "Water",       icon: "water",               color: "#1D4ED8" },
+  drain:       { label: "Drain",       icon: "git-network",         color: "#0E7490" },
+  electricity: { label: "Electricity", icon: "flash",               color: "#6D28D9" },
+  tree:        { label: "Tree",        icon: "leaf",                color: "#15803D" },
+  other:       { label: "Other",       icon: "ellipsis-horizontal", color: "#4B5563" },
 };
 
 const BADGE_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-  new_citizen:    { icon: "leaf",             color: "#22C55E" },
-  active_citizen: { icon: "star",             color: "#F59E0B" },
-  civic_hero:     { icon: "shield-checkmark", color: "#A78BFA" },
-  city_champion:  { icon: "trophy",           color: "#F87171" },
-  first_report:   { icon: "document-text",    color: "#60A5FA" },
-  system_admin:   { icon: "settings",         color: "#06B6D4" },
-  district_admin: { icon: "business",         color: "#FF9933" },
+  new_citizen:    { icon: "leaf",             color: "#15803D" },
+  active_citizen: { icon: "star",             color: "#B45309" },
+  civic_hero:     { icon: "shield-checkmark", color: "#6D28D9" },
+  city_champion:  { icon: "trophy",           color: "#DC2626" },
+  first_report:   { icon: "document-text",    color: "#1D4ED8" },
+  system_admin:   { icon: "settings",         color: "#0E7490" },
+  district_admin: { icon: "business",         color: "#C2410C" },
 };
 
 function getWardGrade(healthScore: number): { grade: "A" | "B" | "C" | "D" | "F"; color: string } {
-  if (healthScore >= 85) return { grade: "A", color: "#34D399" };
-  if (healthScore >= 70) return { grade: "B", color: "#60A5FA" };
-  if (healthScore >= 55) return { grade: "C", color: "#F59E0B" };
-  if (healthScore >= 40) return { grade: "D", color: "#F97316" };
-  return { grade: "F", color: "#F87171" };
+  if (healthScore >= 85) return { grade: "A", color: "#047857" };
+  if (healthScore >= 70) return { grade: "B", color: "#1D4ED8" };
+  if (healthScore >= 55) return { grade: "C", color: "#B45309" };
+  if (healthScore >= 40) return { grade: "D", color: "#C2410C" };
+  return { grade: "F", color: "#DC2626" };
 }
 
 const PREDICT_CATEGORY_COLORS: Record<string, string> = {
@@ -103,10 +103,10 @@ export default function AnalyticsScreen() {
   }).sort((a, b) => b.count - a.count);
 
   const priorities = [
-    { key: "P1", label: "Critical", color: "#F87171" },
-    { key: "P2", label: "High",     color: "#F59E0B" },
-    { key: "P3", label: "Medium",   color: "#60A5FA" },
-    { key: "P4", label: "Low",      color: "#9CA3AF" },
+    { key: "P1", label: "Critical", color: "#DC2626" },
+    { key: "P2", label: "High",     color: "#B45309" },
+    { key: "P3", label: "Medium",   color: "#1D4ED8" },
+    { key: "P4", label: "Low",      color: "#4B5563" },
   ].map(p => ({ ...p, count: complaints.filter(c => c.priority === p.key).length, pct: Math.round((complaints.filter(c => c.priority === p.key).length / total) * 100) }));
 
   const avgAiScore = Math.round(complaints.reduce((s, c) => s + c.aiScore, 0) / total);
@@ -197,9 +197,9 @@ export default function AnalyticsScreen() {
         {/* Status breakdown */}
         <SectionCard icon="pie-chart" iconColor={Colors.green} title="Status Breakdown">
           {[
-            { label: "Resolved",    count: resolved,    color: "#22C55E", pct: Math.round(resolved / total * 100),    icon: "checkmark-circle" as const },
-            { label: "In Progress", count: inProgress,  color: "#60A5FA", pct: Math.round(inProgress / total * 100),  icon: "time" as const },
-            { label: "Pending",     count: pending,     color: "#F59E0B", pct: Math.round(pending / total * 100),     icon: "hourglass" as const },
+            { label: "Resolved",    count: resolved,    color: "#15803D", pct: Math.round(resolved / total * 100),    icon: "checkmark-circle" as const },
+            { label: "In Progress", count: inProgress,  color: "#1D4ED8", pct: Math.round(inProgress / total * 100),  icon: "time" as const },
+            { label: "Pending",     count: pending,     color: "#B45309", pct: Math.round(pending / total * 100),     icon: "hourglass" as const },
           ].map((s, i) => (
             <View key={s.label} style={styles.barRow}>
               <Ionicons name={s.icon} size={13} color={s.color} />
@@ -370,10 +370,10 @@ export default function AnalyticsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  headerTitle: { color: "#fff", fontSize: 22, fontWeight: "700" },
+  headerTitle: { color: Colors.textPrimary, fontSize: 22, fontWeight: "700" },
   headerSub: { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
   auditBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: Colors.cyan + "22", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: Colors.cyan + "44" },
-  auditBtnText: { fontSize: 12, color: Colors.cyan, fontWeight: "600" },
+  auditBtnText: { fontSize: 12, color: "#155E75", fontWeight: "600" },
   metricsGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 16, gap: 10, marginBottom: 16 },
   metricCard: { width: "47%", borderRadius: 14, overflow: "hidden" },
   metricGrad: { padding: 16, gap: 4 },
@@ -381,9 +381,9 @@ const styles = StyleSheet.create({
   metricLabel: { color: "rgba(255,255,255,0.6)", fontSize: 11, marginTop: 2 },
   sectionCard: { marginHorizontal: 16, backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Colors.border, marginBottom: 12 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
-  sectionTitle: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  sectionTitle: { color: Colors.textPrimary, fontSize: 14, fontWeight: "600" },
   barRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 5 },
-  barLabel: { color: "#D1D5DB", fontSize: 11, width: 70 },
+  barLabel: { color: "#374151", fontSize: 11, width: 70 },
   barPct: { fontSize: 11, fontWeight: "700", width: 34, textAlign: "right" },
   barCount: { color: Colors.textMuted, fontSize: 11, width: 30, textAlign: "right" },
   priorityBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   leaderRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: Colors.border },
   rankBadge: { width: 34, height: 34, borderRadius: 10, backgroundColor: Colors.bg, borderWidth: 1, borderColor: Colors.border, alignItems: "center", justifyContent: "center" },
   rankNum: { color: Colors.textMuted, fontSize: 12, fontWeight: "700" },
-  leaderName: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  leaderName: { color: Colors.textPrimary, fontSize: 13, fontWeight: "600" },
   leaderLevel: { color: Colors.textMuted, fontSize: 9 },
   badgeChip: { width: 18, height: 18, borderRadius: 5, alignItems: "center", justifyContent: "center" },
   pointsBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#22C55E22", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
   wardRank: { fontSize: 11, fontWeight: "700", width: 24 },
   gradeBox: { width: 26, height: 26, borderRadius: 6, alignItems: "center", justifyContent: "center" },
   gradeText: { fontSize: 12, fontWeight: "800" },
-  wardName: { color: "#fff", fontSize: 12, fontWeight: "600" },
+  wardName: { color: Colors.textPrimary, fontSize: 12, fontWeight: "600" },
   wardArea: { color: Colors.textMuted, fontSize: 10 },
   wardBar: { width: 60, height: 6, backgroundColor: Colors.bg, borderRadius: 3, overflow: "hidden" },
   wardBarFill: { height: 6, borderRadius: 3 },
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
 
   workerRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 6, borderTopWidth: 1, borderTopColor: Colors.border },
   workerRank: { fontSize: 11, fontWeight: "700", width: 24 },
-  workerName: { color: "#fff", fontSize: 12, fontWeight: "600" },
+  workerName: { color: Colors.textPrimary, fontSize: 12, fontWeight: "600" },
   workerWard: { color: Colors.textMuted, fontSize: 10 },
   workerScore: { color: Colors.green, fontSize: 14, fontWeight: "700" },
   workerRating: { color: Colors.textMuted, fontSize: 10 },

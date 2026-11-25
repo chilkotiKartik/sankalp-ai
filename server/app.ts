@@ -134,6 +134,15 @@ let pwaCache: { mtime: number; base: string; html: string } | null = null;
 const SITE_TITLE = "SANKALP AI — Report civic issues, track the fix, SOS for every Indian state";
 const SITE_DESC = "Report potholes, garbage, water and power problems in under a minute, track them to a photo-verified fix, and get help fast with women-safety SOS. Works in every Indian state and UT; your data stays in India.";
 const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+/** Instant loading screen inside #root (React replaces it when the app renders). Pure HTML/CSS: works before any JS. */
+const BOOT_CSS = "#boot{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#F7F3EE;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#1F1A17;text-align:center;padding:24px}"
+  + "#boot .mark{width:84px;height:84px;border-radius:22px;background:linear-gradient(135deg,#FF9933,#C2410C 55%,#138808);display:flex;align-items:center;justify-content:center;color:#fff;font-size:46px;font-weight:900;box-shadow:0 10px 30px rgba(194,65,12,.35)}"
+  + "#boot h1{margin:4px 0 0;font-size:24px;letter-spacing:.5px}#boot p{margin:0;font-size:14px;color:#5B4A3B}"
+  + "#boot .spin{width:28px;height:28px;border:3px solid #E7DCD0;border-top-color:#C2410C;border-radius:50%;animation:bootspin .8s linear infinite}"
+  + "#boot .slow{opacity:0;animation:bootshow .4s ease 8s forwards;font-size:13px;color:#5B4A3B}#boot .slow a{display:inline-block;margin-top:10px;background:#B91C1C;color:#fff;text-decoration:none;font-weight:700;padding:10px 18px;border-radius:12px}"
+  + "@keyframes bootspin{to{transform:rotate(360deg)}}@keyframes bootshow{to{opacity:1}}";
+const BOOT_HTML = '<div id="boot" role="status" aria-live="polite"><div class="mark" aria-hidden="true">S</div><h1>SANKALP AI</h1><p>Loading your civic app…</p><div class="spin" aria-hidden="true"></div>'
+  + '<div class="slow">Slow connection — please wait a few seconds.<br/><a href="tel:112">Emergency? Call 112</a></div></div>';
 function pwaHead(base: string): string {
   const abs = (p: string) => (base ? base + p : p);
   const ld = { "@context": "https://schema.org", "@type": "WebApplication", name: "SANKALP AI", url: abs("/"), applicationCategory: "GovernmentApplication",
@@ -159,7 +168,7 @@ function pwaHead(base: string): string {
     `<meta name="twitter:description" content="${esc(SITE_DESC)}" />`,
     `<meta name="twitter:image" content="${esc(abs("/pwa/og-image.png"))}" />`,
     `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>`,
-    '<meta name="theme-color" content="#111A29" />',
+    '<meta name="theme-color" content="#C2410C" />',
     '<link rel="manifest" href="/manifest.webmanifest" />',
     '<link rel="icon" type="image/png" sizes="192x192" href="/pwa/icon-192.png" />',
     '<link rel="apple-touch-icon" href="/pwa/apple-touch-icon.png" />',
@@ -168,7 +177,9 @@ function pwaHead(base: string): string {
     '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
     '<meta name="apple-mobile-web-app-title" content="SANKALP AI" />',
     '<meta name="format-detection" content="telephone=no" />',
-    '<style>html,body{background:#EDE7E1}</style>',
+    '<meta name="color-scheme" content="only light" />',
+    // Shown the instant the page arrives, before the ~1 MB app code downloads on a phone (was a blank screen for 5-9 s).
+    `<style>html,body{background:#F7F3EE;color-scheme:only light}${BOOT_CSS}</style>`,
     '<script src="/pwa/register.js" defer></script>',
   ].join("");
 }
@@ -180,7 +191,8 @@ function pwaIndex(file: string): string {
     .replace(/<meta name="viewport"[^>]*>/, "")
     .replace(/<title>[^<]*<\/title>/, `<title>${esc(SITE_TITLE)}</title>`)
     .replace('<html lang="en">', '<html lang="en-IN">')
-    .replace("</head>", `${pwaHead(base)}</head>`);
+    .replace("</head>", `${pwaHead(base)}</head>`)
+    .replace('<div id="root"></div>', `<div id="root">${BOOT_HTML}</div>`);
   pwaCache = { mtime, base, html };
   return html;
 }

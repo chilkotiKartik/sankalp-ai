@@ -31,11 +31,11 @@ interface DistrictStat {
 }
 
 const GRADE_COLORS = {
-  A: { color: "#34D399", bg: "#00A65122", label: "Excellent" },
-  B: { color: "#60A5FA", bg: "#3B82F622", label: "Good" },
-  C: { color: "#F59E0B", bg: "#F59E0B22", label: "Average" },
-  D: { color: "#F97316", bg: "#F9731622", label: "Poor" },
-  F: { color: "#F87171", bg: "#EF444422", label: "Critical" },
+  A: { color: "#065F46", bg: "#00A65122", label: "Excellent" },
+  B: { color: "#1D4ED8", bg: "#3B82F622", label: "Good" },
+  C: { color: "#92400E", bg: "#F59E0B22", label: "Average" },
+  D: { color: "#C2410C", bg: "#F9731622", label: "Poor" },
+  F: { color: "#B91C1C", bg: "#EF444422", label: "Critical" },
 };
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -193,7 +193,7 @@ export default function SuperAdminScreen() {
 
   return (
     <View style={[cs.root, { paddingTop: insets.top }]}>
-      <LinearGradient colors={["#0A0A1A", Colors.bg]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={["#FFF4E6", Colors.bg]} style={StyleSheet.absoluteFill} />
 
       <LinearGradient colors={["#0d1117", "#0A0820", "#0d1117"]} style={cs.header}>
         {/* SANKALP AI Brand */}

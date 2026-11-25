@@ -1,12 +1,14 @@
 import { openInMaps, openInMapsQuery } from "@/lib/maps";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { SHAKES_NEEDED, onShakeCount, shakeStatus, enableShakeOnTap, type ShakeStatus } from "@/lib/shake";
 import { openSosSms } from "@/lib/sos-fallback";
 import React, { useRef, useEffect, useState, useCallback, Component } from "react";
 import {
   View, Text, StyleSheet, Pressable, Animated, ScrollView,
   Modal, TextInput, Platform, ActivityIndicator, Alert, Vibration, Linking, AppState,
 } from "react-native";
-import * as FileSystem from "expo-file-system";
+// SDK 54: readAsStringAsync lives in the legacy entry; the main entry throws at runtime (voice clips never uploaded).
+import * as FileSystem from "expo-file-system/legacy";
 import { getDistrictCenter, stateName } from "@/constants/districts";
 
 class SOSErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: string }> {
@@ -47,7 +49,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
-import { Accelerometer } from "expo-sensors";
 import { Audio } from "expo-av";
 import * as Speech from "expo-speech";
 import * as Notifications from "expo-notifications";
@@ -59,11 +60,11 @@ import type { GeoPoint } from "@/context/AppContext";
 
 const SOS_CATS = [
   { key: "gas_leak",        label: "Gas Leak",     icon: "🔴", color: "#F59E0B" },
-  { key: "water_burst",     label: "Water Burst",  icon: "💧", color: "#60A5FA" },
-  { key: "electric_hazard", label: "Electric",     icon: "⚡", color: "#F87171" },
-  { key: "fire_risk",       label: "Fire",         icon: "🔥", color: "#F87171" },
+  { key: "water_burst",     label: "Water Burst",  icon: "💧", color: "#1D4ED8" },
+  { key: "electric_hazard", label: "Electric",     icon: "⚡", color: "#DC2626" },
+  { key: "fire_risk",       label: "Fire",         icon: "🔥", color: "#DC2626" },
   { key: "road_accident",   label: "Accident",     icon: "🚗", color: "#F59E0B" },
-  { key: "women_safety",    label: "Women Safety", icon: "🛡️", color: "#A78BFA" },
+  { key: "women_safety",    label: "Women Safety", icon: "🛡️", color: "#6D28D9" },
   { key: "medical",         label: "Medical",      icon: "🏥", color: "#22C55E" },
   { key: "infrastructure",  label: "Structure",    icon: "🏗️", color: "#9CA3AF" },
   { key: "disaster",        label: "Disaster",     icon: "🌊", color: "#DC2626" },
@@ -206,16 +207,22 @@ function SOSScreenInner() {
   const holdTimerRef = useRef<any>(null);
   const holdProgressRef = useRef<any>(null);
 
-  // Live audio recording during women safety panic
+  // Live audio recording during any SOS
   const [isRecording, setIsRecording] = useState(false);
+  const [clipsSent, setClipsSent] = useState(0);
+  const [micState, setMicState] = useState<"idle" | "on" | "blocked" | "unsupported">("idle");
+  // "I'm safe" — ends the SOS on the server (PIN or SMS code), so police see it closed
+  const [endOpen, setEndOpen] = useState(false);
+  const [endCode, setEndCode] = useState("");
+  const [endMode, setEndMode] = useState<"pin" | "otp">("pin");
+  const [endBusy, setEndBusy] = useState(false);
+  const [endErr, setEndErr] = useState("");
   const audioRecordingRef = useRef<Audio.Recording | null>(null);
 
   // AppState-based panic detection (power/side button on iOS)
   const appStateHistory = useRef<number[]>([]);
 
   // Shake detection
-  const lastAccel = useRef({ x: 0, y: 0, z: 0 });
-  const shakeTs = useRef<number[]>([]);
   // Ref to hold latest activateWomenSafety — avoids stale closure in accelerometer listener
   const activateWomenSafetyRef = useRef<(source: string) => void>(() => {});
   // Ref to control chunked audio loop
@@ -327,30 +334,18 @@ function SOSScreenInner() {
     };
   }, [policeStations, user]);
 
-  // ── ACCELEROMETER SHAKE ───────────────────────────────────────────────────
+  // ── SHAKE ─────────────────────────────────────────────────────────────────
+  // Detection lives in lib/shake.ts and runs on every tab (see app/(tabs)/_layout.tsx); it opens this screen with
+  // ?panic=shake. Here we show the live count and raise the women-safety SOS.
+  const [shakeState, setShakeState] = useState<ShakeStatus>(shakeStatus());
+  useEffect(() => onShakeCount(setShakeCount), []);
+  const params = useLocalSearchParams<{ panic?: string; at?: string }>();
   useEffect(() => {
-    if (Platform.OS === "web") return;
-    Accelerometer.setUpdateInterval(80);
-    const sub = Accelerometer.addListener(({ x, y, z }) => {
-      const last = lastAccel.current;
-      const delta = Math.abs(x - last.x) + Math.abs(y - last.y) + Math.abs(z - last.z);
-      lastAccel.current = { x, y, z };
-      if (delta > 2.5) {
-        const now = Date.now();
-        shakeTs.current = shakeTs.current.filter(t => now - t < 2000);
-        shakeTs.current.push(now);
-        setShakeCount(shakeTs.current.length);
-        // Auto-clear display after 2s of no new shakes
-        setTimeout(() => setShakeCount(c => Math.max(0, c - 1)), 2100);
-        if (shakeTs.current.length >= 4) {
-          shakeTs.current = [];
-          setShakeCount(0);
-          activateWomenSafetyRef.current("shake");
-        }
-      }
-    });
-    return () => sub.remove();
-  }, []);
+    if (params.panic !== "shake" || !params.at || Date.now() - Number(params.at) > 15000) return;
+    // Wait one tick: on a fresh open this effect runs before activateWomenSafetyRef is pointed at the real handler.
+    const t = setTimeout(() => activateWomenSafetyRef.current("shake"), 150);
+    return () => clearTimeout(t);
+  }, [params.panic, params.at]);
 
   // ── APPSTATE: detects rapid screen-off/on (iOS side button) ──────────────
   useEffect(() => {
@@ -452,6 +447,7 @@ function SOSScreenInner() {
   // ── AUDIO RECORDING: 10-second chunked streaming for Women Safety SOS ───────
   // Web / iPhone (PWA): the browser's own recorder, same 10-second clips and the same upload as the app.
   const webStreamRef = useRef<MediaStream | null>(null);
+  const endedAlert = useRef<string | null>(null); // SOS ended by the sender: drop the clip still being recorded
   const uploadAudioChunk = useCallback(async (base64: string, alertId: string, chunkIdx: number) => {
     const { getApiUrl } = await import("@/lib/query-client");
     const baseUrl = getApiUrl();
@@ -467,15 +463,17 @@ function SOSScreenInner() {
         method: "PUT",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ chunkUrl: data.url, chunkIndex: chunkIdx, duration: 10 }),
-      }).catch(() => {});
+      }).then(r => { if (r.ok) setClipsSent(n => n + 1); }).catch(() => {});
     }
   }, [token]);
 
   const startWebRecording = useCallback(async (alertId?: string) => {
     const g = globalThis as unknown as { navigator?: Navigator; MediaRecorder?: typeof MediaRecorder };
-    if (!alertId || !g.navigator?.mediaDevices?.getUserMedia || !g.MediaRecorder) return;
+    if (!alertId) return;
+    if (!g.navigator?.mediaDevices?.getUserMedia || !g.MediaRecorder) { setMicState("unsupported"); return; }
     let stream: MediaStream;
-    try { stream = await g.navigator.mediaDevices.getUserMedia({ audio: true }); } catch { return; }
+    try { stream = await g.navigator.mediaDevices.getUserMedia({ audio: true }); } catch { setMicState("blocked"); return; }
+    setMicState("on");
     webStreamRef.current = stream;
     audioChunkActiveRef.current = true;
     audioChunkIndexRef.current = 0;
@@ -493,7 +491,7 @@ function SOSScreenInner() {
         const idx = audioChunkIndexRef.current++;
         const blob = new Blob(parts, { type: rec.mimeType || mime || "audio/webm" });
         const fr = new FileReader();
-        fr.onloadend = () => { const b64 = String(fr.result).split(",")[1]; if (b64) void uploadAudioChunk(b64, alertId, idx).catch(() => {}); };
+        fr.onloadend = () => { const b64 = String(fr.result).split(",")[1]; if (b64 && endedAlert.current !== alertId) void uploadAudioChunk(b64, alertId, idx).catch(() => {}); };
         fr.readAsDataURL(blob);
         if (audioChunkActiveRef.current) setTimeout(one, 200); else { setIsRecording(false); stream.getTracks().forEach(t => t.stop()); webStreamRef.current = null; }
       };
@@ -507,8 +505,9 @@ function SOSScreenInner() {
     if (Platform.OS === "web") { void startWebRecording(alertId); return null; }
     try {
       const { status } = await Audio.requestPermissionsAsync();
-      if (status !== "granted") return null;
-    } catch { return null; }
+      if (status !== "granted") { setMicState("blocked"); return null; }
+    } catch { setMicState("blocked"); return null; }
+    setMicState("on");
 
     audioChunkActiveRef.current = true;
     audioChunkIndexRef.current = 0;
@@ -826,6 +825,52 @@ function SOSScreenInner() {
     }
   };
 
+  // ── END SOS ("I'm safe") ─────────────────────────────────────────────────
+  // Closes the SOS on the server with the sender's PIN (or an SMS code), so the police card turns SAFE and the
+  // next SOS is a fresh alert. Only clearing the screen would leave police chasing an alert that is over.
+  const endedIds = useRef<Set<string>>(new Set());
+  const clearSosScreen = () => {
+    if (activeAlert?.id) { endedIds.current.add(activeAlert.id); endedAlert.current = activeAlert.id; }
+    setTriggered(false); setActiveAlert(null); setDescription(""); setWomenPanic(false);
+    stopLive(); setLiveCount(0); setLastUpdate(null); stopAudioRecording();
+    setClipsSent(0); setMicState("idle"); setEndOpen(false); setEndCode(""); setEndErr(""); setEndMode("pin");
+  };
+  const requestEndOtp = async () => {
+    setEndErr("");
+    try {
+      const { getApiUrl } = await import("@/lib/query-client");
+      const r = await fetch(`${getApiUrl()}api/auth/otp/request`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: user?.phone }) });
+      if (!r.ok) throw new Error();
+      setEndMode("otp");
+    } catch { setEndErr("Could not send an SMS code. Use your PIN, or call 112 to tell police you are safe."); }
+  };
+  const endSos = async () => {
+    if (!activeAlert?.id || endBusy) return;
+    const code = endCode.trim();
+    if (!(endMode === "pin" ? /^\d{4,6}$/ : /^\d{6}$/).test(code)) { setEndErr(endMode === "pin" ? "Enter your 4–6 digit PIN" : "Enter the 6-digit SMS code"); return; }
+    setEndBusy(true); setEndErr("");
+    try {
+      const { getApiUrl } = await import("@/lib/query-client");
+      const r = await fetch(`${getApiUrl()}api/sos/${activeAlert.id}/cancel`, {
+        method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(endMode === "pin" ? { pin: code, reason: "Sender says they are safe" } : { otp: code, reason: "Sender says they are safe" }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setEndErr(d?.message || "Could not end the SOS. It is still active."); return; }
+      try { Speech.speak("SOS ended. Police have been told you are safe.", { language: "en-IN", rate: 0.9 }); } catch {}
+      clearSosScreen();
+    } catch { setEndErr("No connection — the SOS is still active. Call 112 to tell police you are safe."); }
+    finally { setEndBusy(false); setEndCode(""); }
+  };
+  // An SOS that is still open on the server comes back after the app restarts (it can always be ended).
+  useEffect(() => {
+    if (triggered || !user || (user.role !== "citizen" && user.role !== "worker")) return;
+    const open = sosAlerts.find(a => !endedIds.current.has(a.id) && (a.status === "active" || a.status === "responding") && Date.now() - Date.parse(a.triggeredAt) < 6 * 3600_000);
+    if (!open) return;
+    setActiveAlert(open); setTriggered(true); if (open.isWomenSafety) setWomenPanic(true);
+    startLive(open.id);
+  }, [sosAlerts, triggered, user?.id]);
+
   // ── MAIN SOS TRIGGER ──────────────────────────────────────────────────────
   const handleSOS = async () => {
     if (isTriggering || triggered) return;
@@ -850,6 +895,7 @@ function SOSScreenInner() {
       setTriggered(true);
       setShowModal(false);
       startLive(alert.id);
+      void startAudioRecording(alert.id); // 10-second voice clips for the control room (every SOS, not only women safety)
       // Voice confirmation
       try {
         Speech.speak(`${cat?.label || "Emergency"} SOS sent. Emergency services notified. Stay safe.`, {
@@ -912,7 +958,7 @@ function SOSScreenInner() {
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => { if (!forestSending) setShowForestModal(false); }} />
           <View style={[s.sheet, { maxHeight: "58%" }]}>
             <View style={s.sheetHandle} />
-            <LinearGradient colors={["#1A0800", "#431800", "#7C2D12"]} style={s.sheetHead}
+            <LinearGradient colors={["#9A3412", "#C2410C", "#EA580C"]} style={s.sheetHead}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🔥</Text></View>
               <View style={{ flex: 1 }}>
@@ -968,7 +1014,7 @@ function SOSScreenInner() {
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => { if (!cprSubmitting) { setShowCPRForm(false); setCprSent(false); setCprReason(""); }}} />
           <View style={[s.sheet, { maxHeight: "55%" }]}>
             <View style={s.sheetHandle} />
-            <LinearGradient colors={["#0A2540", "#1B3A6B"]} style={s.sheetHead}
+            <LinearGradient colors={["#1E40AF", "#2563EB"]} style={s.sheetHead}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🚔</Text></View>
               <View style={{ flex: 1 }}>
@@ -1028,7 +1074,7 @@ function SOSScreenInner() {
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowModal(false)} />
           <View style={s.sheet}>
             <View style={s.sheetHandle} />
-            <LinearGradient colors={["#3D0000", "#7F1D1D"]} style={s.sheetHead}
+            <LinearGradient colors={["#991B1B", "#DC2626"]} style={s.sheetHead}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🚨</Text></View>
               <View style={{ flex: 1 }}>
@@ -1101,7 +1147,7 @@ function SOSScreenInner() {
         </Pressable>
 
         {/* ── HEADER ── */}
-        <LinearGradient colors={["#0D0000", "#1A0000", "#3D0000", "#7F1D1D"]}
+        <LinearGradient colors={["#7F1D1D", "#991B1B", "#B91C1C", "#DC2626"]}
           style={[s.header, { paddingTop: Platform.OS === "web" ? 72 : insets.top + 14 }]}>
           <View style={s.hDecor1} />
           <View style={s.hDecor2} />
@@ -1149,7 +1195,7 @@ function SOSScreenInner() {
         {/* ── LIVE BANNER (after SOS trigger) ── */}
         {triggered && (
           <View style={s.liveBanner}>
-            <LinearGradient colors={["#052E16", "#14532D"]} style={s.liveBannerInner}
+            <LinearGradient colors={["#166534", "#15803D"]} style={s.liveBannerInner}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <Animated.View style={[s.liveBannerIcon, { opacity: liveAnim }]}>
                 <Ionicons name="navigate" size={22} color="#4ADE80" />
@@ -1223,9 +1269,41 @@ function SOSScreenInner() {
 
             {activeAlert?.id ? <View style={{ marginTop: 10 }}><ShareLiveLocation alertId={activeAlert.id} token={token} /></View> : null}
 
-            <Pressable onPress={() => { setTriggered(false); setActiveAlert(null); setDescription(""); setWomenPanic(false); stopLive(); setLiveCount(0); setLastUpdate(null); stopAudioRecording(); }} style={s.resetBtn}>
-              <Text style={s.resetBtnText}>Reset SOS Panel</Text>
+            {/* Evidence + where it went */}
+            <View style={s.evidenceBox}>
+              <Text style={s.evidenceLine}>🏛️ Delivered to the {stateName()} police control room</Text>
+              <Text style={[s.evidenceLine, micState === "blocked" && { color: "#FCA5A5" }]}>
+                {micState === "on" ? `🎙️ Voice recording on · ${clipsSent} clip${clipsSent === 1 ? "" : "s"} delivered to police`
+                  : micState === "blocked" ? "🎙️ Microphone blocked — allow it in phone Settings › Apps › SANKALP AI › Permissions (or the browser's 🔒 site settings) so police can hear you"
+                  : micState === "unsupported" ? "🎙️ This browser cannot record voice — your location is still shared"
+                  : isRecording ? "🎙️ Starting voice recording…" : "🎙️ Voice recording starts with the alert"}
+              </Text>
+              <Text style={s.evidenceLine}>📍 Live location every 15 seconds{liveCount ? ` · ${liveCount} sent` : ""}</Text>
+            </View>
+
+            <Pressable onPress={() => { setEndErr(""); setEndOpen(true); }} style={s.safeBtn} accessibilityRole="button" accessibilityLabel="I'm safe, end SOS">
+              <Ionicons name="shield-checkmark" size={16} color="#fff" />
+              <Text style={s.safeBtnText}>{"I'm safe — end SOS"}</Text>
             </Pressable>
+            <Text style={s.safeHint}>Needs your PIN, so nobody else can silence your alert.</Text>
+            <Modal visible={endOpen} transparent animationType="fade" onRequestClose={() => setEndOpen(false)}>
+              <View style={s.endBackdrop}>
+                <View style={s.endCard}>
+                  <Text style={s.endTitle}>End this SOS?</Text>
+                  <Text style={s.endSub}>{endMode === "pin" ? "Enter your SANKALP PIN. Police will see that you are safe." : `Enter the 6-digit code sent by SMS to your phone.`}</Text>
+                  <TextInput value={endCode} onChangeText={t => setEndCode(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry={endMode === "pin"}
+                    placeholder={endMode === "pin" ? "PIN" : "SMS code"} placeholderTextColor="#6B7280" style={s.endInput} autoFocus accessibilityLabel={endMode === "pin" ? "PIN" : "SMS code"} />
+                  {endErr ? <Text style={s.endErr} accessibilityRole="alert">{endErr}</Text> : null}
+                  <Pressable onPress={endSos} disabled={endBusy} style={[s.safeBtn, { marginTop: 12, opacity: endBusy ? 0.6 : 1 }]} accessibilityRole="button">
+                    {endBusy ? <ActivityIndicator color="#fff" /> : <Text style={s.safeBtnText}>{"End SOS — I'm safe"}</Text>}
+                  </Pressable>
+                  {endMode === "pin" ? (
+                    <Pressable onPress={requestEndOtp} style={{ marginTop: 12 }} accessibilityRole="button"><Text style={s.endLink}>No PIN? Get an SMS code instead</Text></Pressable>
+                  ) : null}
+                  <Pressable onPress={() => setEndOpen(false)} style={{ marginTop: 10 }} accessibilityRole="button"><Text style={s.endLink}>Keep SOS active</Text></Pressable>
+                </View>
+              </View>
+            </Modal>
           </View>
         )}
 
@@ -1269,15 +1347,15 @@ function SOSScreenInner() {
           </View>
           <View style={s.helpGrid}>
             {[
-              { num: "112",  label: "Emergency",      color: "#F87171" },
-              { num: "100",  label: "Police",         color: "#60A5FA" },
-              { num: "108",  label: "Ambulance",      color: "#22C55E" },
-              { num: "101",  label: "Fire Brigade",   color: "#F59E0B" },
-              { num: "181",  label: "Women Helpline", color: "#EC4899" },
-              { num: "1091", label: "Women (Police)", color: "#A78BFA" },
-              { num: "1070", label: "Disaster",       color: "#22C55E" },
-              { num: "1033", label: "Highway",        color: "#06B6D4" },
-              { num: "1098", label: "Child Line",     color: "#F59E0B" },
+              { num: "112",  label: "Emergency",      color: "#DC2626" },
+              { num: "100",  label: "Police",         color: "#1D4ED8" },
+              { num: "108",  label: "Ambulance",      color: "#15803D" },
+              { num: "101",  label: "Fire Brigade",   color: "#B45309" },
+              { num: "181",  label: "Women Helpline", color: "#BE185D" },
+              { num: "1091", label: "Women (Police)", color: "#6D28D9" },
+              { num: "1070", label: "Disaster",       color: "#15803D" },
+              { num: "1033", label: "Highway",        color: "#0E7490" },
+              { num: "1098", label: "Child Line",     color: "#B45309" },
             ].map(item => (
               <Pressable key={item.num} onPress={() => Linking.openURL(`tel:${item.num}`)}
                 style={[s.helpChip, { borderColor: item.color + "30" }]}>
@@ -1494,16 +1572,22 @@ function SOSScreenInner() {
                     <View style={s.shakeCircleOuter}>
                       <View style={[s.shakeCircleFill, { borderColor: shakeCount > 0 ? "#34D399" : "rgba(52,211,153,0.3)" }]}>
                         <Text style={s.shakeCircleNum}>{shakeCount}</Text>
-                        <Text style={s.tapCircleSub}>of 3</Text>
+                        <Text style={s.tapCircleSub}>of {SHAKES_NEEDED}</Text>
                       </View>
                     </View>
                     <View style={s.bigPipRow}>
-                      {Array.from({ length: 3 }).map((_, i) => (
+                      {Array.from({ length: SHAKES_NEEDED }).map((_, i) => (
                         <View key={i} style={[s.bigPip, s.bigPipShakeBase, i < shakeCount && s.bigPipActiveShake]} />
                       ))}
                     </View>
-                    <Text style={s.bigMethodTitle}>SHAKE 3×</Text>
-                    <Text style={s.bigMethodSub}>Shake your phone</Text>
+                    <Text style={s.bigMethodTitle}>SHAKE {SHAKES_NEEDED}×</Text>
+                    {shakeState === "needs_tap" ? (
+                      <Pressable onPress={async () => { if (await enableShakeOnTap()) setShakeState("on"); }} accessibilityRole="button" accessibilityLabel="Turn on shake SOS">
+                        <Text style={[s.bigMethodSub, { color: "#34D399", textDecorationLine: "underline" }]}>Tap to turn on</Text>
+                      </Pressable>
+                    ) : (
+                      <Text style={s.bigMethodSub}>{shakeState === "unsupported" ? "Not available here" : "Shake hard, any screen"}</Text>
+                    )}
                   </View>
                 </View>
               </>
@@ -1565,7 +1649,7 @@ function SOSScreenInner() {
 
         {/* ── FOREST FIRE SOS PANEL ── */}
         <View style={[s.card, { borderColor: "#EA580C30", overflow: "hidden", padding: 0 }]}>
-          <LinearGradient colors={["#1A0800", "#2D1000"]} style={{ borderRadius: 14, padding: 16 }}
+          <LinearGradient colors={["#9A3412", "#C2410C"]} style={{ borderRadius: 14, padding: 16 }}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
               <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "#EA580C20", alignItems: "center", justifyContent: "center" }}>
@@ -1613,7 +1697,7 @@ function SOSScreenInner() {
 
         {/* ── REQUEST CPR PATROL ── */}
         <Pressable onPress={() => setShowCPRForm(true)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
-          <LinearGradient colors={["#0A2540", "#1B3A6B", "#2563EB"]} style={{ borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}
+          <LinearGradient colors={["#1E40AF", "#2563EB", "#3B82F6"]} style={{ borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" }}>
               <Text style={{ fontSize: 22 }}>🚔</Text>
@@ -1669,7 +1753,7 @@ function SOSScreenInner() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0D0A08" },
+  root: { flex: 1, backgroundColor: "#F7F3EE" },
 
   // Floating hardware Volume Up button (right edge overlay)
   volBtnFloat: {
@@ -1693,7 +1777,7 @@ const s = StyleSheet.create({
   },
   volCountText: { color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold" },
   volBtnLabel: { alignItems: "center", paddingRight: 4 },
-  volBtnLabelText: { color: "rgba(255,255,255,0.7)", fontSize: 7, fontFamily: "Inter_700Bold", lineHeight: 9 },
+  volBtnLabelText: { color: "#374151", fontSize: 7, fontFamily: "Inter_700Bold", lineHeight: 9 },
 
   // Header
   header: { paddingHorizontal: 20, paddingBottom: 18, overflow: "hidden" },
@@ -1743,6 +1827,18 @@ const s = StyleSheet.create({
   callPsBtn: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#EF444420", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
   callPsText: { color: "#F87171", fontSize: 10, fontFamily: "Inter_600SemiBold" },
   resetBtn: { backgroundColor: Colors.bgCardAlt, borderRadius: 10, padding: 10, alignItems: "center" },
+  evidenceBox: { marginTop: 12, backgroundColor: "rgba(15,23,42,0.6)", borderRadius: 12, padding: 12, gap: 6, borderWidth: 1, borderColor: "rgba(148,163,184,0.25)" },
+  evidenceLine: { color: "#E5E7EB", fontSize: 12.5, fontFamily: "Inter_500Medium", lineHeight: 18 },
+  safeBtn: { marginTop: 12, backgroundColor: "#15803D", borderRadius: 12, paddingVertical: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  safeBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
+  safeHint: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", marginTop: 6 },
+  endBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", padding: 20 },
+  endCard: { width: "100%", maxWidth: 380, backgroundColor: "#111827", borderRadius: 18, padding: 20, borderWidth: 1, borderColor: "#374151" },
+  endTitle: { color: "#fff", fontSize: 18, fontFamily: "Inter_700Bold" },
+  endSub: { color: "#D1D5DB", fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 6, lineHeight: 19 },
+  endInput: { marginTop: 14, backgroundColor: "#1F2937", color: "#fff", borderRadius: 10, padding: 12, fontSize: 20, letterSpacing: 6, textAlign: "center", fontFamily: "Inter_700Bold" },
+  endErr: { color: "#FCA5A5", fontSize: 12.5, fontFamily: "Inter_500Medium", marginTop: 8 },
+  endLink: { color: "#93C5FD", fontSize: 13, fontFamily: "Inter_600SemiBold", textAlign: "center" },
   resetBtnText: { color: Colors.textMuted, fontSize: 12, fontFamily: "Inter_500Medium" },
 
   // SOS big button
@@ -1763,7 +1859,7 @@ const s = StyleSheet.create({
 
   // Helplines
   helpGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  helpChip: { width: "30.5%", backgroundColor: Colors.bgCardAlt, borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1, gap: 3 },
+  helpChip: { width: "30.5%", backgroundColor: "#FFFFFF", borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1, gap: 3 },
   helpNum: { fontSize: 16, fontFamily: "Inter_700Bold" },
   helpLabel: { color: Colors.textMuted, fontSize: 9, fontFamily: "Inter_400Regular", textAlign: "center" },
 

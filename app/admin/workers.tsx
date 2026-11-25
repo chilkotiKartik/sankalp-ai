@@ -139,8 +139,8 @@ function WorkerDetailModal({ worker, complaints, onClose }: {
                         <Text style={styles.assignLoc} numberOfLines={1}>{c.location}</Text>
                       </View>
                     </View>
-                    <View style={[styles.priBadge, { backgroundColor: (c.priority === "P1" ? "#F87171" : c.priority === "P2" ? "#F59E0B" : "#60A5FA") + "22" }]}>
-                      <Text style={[styles.priText, { color: c.priority === "P1" ? "#F87171" : c.priority === "P2" ? "#F59E0B" : "#60A5FA" }]}>{c.priority}</Text>
+                    <View style={[styles.priBadge, { backgroundColor: (c.priority === "P1" ? "#F87171" : c.priority === "P2" ? "#F59E0B" : "#1D4ED8") + "22" }]}>
+                      <Text style={[styles.priText, { color: c.priority === "P1" ? "#F87171" : c.priority === "P2" ? "#F59E0B" : "#1D4ED8" }]}>{c.priority}</Text>
                     </View>
                   </View>
                 ))}
@@ -268,7 +268,7 @@ export default function AdminWorkers() {
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
-      <LinearGradient colors={["#0d1117", "#111827", "#0d1117"]} style={styles.header}>
+      <LinearGradient colors={["#F7F3EE", "#FFFFFF", "#F7F3EE"]} style={styles.header}>
         {/* SANKALP AI Brand */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
           <View style={{ width: 26, height: 26, borderRadius: 8, backgroundColor: Colors.cyan + "22", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.cyan + "44" }}>
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.textMuted },
   // Modal styles
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.8)", justifyContent: "flex-end" },
-  detailCard: { backgroundColor: "#111827", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderColor: Colors.border, maxHeight: "92%" },
+  detailCard: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderColor: Colors.border, maxHeight: "92%" },
   detailHeader: { flexDirection: "row", alignItems: "flex-start", gap: 14, marginBottom: 14 },
   detailAvatar: { position: "relative" },
   detailAvatarText: { fontSize: 20, fontFamily: "Inter_700Bold", color: Colors.blue },
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
   sectionTitle: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5 },
   assignRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 8, borderTopWidth: 1, borderTopColor: Colors.border },
   assignTicket: { color: "#fff", fontSize: 12, fontFamily: "Inter_700Bold" },
-  assignDesc: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  assignDesc: { color: "#4B5563", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   assignLoc: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_400Regular" },
   priBadge: { borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1 },
   priText: { fontSize: 9, fontFamily: "Inter_700Bold" },

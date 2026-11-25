@@ -231,6 +231,27 @@ export class AppStorage {
 
   getUserById(id: string): AppUser | undefined { return this.s.users.find(u => u.id === id); }
 
+  /** Owner-run admin setup (deploy/make-admin.sh): create a state administrator, or promote the existing account
+   *  with this phone, and set a new PIN. Earlier sessions of that account are signed out. */
+  async makeAdmin(phone: string, pin: string): Promise<"created" | "promoted"> {
+    const hash = await bcrypt.hash(pin, 12);
+    const u = this.s.users.find(x => x.phone === phone);
+    if (!u) {
+      // isDemo false: a real administrator is never removed when demo mode is switched off.
+      const created = await this.createUser({ name: "State Administrator", phone, pin: hash, role: "super_admin", district: tenant().stateLabel, points: 0, badges: ["super_admin"], level: 1 });
+      delete (created as { isDemo?: boolean }).isDemo;
+      return "created";
+    }
+    delete (u as { isDemo?: boolean }).isDemo;
+    u.role = "super_admin";
+    u.pin = hash;
+    u.district = tenant().stateLabel;
+    if (!u.badges.includes("super_admin")) u.badges = [...u.badges, "super_admin"];
+    this.s.tokens = this.s.tokens.filter(t => t.userId !== u.id);
+    this.touch();
+    return "promoted";
+  }
+
   /** M15: replace a legacy/plaintext PIN with a bcrypt hash. */
   async setPinHash(userId: string, pin: string) {
     const u = this.getUserById(userId);
@@ -1368,11 +1389,11 @@ export class AppStorage {
     return list.sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
   }
 
-  createSafetyIncident(data: { citizenName: string; citizenId?: string; district: string; location: string; lat: number; lng: number; sosId?: string }): SafetyIncident {
+  createSafetyIncident(data: { citizenName: string; citizenId?: string; district: string; location: string; lat: number; lng: number; sosId?: string; emergencyType?: string }): SafetyIncident {
     const van = this.s.patrolVans.find(v => v.status === "active_patrol" && v.district === data.district);
     const incident: SafetyIncident = {
       ...demoFlag(),
-      id: genId(), sosId: data.sosId, citizenName: data.citizenName, citizenId: data.citizenId, district: data.district, location: data.location,
+      id: genId(), sosId: data.sosId, emergencyType: data.emergencyType, citizenName: data.citizenName, citizenId: data.citizenId, district: data.district, location: data.location,
       geo: { lat: data.lat, lng: data.lng }, status: van ? "patrol_dispatched" : "active", reportedAt: now(), escalationLevel: 1,
       assignedPatrolVan: van?.vanNumber, assignedPatrolOfficer: van?.officerInCharge, assignedPatrolPhone: van?.officerPhone,
       updates: [{ time: now(), message: `SOS received at ${data.location}`, actor: "SYSTEM" }],
@@ -1393,6 +1414,12 @@ export class AppStorage {
     const prev = inc.status;
     inc.status = status;
     inc.updates.push({ time: now(), message, actor });
+    // Police marking the person safe also closes the SOS itself, so the citizen's app stops showing it as open
+    // and their next SOS is a fresh alert (not merged into this one).
+    if ((status === "safe" || status === "closed") && inc.sosId) {
+      const a = this.getSOSAlert(inc.sosId);
+      if (a && a.status !== "resolved" && a.status !== "cancelled") this.resolveSos(a.id);
+    }
     if ((status === "safe" || status === "closed") && inc.assignedPatrolVan) {
       const van = this.s.patrolVans.find(v => v.vanNumber === inc.assignedPatrolVan);
       if (van?.status === "responding") van.status = "active_patrol";

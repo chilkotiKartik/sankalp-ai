@@ -29,22 +29,22 @@ interface EmergencyService {
 }
 
 const TYPE_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string; label: string; bg: string }> = {
-  police:    { icon: "shield",      color: "#60A5FA", label: "Police",    bg: "#EFF6FF" },
-  hospital:  { icon: "medkit",      color: "#F87171", label: "Hospital",  bg: "#FEF2F2" },
-  fire:      { icon: "flame",       color: "#F97316", label: "Fire Stn",  bg: "#FFF7ED" },
-  ambulance: { icon: "car",         color: "#A78BFA", label: "Ambulance", bg: "#F5F3FF" },
-  disaster:  { icon: "warning",     color: "#F59E0B", label: "SDRF/NDRF", bg: "#FFFBEB" },
+  police:    { icon: "shield",      color: "#1D4ED8", label: "Police",    bg: "#EFF6FF" },
+  hospital:  { icon: "medkit",      color: "#B91C1C", label: "Hospital",  bg: "#FEF2F2" },
+  fire:      { icon: "flame",       color: "#C2410C", label: "Fire Stn",  bg: "#FFF7ED" },
+  ambulance: { icon: "car",         color: "#6D28D9", label: "Ambulance", bg: "#F5F3FF" },
+  disaster:  { icon: "warning",     color: "#92400E", label: "SDRF/NDRF", bg: "#FFFBEB" },
 };
 
 const EMERGENCY_NUMBERS = [
-  { label: "Police",      number: "100", icon: "shield" as const,       color: "#60A5FA" },
-  { label: "Ambulance",   number: "108", icon: "car" as const,           color: "#F87171" },
-  { label: "Fire",        number: "101", icon: "flame" as const,         color: "#F97316" },
-  { label: "Disaster",    number: "1070", icon: "warning" as const,      color: "#F59E0B" },
-  { label: "Women Help",  number: "181", icon: "female" as const,       color: "#EC4899" },
-  { label: "Child Help",  number: "1098", icon: "happy" as const,        color: "#A78BFA" },
-  { label: "Electricity", number: "1912", icon: "flash" as const,        color: "#06B6D4" },
-  { label: "Health",      number: "104",  icon: "medical" as const,      color: "#34D399" },
+  { label: "Police",      number: "100", icon: "shield" as const,       color: "#1D4ED8" },
+  { label: "Ambulance",   number: "108", icon: "car" as const,           color: "#B91C1C" },
+  { label: "Fire",        number: "101", icon: "flame" as const,         color: "#C2410C" },
+  { label: "Disaster",    number: "1070", icon: "warning" as const,      color: "#92400E" },
+  { label: "Women Help",  number: "181", icon: "female" as const,       color: "#BE185D" },
+  { label: "Child Help",  number: "1098", icon: "happy" as const,        color: "#6D28D9" },
+  { label: "Electricity", number: "1912", icon: "flash" as const,        color: "#0E7490" },
+  { label: "Health",      number: "104",  icon: "medical" as const,      color: "#065F46" },
 ];
 
 function callNumber(phone: string) {
@@ -147,7 +147,7 @@ export default function EmergencyScreen() {
 
   return (
     <View style={[cs.root, { paddingTop: insets.top }]}>
-      <LinearGradient colors={["#0D0008", Colors.bg]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={["#FEF2F2", Colors.bg]} style={StyleSheet.absoluteFill} />
 
       <View style={cs.header}>
         <Pressable onPress={() => router.back()} style={cs.backBtn}>

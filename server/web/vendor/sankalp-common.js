@@ -214,6 +214,8 @@
     return !!m && m.getAttribute("content") === "police";
   }
 
+  /** Staff accounts the server allows into the command centre (must match POLICE in server/auth/permissions.ts). */
+  var COMMAND_ROLES = ["police", "admin", "district_admin", "state_admin", "super_admin"];
   /** Control-room units of the selected state: its police and disaster-management departments. */
   function unitOptions() {
     var deps = (T && T.departments) || [];
@@ -236,7 +238,7 @@
       '<p style="font-size:13px;color:#9CA3AF;margin:0 0 16px">' + esc(msg || "This console shows live SOS locations. Authorised staff only.") + "</p>" +
       '<label style="display:block;font-size:12px;margin-bottom:4px" for="sk-mode">Sign in with</label>' +
       '<select id="sk-mode" style="width:100%;padding:10px;border-radius:8px;margin-bottom:12px;background:#1F2937;color:#fff;border:1px solid #374151">' +
-      '<option value="dept">Control-room access code</option><option value="admin">Admin phone + PIN</option></select>' +
+      '<option value="dept">Control-room access code</option><option value="admin">Police / admin phone + PIN</option></select>' +
       '<div id="sk-dept"><label style="display:block;font-size:12px;margin-bottom:4px" for="sk-dep">Unit</label>' +
       '<select id="sk-dep" style="width:100%;padding:10px;border-radius:8px;margin-bottom:12px;background:#1F2937;color:#fff;border:1px solid #374151">' + unitOptions() + '</select>' +
       '<label style="display:block;font-size:12px;margin-bottom:4px" for="sk-code">Access code</label>' +
@@ -265,7 +267,7 @@
         .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
         .then(function (x) {
           if (!x.ok || !x.j.token) { err.textContent = (x.j && x.j.message) || "Sign-in failed"; return; }
-          if (mode.value === "admin" && x.j.user && x.j.user.role !== "admin" && x.j.user.role !== "super_admin") { err.textContent = "This account is not authorised for the command centre"; return; }
+          if (mode.value === "admin" && x.j.user && COMMAND_ROLES.indexOf(x.j.user.role) === -1) { err.textContent = "This account is not authorised for the command centre"; return; }
           window.sankalpAuth.set(x.j.token);
           try { if (x.j.refreshToken) localStorage.setItem("sankalp_refresh", x.j.refreshToken); } catch (e2) {}
           location.reload();

@@ -1,6 +1,7 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
+import { onShakeSOS } from "@/lib/shake";
 import { Ionicons } from "@expo/vector-icons";
 import { useApp } from "@/context/AppContext";
 import { useI18n } from "@/lib/i18n";
@@ -10,26 +11,28 @@ export default function TabLayout() {
   const { getStats } = useApp();
   const stats = getStats();
   const isWeb = Platform.OS === "web";
+  // Shake-to-SOS works on every tab: shaking opens the SOS screen, which raises the women-safety SOS (panic=shake).
+  useEffect(() => onShakeSOS(() => router.navigate({ pathname: "/sos", params: { panic: "shake", at: String(Date.now()) } })), []);
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#FF9933",
-        tabBarInactiveTintColor: "#9CA3AF",
+        tabBarActiveTintColor: "#C2410C",
+        tabBarInactiveTintColor: "#6B5A4C",
         tabBarStyle: {
-          backgroundColor: "#0A0F1C",
+          backgroundColor: "#FFFFFF",
           borderTopWidth: 1,
-          borderTopColor: "#1F2937",
+          borderTopColor: "#E7DCD0",
           elevation: 0,
           height: isWeb ? 84 : 64,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.3,
+          shadowOpacity: 0.08,
           shadowRadius: 16,
         },
         tabBarBackground: () => (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: "#0A0F1C" }]} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: "#FFFFFF" }]} />
         ),
         tabBarLabelStyle: {
           fontSize: 10,

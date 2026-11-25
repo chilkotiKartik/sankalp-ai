@@ -509,13 +509,13 @@ function CPRPortal(){
         const d=JSON.parse(e.data);
         if(d.type==="safety_incident_new"){
           setIncidents(prev=>[d.incident,...prev.filter(i=>i.id!==d.incident.id)]);
-          const isWomen=d.category==="women_safety"||d.autoCreated;
+          const isWomen=d.incident.emergencyType==="women_safety";
           addToast({title:isWomen?"🛡️ WOMEN SAFETY SOS! CPR Auto-Activated":"🆘 NEW SOS INCIDENT",body:`${d.incident.citizenName} — ${d.incident.district} · ${d.incident.location}`},isWomen?"warn":"error");
         }
         if(d.type==="incident_updated") setIncidents(prev=>prev.map(i=>i.id===d.incident.id?d.incident:i));
         if(d.type==="incident_escalated"){setIncidents(prev=>prev.map(i=>i.id===d.incident.id?d.incident:i));addToast({title:"⚠️ INCIDENT ESCALATED",body:`Level ${d.level} — ${d.incident.district}`},"warn");}
         if(d.type==="night_safety_new"){setNightZones(prev=>[d.zone,...prev]);addToast({title:"🌙 Night Safety Report",body:d.zone.location},"info");}
-        if(d.type==="sos_new"){addToast({title:"🆘 SOS ALERT — Women Safety",body:`${d.triggeredBy||"Unknown"} · ${d.district}`},"error");}
+        if(d.type==="sos_new"&&d.alert){const L={women_safety:"🛡️ Women Safety",medical:"🚑 Medical",road_accident:"🚗 Accident",fire_risk:"🔥 Fire",gas_leak:"🔴 Gas Leak",electric_hazard:"⚡ Electric Hazard",water_burst:"💧 Water Burst",infrastructure:"🏗️ Structure",disaster:"🌊 Disaster",forest_fire:"🌲 Forest Fire"};addToast({title:`🆘 SOS ALERT — ${L[d.alert.category]||"Emergency"}`,body:`${d.alert.triggeredBy||"Citizen"} · ${d.district||d.alert.district||""}`},"error");}
         if(d.type==="audio_chunk"){
           // Clips belong to the SOS; the map and the popup show incidents, so key them by the incident too.
           const key=d.incidentId||d.sosId;

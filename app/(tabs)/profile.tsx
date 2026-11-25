@@ -68,7 +68,7 @@ export default function ProfileScreen() {
     setShowLangModal(false);
   };
 
-  const myComplaints = complaints.filter(c => c.submittedByPhone === user?.phone).slice(0, 5);
+  const myComplaints = complaints.filter(c => c.isMine || (!!user?.phone && c.submittedByPhone === user.phone)).slice(0, 5);
   const points = user?.points || 0;
   const lp = levelProgress(points);
   const level = lp.level;
@@ -190,7 +190,7 @@ export default function ProfileScreen() {
             {[
               { icon: "receipt-outline" as const,      label: "Pay Bills",    color: "#C2410C", nav: "/(tabs)/bills" },
               { icon: "list-outline" as const,         label: "My Reports",   color: "#2563EB", nav: "/(tabs)/complaints" },
-              { icon: "people-outline" as const,       label: "Community",    color: "#8B5CF6", nav: "/(tabs)/community" },
+              { icon: "people-outline" as const,       label: "Community",    color: "#6D28D9", nav: "/(tabs)/community" },
               { icon: "document-text-outline" as const, label: "File RTI",   color: "#047857", nav: "/(tabs)/rti" },
               { icon: "warning-outline" as const,      label: "SOS Alert",    color: "#DC2626", nav: "/(tabs)/sos" },
               { icon: "analytics-outline" as const,    label: "Analytics",    color: "#0E7490", nav: "/(tabs)/analytics" },

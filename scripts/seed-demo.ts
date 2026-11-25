@@ -13,7 +13,7 @@ import { storage, getDeptIdForCategory, type ComplaintCategory, type AppUser, ty
 import { saveSnapshot, snapshotPath } from "../server/persistence";
 import { WARDS_DATA } from "../server/data/reference";
 import {
-  WORKER_NAMES, COMPLAINT_DESCS, LOCATIONS_PREFIX, PATROL_VANS_SEED, demoAnnouncements, demoPolls, demoPetitions, demoEvents,
+  WORKER_NAMES, COMPLAINT_DESCS, LOCATIONS_PREFIX, demoAnnouncements, demoPolls, demoPetitions, demoEvents,
   DEMO_BUDGET, DEMO_BUDGET_SCALE, demoRTIs,
 } from "../server/demo/content";
 
@@ -41,21 +41,21 @@ async function main() {
   // Complaints moved through the REAL state machine, so every state is reachable and consistent.
   const cats = Object.keys(COMPLAINT_DESCS) as ComplaintCategory[];
   for (let i = 0; i < 140; i++) {
-    const ward = pick(WARDS_DATA);
+    const ward = i < 6 ? (WARDS_DATA.find(w => w.district === "Dehradun") ?? pick(WARDS_DATA)) : pick(WARDS_DATA);
     const owner = i < 6 ? citizen : pick(others);
     const category = pick(cats);
     const geo = { lat: +(ward.center.lat + (Math.random() - 0.5) * 0.04).toFixed(5), lng: +(ward.center.lng + (Math.random() - 0.5) * 0.04).toFixed(5) };
-    const priority: Priority = pick(["P1", "P2", "P2", "P3", "P3", "P3", "P4"] as const);
+    const priority: Priority = pick(["P1", "P2", "P2", "P3", "P3", "P3", "P3", "P4", "P4", "P4"] as const);
     const cmp = storage.createComplaint({ category, description: pick(COMPLAINT_DESCS[category]), location: `${pick(LOCATIONS_PREFIX)}, ${ward.name}`,
       geo, ward: ward.name, wardNumber: ward.number, district: ward.district, priority, isDemo: true,
       aiRouting: { method: "rules:category→department", department: getDeptIdForCategory(category), confidence: 0.6, reason: "demo seed" }, photoReview: "not_required" }, owner);
     const hoursBack = randomInt(1, 24 * 40);
     cmp.submittedAt = new Date(Date.now() - hoursBack * 3600000).toISOString();
     const roll = Math.random();
-    if (roll > 0.25) storage.startWork(cmp.id, "officer", admin.id);
-    if (roll > 0.5) storage.submitProof(cmp.id, { photoUrl: "/assets/images/icon.png", note: "Demo proof" }, "officer", admin.id);
-    if (roll > 0.65) storage.citizenConfirm(cmp.id, cmp.userId!, randomInt(3, 6), "Demo confirmation");
-    else if (roll > 0.6) storage.citizenReject(cmp.id, cmp.userId!, "Demo rejection");
+    if (roll > 0.12) storage.startWork(cmp.id, "officer", admin.id);
+    if (roll > 0.25) storage.submitProof(cmp.id, { photoUrl: "/assets/images/icon.png", note: "Demo proof" }, "officer", admin.id);
+    if (roll > 0.38) storage.citizenConfirm(cmp.id, cmp.userId!, randomInt(3, 6), "Demo confirmation");
+    else if (roll > 0.33) storage.citizenReject(cmp.id, cmp.userId!, "Demo rejection");
     if (cmp.resolvedAt) cmp.resolvedAt = new Date(new Date(cmp.submittedAt).getTime() + randomInt(4, 96) * 3600000).toISOString();
     cmp.upvotes = randomInt(0, 40);
   }
@@ -75,7 +75,6 @@ async function main() {
   });
   storage.reportWorkerLocation(worker, { lat: 30.3255, lng: 78.0437 }, "active", "Pothole repair, Rajpur Road");
 
-  storage.s.patrolVans = PATROL_VANS_SEED.map(v => ({ ...v }));
   demoAnnouncements().forEach(a => storage.createAnnouncement({ ...a, title: `${a.title}`, postedBy: `${a.postedBy} (Demo)` }));
   demoPolls().forEach(p => storage.createPoll(p));
   demoPetitions().forEach(p => storage.createPetition(p));

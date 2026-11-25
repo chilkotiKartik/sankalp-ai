@@ -59,8 +59,8 @@ function getDeptMeta(name: string): { icon: keyof typeof Ionicons.glyphMap; colo
   return { icon, color: d.color || Colors.saffron, short: tail ? head : deptForCategory(d.categories[0] ?? "other").short };
 }
 
-const PRIORITY_COLORS: Record<string, string> = { P1: "#F87171", P2: "#F59E0B", P3: "#60A5FA", P4: "#9CA3AF" };
-const STATUS_COLORS: Record<string, string> = { pending: "#F59E0B", in_progress: "#60A5FA", resolved: "#34D399", closed: "#9CA3AF" };
+const PRIORITY_COLORS: Record<string, string> = { P1: "#F87171", P2: "#F59E0B", P3: "#1D4ED8", P4: "#4B5563" };
+const STATUS_COLORS: Record<string, string> = { pending: "#F59E0B", in_progress: "#1D4ED8", resolved: "#34D399", closed: "#4B5563" };
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -136,7 +136,7 @@ export default function DepartmentsScreen() {
 
   return (
     <View style={[cs.root, { paddingTop: insets.top }]}>
-      <LinearGradient colors={["#001A1F", Colors.bg]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={["#ECFEFF", Colors.bg]} style={StyleSheet.absoluteFill} />
 
       {/* Header */}
       <LinearGradient colors={["#0d1117", "#001A1F", "#0d1117"]} style={cs.header}>
@@ -172,7 +172,7 @@ export default function DepartmentsScreen() {
       <View style={cs.statsRow}>
         {[
           { label: "Total",    value: totalComplaints, color: Colors.saffron, icon: "document-text" as const },
-          { label: "Pending",  value: totalPending,    color: "#F59E0B",     icon: "time" as const },
+          { label: "Pending",  value: totalPending,    color: "#92400E",     icon: "time" as const },
           { label: "Resolved", value: totalResolved,   color: Colors.green,  icon: "checkmark-circle" as const },
           { label: "Depts",    value: departments.length, color: Colors.cyan, icon: "business" as const },
         ].map(s => (
@@ -188,9 +188,9 @@ export default function DepartmentsScreen() {
       {workers.length > 0 && (
         <View style={[cs.statsRow, { marginTop: -4 }]}>
           {[
-            { label: "Field Workers", value: workers.length,       color: "#06B6D4", icon: "people" as const },
-            { label: "Active GPS",    value: activeWorkers.length, color: "#22C55E", icon: "navigate" as const },
-            { label: "Avg Score",     value: `${avgWorkerScore}%`, color: "#A78BFA", icon: "pulse" as const },
+            { label: "Field Workers", value: workers.length,       color: "#0E7490", icon: "people" as const },
+            { label: "Active GPS",    value: activeWorkers.length, color: "#166534", icon: "navigate" as const },
+            { label: "Avg Score",     value: `${avgWorkerScore}%`, color: "#6D28D9", icon: "pulse" as const },
             { label: "Today Resolved",value: workersTodayResolved, color: Colors.saffron, icon: "checkmark-done" as const },
           ].map(s => (
             <View key={s.label} style={[cs.statBox, { borderColor: s.color + "33" }]}>
@@ -217,12 +217,12 @@ export default function DepartmentsScreen() {
               <Text style={cs.legendTitle}>AI Routing Rules</Text>
             </View>
             {[
-              { cat: "Electricity / Streetlight", dept: deptForCategory("electricity").short, icon: "flash" as const, color: "#A78BFA" },
-              { cat: "Water Supply",               dept: deptForCategory("water").short, icon: "water" as const, color: "#60A5FA" },
-              { cat: "Drain / Garbage",            dept: "ULB / Nagar Palika", icon: "business" as const, color: "#F59E0B" },
-              { cat: "Pothole / Roads",            dept: "PWD", icon: "construct" as const, color: "#F87171" },
-              { cat: "Tree / Forest",              dept: "Forest Dept", icon: "leaf" as const, color: "#34D399" },
-              { cat: "Other Issues",               dept: "DM Office", icon: "shield" as const, color: "#06B6D4" },
+              { cat: "Electricity / Streetlight", dept: deptForCategory("electricity").short, icon: "flash" as const, color: "#6D28D9" },
+              { cat: "Water Supply",               dept: deptForCategory("water").short, icon: "water" as const, color: "#1D4ED8" },
+              { cat: "Drain / Garbage",            dept: "ULB / Nagar Palika", icon: "business" as const, color: "#92400E" },
+              { cat: "Pothole / Roads",            dept: "PWD", icon: "construct" as const, color: "#B91C1C" },
+              { cat: "Tree / Forest",              dept: "Forest Dept", icon: "leaf" as const, color: "#065F46" },
+              { cat: "Other Issues",               dept: "DM Office", icon: "shield" as const, color: "#0E7490" },
             ].map(r => (
               <View key={r.cat} style={cs.legendRow}>
                 <Ionicons name={r.icon} size={13} color={r.color} />
@@ -237,11 +237,11 @@ export default function DepartmentsScreen() {
           {workers.length > 0 && (
             <View style={cs.legendCard}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <Ionicons name="navigate" size={16} color="#06B6D4" />
+                <Ionicons name="navigate" size={16} color="#0E7490" />
                 <Text style={cs.legendTitle}>Field Worker GPS Overview</Text>
                 <View style={{ marginLeft: "auto" as any, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#22C55E22", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
                   <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: "#22C55E" }} />
-                  <Text style={{ color: "#22C55E", fontSize: 9, fontFamily: "Inter_700Bold" }}>LIVE</Text>
+                  <Text style={{ color: "#166534", fontSize: 9, fontFamily: "Inter_700Bold" }}>LIVE</Text>
                 </View>
               </View>
               {/* Per-department resolution (real counts from the department list) */}
@@ -261,9 +261,9 @@ export default function DepartmentsScreen() {
               })}
               <View style={{ flexDirection: "row", gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.border }}>
                 {[
-                  { label: "Active GPS", value: activeWorkers.length, color: "#22C55E" },
-                  { label: "Idle",       value: workers.filter(w => w.status === "idle").length, color: "#F59E0B" },
-                  { label: "On Leave",   value: workers.filter(w => w.status === "on_leave").length, color: "#9CA3AF" },
+                  { label: "Active GPS", value: activeWorkers.length, color: "#166534" },
+                  { label: "Idle",       value: workers.filter(w => w.status === "idle").length, color: "#92400E" },
+                  { label: "On Leave",   value: workers.filter(w => w.status === "on_leave").length, color: "#4B5563" },
                 ].map(s => (
                   <View key={s.label} style={{ flex: 1, alignItems: "center", backgroundColor: Colors.bg, borderRadius: 8, padding: 8, borderWidth: 1, borderColor: s.color + "33" }}>
                     <Text style={{ color: s.color, fontSize: 14, fontFamily: "Inter_700Bold" }}>{s.value}</Text>
@@ -305,7 +305,7 @@ export default function DepartmentsScreen() {
                     <Text style={cs.deptStatLabel}>Total</Text>
                   </View>
                   <View style={cs.deptStat}>
-                    <Text style={[cs.deptStatVal, { color: "#F59E0B" }]}>{dept.pending}</Text>
+                    <Text style={[cs.deptStatVal, { color: "#92400E" }]}>{dept.pending}</Text>
                     <Text style={cs.deptStatLabel}>Pending</Text>
                   </View>
                   <View style={cs.deptStat}>
@@ -352,7 +352,7 @@ export default function DepartmentsScreen() {
 
                   <View style={[cs.statsRow, { marginHorizontal: 20, marginBottom: 14 }]}>
                     {[
-                      { label: "Pending",  value: selectedDept.pending,   color: "#F59E0B" },
+                      { label: "Pending",  value: selectedDept.pending,   color: "#92400E" },
                       { label: "Resolved", value: selectedDept.resolved,  color: Colors.green },
                       { label: "Rate",     value: `${selectedDept.complaints > 0 ? Math.round((selectedDept.resolved / selectedDept.complaints) * 100) : 0}%`, color: Colors.cyan },
                     ].map(s => (
@@ -377,8 +377,8 @@ export default function DepartmentsScreen() {
                           <Text style={{ color: Colors.textMuted, fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 4, textAlign: "center" }}>No complaints routed to this department</Text>
                         </View>
                       ) : deptComplaints.slice(0, 20).map((c, i) => {
-                        const priColor = PRIORITY_COLORS[c.priority] || "#9CA3AF";
-                        const statusColor = STATUS_COLORS[c.status] || "#9CA3AF";
+                        const priColor = PRIORITY_COLORS[c.priority] || "#4B5563";
+                        const statusColor = STATUS_COLORS[c.status] || "#4B5563";
                         return (
                           <View key={c.id} style={[cs.complaintRow, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border }]}>
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>

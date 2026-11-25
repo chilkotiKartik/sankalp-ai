@@ -27,18 +27,18 @@ interface Announcement {
 }
 
 const TYPE_META: Record<string, { icon: string; color: string; label: string; bg: string }> = {
-  general:   { icon: "information-circle",  color: "#60A5FA", label: "General",   bg: "#3B82F615" },
-  scheme:    { icon: "ribbon",              color: "#22C55E", label: "Scheme",    bg: "#22C55E15" },
-  emergency: { icon: "warning",             color: "#F87171", label: "Emergency", bg: "#EF444415" },
-  welfare:   { icon: "heart",               color: "#A78BFA", label: "Welfare",   bg: "#8B5CF615" },
-  tender:    { icon: "document-text",       color: "#F59E0B", label: "Tender",    bg: "#F59E0B15" },
-  holiday:   { icon: "calendar",            color: "#06B6D4", label: "Holiday",   bg: "#06B6D415" },
+  general:   { icon: "information-circle",  color: "#1D4ED8", label: "General",   bg: "#3B82F615" },
+  scheme:    { icon: "ribbon",              color: "#15803D", label: "Scheme",    bg: "#22C55E15" },
+  emergency: { icon: "warning",             color: "#DC2626", label: "Emergency", bg: "#EF444415" },
+  welfare:   { icon: "heart",               color: "#6D28D9", label: "Welfare",   bg: "#8B5CF615" },
+  tender:    { icon: "document-text",       color: "#B45309", label: "Tender",    bg: "#F59E0B15" },
+  holiday:   { icon: "calendar",            color: "#0E7490", label: "Holiday",   bg: "#06B6D415" },
 };
 
 const PRIORITY_META: Record<string, { color: string; label: string; icon: string }> = {
-  normal:    { color: "#9CA3AF", label: "Normal",    icon: "ellipse-outline" },
-  important: { color: "#F59E0B", label: "Important", icon: "alert-circle-outline" },
-  urgent:    { color: "#F87171", label: "Urgent",    icon: "warning" },
+  normal:    { color: "#4B5563", label: "Normal",    icon: "ellipse-outline" },
+  important: { color: "#B45309", label: "Important", icon: "alert-circle-outline" },
+  urgent:    { color: "#DC2626", label: "Urgent",    icon: "warning" },
 };
 
 const FILTER_TYPES = ["all", "emergency", "scheme", "welfare", "general", "holiday", "tender"] as const;
@@ -73,7 +73,7 @@ function AnnouncementDetailModal({ ann, onClose }: { ann: Announcement; onClose:
               <Text style={[det.priorityTxt, { color: priorityMeta.color }]}>{priorityMeta.label}</Text>
             </View>
             <Pressable onPress={onClose} style={det.closeBtn}>
-              <Ionicons name="close" size={20} color="#9CA3AF" />
+              <Ionicons name="close" size={20} color="#4B5563" />
             </Pressable>
           </View>
 
@@ -81,16 +81,16 @@ function AnnouncementDetailModal({ ann, onClose }: { ann: Announcement; onClose:
             <Text style={det.title}>{ann.title}</Text>
 
             <View style={det.metaRow}>
-              <Ionicons name="business-outline" size={12} color="#9CA3AF" />
+              <Ionicons name="business-outline" size={12} color="#4B5563" />
               <Text style={det.metaTxt}>{ann.department}</Text>
             </View>
             <View style={det.metaRow}>
-              <Ionicons name="time-outline" size={12} color="#9CA3AF" />
+              <Ionicons name="time-outline" size={12} color="#4B5563" />
               <Text style={det.metaTxt}>{new Date(ann.postedAt).toLocaleString("en-IN", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</Text>
             </View>
             {ann.targetDistrict && ann.targetDistrict !== "all" && (
               <View style={det.metaRow}>
-                <Ionicons name="location-outline" size={12} color="#9CA3AF" />
+                <Ionicons name="location-outline" size={12} color="#4B5563" />
                 <Text style={det.metaTxt}>{ann.targetDistrict}</Text>
               </View>
             )}
@@ -100,14 +100,14 @@ function AnnouncementDetailModal({ ann, onClose }: { ann: Announcement; onClose:
 
             {ann.link && (
               <Pressable style={det.linkBtn} onPress={() => Linking.openURL(ann.link!)}>
-                <Ionicons name="open-outline" size={14} color="#FF9933" />
+                <Ionicons name="open-outline" size={14} color="#C2410C" />
                 <Text style={det.linkTxt}>Learn More / Apply</Text>
               </Pressable>
             )}
 
             {ann.expiresAt && (
               <View style={det.expiry}>
-                <Ionicons name="calendar-outline" size={12} color="#F87171" />
+                <Ionicons name="calendar-outline" size={12} color="#DC2626" />
                 <Text style={det.expiryTxt}>
                   Valid until: {new Date(ann.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
                 </Text>
@@ -128,24 +128,24 @@ function AnnouncementDetailModal({ ann, onClose }: { ann: Announcement; onClose:
 
 const det = StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.7)" },
-  sheet: { backgroundColor: "#0F172A", borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "90%", borderWidth: 1, borderColor: "#1F2937" },
+  sheet: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "90%", borderWidth: 1, borderColor: "#E7DCD0" },
   typeBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 16, borderBottomWidth: 1, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   typeLabel: { fontSize: 12, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
   priorityBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, borderWidth: 1 },
   priorityTxt: { fontSize: 9, fontFamily: "Inter_700Bold" },
   closeBtn: { padding: 4 },
   body: { padding: 20 },
-  title: { fontSize: 18, fontFamily: "Inter_700Bold", color: "#F1F5F9", lineHeight: 26, marginBottom: 14 },
+  title: { fontSize: 18, fontFamily: "Inter_700Bold", color: "#1F2937", lineHeight: 26, marginBottom: 14 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 5 },
-  metaTxt: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#9CA3AF" },
-  divider: { height: 1, backgroundColor: "#1F2937", marginVertical: 14 },
-  bodyText: { fontSize: 14, fontFamily: "Inter_400Regular", color: "#CBD5E1", lineHeight: 22 },
+  metaTxt: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#4B5563" },
+  divider: { height: 1, backgroundColor: "#F3ECE4", marginVertical: 14 },
+  bodyText: { fontSize: 14, fontFamily: "Inter_400Regular", color: "#374151", lineHeight: 22 },
   linkBtn: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 18, backgroundColor: "rgba(255,153,51,0.1)", borderWidth: 1, borderColor: "rgba(255,153,51,0.3)", borderRadius: 10, padding: 12 },
-  linkTxt: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#FF9933" },
+  linkTxt: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#C2410C" },
   expiry: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14, backgroundColor: "#EF444410", borderRadius: 8, padding: 10, borderWidth: 1, borderColor: "#EF444430" },
-  expiryTxt: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#F87171" },
-  closeFull: { margin: 16, backgroundColor: "#1F2937", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
-  closeFullTxt: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#9CA3AF" },
+  expiryTxt: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#DC2626" },
+  closeFull: { margin: 16, backgroundColor: "#F3ECE4", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
+  closeFullTxt: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#4B5563" },
 });
 
 export default function AnnouncementsScreen() {
@@ -158,12 +158,17 @@ export default function AnnouncementsScreen() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Announcement | null>(null);
+  // Real official updates (PIB, All India Radio) shown when departments have posted nothing yet — never invented.
+  const [official, setOfficial] = useState<{ id: string; title: string; summary?: string; link: string; publishedAt: string; source: string }[]>([]);
+  useEffect(() => {
+    fetch(`${getApiUrl()}api/public/news`).then(r => (r.ok ? r.json() : null)).then(d => setOfficial(Array.isArray(d?.items) ? d.items.slice(0, 20) : [])).catch(() => {});
+  }, []);
   const intervalRef = useRef<any>(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await fetch(`${getApiUrl()}/api/announcements`, {
+      const res = await fetch(`${getApiUrl()}api/announcements`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -215,7 +220,7 @@ export default function AnnouncementsScreen() {
       >
         {isUrgent && (
           <View style={styles.urgentBanner}>
-            <Ionicons name="warning" size={10} color="#F87171" />
+            <Ionicons name="warning" size={10} color="#DC2626" />
             <Text style={styles.urgentBannerTxt}>URGENT NOTICE</Text>
           </View>
         )}
@@ -246,7 +251,7 @@ export default function AnnouncementsScreen() {
           </View>
           {item.link && (
             <View style={styles.linkIndicator}>
-              <Ionicons name="open-outline" size={10} color="#FF9933" />
+              <Ionicons name="open-outline" size={10} color="#C2410C" />
               <Text style={styles.linkIndicatorTxt}>Link</Text>
             </View>
           )}
@@ -258,7 +263,7 @@ export default function AnnouncementsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient
-        colors={["#0A0F1C", "#0D1117"]}
+        colors={["#F7F3EE", "#F7F3EE"]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -270,7 +275,7 @@ export default function AnnouncementsScreen() {
         </View>
         {urgentCount > 0 && (
           <View style={styles.urgentBadge}>
-            <Ionicons name="warning" size={12} color="#F87171" />
+            <Ionicons name="warning" size={12} color="#DC2626" />
             <Text style={styles.urgentBadgeTxt}>{urgentCount} Urgent</Text>
           </View>
         )}
@@ -331,7 +336,7 @@ export default function AnnouncementsScreen() {
               ]}
               onPress={() => setFilter(f)}
             >
-              {meta && <Ionicons name={meta.icon as any} size={11} color={isActive ? meta.color : "#9CA3AF"} />}
+              {meta && <Ionicons name={meta.icon as any} size={11} color={isActive ? meta.color: "#4B5563"} />}
               <Text style={[styles.filterChipTxt, isActive && meta && { color: meta.color }]}>
                 {f.charAt(0).toUpperCase() + f.slice(1)}
               </Text>
@@ -346,9 +351,20 @@ export default function AnnouncementsScreen() {
       {/* Content */}
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#FF9933" />
+          <ActivityIndicator size="large" color="#C2410C" />
           <Text style={styles.loadingTxt}>Fetching notices…</Text>
         </View>
+      ) : filtered.length === 0 && filter === "all" && official.length > 0 ? (
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+          <Text style={styles.offHead}>No department notices yet. Latest official government updates:</Text>
+          {official.map(n => (
+            <Pressable key={n.id} onPress={() => Linking.openURL(n.link)} style={styles.offCard} accessibilityRole="link" accessibilityLabel={`${n.source}: ${n.title}`}>
+              <Text style={styles.offTitle}>{n.title}</Text>
+              {n.summary ? <Text style={styles.offSummary} numberOfLines={3}>{n.summary}</Text> : null}
+              <Text style={styles.offMeta}>{n.source} · {new Date(n.publishedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · Read more ›</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       ) : filtered.length === 0 ? (
         <View style={styles.center}>
           <Text style={{ fontSize: 40, marginBottom: 12 }}>📢</Text>
@@ -386,7 +402,7 @@ export default function AnnouncementsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0A0F1C" },
+  container: { flex: 1, backgroundColor: "#F7F3EE" },
   header: {
     flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between",
     paddingHorizontal: 20, paddingTop: 14, paddingBottom: 8,
@@ -394,46 +410,51 @@ const styles = StyleSheet.create({
   searchBarWrap: {
     flexDirection: "row", alignItems: "center", gap: 8,
     marginHorizontal: 14, marginBottom: 6,
-    backgroundColor: "#0F172A", borderWidth: 1, borderColor: "#1E293B",
+    backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E7DCD0",
     borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8,
   },
   searchBarInput: {
-    flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", color: "#CBD5E1",
+    flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", color: "#374151",
   },
   priorityChipBtn: {
     flexDirection: "row", alignItems: "center", gap: 4,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16,
-    borderWidth: 1, borderColor: "#1E293B", flexShrink: 0,
+    borderWidth: 1, borderColor: "#E7DCD0", flexShrink: 0,
   },
   priorityDot: { width: 6, height: 6, borderRadius: 3 },
   priorityChipTxtBtn: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#4B5563" },
-  headerTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#F1F5F9" },
+  headerTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#1F2937" },
   headerSub: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#4B5563", marginTop: 2 },
   urgentBadge: {
     flexDirection: "row", alignItems: "center", gap: 5,
     backgroundColor: "#EF444418", borderWidth: 1, borderColor: "#EF444445",
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12,
   },
-  urgentBadgeTxt: { fontSize: 11, fontFamily: "Inter_700Bold", color: "#F87171" },
+  urgentBadgeTxt: { fontSize: 11, fontFamily: "Inter_700Bold", color: "#DC2626" },
   filterBar: { flexShrink: 0, maxHeight: 44 },
   filterBarContent: { paddingHorizontal: 14, paddingVertical: 6, gap: 6, flexDirection: "row", alignItems: "center" },
   filterChip: {
     flexDirection: "row", alignItems: "center", gap: 3,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
-    backgroundColor: "transparent", borderWidth: 1, borderColor: "#1E293B",
+    backgroundColor: "transparent", borderWidth: 1, borderColor: "#E7DCD0",
     flexShrink: 0,
   },
   filterChipActive: { borderColor: "#FF993360", backgroundColor: "#FF993318" },
-  filterChipTxt: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#9CA3AF" },
-  filterCount: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#FF9933", backgroundColor: "#FF993318", borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1, overflow: "hidden" },
+  filterChipTxt: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#4B5563" },
+  filterCount: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#C2410C", backgroundColor: "#FF993318", borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1, overflow: "hidden" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
+  offHead: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#4B5563", marginBottom: 10 },
+  offCard: { backgroundColor: "#FFFFFF", borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: "#E5E7EB" },
+  offTitle: { fontSize: 14.5, fontFamily: "Inter_700Bold", color: "#111827", lineHeight: 20 },
+  offSummary: { fontSize: 12.5, fontFamily: "Inter_400Regular", color: "#4B5563", marginTop: 6, lineHeight: 18 },
+  offMeta: { fontSize: 11, fontFamily: "Inter_500Medium", color: "#92400E", marginTop: 8 },
   loadingTxt: { marginTop: 12, fontSize: 13, fontFamily: "Inter_400Regular", color: "#4B5563" },
   emptyTitle: { fontSize: 17, fontFamily: "Inter_700Bold", color: "#374151", marginBottom: 8 },
   emptyBody: { fontSize: 13, fontFamily: "Inter_400Regular", color: "#374151", textAlign: "center", lineHeight: 20 },
   list: { padding: 16, paddingBottom: 32 },
   card: {
-    backgroundColor: "#0F172A", borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: "#1F2937",
+    backgroundColor: "#FFFFFF", borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: "#E7DCD0",
   },
   cardUrgent: { borderColor: "#EF444440", backgroundColor: "#EF444408" },
   cardImportant: { borderColor: "#F59E0B30" },
@@ -442,7 +463,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#EF444418", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
     alignSelf: "flex-start", marginBottom: 8,
   },
-  urgentBannerTxt: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#F87171", letterSpacing: 0.5 },
+  urgentBannerTxt: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#DC2626", letterSpacing: 0.5 },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10, flexWrap: "wrap" },
   typeChip: {
     flexDirection: "row", alignItems: "center", gap: 4,
@@ -454,13 +475,13 @@ const styles = StyleSheet.create({
   },
   priorityChipTxt: { fontSize: 9, fontFamily: "Inter_700Bold" },
   timeAgo: { fontSize: 10, fontFamily: "Inter_400Regular", color: "#374151" },
-  cardTitle: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#F1F5F9", lineHeight: 22, marginBottom: 6 },
-  cardBody: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#9CA3AF", lineHeight: 18, marginBottom: 10 },
+  cardTitle: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#1F2937", lineHeight: 22, marginBottom: 6 },
+  cardBody: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#4B5563", lineHeight: 18, marginBottom: 10 },
   cardFooter: { flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" },
   deptRow: { flexDirection: "row", alignItems: "center", gap: 4, flex: 1 },
   deptTxt: { fontSize: 10, fontFamily: "Inter_400Regular", color: "#374151", flex: 1 },
   viewsRow: { flexDirection: "row", alignItems: "center", gap: 3 },
   viewsTxt: { fontSize: 10, fontFamily: "Inter_400Regular", color: "#374151" },
   linkIndicator: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#FF993318", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  linkIndicatorTxt: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#FF9933" },
+  linkIndicatorTxt: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#C2410C" },
 });

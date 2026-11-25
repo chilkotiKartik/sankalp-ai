@@ -14,14 +14,14 @@ import { useApp, type SOSAlert } from "@/context/AppContext";
 import { stateName, districtPhrase } from "@/constants/districts";
 
 const SOS_META: Record<string, { label: string; icon: string; color: string; priority: string }> = {
-  gas_leak:        { label: "Gas Leak",        icon: "🔴", color: "#F59E0B", priority: "P1-CRITICAL" },
-  water_burst:     { label: "Water Burst",     icon: "💧", color: "#60A5FA", priority: "P1-HIGH" },
-  electric_hazard: { label: "Electric Hazard", icon: "⚡", color: "#F87171", priority: "P1-CRITICAL" },
-  fire_risk:       { label: "Fire Risk",       icon: "🔥", color: "#F87171", priority: "P1-CRITICAL" },
-  road_accident:   { label: "Road Accident",   icon: "🚗", color: "#F59E0B", priority: "P1-HIGH" },
-  women_safety:    { label: "Women Safety",    icon: "🛡️", color: "#A78BFA", priority: "P1-CRITICAL" },
-  medical:         { label: "Medical",         icon: "🏥", color: "#22C55E", priority: "P1-HIGH" },
-  infrastructure:  { label: "Infrastructure",  icon: "🏗️", color: "#9CA3AF", priority: "P2-MEDIUM" },
+  gas_leak:        { label: "Gas Leak",        icon: "🔴", color: "#92400E", priority: "P1-CRITICAL" },
+  water_burst:     { label: "Water Burst",     icon: "💧", color: "#1D4ED8", priority: "P1-HIGH" },
+  electric_hazard: { label: "Electric Hazard", icon: "⚡", color: "#B91C1C", priority: "P1-CRITICAL" },
+  fire_risk:       { label: "Fire Risk",       icon: "🔥", color: "#B91C1C", priority: "P1-CRITICAL" },
+  road_accident:   { label: "Road Accident",   icon: "🚗", color: "#92400E", priority: "P1-HIGH" },
+  women_safety:    { label: "Women Safety",    icon: "🛡️", color: "#6D28D9", priority: "P1-CRITICAL" },
+  medical:         { label: "Medical",         icon: "🏥", color: "#166534", priority: "P1-HIGH" },
+  infrastructure:  { label: "Infrastructure",  icon: "🏗️", color: "#4B5563", priority: "P2-MEDIUM" },
 };
 
 // ── LIVE BADGE ──────────────────────────────────────────────────────────────
@@ -39,9 +39,9 @@ function LiveBadge({ updatedAt }: { updatedAt?: string }) {
   const sAgo = Math.round((Date.now() - new Date(updatedAt).getTime()) / 1000);
   const isLive = sAgo < 90;
   return (
-    <View style={[lbs.pill, { backgroundColor: isLive ? "#14532D" : "#1F2937" }]}>
-      <Animated.View style={[lbs.dot, { opacity: isLive ? pulse : 1, backgroundColor: isLive ? "#4ADE80" : "#9CA3AF" }]} />
-      <Text style={[lbs.text, { color: isLive ? "#4ADE80" : "#9CA3AF" }]}>
+    <View style={[lbs.pill, { backgroundColor: isLive ? "#DCFCE7" : "#F3F4F6" }]}>
+      <Animated.View style={[lbs.dot, { opacity: isLive ? pulse : 1, backgroundColor: isLive ? "#4ADE80" : "#4B5563" }]} />
+      <Text style={[lbs.text, { color: isLive ? "#4ADE80" : "#4B5563" }]}>
         {isLive ? `LIVE · ${sAgo}s` : `${Math.round(sAgo / 60)}m ago`}
       </Text>
     </View>
@@ -58,8 +58,8 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
   alert: SOSAlert | null; visible: boolean; onClose: () => void; onResolve: () => void;
 }) {
   if (!alert) return null;
-  const meta = SOS_META[alert.category] || { label: alert.category, icon: "🚨", color: "#F87171", priority: "P1-CRITICAL" };
-  const statusColor = { active: "#F87171", responding: "#F59E0B", resolved: "#22C55E" }[alert.status] || "#9CA3AF";
+  const meta = SOS_META[alert.category] || { label: alert.category, icon: "🚨", color: "#B91C1C", priority: "P1-CRITICAL" };
+  const statusColor = { active: "#F87171", responding: "#F59E0B", resolved: "#22C55E" }[alert.status] || "#4B5563";
   const liveGeo = alert.liveGeo || alert.geo;
   const triggeredTime = new Date(alert.triggeredAt);
   const resolvedTime = alert.resolvedAt ? new Date(alert.resolvedAt) : null;
@@ -74,7 +74,7 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
         <View style={rm.sheet}>
           <View style={rm.handle} />
           {/* Header */}
-          <LinearGradient colors={["#1A0000", "#3D0000"]} style={rm.head}>
+          <LinearGradient colors={["#991B1B", "#B91C1C"]} style={rm.head}>
             <View style={rm.headLeft}>
               <Text style={{ fontSize: 32 }}>{meta.icon}</Text>
               <View>
@@ -175,12 +175,12 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
                 <View style={rm.gpsActions}>
                   <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng)}
                     style={rm.mapsBtn}>
-                    <Ionicons name="map" size={14} color="#4ADE80" />
+                    <Ionicons name="map" size={14} color="#166534" />
                     <Text style={rm.mapsBtnText}>Open in Google Maps</Text>
                   </Pressable>
                   <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng, "Navigate")}
                     style={rm.wazeBtn}>
-                    <Ionicons name="navigate" size={14} color="#60A5FA" />
+                    <Ionicons name="navigate" size={14} color="#1D4ED8" />
                     <Text style={rm.wazeBtnText}>Navigate (Waze)</Text>
                   </Pressable>
                 </View>
@@ -205,7 +205,7 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
                   <View style={{ flex: 1 }}>
                     <Text style={rm.psName}>{ps.name}</Text>
                     {ps.address ? <Text style={rm.psAddr}>{ps.address}</Text> : null}
-                    <Text style={[rm.psAddr, { color: "#F59E0B" }]}>{ps.distance} km from incident</Text>
+                    <Text style={[rm.psAddr, { color: "#92400E" }]}>{ps.distance} km from incident</Text>
                   </View>
                   <View style={{ alignItems: "flex-end", gap: 6 }}>
                     <Pressable onPress={() => Linking.openURL(`tel:${ps.phone}`)} style={rm.callBtn}>
@@ -232,14 +232,14 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
                     )}
                     {alert.isWomenSafety && (
                       <View style={rm.womenFlag}>
-                        <Ionicons name="shield-checkmark" size={11} color="#A78BFA" />
+                        <Ionicons name="shield-checkmark" size={11} color="#6D28D9" />
                         <Text style={rm.womenFlagText}>Women Safety SOS — Silent panic mode activated</Text>
                       </View>
                     )}
                   </View>
                   {alert.triggeredByPhone && (
                     <Pressable onPress={() => Linking.openURL(`tel:${alert.triggeredByPhone}`)} style={rm.callCitizenBtn}>
-                      <Ionicons name="call" size={14} color="#60A5FA" />
+                      <Ionicons name="call" size={14} color="#1D4ED8" />
                       <Text style={rm.callCitizenText}>Call</Text>
                     </Pressable>
                   )}
@@ -253,12 +253,12 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
                 <Text style={rm.sectionLabel}>AUDIO EVIDENCE</Text>
                 <View style={rm.descBox}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <Ionicons name="mic" size={16} color="#A78BFA" />
-                    <Text style={{ color: "#A78BFA", fontSize: 13, fontFamily: "Inter_700Bold" }}>Women Safety SOS — Audio Recording</Text>
+                    <Ionicons name="mic" size={16} color="#6D28D9" />
+                    <Text style={{ color: "#6D28D9", fontSize: 13, fontFamily: "Inter_700Bold" }}>Women Safety SOS — Audio Recording</Text>
                   </View>
                   {(alert.audioChunks && alert.audioChunks.length > 0) ? (
                     <>
-                      <Text style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 10 }}>
+                      <Text style={{ color: "#4B5563", fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 10 }}>
                         {alert.audioChunks.length} audio chunk(s) recorded · Tap a chunk to open
                       </Text>
                       {alert.audioChunks.map((chunk: any, idx: number) => (
@@ -268,20 +268,20 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
                           style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#8B5CF622", borderRadius: 10, padding: 10, marginBottom: 6, borderWidth: 1, borderColor: "#8B5CF644" }}
                         >
                           <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: "#8B5CF633", alignItems: "center", justifyContent: "center" }}>
-                            <Ionicons name="play-circle" size={18} color="#A78BFA" />
+                            <Ionicons name="play-circle" size={18} color="#6D28D9" />
                           </View>
                           <View style={{ flex: 1 }}>
-                            <Text style={{ color: "#D1D5DB", fontSize: 12, fontFamily: "Inter_600SemiBold" }}>Chunk #{chunk.chunkIndex + 1}</Text>
-                            <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "Inter_400Regular" }}>{chunk.duration}s · {new Date(chunk.timestamp).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })}</Text>
+                            <Text style={{ color: "#374151", fontSize: 12, fontFamily: "Inter_600SemiBold" }}>Chunk #{chunk.chunkIndex + 1}</Text>
+                            <Text style={{ color: "#4B5563", fontSize: 10, fontFamily: "Inter_400Regular" }}>{chunk.duration}s · {new Date(chunk.timestamp).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })}</Text>
                           </View>
-                          <Ionicons name="open-outline" size={14} color="#A78BFA" />
+                          <Ionicons name="open-outline" size={14} color="#6D28D9" />
                         </Pressable>
                       ))}
                     </>
                   ) : (
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      <Ionicons name="radio-outline" size={14} color="#F59E0B" />
-                      <Text style={{ color: "#F59E0B", fontSize: 12, fontFamily: "Inter_500Medium" }}>
+                      <Ionicons name="radio-outline" size={14} color="#92400E" />
+                      <Text style={{ color: "#92400E", fontSize: 12, fontFamily: "Inter_500Medium" }}>
                         {alert.status === "active" ? "Live recording in progress — chunks will appear here" : "No audio evidence recorded for this alert"}
                       </Text>
                     </View>
@@ -297,25 +297,25 @@ function ReportModal({ alert, visible, onClose, onResolve }: {
                 <View style={rm.adminActions}>
                   <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng)}
                     style={rm.adminBtn}>
-                    <Ionicons name="map-outline" size={16} color="#4ADE80" />
-                    <Text style={[rm.adminBtnText, { color: "#4ADE80" }]}>Live Map</Text>
+                    <Ionicons name="map-outline" size={16} color="#166534" />
+                    <Text style={[rm.adminBtnText, { color: "#166534" }]}>Live Map</Text>
                   </Pressable>
                   <Pressable onPress={() => Linking.openURL(`tel:${alert.nearestPolicePhone || "100"}`)}
                     style={[rm.adminBtn, { backgroundColor: "#F59E0B22" }]}>
-                    <Ionicons name="shield" size={16} color="#F59E0B" />
-                    <Text style={[rm.adminBtnText, { color: "#F59E0B" }]}>Police</Text>
+                    <Ionicons name="shield" size={16} color="#92400E" />
+                    <Text style={[rm.adminBtnText, { color: "#92400E" }]}>Police</Text>
                   </Pressable>
                   {alert.triggeredByPhone && (
                     <Pressable onPress={() => Linking.openURL(`tel:${alert.triggeredByPhone}`)}
                       style={[rm.adminBtn, { backgroundColor: "#3B82F622" }]}>
-                      <Ionicons name="person" size={16} color="#60A5FA" />
-                      <Text style={[rm.adminBtnText, { color: "#60A5FA" }]}>Citizen</Text>
+                      <Ionicons name="person" size={16} color="#1D4ED8" />
+                      <Text style={[rm.adminBtnText, { color: "#1D4ED8" }]}>Citizen</Text>
                     </Pressable>
                   )}
                   <Pressable onPress={() => { onResolve(); onClose(); }}
                     style={[rm.adminBtn, { backgroundColor: "#22C55E22" }]}>
-                    <Ionicons name="checkmark-circle" size={16} color="#22C55E" />
-                    <Text style={[rm.adminBtnText, { color: "#22C55E" }]}>Resolve</Text>
+                    <Ionicons name="checkmark-circle" size={16} color="#166534" />
+                    <Text style={[rm.adminBtnText, { color: "#166534" }]}>Resolve</Text>
                   </Pressable>
                 </View>
               </View>
@@ -344,46 +344,46 @@ const rm = StyleSheet.create({
   priorityText: { fontSize: 10, fontFamily: "Inter_700Bold" },
   catText: { fontSize: 12, fontFamily: "Inter_700Bold" },
   womenChip: { backgroundColor: "#8B5CF622", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  womenChipText: { color: "#A78BFA", fontSize: 10, fontFamily: "Inter_700Bold" },
+  womenChipText: { color: "#6D28D9", fontSize: 10, fontFamily: "Inter_700Bold" },
   section: { paddingTop: 18 },
   sectionLabel: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1.5, marginBottom: 10 },
   timelineRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 10 },
-  timelineDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#DC2626", marginTop: 3 },
+  timelineDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#B91C1C", marginTop: 3 },
   timelineLabel: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular" },
   timelineVal: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold", marginTop: 2 },
   durationRow: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.bgCard, borderRadius: 8, padding: 8, marginTop: 4 },
   durationText: { color: Colors.textMuted, fontSize: 12, fontFamily: "Inter_500Medium" },
   descBox: { backgroundColor: Colors.bgCard, borderRadius: 12, padding: 12 },
-  descText: { color: "#D1D5DB", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  descText: { color: "#374151", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
   gpsBox: { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14 },
   gpsCoordRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
   gpsDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#4ADE80" },
-  gpsCoordsText: { color: "#4ADE80", fontSize: 13, fontFamily: "Inter_700Bold", flex: 1 },
+  gpsCoordsText: { color: "#166534", fontSize: 13, fontFamily: "Inter_700Bold", flex: 1 },
   gpsAddrText: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 12 },
   gpsActions: { flexDirection: "row", gap: 8 },
-  mapsBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#14532D", borderRadius: 10, paddingVertical: 8 },
-  mapsBtnText: { color: "#4ADE80", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  mapsBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#DCFCE7", borderRadius: 10, paddingVertical: 8 },
+  mapsBtnText: { color: "#166534", fontSize: 11, fontFamily: "Inter_600SemiBold" },
   wazeBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#1E3A5F", borderRadius: 10, paddingVertical: 8 },
-  wazeBtnText: { color: "#60A5FA", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  wazeBtnText: { color: "#1D4ED8", fontSize: 11, fontFamily: "Inter_600SemiBold" },
   origGpsRow: { flexDirection: "row", alignItems: "center", marginTop: 8, backgroundColor: Colors.bgCard, borderRadius: 8, padding: 8 },
   origGpsLabel: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular" },
-  origGpsVal: { color: "#D1D5DB", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  origGpsVal: { color: "#374151", fontSize: 11, fontFamily: "Inter_600SemiBold" },
   psRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, backgroundColor: Colors.bgCard, borderRadius: 12, padding: 12, marginBottom: 8 },
   psRank: { width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   psName: { color: "#fff", fontSize: 13, fontFamily: "Inter_600SemiBold" },
   psAddr: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 },
-  callBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#DC2626", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  callBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#B91C1C", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   callBtnText: { color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold" },
   reporterBox: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14 },
   reporterAvatar: { width: 48, height: 48, borderRadius: 14, backgroundColor: Colors.bgCardAlt, alignItems: "center", justifyContent: "center" },
   reporterName: { color: "#fff", fontSize: 14, fontFamily: "Inter_600SemiBold" },
   reporterPhone: { color: Colors.textMuted, fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
   womenFlag: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
-  womenFlagText: { color: "#A78BFA", fontSize: 10, fontFamily: "Inter_500Medium" },
+  womenFlagText: { color: "#6D28D9", fontSize: 10, fontFamily: "Inter_500Medium" },
   callCitizenBtn: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#3B82F622", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
-  callCitizenText: { color: "#60A5FA", fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  callCitizenText: { color: "#1D4ED8", fontSize: 12, fontFamily: "Inter_600SemiBold" },
   adminActions: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  adminBtn: { flex: 1, minWidth: 70, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#14532D", borderRadius: 12, paddingVertical: 12 },
+  adminBtn: { flex: 1, minWidth: 70, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#DCFCE7", borderRadius: 12, paddingVertical: 12 },
   adminBtnText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
 });
 
@@ -391,8 +391,8 @@ const rm = StyleSheet.create({
 function AlertCard({ alert, onResolve, onViewReport }: {
   alert: SOSAlert; onResolve: () => void; onViewReport: () => void;
 }) {
-  const meta = SOS_META[alert.category] || { label: alert.category, icon: "🚨", color: "#F87171", priority: "P1-CRITICAL" };
-  const statusColor = { active: "#F87171", responding: "#F59E0B", resolved: "#22C55E" }[alert.status] || "#9CA3AF";
+  const meta = SOS_META[alert.category] || { label: alert.category, icon: "🚨", color: "#B91C1C", priority: "P1-CRITICAL" };
+  const statusColor = { active: "#F87171", responding: "#F59E0B", resolved: "#22C55E" }[alert.status] || "#4B5563";
   const liveGeo = alert.liveGeo || alert.geo;
   const flashAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -443,7 +443,7 @@ function AlertCard({ alert, onResolve, onViewReport }: {
       {/* Police notified */}
       {(alert.notifiedStations || []).length > 0 && (
         <View style={ac.policeRow}>
-          <Ionicons name="shield" size={12} color="#F59E0B" />
+          <Ionicons name="shield" size={12} color="#92400E" />
           <Text style={ac.policeText} numberOfLines={1}>
             Notified: {(alert.notifiedStations || []).map(ps => `${ps.name} (${ps.distance}km)`).join(" & ")}
           </Text>
@@ -453,25 +453,25 @@ function AlertCard({ alert, onResolve, onViewReport }: {
       {/* Actions */}
       <View style={ac.actions}>
         <Pressable onPress={onViewReport} style={[ac.actionBtn, { backgroundColor: "#3B82F622" }]}>
-          <Ionicons name="document-text" size={13} color="#60A5FA" />
-          <Text style={[ac.actionText, { color: "#60A5FA" }]}>Full Report</Text>
+          <Ionicons name="document-text" size={13} color="#1D4ED8" />
+          <Text style={[ac.actionText, { color: "#1D4ED8" }]}>Full Report</Text>
         </Pressable>
         <Pressable onPress={() => openInMaps(liveGeo.lat, liveGeo.lng)}
-          style={[ac.actionBtn, { backgroundColor: "#14532D" }]}>
-          <Ionicons name="map" size={13} color="#4ADE80" />
-          <Text style={[ac.actionText, { color: "#4ADE80" }]}>Maps</Text>
+          style={[ac.actionBtn, { backgroundColor: "#DCFCE7" }]}>
+          <Ionicons name="map" size={13} color="#166534" />
+          <Text style={[ac.actionText, { color: "#166534" }]}>Maps</Text>
         </Pressable>
         {alert.nearestPolicePhone && (
           <Pressable onPress={() => Linking.openURL(`tel:${alert.nearestPolicePhone}`)}
             style={[ac.actionBtn, { backgroundColor: "#F59E0B22" }]}>
-            <Ionicons name="shield" size={13} color="#F59E0B" />
-            <Text style={[ac.actionText, { color: "#F59E0B" }]}>Police</Text>
+            <Ionicons name="shield" size={13} color="#92400E" />
+            <Text style={[ac.actionText, { color: "#92400E" }]}>Police</Text>
           </Pressable>
         )}
         {alert.status !== "resolved" && (
           <Pressable onPress={onResolve} style={[ac.actionBtn, { backgroundColor: "#22C55E22" }]}>
-            <Ionicons name="checkmark-circle" size={13} color="#22C55E" />
-            <Text style={[ac.actionText, { color: "#22C55E" }]}>Resolve</Text>
+            <Ionicons name="checkmark-circle" size={13} color="#166534" />
+            <Text style={[ac.actionText, { color: "#166534" }]}>Resolve</Text>
           </Pressable>
         )}
       </View>
@@ -489,16 +489,16 @@ const ac = StyleSheet.create({
   statusText: { fontSize: 8, fontFamily: "Inter_700Bold" },
   priorityChip: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   priorityText: { fontSize: 8, fontFamily: "Inter_700Bold" },
-  womenTag: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#A78BFA" },
+  womenTag: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#6D28D9" },
   catLabel: { color: "#fff", fontSize: 12, fontFamily: "Inter_700Bold" },
   desc: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   time: { color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold" },
   date: { color: Colors.textMuted, fontSize: 9, fontFamily: "Inter_400Regular" },
   gpsRow: { flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: Colors.bg, borderRadius: 8, padding: 8, marginBottom: 8 },
   gpsDotGreen: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: "#4ADE80" },
-  coordText: { color: "#4ADE80", fontSize: 10, fontFamily: "Inter_600SemiBold", flex: 1 },
+  coordText: { color: "#166534", fontSize: 10, fontFamily: "Inter_600SemiBold", flex: 1 },
   policeRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
-  policeText: { color: "#F59E0B", fontSize: 11, fontFamily: "Inter_500Medium", flex: 1 },
+  policeText: { color: "#92400E", fontSize: 11, fontFamily: "Inter_500Medium", flex: 1 },
   actions: { flexDirection: "row", gap: 7, borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 10 },
   actionBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 8, paddingVertical: 7 },
   actionText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
@@ -584,7 +584,7 @@ export default function AdminAlerts() {
       )}
 
       {/* Header */}
-      <LinearGradient colors={["#1A0000", "#2D0000"]} style={ms.header}>
+      <LinearGradient colors={["#991B1B", "#B91C1C"]} style={ms.header}>
         <View style={ms.headerRow}>
           <Pressable onPress={() => router.back()} style={ms.backBtn}>
             <Ionicons name="arrow-back" size={18} color={Colors.textMuted} />
@@ -604,10 +604,10 @@ export default function AdminAlerts() {
       {/* Stats */}
       <View style={ms.stats}>
         {[
-          { val: active.length,       label: "Active",    color: "#F87171", f: "active"     as const },
-          { val: responding.length,   label: "Responding",color: "#F59E0B", f: "responding" as const },
-          { val: resolved.length,     label: "Resolved",  color: "#22C55E", f: "resolved"   as const },
-          { val: liveTracking.length, label: "Live GPS",  color: "#4ADE80", f: "all"        as const },
+          { val: active.length,       label: "Active",    color: "#B91C1C", f: "active"     as const },
+          { val: responding.length,   label: "Responding",color: "#92400E", f: "responding" as const },
+          { val: resolved.length,     label: "Resolved",  color: "#166534", f: "resolved"   as const },
+          { val: liveTracking.length, label: "Live GPS",  color: "#166534", f: "all"        as const },
         ].map(st => (
           <Pressable key={st.label} onPress={() => setFilter(st.f)}
             style={[ms.statCard, { borderColor: st.color + "33" }]}>
@@ -637,7 +637,7 @@ export default function AdminAlerts() {
         {filtered.length === 0 ? (
           <View style={{ alignItems: "center", paddingTop: 60 }}>
             <Text style={{ fontSize: 48 }}>✅</Text>
-            <Text style={{ color: "#22C55E", fontSize: 18, fontFamily: "Inter_700Bold", marginTop: 12 }}>All Clear</Text>
+            <Text style={{ color: "#166534", fontSize: 18, fontFamily: "Inter_700Bold", marginTop: 12 }}>All Clear</Text>
             <Text style={{ color: Colors.textMuted, fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 6, textAlign: "center" }}>
               {filter === "all" ? "No SOS alerts recorded" : `No ${filter} alerts`}
             </Text>
@@ -670,7 +670,7 @@ const ms = StyleSheet.create({
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, alignItems: "center", justifyContent: "center" },
   headerTitle: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
   headerSub: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 1 },
-  activeBadge: { backgroundColor: "#DC2626", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+  activeBadge: { backgroundColor: "#B91C1C", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
   activeBadgeText: { color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold" },
   stats: { flexDirection: "row", paddingHorizontal: 16, gap: 8, paddingVertical: 12 },
   statCard: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1 },
@@ -680,5 +680,5 @@ const ms = StyleSheet.create({
   filterTab: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
   filterTabActive: { backgroundColor: "#EF444422", borderColor: "#EF444444" },
   filterText: { color: Colors.textMuted, fontSize: 9, fontFamily: "Inter_600SemiBold" },
-  filterTextActive: { color: "#F87171" },
+  filterTextActive: { color: "#B91C1C" },
 });

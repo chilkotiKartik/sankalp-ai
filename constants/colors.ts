@@ -1,24 +1,24 @@
 const Colors = {
-  // Backgrounds - warm dark with Indian depth
-  bg: "#0D0A08",
-  bgCard: "#161210",
-  bgCardAlt: "#1F1814",
-  bgWarm: "#1A1108",
-  border: "#2A1F15",
-  borderLight: "#3D2E1E",
+  // Backgrounds - warm light (one look across the app; dark screens read as "black screens" to people)
+  bg: "#F7F3EE",
+  bgCard: "#FFFFFF",
+  bgCardAlt: "#F3ECE4",
+  bgWarm: "#FFF4E6",
+  border: "#E7DCD0",
+  borderLight: "#D8C8B6",
   borderGlow: "#FF993322",
 
   // Indian Saffron (primary brand)
-  saffron: "#FF9933",
-  saffronLight: "#FFBA5C",
-  saffronDark: "#E07000",
+  saffron: "#B4380A",       // deep saffron: readable as text on every light surface, also on saffron tints (≥4.6:1)
+  saffronLight: "#EA580C",
+  saffronDark: "#9A3412",
   saffronBg: "rgba(255,153,51,0.12)",
   saffronGlow: "rgba(255,153,51,0.25)",
 
   // India Green
-  green: "#00A651",
-  greenLight: "#00C060",
-  greenDim: "#007A3D",
+  green: "#166534",
+  greenLight: "#15803D",
+  greenDim: "#14532D",
   greenBg: "rgba(0,166,81,0.12)",
   nationalGreen: "#138808",
 
@@ -28,7 +28,7 @@ const Colors = {
   navy: "#001F5B",
 
   // Vibrant accents - India's festive palette
-  turmeric: "#FFD700",       // Haldi
+  turmeric: "#A16207",       // Haldi (deepened for light backgrounds)
   magenta: "#E91E8C",        // Gulal pink
   peacock: "#005F73",        // Peacock blue
   marigold: "#FF6B00",       // Marigold orange
@@ -36,34 +36,34 @@ const Colors = {
   jasmine: "#FFF0A0",        // Jasmine
 
   // Semantic colors
-  red: "#FF3B30",
-  redDim: "#CC2200",
+  red: "#B91C1C",
+  redDim: "#991B1B",
   redBg: "rgba(255,59,48,0.12)",
 
-  amber: "#FFAB00",
-  amberDim: "#CC8800",
+  amber: "#92400E",
+  amberDim: "#78350F",
   amberBg: "rgba(255,171,0,0.12)",
 
-  blue: "#2196F3",
-  blueDim: "#1565C0",
+  blue: "#1D4ED8",
+  blueDim: "#1E40AF",
   blueBg: "rgba(33,150,243,0.12)",
 
   purple: "#9C27B0",
   purpleBg: "rgba(156,39,176,0.12)",
 
-  cyan: "#00BCD4",
+  cyan: "#0E7490",
   cyanBg: "rgba(0,188,212,0.12)",
 
   // Text
-  textPrimary: "#FFF8F0",
-  textSecondary: "#BFA88A",
-  textMuted: "#A68D79", // WCAG AA on every dark surface (was #7A6050, 3.2:1),
+  textPrimary: "#1F1A17",
+  textSecondary: "#5B4A3B",
+  textMuted: "#6B5A4C", // WCAG AA on every light surface
 
   white: "#FFFFFF",
 
   light: {
     tint: "#FF9933",
-    tabIconDefault: "#7A6050",
+    tabIconDefault: "#6B5A4C",
     tabIconSelected: "#FF9933",
   },
 };
