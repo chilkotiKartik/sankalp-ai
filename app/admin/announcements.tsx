@@ -13,8 +13,8 @@ import { stateName, districtPhrase } from "@/constants/districts";
 const TYPE_META: Record<AnnouncementType, { icon: keyof typeof Ionicons.glyphMap; color: string; label: string }> = {
   general:   { icon: "information-circle", color: Colors.blue,    label: "General" },
   scheme:    { icon: "ribbon",             color: Colors.green,   label: "Scheme" },
-  emergency: { icon: "warning",            color: "#F87171",      label: "Emergency" },
-  welfare:   { icon: "heart",              color: "#A78BFA",      label: "Welfare" },
+  emergency: { icon: "warning",            color: "#B91C1C",      label: "Emergency" },
+  welfare:   { icon: "heart",              color: "#6D28D9",      label: "Welfare" },
   tender:    { icon: "document-text",      color: Colors.amber,   label: "Tender" },
   holiday:   { icon: "calendar",           color: Colors.cyan,    label: "Holiday" },
 };
@@ -22,7 +22,7 @@ const TYPE_META: Record<AnnouncementType, { icon: keyof typeof Ionicons.glyphMap
 const PRIORITY_META = {
   normal:    { color: Colors.blue,  label: "Normal" },
   important: { color: Colors.amber, label: "Important" },
-  urgent:    { color: "#F87171",    label: "Urgent" },
+  urgent:    { color: "#B91C1C",    label: "Urgent" },
 };
 
 const ANN_TYPES: AnnouncementType[] = ["general", "scheme", "emergency", "welfare", "tender", "holiday"];
@@ -177,7 +177,7 @@ function AnnouncementCard({ ann, onDelete }: { ann: Announcement; onDelete: (id:
           <Text style={styles.annDept}>{ann.department}</Text>
         </View>
         <Pressable onPress={confirmDelete} style={styles.deleteBtn} hitSlop={10}>
-          <Ionicons name="trash-outline" size={16} color="#F87171" />
+          <Ionicons name="trash-outline" size={16} color="#B91C1C" />
         </Pressable>
       </View>
       <Text style={styles.annBody} numberOfLines={3}>{ann.body}</Text>
@@ -231,7 +231,7 @@ export default function AdminAnnouncements() {
       <View style={styles.summaryRow}>
         {[
           { label: "Total", value: announcements.length, color: Colors.blue },
-          { label: "Urgent", value: urgentCount, color: "#F87171" },
+          { label: "Urgent", value: urgentCount, color: "#B91C1C" },
           { label: "Total Views", value: `${Math.round(totalViews / 1000)}K`, color: Colors.green },
           { label: "Types", value: new Set(announcements.map(a => a.type)).size, color: Colors.cyan },
         ].map(s => (
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: Colors.bgCard, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   headerTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: Colors.textPrimary },
   headerSub: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textMuted },
-  fabBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#047857", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
+  fabBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#065F46", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
   fabText: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold" },
   summaryRow: { flexDirection: "row", marginHorizontal: 16, backgroundColor: Colors.bgCard, borderRadius: 14, borderWidth: 1, borderColor: Colors.border, marginBottom: 10 },
   summaryCard: { flex: 1, alignItems: "center", padding: 12 },
@@ -308,17 +308,17 @@ const styles = StyleSheet.create({
   annTitle: { color: "#fff", fontSize: 14, fontFamily: "Inter_600SemiBold", lineHeight: 20 },
   annDept: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_400Regular" },
   deleteBtn: { padding: 4 },
-  annBody: { color: "#9CA3AF", fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18, marginBottom: 10 },
+  annBody: { color: "#4B5563", fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18, marginBottom: 10 },
   annFooter: { flexDirection: "row", alignItems: "center", gap: 5, flexWrap: "wrap" },
   annMeta: { color: Colors.textMuted, fontSize: 10, fontFamily: "Inter_400Regular", marginRight: 6 },
   empty: { alignItems: "center", paddingVertical: 80, paddingHorizontal: 32, gap: 10 },
   emptyTitle: { color: Colors.textPrimary, fontSize: 16, fontFamily: "Inter_600SemiBold" },
   emptySub: { color: Colors.textMuted, fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
-  emptyBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#047857", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginTop: 8 },
+  emptyBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#065F46", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginTop: 8 },
   emptyBtnText: { color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" },
   // Post modal
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.8)", justifyContent: "flex-end" },
-  postCard: { backgroundColor: "#111827", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderColor: Colors.border, maxHeight: "90%" },
+  postCard: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderColor: Colors.border, maxHeight: "90%" },
   postHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
   postTitle: { color: "#fff", fontSize: 17, fontFamily: "Inter_700Bold", flex: 1 },
   closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.bg, alignItems: "center", justifyContent: "center" },
@@ -330,6 +330,6 @@ const styles = StyleSheet.create({
   priorityRow: { flexDirection: "row", gap: 8 },
   priChip: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: 10, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
   priChipText: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: Colors.textMuted },
-  postBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#047857", borderRadius: 14, padding: 15, marginTop: 20, marginBottom: 8 },
+  postBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#065F46", borderRadius: 14, padding: 15, marginTop: 20, marginBottom: 8 },
   postBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
 });

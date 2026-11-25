@@ -218,7 +218,7 @@ export default function RootLayout() {
                 <NotificationProvider>
                   <GestureHandlerRootView style={{ flex: 1 }}>
                     <KeyboardProvider>
-                      <StatusBar style="light" />
+                      <StatusBar style="dark" />
                       <RootLayoutNav />
                     </KeyboardProvider>
                   </GestureHandlerRootView>

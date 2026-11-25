@@ -28,7 +28,7 @@ function HealthBar({ score }: { score: number }) {
   }, [score]);
 
   const color =
-    score >= 70 ? "#34D399" : score >= 45 ? Colors.amber : Colors.red;
+    score >= 70 ? "#065F46" : score >= 45 ? Colors.amber : Colors.red;
 
   return (
     <View style={hb.track}>
@@ -71,13 +71,13 @@ function WardCard({ ward, rank }: { ward: any; rank: number }) {
 
   const color =
     ward.healthScore >= 70
-      ? "#34D399"
+      ? "#065F46"
       : ward.healthScore >= 45
       ? Colors.amber
       : Colors.red;
 
   const rankColors: Record<number, string> = {
-    1: "#FFD700",
+    1: "#854D0E",
     2: "#C0C0C0",
     3: "#CD7F32",
   };
@@ -124,7 +124,7 @@ function WardCard({ ward, rank }: { ward: any; rank: number }) {
         </View>
         <View style={styles.divider} />
         <View style={styles.wardStat}>
-          <Feather name="check-circle" size={12} color={"#34D399"} />
+          <Feather name="check-circle" size={12} color={"#065F46"} />
           <Text style={styles.wardStatValue}>{ward.resolvedComplaints}</Text>
           <Text style={styles.wardStatLabel}>Resolved</Text>
         </View>
@@ -168,14 +168,14 @@ function CivicMap({ wards }: { wards: any[] }) {
             const pos = positions[i % positions.length];
             const color =
               ward.healthScore >= 70
-                ? "#34D399"
+                ? "#065F46"
                 : ward.healthScore >= 45
                 ? Colors.amber
                 : Colors.red;
             return (
               <View
                 key={ward.id}
-                style={[map.wardDot, { left: pos.x as any, top: pos.y as any, backgroundColor: color + "40", borderColor: color }]}
+                style={[map.wardDot, { left: pos.x as any, top: pos.y as any, backgroundColor: "#FFFFFF", borderColor: color }]}
               >
                 <View style={[map.dotCenter, { backgroundColor: color }]} />
                 <Text style={[map.dotLabel, { color }]} numberOfLines={1}>
@@ -188,7 +188,7 @@ function CivicMap({ wards }: { wards: any[] }) {
       </View>
       <View style={map.legend}>
         {[
-          { label: "Healthy (70+)", color: "#34D399" },
+          { label: "Healthy (70+)", color: "#065F46" },
           { label: "Moderate (45-69)", color: Colors.amber },
           { label: "Critical (<45)", color: Colors.red },
         ].map((l) => (
@@ -242,7 +242,7 @@ export default function WardsScreen() {
 
   const HEALTH_FILTERS: { key: HealthFilter; label: string; color: string; count: number }[] = [
     { key: "all", label: "All Wards", color: Colors.textMuted, count: wards.length },
-    { key: "healthy", label: "Healthy 70+", color: "#34D399", count: healthy },
+    { key: "healthy", label: "Healthy 70+", color: "#065F46", count: healthy },
     { key: "moderate", label: "Moderate", color: Colors.amber, count: moderate },
     { key: "critical", label: "Critical", color: Colors.red, count: critical },
   ];
@@ -264,7 +264,7 @@ export default function WardsScreen() {
         </View>
         <View style={styles.avgBadge}>
           <Text style={styles.avgLabel}>Avg</Text>
-          <Text style={[styles.avgScore, { color: avgScore >= 70 ? "#34D399" : avgScore >= 45 ? Colors.amber : Colors.red }]}>{avgScore}</Text>
+          <Text style={[styles.avgScore, { color: avgScore >= 70 ? "#065F46" : avgScore >= 45 ? Colors.amber : Colors.red }]}>{avgScore}</Text>
         </View>
       </View>
 
@@ -328,7 +328,7 @@ export default function WardsScreen() {
         <View style={styles.summaryRow}>
           {[
             { label: "Avg Score", value: avgScore, icon: "activity", color: Colors.cyan },
-            { label: "Healthy", value: healthy, icon: "check-circle", color: "#34D399" },
+            { label: "Healthy", value: healthy, icon: "check-circle", color: "#065F46" },
             { label: "Moderate", value: moderate, icon: "alert-circle", color: Colors.amber },
             { label: "Critical", value: critical, icon: "alert-octagon", color: Colors.red },
           ].map((s) => (

@@ -18,21 +18,21 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#FF9933",
-        tabBarInactiveTintColor: "#9CA3AF",
+        tabBarActiveTintColor: "#C2410C",
+        tabBarInactiveTintColor: "#6B5A4C",
         tabBarStyle: {
-          backgroundColor: "#0A0F1C",
+          backgroundColor: "#FFFFFF",
           borderTopWidth: 1,
-          borderTopColor: "#1F2937",
+          borderTopColor: "#E7DCD0",
           elevation: 0,
           height: isWeb ? 84 : 64,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.3,
+          shadowOpacity: 0.08,
           shadowRadius: 16,
         },
         tabBarBackground: () => (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: "#0A0F1C" }]} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: "#FFFFFF" }]} />
         ),
         tabBarLabelStyle: {
           fontSize: 10,

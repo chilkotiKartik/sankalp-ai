@@ -24,19 +24,19 @@ interface AuditLog {
 }
 
 const ACTION_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string; label: string }> = {
-  complaint_created:   { icon: "document-text",   color: "#60A5FA", label: "Complaint Filed" },
-  complaint_resolved:  { icon: "checkmark-circle", color: "#34D399", label: "Complaint Resolved" },
-  complaint_rejected:  { icon: "close-circle",     color: "#F87171", label: "Complaint Rejected" },
-  complaint_escalated: { icon: "arrow-up-circle",  color: "#F59E0B", label: "SLA Escalated" },
-  sos_triggered:       { icon: "warning",          color: "#F87171", label: "SOS Triggered" },
-  sos_resolved:        { icon: "shield-checkmark", color: "#34D399", label: "SOS Resolved" },
-  user_registered:     { icon: "person-add",       color: "#A78BFA", label: "User Registered" },
-  rti_filed:           { icon: "mail",             color: "#06B6D4", label: "RTI Filed" },
-  rti_responded:       { icon: "mail-open",        color: "#34D399", label: "RTI Responded" },
-  poll_voted:          { icon: "checkmark-done",   color: "#F59E0B", label: "Poll Voted" },
-  petition_signed:     { icon: "pencil",           color: "#A78BFA", label: "Petition Signed" },
-  admin_login:         { icon: "log-in",           color: "#9CA3AF", label: "Admin Login" },
-  announcement_posted: { icon: "megaphone",        color: "#FF9933", label: "Announcement" },
+  complaint_created:   { icon: "document-text",   color: "#1D4ED8", label: "Complaint Filed" },
+  complaint_resolved:  { icon: "checkmark-circle", color: "#065F46", label: "Complaint Resolved" },
+  complaint_rejected:  { icon: "close-circle",     color: "#B91C1C", label: "Complaint Rejected" },
+  complaint_escalated: { icon: "arrow-up-circle",  color: "#92400E", label: "SLA Escalated" },
+  sos_triggered:       { icon: "warning",          color: "#B91C1C", label: "SOS Triggered" },
+  sos_resolved:        { icon: "shield-checkmark", color: "#065F46", label: "SOS Resolved" },
+  user_registered:     { icon: "person-add",       color: "#6D28D9", label: "User Registered" },
+  rti_filed:           { icon: "mail",             color: "#0E7490", label: "RTI Filed" },
+  rti_responded:       { icon: "mail-open",        color: "#065F46", label: "RTI Responded" },
+  poll_voted:          { icon: "checkmark-done",   color: "#92400E", label: "Poll Voted" },
+  petition_signed:     { icon: "pencil",           color: "#6D28D9", label: "Petition Signed" },
+  admin_login:         { icon: "log-in",           color: "#4B5563", label: "Admin Login" },
+  announcement_posted: { icon: "megaphone",        color: "#C2410C", label: "Announcement" },
 };
 
 function getActionMeta(action: string) {
@@ -87,7 +87,7 @@ export default function AuditScreen() {
 
   return (
     <View style={[cs.root, { paddingTop: insets.top }]}>
-      <LinearGradient colors={["#00080D", Colors.bg]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={["#F0F9FF", Colors.bg]} style={StyleSheet.absoluteFill} />
 
       <View style={cs.header}>
         <Pressable onPress={() => router.back()} style={cs.backBtn}>

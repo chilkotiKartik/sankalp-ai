@@ -14,21 +14,21 @@ import { getSecure } from "@/lib/secure-session";
 import { stateName, allDistricts } from "@/constants/districts";
 
 const QUICK_DIAL = [
-  { number: "112", label: "All Emergency", icon: "🆘", color: "#F87171", bg: "#7F1D1D" },
-  { number: "100", label: "Police", icon: "🚔", color: "#60A5FA", bg: "#1E3A5F" },
-  { number: "108", label: "Ambulance", icon: "🚑", color: "#10B981", bg: "#064E3B" },
-  { number: "101", label: "Fire Brigade", icon: "🔥", color: "#F59E0B", bg: "#78350F" },
-  { number: "1070", label: "Disaster", icon: "🆘", color: "#FCA5A5", bg: "#7F1D1D" },
-  { number: "1091", label: "Women Help", icon: "🛡️", color: "#C4B5FD", bg: "#4C1D95" },
+  { number: "112", label: "All Emergency", icon: "🆘", color: "#B91C1C", bg: "#FEE2E2" },
+  { number: "100", label: "Police", icon: "🚔", color: "#1D4ED8", bg: "#DBEAFE" },
+  { number: "108", label: "Ambulance", icon: "🚑", color: "#047857", bg: "#D1FAE5" },
+  { number: "101", label: "Fire Brigade", icon: "🔥", color: "#B45309", bg: "#FEF3C7" },
+  { number: "1070", label: "Disaster", icon: "🆘", color: "#B91C1C", bg: "#FEE2E2" },
+  { number: "1091", label: "Women Help", icon: "🛡️", color: "#6D28D9", bg: "#EDE9FE" },
 ];
 
 const TYPE_FILTERS = [
-  { key: "all",       label: "All",       icon: "apps",           color: "#D1D5DB" },
-  { key: "hospital",  label: "Hospitals", icon: "medical",        color: "#F87171" },
-  { key: "fire",      label: "Fire",      icon: "flame",          color: "#F59E0B" },
-  { key: "ambulance", label: "Ambulance", icon: "car",            color: "#10B981" },
-  { key: "police",    label: "Police",    icon: "shield",         color: "#60A5FA" },
-  { key: "disaster",  label: "Disaster",  icon: "warning",        color: "#F87171" },
+  { key: "all",       label: "All",       icon: "apps",           color: "#374151" },
+  { key: "hospital",  label: "Hospitals", icon: "medical",        color: "#DC2626" },
+  { key: "fire",      label: "Fire",      icon: "flame",          color: "#B45309" },
+  { key: "ambulance", label: "Ambulance", icon: "car",            color: "#047857" },
+  { key: "police",    label: "Police",    icon: "shield",         color: "#1D4ED8" },
+  { key: "disaster",  label: "Disaster",  icon: "warning",        color: "#DC2626" },
 ];
 
 const TYPE_COLORS: Record<string, string> = {
@@ -95,7 +95,7 @@ export default function EmergencyScreen() {
           <View style={styles.quickGrid}>
             {QUICK_DIAL.map(qd => (
               <Pressable key={qd.number} onPress={() => call(qd.number)}
-                style={[styles.quickCard, { backgroundColor: qd.bg + "DD", borderColor: qd.color + "44" }]}>
+                style={[styles.quickCard, { backgroundColor: qd.bg, borderColor: qd.color + "44" }]}>
                 <Text style={styles.quickIcon}>{qd.icon}</Text>
                 <Text style={[styles.quickNum, { color: qd.color }]}>{qd.number}</Text>
                 <Text style={styles.quickLabel}>{qd.label}</Text>
@@ -106,9 +106,9 @@ export default function EmergencyScreen() {
 
         {/* IMPORTANT INFO */}
         <View style={styles.infoBanner}>
-          <Ionicons name="information-circle" size={16} color="#93C5FD" />
+          <Ionicons name="information-circle" size={16} color="#1D4ED8" />
           <Text style={styles.infoText}>
-            <Text style={{ color: "#93C5FD", fontFamily: "Inter_700Bold" }}>112</Text> is the unified emergency number for all services in {stateName()}.
+            <Text style={{ color: "#1D4ED8", fontFamily: "Inter_700Bold" }}>112</Text> is the unified emergency number for all services in {stateName()}.
           </Text>
         </View>
 
@@ -118,12 +118,12 @@ export default function EmergencyScreen() {
 
           {/* Search */}
           <View style={styles.searchWrap}>
-            <Ionicons name="search-outline" size={16} color="#9CA3AF" />
+            <Ionicons name="search-outline" size={16} color="#4B5563" />
             <TextInput style={styles.searchInput} placeholder="Search hospitals, fire stations…"
-              placeholderTextColor="#9CA3AF" value={search} onChangeText={setSearch} />
+              placeholderTextColor="#4B5563" value={search} onChangeText={setSearch} />
             {search.length > 0 && (
               <Pressable onPress={() => setSearch("")}>
-                <Ionicons name="close-circle" size={16} color="#9CA3AF" />
+                <Ionicons name="close-circle" size={16} color="#4B5563" />
               </Pressable>
             )}
           </View>
@@ -133,14 +133,14 @@ export default function EmergencyScreen() {
             {TYPE_FILTERS.map(f => (
               <Pressable key={f.key} onPress={() => setTypeFilter(f.key)}
                 style={[styles.filterChip, typeFilter === f.key && { backgroundColor: f.color + "22", borderColor: f.color }]}>
-                <Ionicons name={f.icon as any} size={13} color={typeFilter === f.key ? f.color : "#9CA3AF"} />
+                <Ionicons name={f.icon as any} size={13} color={typeFilter === f.key ? f.color: "#4B5563"} />
                 <Text style={[styles.filterChipText, typeFilter === f.key && { color: f.color }]}>{f.label}</Text>
               </Pressable>
             ))}
           </ScrollView>
 
           {loading ? (
-            <ActivityIndicator color="#F87171" style={{ marginTop: 32 }} />
+            <ActivityIndicator color="#DC2626" style={{ marginTop: 32 }} />
           ) : (
             <View style={{ gap: 10, marginTop: 10 }}>
               {filtered.length === 0 ? (
@@ -170,7 +170,7 @@ export default function EmergencyScreen() {
                     </View>
                     <View style={styles.serviceActions}>
                       <Pressable onPress={() => call(s.phone)} style={styles.callBtn}>
-                        <Ionicons name="call" size={14} color="#10B981" />
+                        <Ionicons name="call" size={14} color="#047857" />
                       </Pressable>
                     </View>
                   </Pressable>
@@ -203,12 +203,12 @@ export default function EmergencyScreen() {
 
               <View style={styles.modalBody}>
                 <View style={styles.modalRow}>
-                  <Ionicons name="location-outline" size={16} color="#9CA3AF" />
+                  <Ionicons name="location-outline" size={16} color="#4B5563" />
                   <Text style={styles.modalRowText}>{selected.address}</Text>
                 </View>
                 {selected.beds && (
                   <View style={styles.modalRow}>
-                    <Ionicons name="bed-outline" size={16} color="#9CA3AF" />
+                    <Ionicons name="bed-outline" size={16} color="#4B5563" />
                     <Text style={styles.modalRowText}>{selected.beds} beds capacity</Text>
                   </View>
                 )}
@@ -222,7 +222,7 @@ export default function EmergencyScreen() {
                   </View>
                 )}
                 <View style={styles.modalRow}>
-                  <Ionicons name="navigate-outline" size={16} color="#9CA3AF" />
+                  <Ionicons name="navigate-outline" size={16} color="#4B5563" />
                   <Text style={styles.modalRowText}>
                     {selected.geo.lat.toFixed(4)}°N, {selected.geo.lng.toFixed(4)}°E
                   </Text>
@@ -236,14 +236,14 @@ export default function EmergencyScreen() {
                   {selected.phone2 && (
                     <Pressable style={[styles.modalCallBtn, { flex: 1, backgroundColor: "#1E3A5F" }]}
                       onPress={() => call(selected.phone2!)}>
-                      <Ionicons name="call-outline" size={18} color="#93C5FD" />
-                      <Text style={[styles.modalCallText, { color: "#93C5FD" }]}>{selected.phone2}</Text>
+                      <Ionicons name="call-outline" size={18} color="#1D4ED8" />
+                      <Text style={[styles.modalCallText, { color: "#1D4ED8" }]}>{selected.phone2}</Text>
                     </Pressable>
                   )}
                 </View>
                 <Pressable style={styles.mapsBtn}
                   onPress={() => openInMaps(selected.geo.lat, selected.geo.lng)}>
-                  <Ionicons name="map-outline" size={16} color="#FF9933" />
+                  <Ionicons name="map-outline" size={16} color="#C2410C" />
                   <Text style={styles.mapsBtnText}>Open in Maps</Text>
                 </Pressable>
               </View>
@@ -256,12 +256,12 @@ export default function EmergencyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0A0F1C" },
+  container: { flex: 1, backgroundColor: "#F7F3EE" },
   header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
   headerTitle: { color: "#fff", fontSize: 20, fontFamily: "Inter_700Bold", marginBottom: 4 },
   headerSub: { color: "rgba(255,255,255,0.7)", fontSize: 12, fontFamily: "Inter_400Regular" },
   sectionWrap: { paddingHorizontal: 16, paddingTop: 18 },
-  sectionLabel: { color: "#D1D5DB", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1.2, marginBottom: 12, textTransform: "uppercase" },
+  sectionLabel: { color: "#374151", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1.2, marginBottom: 12, textTransform: "uppercase" },
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   quickCard: {
     width: "30.5%", borderRadius: 14, padding: 14, alignItems: "center", gap: 4,
@@ -269,39 +269,39 @@ const styles = StyleSheet.create({
   },
   quickIcon: { fontSize: 24 },
   quickNum: { fontSize: 20, fontFamily: "Inter_700Bold", lineHeight: 24 },
-  quickLabel: { color: "#D1D5DB", fontSize: 10, fontFamily: "Inter_500Medium", textAlign: "center" },
+  quickLabel: { color: "#374151", fontSize: 10, fontFamily: "Inter_500Medium", textAlign: "center" },
   infoBanner: {
     flexDirection: "row", alignItems: "center", gap: 10,
     marginHorizontal: 16, marginTop: 14,
-    backgroundColor: "#1E3A5F", borderRadius: 12, padding: 12,
+    backgroundColor: "#DBEAFE", borderRadius: 12, padding: 12,
     borderWidth: 1, borderColor: "#1E40AF30",
   },
-  infoText: { flex: 1, color: "#93C5FD", fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
+  infoText: { flex: 1, color: "#1D4ED8", fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
   searchWrap: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: "#1F2937", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: "#374151", marginBottom: 12,
+    backgroundColor: "#F3ECE4", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1, borderColor: "#D8C8B6", marginBottom: 12,
   },
-  searchInput: { flex: 1, color: "#F9FAFB", fontSize: 14, fontFamily: "Inter_400Regular" },
+  searchInput: { flex: 1, color: "#1F2937", fontSize: 14, fontFamily: "Inter_400Regular" },
   filterRow: { marginBottom: 4 },
   filterChip: {
     flexDirection: "row", alignItems: "center", gap: 4,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 14,
-    borderWidth: 1, borderColor: "#374151", backgroundColor: "#1F2937", marginRight: 6,
+    borderWidth: 1, borderColor: "#D8C8B6", backgroundColor: "#F3ECE4", marginRight: 6,
   },
-  filterChipText: { color: "#D1D5DB", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  filterChipText: { color: "#374151", fontSize: 11, fontFamily: "Inter_600SemiBold" },
   emptyWrap: { alignItems: "center", paddingVertical: 40, gap: 8 },
-  emptyText: { color: "#D1D5DB", fontSize: 14, fontFamily: "Inter_500Medium" },
+  emptyText: { color: "#374151", fontSize: 14, fontFamily: "Inter_500Medium" },
   serviceCard: {
     flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: "#111827", borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: "#1F2937",
+    backgroundColor: "#FFFFFF", borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: "#E7DCD0",
   },
   serviceIcon: { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  serviceName: { color: "#F9FAFB", fontSize: 14, fontFamily: "Inter_600SemiBold", flex: 1 },
-  serviceDistrict: { color: "#D1D5DB", fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 2 },
-  serviceDetail: { color: "#D1D5DB", fontSize: 11, fontFamily: "Inter_400Regular" },
-  serviceAddress: { color: "#9CA3AF", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  serviceName: { color: "#1F2937", fontSize: 14, fontFamily: "Inter_600SemiBold", flex: 1 },
+  serviceDistrict: { color: "#374151", fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 2 },
+  serviceDetail: { color: "#374151", fontSize: 11, fontFamily: "Inter_400Regular" },
+  serviceAddress: { color: "#4B5563", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   serviceActions: { flexShrink: 0 },
   callBtn: {
     width: 36, height: 36, borderRadius: 18,
@@ -309,20 +309,20 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   availBadge: { backgroundColor: "#064E3B", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  availText: { color: "#10B981", fontSize: 8, fontFamily: "Inter_700Bold" },
+  availText: { color: "#047857", fontSize: 8, fontFamily: "Inter_700Bold" },
   unavailBadge: { backgroundColor: "#450A0A", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  unavailText: { color: "#F87171", fontSize: 8, fontFamily: "Inter_700Bold" },
+  unavailText: { color: "#DC2626", fontSize: 8, fontFamily: "Inter_700Bold" },
   modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.75)" },
-  modalCard: { backgroundColor: "#111827", borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden" },
-  modalHandle: { width: 40, height: 4, backgroundColor: "#374151", borderRadius: 2, alignSelf: "center", marginTop: 10, marginBottom: 2 },
+  modalCard: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden" },
+  modalHandle: { width: 40, height: 4, backgroundColor: "#E7DCD0", borderRadius: 2, alignSelf: "center", marginTop: 10, marginBottom: 2 },
   modalHeader: { flexDirection: "row", alignItems: "center", gap: 14, padding: 20 },
   modalIcon: { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  modalType: { color: "#D1D5DB", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 },
-  modalName: { color: "#F9FAFB", fontSize: 16, fontFamily: "Inter_700Bold", lineHeight: 22 },
-  modalDistrict: { color: "#D1D5DB", fontSize: 12, fontFamily: "Inter_400Regular" },
+  modalType: { color: "#374151", fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 },
+  modalName: { color: "#1F2937", fontSize: 16, fontFamily: "Inter_700Bold", lineHeight: 22 },
+  modalDistrict: { color: "#374151", fontSize: 12, fontFamily: "Inter_400Regular" },
   modalBody: { padding: 20, gap: 12 },
   modalRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  modalRowText: { flex: 1, color: "#D1D5DB", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  modalRowText: { flex: 1, color: "#374151", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
   modalBtns: { flexDirection: "row", gap: 10, marginTop: 8 },
   modalCallBtn: {
     flexDirection: "row", alignItems: "center", gap: 8,
@@ -330,11 +330,11 @@ const styles = StyleSheet.create({
     paddingVertical: 13, paddingHorizontal: 16, justifyContent: "center",
     borderWidth: 1, borderColor: "#10B98130",
   },
-  modalCallText: { color: "#10B981", fontSize: 14, fontFamily: "Inter_700Bold" },
+  modalCallText: { color: "#047857", fontSize: 14, fontFamily: "Inter_700Bold" },
   mapsBtn: {
     flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center",
-    backgroundColor: "#1F2937", borderRadius: 12, paddingVertical: 11,
-    borderWidth: 1, borderColor: "#374151",
+    backgroundColor: "#F3ECE4", borderRadius: 12, paddingVertical: 11,
+    borderWidth: 1, borderColor: "#D8C8B6",
   },
-  mapsBtnText: { color: "#FF9933", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  mapsBtnText: { color: "#C2410C", fontSize: 13, fontFamily: "Inter_600SemiBold" },
 });

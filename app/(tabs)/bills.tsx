@@ -45,7 +45,7 @@ function MiniBar({ history, color }: { history: number[]; color: string }) {
   );
 }
 
-function AnimatedSpinner({ color="#60A5FA" }: { color?: string }) {
+function AnimatedSpinner({ color="#1D4ED8" }: { color?: string }) {
   const spin = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(Animated.timing(spin,{toValue:1,duration:900,useNativeDriver:false})).start();
@@ -66,7 +66,7 @@ function SuccessCheckmark() {
   },[]);
   return (
     <Animated.View style={{transform:[{scale}]}}>
-      <Ionicons name="checkmark-circle" size={72} color="#22C55E"/>
+      <Ionicons name="checkmark-circle" size={72} color="#15803D"/>
     </Animated.View>
   );
 }
@@ -140,8 +140,8 @@ function BillCard({ bill, onPress, index=0 }: { bill:Bill; onPress:()=>void; ind
             </View>
           ) : (
             <View style={{flexDirection:"row",alignItems:"center",justifyContent:"center",gap:6,backgroundColor:"#22C55E22",borderRadius:12,padding:11,marginTop:14}}>
-              <Ionicons name="checkmark-circle" size={14} color="#22C55E"/>
-              <Text style={{color:"#22C55E",fontSize:12,fontFamily:"Inter_700Bold"}}>Paid · {new Date(bill.transactions[0]?.date||bill.dueDate).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}</Text>
+              <Ionicons name="checkmark-circle" size={14} color="#15803D"/>
+              <Text style={{color: "#15803D",fontSize:12,fontFamily:"Inter_700Bold"}}>Paid · {new Date(bill.transactions[0]?.date||bill.dueDate).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}</Text>
             </View>
           )}
         </LinearGradient>
@@ -261,7 +261,7 @@ export default function BillsScreen() {
           </View>
           <Pressable onPress={onRefresh} style={s.refreshBtn}>
             <Ionicons name="refresh" size={16} color={Colors.saffron}/>
-            <Text style={{color:Colors.saffron,fontSize:11,fontFamily:"Inter_600SemiBold"}}>Live</Text>
+            <Text style={{color:Colors.saffronDark,fontSize:11,fontFamily:"Inter_600SemiBold"}}>Live</Text>
           </Pressable>
         </View>
       </Animated.View>
@@ -276,7 +276,7 @@ export default function BillsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.saffron}/>}>
           <View style={s.portalCard}>
             <View style={{flexDirection:"row",alignItems:"center",gap:10,marginBottom:6}}>
-              <Ionicons name="flash" size={20} color="#F59E0B"/>
+              <Ionicons name="flash" size={20} color="#B45309"/>
               <Text style={s.portalTitle}>Pay electricity bills — official portals</Text>
             </View>
             <Text style={s.portalText}>Pay directly on your power company&apos;s own website. SANKALP only opens the official site; your money never passes through SANKALP.</Text>
@@ -286,7 +286,7 @@ export default function BillsScreen() {
                   <Text style={s.portalName}>{p.name}</Text>
                   <Text style={s.portalUrl}>{p.url.replace(/^https:\/\//, "").replace(/\/$/, "")}</Text>
                 </View>
-                <Ionicons name="open-outline" size={18} color="#60A5FA"/>
+                <Ionicons name="open-outline" size={18} color="#1D4ED8"/>
               </Pressable>
             )) : (
               <Text style={[s.portalText,{marginTop:8}]}>We have not yet verified your state&apos;s official portal. Use Bharat BillPay below — it covers every state.</Text>
@@ -295,7 +295,7 @@ export default function BillsScreen() {
           {bbps ? (
             <View style={s.portalCard}>
               <View style={{flexDirection:"row",alignItems:"center",gap:10,marginBottom:6}}>
-                <Ionicons name="phone-portrait-outline" size={20} color="#22C55E"/>
+                <Ionicons name="phone-portrait-outline" size={20} color="#15803D"/>
                 <Text style={s.portalTitle}>Any bill, any state — Bharat BillPay</Text>
               </View>
               <Text style={s.portalText}>{bbps}</Text>
@@ -312,23 +312,23 @@ export default function BillsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.saffron}/>}>
 
           {/* Summary Card */}
-          <LinearGradient colors={["#1E3A5F","#0F172A","#0A0F1C"]} style={s.summaryCard}>
+          <LinearGradient colors={["#1E40AF","#1D4ED8","#2563EB"]} style={s.summaryCard}>
             <View style={{flexDirection:"row",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
               <View>
                 <Text style={{color:Colors.textMuted,fontSize:11,fontFamily:"Inter_500Medium",marginBottom:4}}>TOTAL OUTSTANDING</Text>
                 <Text style={{color:"#fff",fontSize:34,fontFamily:"Inter_700Bold",lineHeight:38}}>Rs. {unpaidTotal.toLocaleString("en-IN")}</Text>
-                {overdueCount>0&&<Text style={{color:"#FCA5A5",fontSize:11,fontFamily:"Inter_500Medium",marginTop:4}}>⚠ {overdueCount} overdue — penalty may apply</Text>}
+                {overdueCount>0&&<Text style={{color: "#B91C1C",fontSize:11,fontFamily:"Inter_500Medium",marginTop:4}}>⚠ {overdueCount} overdue — penalty may apply</Text>}
               </View>
               <View style={{width:52,height:52,borderRadius:16,backgroundColor:"#3B82F622",alignItems:"center",justifyContent:"center"}}>
-                <Ionicons name="receipt-outline" size={28} color="#60A5FA"/>
+                <Ionicons name="receipt-outline" size={28} color="#1D4ED8"/>
               </View>
             </View>
             <View style={{flexDirection:"row",borderTopWidth:1,borderTopColor:"rgba(255,255,255,0.1)",paddingTop:14}}>
               {[
-                {label:"Paid",val:paidCount,color:"#22C55E"},
-                {label:"Due",val:dueCount,color:"#F59E0B"},
-                {label:"Overdue",val:overdueCount,color:"#F87171"},
-                {label:"Total",val:bills.length,color:"#60A5FA"},
+                {label:"Paid",val:paidCount,color: "#15803D"},
+                {label:"Due",val:dueCount,color: "#B45309"},
+                {label:"Overdue",val:overdueCount,color: "#DC2626"},
+                {label:"Total",val:bills.length,color: "#1D4ED8"},
               ].map((item,i,arr)=>(
                 <React.Fragment key={item.label}>
                   <View style={{flex:1,alignItems:"center"}}>
@@ -347,18 +347,18 @@ export default function BillsScreen() {
               <LinearGradient colors={["#450A0A","#7F1D1D"]} style={{padding:14}}>
                 <View style={{flexDirection:"row",alignItems:"center",gap:8,marginBottom:8}}>
                   <View style={{width:7,height:7,borderRadius:3.5,backgroundColor:"#DC2626"}}/>
-                  <Text style={{color:"#FCA5A5",fontSize:10,fontFamily:"Inter_700Bold",letterSpacing:1}}>LIVE DEPT ALERT</Text>
-                  <Text style={{color:"#9CA3AF",fontSize:10,fontFamily:"Inter_400Regular",marginLeft:"auto" as any}}>{new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}</Text>
+                  <Text style={{color: "#B91C1C",fontSize:10,fontFamily:"Inter_700Bold",letterSpacing:1}}>LIVE DEPT ALERT</Text>
+                  <Text style={{color: "#4B5563",fontSize:10,fontFamily:"Inter_400Regular",marginLeft:"auto" as any}}>{new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}</Text>
                 </View>
                 <Text style={{color:"#fff",fontSize:13,fontFamily:"Inter_600SemiBold",marginBottom:4}}>⚠️ Overdue Bills Flagged by Department</Text>
-                <Text style={{color:"#FCA5A5",fontSize:12,fontFamily:"Inter_400Regular",lineHeight:18}}>
+                <Text style={{color: "#B91C1C",fontSize:12,fontFamily:"Inter_400Regular",lineHeight:18}}>
                   {overdueCount} bill{overdueCount>1?"s":""}  overdue. Continued non-payment may result in service disconnection.
                 </Text>
                 <View style={{flexDirection:"row",gap:8,marginTop:10,flexWrap:"wrap"}}>
                   {bills.filter(b=>b.status==="overdue").map(b=>(
                     <View key={b.id} style={{flexDirection:"row",alignItems:"center",gap:5,backgroundColor:"#EF444422",borderRadius:8,paddingHorizontal:10,paddingVertical:5}}>
-                      <Ionicons name="alert-circle" size={11} color="#F87171"/>
-                      <Text style={{color:"#F87171",fontSize:10,fontFamily:"Inter_700Bold"}}>{b.subtitle}</Text>
+                      <Ionicons name="alert-circle" size={11} color="#DC2626"/>
+                      <Text style={{color: "#DC2626",fontSize:10,fontFamily:"Inter_700Bold"}}>{b.subtitle}</Text>
                     </View>
                   ))}
                 </View>
@@ -385,7 +385,7 @@ export default function BillsScreen() {
                   <Text style={s.txSub}>{new Date(tx.date).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})} · {tx.method}</Text>
                 </View>
                 <View style={{alignItems:"flex-end"}}>
-                  <Text style={{color:"#22C55E",fontSize:13,fontFamily:"Inter_700Bold"}}>Rs. {tx.amount.toLocaleString("en-IN")}</Text>
+                  <Text style={{color: "#15803D",fontSize:13,fontFamily:"Inter_700Bold"}}>Rs. {tx.amount.toLocaleString("en-IN")}</Text>
                   <Text style={s.txRef}>{tx.ref.slice(-10)}</Text>
                 </View>
               </View>
@@ -499,9 +499,9 @@ export default function BillsScreen() {
                     ) : selectedBill.transactions.map((tx,i)=>(
                       <View key={i} style={[{padding:12,borderRadius:12,backgroundColor:Colors.bgCard,marginBottom:8}]}>
                         <View style={{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                          <Text style={{color:"#22C55E",fontSize:13,fontFamily:"Inter_700Bold"}}>Rs. {tx.amount.toLocaleString("en-IN")}</Text>
+                          <Text style={{color: "#15803D",fontSize:13,fontFamily:"Inter_700Bold"}}>Rs. {tx.amount.toLocaleString("en-IN")}</Text>
                           <View style={{backgroundColor:"#22C55E22",borderRadius:6,paddingHorizontal:8,paddingVertical:2}}>
-                            <Text style={{color:"#22C55E",fontSize:10,fontFamily:"Inter_700Bold"}}>✓ SUCCESS</Text>
+                            <Text style={{color: "#15803D",fontSize:10,fontFamily:"Inter_700Bold"}}>✓ SUCCESS</Text>
                           </View>
                         </View>
                         <Text style={{color:Colors.textMuted,fontSize:11}}>{new Date(tx.date).toLocaleDateString("en-IN",{day:"2-digit",month:"long",year:"numeric"})} · {tx.method}</Text>
@@ -540,8 +540,8 @@ export default function BillsScreen() {
                     )}
 
                     <View style={{flexDirection:"row",alignItems:"center",gap:6,backgroundColor:"#22C55E11",borderRadius:10,padding:10,marginBottom:16}}>
-                      <Ionicons name="shield-checkmark" size={14} color="#22C55E"/>
-                      <Text style={{flex:1,color:"#22C55E",fontSize:11,fontFamily:"Inter_500Medium"}}>256-bit encrypted · RBI compliant · {stateName()} e-Pay Gateway</Text>
+                      <Ionicons name="shield-checkmark" size={14} color="#15803D"/>
+                      <Text style={{flex:1,color: "#15803D",fontSize:11,fontFamily:"Inter_500Medium"}}>256-bit encrypted · RBI compliant · {stateName()} e-Pay Gateway</Text>
                     </View>
 
                     <View style={{flexDirection:"row",gap:10}}>
@@ -567,13 +567,13 @@ export default function BillsScreen() {
 
             {payStep==="processing"&&(
               <View style={{alignItems:"center",padding:40,gap:20}}>
-                <AnimatedSpinner color="#60A5FA"/>
-                <Text style={{color:"#fff",fontSize:17,fontFamily:"Inter_700Bold"}}>Processing Payment</Text>
+                <AnimatedSpinner color="#1D4ED8"/>
+                <Text style={{color:Colors.textPrimary,fontSize:17,fontFamily:"Inter_700Bold"}}>Processing Payment</Text>
                 <Text style={{color:Colors.textMuted,fontSize:13,textAlign:"center"}}>{`Connecting to ${stateName()} e-Pay Gateway…`}</Text>
                 <View style={{flexDirection:"row",gap:8,marginTop:4}}>
                   {["Secure","Encrypted","RBI Approved"].map(t=>(
                     <View key={t} style={{backgroundColor:"#22C55E22",borderRadius:8,paddingHorizontal:10,paddingVertical:4}}>
-                      <Text style={{color:"#22C55E",fontSize:10,fontFamily:"Inter_600SemiBold"}}>{t}</Text>
+                      <Text style={{color: "#15803D",fontSize:10,fontFamily:"Inter_600SemiBold"}}>{t}</Text>
                     </View>
                   ))}
                 </View>
@@ -583,21 +583,21 @@ export default function BillsScreen() {
             {payStep==="success"&&selectedBill&&(
               <View style={{alignItems:"center",padding:32,gap:14}}>
                 <SuccessCheckmark/>
-                <Text style={{color:"#fff",fontSize:20,fontFamily:"Inter_700Bold"}}>Payment Successful!</Text>
+                <Text style={{color:Colors.textPrimary,fontSize:20,fontFamily:"Inter_700Bold"}}>Payment Successful!</Text>
                 <Text style={{color:Colors.textMuted,fontSize:13}}>{selectedBill.title}</Text>
-                <Text style={{color:"#22C55E",fontSize:30,fontFamily:"Inter_700Bold"}}>Rs. {selectedBill.amount.toLocaleString("en-IN")}</Text>
+                <Text style={{color: "#15803D",fontSize:30,fontFamily:"Inter_700Bold"}}>Rs. {selectedBill.amount.toLocaleString("en-IN")}</Text>
                 <View style={{backgroundColor:"#1c2128",borderRadius:12,padding:14,width:"100%",gap:6}}>
                   <View style={{flexDirection:"row",justifyContent:"space-between"}}>
                     <Text style={{color:Colors.textMuted,fontSize:12}}>Reference No.</Text>
-                    <Text style={{color:"#fff",fontSize:12,fontFamily:"Inter_700Bold"}}>{payRef}</Text>
+                    <Text style={{color:Colors.textPrimary,fontSize:12,fontFamily:"Inter_700Bold"}}>{payRef}</Text>
                   </View>
                   <View style={{flexDirection:"row",justifyContent:"space-between"}}>
                     <Text style={{color:Colors.textMuted,fontSize:12}}>Payment Method</Text>
-                    <Text style={{color:"#fff",fontSize:12,fontFamily:"Inter_500Medium"}}>{PAYMENT_METHODS.find(m=>m.key===payMethod)?.label}</Text>
+                    <Text style={{color:Colors.textPrimary,fontSize:12,fontFamily:"Inter_500Medium"}}>{PAYMENT_METHODS.find(m=>m.key===payMethod)?.label}</Text>
                   </View>
                   <View style={{flexDirection:"row",justifyContent:"space-between"}}>
                     <Text style={{color:Colors.textMuted,fontSize:12}}>Date & Time</Text>
-                    <Text style={{color:"#fff",fontSize:12,fontFamily:"Inter_500Medium"}}>{new Date().toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</Text>
+                    <Text style={{color:Colors.textPrimary,fontSize:12,fontFamily:"Inter_500Medium"}}>{new Date().toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</Text>
                   </View>
                 </View>
                 <Pressable onPress={closeModal} style={[s.confirmBtn,{backgroundColor:"#22C55E",width:"100%"}]}>
@@ -614,15 +614,15 @@ export default function BillsScreen() {
 }
 
 const s = StyleSheet.create({
-  portalCard: { marginHorizontal: 16, marginTop: 14, borderRadius: 16, padding: 16, backgroundColor: "#0F172A", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
-  portalTitle: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold", flexShrink: 1 },
-  portalText: { color: "#CBD5E1", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
+  portalCard: { marginHorizontal: 16, marginTop: 14, borderRadius: 16, padding: 16, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
+  portalTitle: { color: Colors.textPrimary, fontSize: 16, fontFamily: "Inter_700Bold", flexShrink: 1 },
+  portalText: { color: "#374151", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
   portalRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)", marginTop: 6 },
-  portalName: { color: "#F1F5F9", fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  portalUrl: { color: "#93C5FD", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  portalName: { color: "#1F2937", fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  portalUrl: { color: "#1D4ED8", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
   container:{flex:1,backgroundColor:Colors.bg},
   header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",paddingHorizontal:20,paddingTop:10,paddingBottom:14},
-  headerTitle:{color:"#fff",fontSize:22,fontFamily:"Inter_700Bold"},
+  headerTitle:{color:Colors.textPrimary,fontSize:22,fontFamily:"Inter_700Bold"},
   headerSub:{color:Colors.textMuted,fontSize:12,fontFamily:"Inter_400Regular",marginTop:2},
   refreshBtn:{flexDirection:"row",alignItems:"center",gap:5,backgroundColor:Colors.saffron+"18",borderRadius:12,paddingHorizontal:12,paddingVertical:6,borderWidth:1,borderColor:Colors.saffron+"44"},
   summaryCard:{marginHorizontal:16,marginBottom:16,borderRadius:20,padding:20,borderWidth:1,borderColor:"#1E3A5F"},
@@ -642,7 +642,7 @@ const s = StyleSheet.create({
   infoBox:{flexDirection:"row",alignItems:"flex-start",gap:8,marginHorizontal:16,marginBottom:16,backgroundColor:Colors.bgCard,borderRadius:12,padding:12,borderWidth:1,borderColor:Colors.border},
   infoText:{flex:1,color:Colors.textMuted,fontSize:11,fontFamily:"Inter_400Regular"},
   overlay:{flex:1,backgroundColor:"rgba(0,0,0,0.7)",justifyContent:"flex-end"},
-  modalCard:{backgroundColor:"#0d1117",borderTopLeftRadius:24,borderTopRightRadius:24,padding:20,maxHeight:"92%",borderTopWidth:1,borderColor:"#30363d"},
+  modalCard:{backgroundColor: "#F7F3EE",borderTopLeftRadius:24,borderTopRightRadius:24,padding:20,maxHeight:"92%",borderTopWidth:1,borderColor: "#E7DCD0"},
   infoRow:{backgroundColor:Colors.bgCard,borderRadius:0,flexDirection:"row",justifyContent:"space-between",padding:12},
   infoRowLabel:{color:Colors.textMuted,fontSize:12,fontFamily:"Inter_400Regular"},
   cancelBtn:{flex:1,backgroundColor:Colors.bgCard,borderRadius:14,padding:14,alignItems:"center",borderWidth:1,borderColor:Colors.border},

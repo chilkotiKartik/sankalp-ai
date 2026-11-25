@@ -60,11 +60,11 @@ import type { GeoPoint } from "@/context/AppContext";
 
 const SOS_CATS = [
   { key: "gas_leak",        label: "Gas Leak",     icon: "🔴", color: "#F59E0B" },
-  { key: "water_burst",     label: "Water Burst",  icon: "💧", color: "#60A5FA" },
-  { key: "electric_hazard", label: "Electric",     icon: "⚡", color: "#F87171" },
-  { key: "fire_risk",       label: "Fire",         icon: "🔥", color: "#F87171" },
+  { key: "water_burst",     label: "Water Burst",  icon: "💧", color: "#1D4ED8" },
+  { key: "electric_hazard", label: "Electric",     icon: "⚡", color: "#DC2626" },
+  { key: "fire_risk",       label: "Fire",         icon: "🔥", color: "#DC2626" },
   { key: "road_accident",   label: "Accident",     icon: "🚗", color: "#F59E0B" },
-  { key: "women_safety",    label: "Women Safety", icon: "🛡️", color: "#A78BFA" },
+  { key: "women_safety",    label: "Women Safety", icon: "🛡️", color: "#6D28D9" },
   { key: "medical",         label: "Medical",      icon: "🏥", color: "#22C55E" },
   { key: "infrastructure",  label: "Structure",    icon: "🏗️", color: "#9CA3AF" },
   { key: "disaster",        label: "Disaster",     icon: "🌊", color: "#DC2626" },
@@ -958,7 +958,7 @@ function SOSScreenInner() {
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => { if (!forestSending) setShowForestModal(false); }} />
           <View style={[s.sheet, { maxHeight: "58%" }]}>
             <View style={s.sheetHandle} />
-            <LinearGradient colors={["#1A0800", "#431800", "#7C2D12"]} style={s.sheetHead}
+            <LinearGradient colors={["#9A3412", "#C2410C", "#EA580C"]} style={s.sheetHead}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🔥</Text></View>
               <View style={{ flex: 1 }}>
@@ -1014,7 +1014,7 @@ function SOSScreenInner() {
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => { if (!cprSubmitting) { setShowCPRForm(false); setCprSent(false); setCprReason(""); }}} />
           <View style={[s.sheet, { maxHeight: "55%" }]}>
             <View style={s.sheetHandle} />
-            <LinearGradient colors={["#0A2540", "#1B3A6B"]} style={s.sheetHead}
+            <LinearGradient colors={["#1E40AF", "#2563EB"]} style={s.sheetHead}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🚔</Text></View>
               <View style={{ flex: 1 }}>
@@ -1074,7 +1074,7 @@ function SOSScreenInner() {
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowModal(false)} />
           <View style={s.sheet}>
             <View style={s.sheetHandle} />
-            <LinearGradient colors={["#3D0000", "#7F1D1D"]} style={s.sheetHead}
+            <LinearGradient colors={["#991B1B", "#DC2626"]} style={s.sheetHead}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <View style={s.sheetHeadIcon}><Text style={{ fontSize: 28 }}>🚨</Text></View>
               <View style={{ flex: 1 }}>
@@ -1147,7 +1147,7 @@ function SOSScreenInner() {
         </Pressable>
 
         {/* ── HEADER ── */}
-        <LinearGradient colors={["#0D0000", "#1A0000", "#3D0000", "#7F1D1D"]}
+        <LinearGradient colors={["#7F1D1D", "#991B1B", "#B91C1C", "#DC2626"]}
           style={[s.header, { paddingTop: Platform.OS === "web" ? 72 : insets.top + 14 }]}>
           <View style={s.hDecor1} />
           <View style={s.hDecor2} />
@@ -1195,7 +1195,7 @@ function SOSScreenInner() {
         {/* ── LIVE BANNER (after SOS trigger) ── */}
         {triggered && (
           <View style={s.liveBanner}>
-            <LinearGradient colors={["#052E16", "#14532D"]} style={s.liveBannerInner}
+            <LinearGradient colors={["#166534", "#15803D"]} style={s.liveBannerInner}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <Animated.View style={[s.liveBannerIcon, { opacity: liveAnim }]}>
                 <Ionicons name="navigate" size={22} color="#4ADE80" />
@@ -1347,15 +1347,15 @@ function SOSScreenInner() {
           </View>
           <View style={s.helpGrid}>
             {[
-              { num: "112",  label: "Emergency",      color: "#F87171" },
-              { num: "100",  label: "Police",         color: "#60A5FA" },
-              { num: "108",  label: "Ambulance",      color: "#22C55E" },
-              { num: "101",  label: "Fire Brigade",   color: "#F59E0B" },
-              { num: "181",  label: "Women Helpline", color: "#EC4899" },
-              { num: "1091", label: "Women (Police)", color: "#A78BFA" },
-              { num: "1070", label: "Disaster",       color: "#22C55E" },
-              { num: "1033", label: "Highway",        color: "#06B6D4" },
-              { num: "1098", label: "Child Line",     color: "#F59E0B" },
+              { num: "112",  label: "Emergency",      color: "#DC2626" },
+              { num: "100",  label: "Police",         color: "#1D4ED8" },
+              { num: "108",  label: "Ambulance",      color: "#15803D" },
+              { num: "101",  label: "Fire Brigade",   color: "#B45309" },
+              { num: "181",  label: "Women Helpline", color: "#BE185D" },
+              { num: "1091", label: "Women (Police)", color: "#6D28D9" },
+              { num: "1070", label: "Disaster",       color: "#15803D" },
+              { num: "1033", label: "Highway",        color: "#0E7490" },
+              { num: "1098", label: "Child Line",     color: "#B45309" },
             ].map(item => (
               <Pressable key={item.num} onPress={() => Linking.openURL(`tel:${item.num}`)}
                 style={[s.helpChip, { borderColor: item.color + "30" }]}>
@@ -1649,7 +1649,7 @@ function SOSScreenInner() {
 
         {/* ── FOREST FIRE SOS PANEL ── */}
         <View style={[s.card, { borderColor: "#EA580C30", overflow: "hidden", padding: 0 }]}>
-          <LinearGradient colors={["#1A0800", "#2D1000"]} style={{ borderRadius: 14, padding: 16 }}
+          <LinearGradient colors={["#9A3412", "#C2410C"]} style={{ borderRadius: 14, padding: 16 }}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
               <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "#EA580C20", alignItems: "center", justifyContent: "center" }}>
@@ -1697,7 +1697,7 @@ function SOSScreenInner() {
 
         {/* ── REQUEST CPR PATROL ── */}
         <Pressable onPress={() => setShowCPRForm(true)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
-          <LinearGradient colors={["#0A2540", "#1B3A6B", "#2563EB"]} style={{ borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}
+          <LinearGradient colors={["#1E40AF", "#2563EB", "#3B82F6"]} style={{ borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" }}>
               <Text style={{ fontSize: 22 }}>🚔</Text>
@@ -1753,7 +1753,7 @@ function SOSScreenInner() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0D0A08" },
+  root: { flex: 1, backgroundColor: "#F7F3EE" },
 
   // Floating hardware Volume Up button (right edge overlay)
   volBtnFloat: {
@@ -1777,7 +1777,7 @@ const s = StyleSheet.create({
   },
   volCountText: { color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold" },
   volBtnLabel: { alignItems: "center", paddingRight: 4 },
-  volBtnLabelText: { color: "rgba(255,255,255,0.7)", fontSize: 7, fontFamily: "Inter_700Bold", lineHeight: 9 },
+  volBtnLabelText: { color: "#374151", fontSize: 7, fontFamily: "Inter_700Bold", lineHeight: 9 },
 
   // Header
   header: { paddingHorizontal: 20, paddingBottom: 18, overflow: "hidden" },
@@ -1859,7 +1859,7 @@ const s = StyleSheet.create({
 
   // Helplines
   helpGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  helpChip: { width: "30.5%", backgroundColor: Colors.bgCardAlt, borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1, gap: 3 },
+  helpChip: { width: "30.5%", backgroundColor: "#FFFFFF", borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1, gap: 3 },
   helpNum: { fontSize: 16, fontFamily: "Inter_700Bold" },
   helpLabel: { color: Colors.textMuted, fontSize: 9, fontFamily: "Inter_400Regular", textAlign: "center" },
 

@@ -169,7 +169,7 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={[cs.root, { paddingTop: insets.top }]}>
-      <LinearGradient colors={["#1A0E00", Colors.bg]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={["#FFF4E6", Colors.bg]} style={StyleSheet.absoluteFill} />
 
       <View style={cs.header}>
         <Pressable onPress={() => router.back()} style={cs.backBtn}>
@@ -267,11 +267,11 @@ export default function LeaderboardScreen() {
                 <View style={[cs.podiumAvatar, { width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: "#FFD700" }]}>
                   <Text style={[cs.podiumAvatarText, { fontSize: 22 }]}>{top3[0].name.charAt(0)}</Text>
                 </View>
-                <Ionicons name={TOP3_ICONS[0]} size={28} color="#FFD700" />
-                <Text style={[cs.podiumName, { color: "#FFD700", fontSize: 15 }]} numberOfLines={1}>{top3[0].name.split(" ")[0]}</Text>
+                <Ionicons name={TOP3_ICONS[0]} size={28} color="#A16207" />
+                <Text style={[cs.podiumName, { color: "#A16207", fontSize: 15 }]} numberOfLines={1}>{top3[0].name.split(" ")[0]}</Text>
                 <Text style={[cs.podiumPoints, { fontSize: 13 }]}>{top3[0].points.toLocaleString("en-IN")}</Text>
                 <LinearGradient colors={["#FFD70033", "#FF993322"]} style={[cs.podiumBar, { height: 80 }]}>
-                  <Text style={[cs.podiumRank, { color: "#FFD700", fontSize: 20 }]}>1</Text>
+                  <Text style={[cs.podiumRank, { color: "#A16207", fontSize: 20 }]}>1</Text>
                 </LinearGradient>
               </View>
               {top3.length >= 3 && (

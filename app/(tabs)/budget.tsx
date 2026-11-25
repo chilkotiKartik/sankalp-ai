@@ -164,7 +164,7 @@ export default function BudgetScreen() {
 
   return (
     <View style={[cs.root, { paddingTop: insets.top }]}>
-      <LinearGradient colors={["#1A0E00", Colors.bg]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={["#FFF4E6", Colors.bg]} style={StyleSheet.absoluteFill} />
 
       <View style={cs.header}>
         <Pressable onPress={() => router.back()} style={cs.backBtn}>
@@ -343,8 +343,8 @@ export default function BudgetScreen() {
                   <Text style={cs.detailDesc}>{selectedItem.description}</Text>
                   {selectedItem.sourceUrl ? (
                     <Pressable onPress={() => Linking.openURL(selectedItem.sourceUrl!)} accessibilityRole="link" style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 }}>
-                      <Ionicons name="document-text-outline" size={14} color="#60A5FA" />
-                      <Text style={{ color: "#93C5FD", fontSize: 12, fontFamily: "Inter_600SemiBold", textDecorationLine: "underline" }}>
+                      <Ionicons name="document-text-outline" size={14} color="#1D4ED8" />
+                      <Text style={{ color: "#1D4ED8", fontSize: 12, fontFamily: "Inter_600SemiBold", textDecorationLine: "underline" }}>
                         Source: {new URL(selectedItem.sourceUrl).hostname}{selectedItem.publishedBy ? ` · published by ${selectedItem.publishedBy}` : ""}
                       </Text>
                     </Pressable>

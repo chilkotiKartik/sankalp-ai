@@ -414,7 +414,7 @@ function AICityAlertCard() {
   const critical = alerts.filter((a: any) => a.severity === "critical").length;
   return (
     <View style={{ marginHorizontal: 16, marginTop: 10 }}>
-      <LinearGradient colors={["#1A0A00", "#2D1500"]} style={{ borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "#FF993344" }}>
+      <LinearGradient colors={["#FFF7ED", "#FFEDD5"]} style={{ borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "#FDBA74" }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: "#FF993322", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#FF993344" }}>
             <Text style={{ fontSize: 18 }}>🤖</Text>
