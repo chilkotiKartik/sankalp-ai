@@ -463,7 +463,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
         {/* District Overview Header */}
         <View style={{ paddingHorizontal: 16, marginBottom: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <View>
-            <Text style={{ color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" }}>District Overview</Text>
+            <Text style={{ color: Colors.textPrimary, fontSize: 15, fontFamily: "Inter_700Bold" }}>District Overview</Text>
             <Text style={{ color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>
               Tap any district to view details & assign work
             </Text>
@@ -561,7 +561,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
                       <Text style={{ fontSize: 22 }}>🏛️</Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: "#fff", fontSize: 18, fontFamily: "Inter_700Bold" }}>{selectedDistrict.district}</Text>
+                      <Text style={{ color: Colors.textPrimary, fontSize: 18, fontFamily: "Inter_700Bold" }}>{selectedDistrict.district}</Text>
                       <Text style={{ color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>
                         District Administration · {stateName()}
                       </Text>
@@ -672,7 +672,7 @@ function SuperAdminView({ user, token, logout }: { user: any; token: string | nu
                 <Ionicons name="radio-outline" size={24} color="#B91C1C" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" }}>State Emergency Broadcast</Text>
+                <Text style={{ color: Colors.textPrimary, fontSize: 16, fontFamily: "Inter_700Bold" }}>State Emergency Broadcast</Text>
                 <Text style={{ color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 }}>
                   Alerts all {districtPhrase()} simultaneously
                 </Text>
